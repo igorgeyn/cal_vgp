@@ -1,0 +1,809 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>California Ballot Measures Guide</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f5f7fa;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            text-align: center;
+        }
+
+        header p {
+            text-align: center;
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .search-section {
+            background: white;
+            padding: 2rem 0;
+            border-bottom: 1px solid #e1e8ed;
+        }
+
+        .search-container {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .search-input {
+            flex: 1;
+            min-width: 300px;
+            padding: 12px 16px;
+            border: 2px solid #e1e8ed;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .filter-select {
+            padding: 12px 16px;
+            border: 2px solid #e1e8ed;
+            border-radius: 8px;
+            font-size: 16px;
+            background: white;
+            cursor: pointer;
+        }
+
+        .search-btn {
+            padding: 12px 24px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .search-btn:hover {
+            background: #5a67d8;
+        }
+
+        .stats-bar {
+            background: white;
+            padding: 1rem 0;
+            border-bottom: 1px solid #e1e8ed;
+        }
+
+        .stats-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: #f8fafc;
+            border-radius: 6px;
+        }
+
+        .stat-number {
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        main {
+            padding: 2rem 0;
+        }
+
+        .measures-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 1.5rem;
+            margin-top: 1rem;
+        }
+
+        .measure-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            border-left: 4px solid #667eea;
+        }
+
+        .measure-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+        }
+
+        .measure-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1rem;
+        }
+
+        .measure-number {
+            background: #667eea;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+
+        .measure-type {
+            background: #e2e8f0;
+            color: #4a5568;
+            padding: 0.25rem 0.75rem;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .measure-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 0.75rem;
+            color: #2d3748;
+        }
+
+        .measure-summary {
+            color: #4a5568;
+            margin-bottom: 1rem;
+            line-height: 1.5;
+        }
+
+        .measure-status {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: 1rem;
+            border-top: 1px solid #e2e8f0;
+        }
+
+        .status-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+        .status-active {
+            background: #c6f6d5;
+            color: #22543d;
+        }
+
+        .read-more {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.2s ease;
+        }
+
+        .read-more:hover {
+            color: #5a67d8;
+            text-decoration: underline;
+        }
+
+        .loading-state {
+            text-align: center;
+            padding: 3rem 0;
+            color: #718096;
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            border: 4px solid #e2e8f0;
+            border-radius: 50%;
+            border-top-color: #667eea;
+            animation: spin 1s ease-in-out infinite;
+            margin-bottom: 1rem;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        footer {
+            background: #2d3748;
+            color: white;
+            text-align: center;
+            padding: 2rem 0;
+            margin-top: 3rem;
+        }
+
+        @media (max-width: 768px) {
+            header h1 {
+                font-size: 2rem;
+            }
+
+            .search-container {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .search-input {
+                min-width: unset;
+            }
+
+            .stats-container {
+                flex-direction: column;
+                text-align: center;
+            }
+
+            .measures-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>California Ballot Measures Guide</h1>
+            <p>Stay informed about ballot measures that shape California's future</p>
+        </div>
+    </header>
+
+    <section class="search-section">
+        <div class="container">
+            <div class="search-container">
+                <input type="text" class="search-input" placeholder="Search ballot measures by title, number, or topic...">
+                <select class="filter-select">
+                    <option value="">All Elections</option>
+                    <option value="2024">2024 Election</option>
+                    <option value="2022">2022 Election</option>
+                    <option value="2020">2020 Election</option>
+                </select>
+                <select class="filter-select">
+                    <option value="">All Types</option>
+                    <option value="constitutional">Constitutional Amendment</option>
+                    <option value="bond">Bond Measure</option>
+                    <option value="initiative">Initiative</option>
+                    <option value="referendum">Referendum</option>
+                </select>
+                <button class="search-btn">Search</button>
+            </div>
+        </div>
+    </section>
+
+    <section class="stats-bar">
+        <div class="container">
+            <div class="stats-container">
+                <div class="stat-item">
+                    <span class="stat-number">33</span>
+                    <span>Total Measures</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number">156</span>
+                    <span>Total Archived</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number">Last Updated:</span>
+                    <span id="last-updated">June 26, 2025</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <main>
+        <div class="container">
+            
+    <style>
+    .year-section {
+        margin-bottom: 2rem;
+    }
+    
+    .year-header {
+        font-size: 1.8rem;
+        color: #667eea;
+        margin-bottom: 1rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 2px solid #e2e8f0;
+    }
+    
+    .year-measures {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+        gap: 1rem;
+    }
+    
+    .measure-card-small {
+        background: white;
+        border-radius: 8px;
+        padding: 1rem;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+        border-left: 3px solid #667eea;
+        transition: transform 0.2s ease;
+    }
+    
+    .measure-card-small:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    }
+    
+    .measure-header-small {
+        margin-bottom: 0.5rem;
+    }
+    
+    .measure-source {
+        background: #f7fafc;
+        color: #4a5568;
+        padding: 0.2rem 0.5rem;
+        border-radius: 3px;
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .measure-title-small {
+        font-size: 0.9rem;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        color: #2d3748;
+        line-height: 1.3;
+    }
+    
+    .measure-status-small {
+        text-align: right;
+    }
+    
+    .read-more-small {
+        color: #667eea;
+        text-decoration: none;
+        font-size: 0.8rem;
+        font-weight: 500;
+    }
+    
+    .read-more-small:hover {
+        text-decoration: underline;
+    }
+    </style>
+            <div class="measures-container-new" id="measures-container">
+        <div class="year-section">
+            <h2 class="year-header">Unknown</h2>
+            <div class="year-measures">
+                <div class="measure-card-small">
+                    <div class="measure-header-small">
+                        <span class="measure-source">UC Law SF</span>
+                    </div>
+                    <h4 class="measure-title-small">Proposition Item 14: Voter Information Guide for 2020, Primary Election</h4>
+                    <div class="measure-status-small">
+                        <a href="https://repository.uclawsf.edu/ca_ballot_props/1379" class="read-more-small" target="_blank">View →</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="year-section">
+            <h2 class="year-header">2026</h2>
+            <div class="year-measures">
+                <div class="measure-card-small">
+                    <div class="measure-header-small">
+                        <span class="measure-source">CA SOS</span>
+                    </div>
+                    <h4 class="measure-title-small">ACA 13 (Ward) Voting thresholds. (Res. Ch. 176, 2023)</h4>
+                    <div class="measure-status-small">
+                        <a href="https://elections.cdn.sos.ca.gov/ballot-measures/pdf/aca-13.pdf" class="read-more-small" target="_blank">View →</a>
+                    </div>
+                </div>
+                <div class="measure-card-small">
+                    <div class="measure-header-small">
+                        <span class="measure-source">CA SOS</span>
+                    </div>
+                    <h4 class="measure-title-small">SCA 1 (Newman) Elections: recall of state officers. (Res. Ch. 204, 2024)</h4>
+                    <div class="measure-status-small">
+                        <a href="https://elections.cdn.sos.ca.gov/ballot-measures/pdf/sca-1-24.pdf" class="read-more-small" target="_blank">View →</a>
+                    </div>
+                </div>
+                <div class="measure-card-small">
+                    <div class="measure-header-small">
+                        <span class="measure-source">CA SOS</span>
+                    </div>
+                    <h4 class="measure-title-small">Assembly Bill 440, Chapter 82, Statutes of 2024</h4>
+                    <div class="measure-status-small">
+                        <a href="https://elections.cdn.sos.ca.gov/ballot-measures/pdf/ab440.pdf" class="read-more-small" target="_blank">View →</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="year-section">
+            <h2 class="year-header">2020</h2>
+            <div class="year-measures">
+                <div class="measure-card-small">
+                    <div class="measure-header-small">
+                        <span class="measure-source">UC Law SF</span>
+                    </div>
+                    <h4 class="measure-title-small">Proposition Item 1: ALLOWS DIVERSITY AS A FACTOR IN PUBLIC EMPLOYMENT, EDUCATION...</h4>
+                    <div class="measure-status-small">
+                        <a href="https://repository.uclawsf.edu/ca_ballot_props/1383" class="read-more-small" target="_blank">View →</a>
+                    </div>
+                </div>
+                <div class="measure-card-small">
+                    <div class="measure-header-small">
+                        <span class="measure-source">UC Law SF</span>
+                    </div>
+                    <h4 class="measure-title-small">Proposition Item 2: AMENDS CALIFORNIA CONSTITUTION TO PERMIT 17-YEAR-OLDS TO VOT...</h4>
+                    <div class="measure-status-small">
+                        <a href="https://repository.uclawsf.edu/ca_ballot_props/1387" class="read-more-small" target="_blank">View →</a>
+                    </div>
+                </div>
+                <div class="measure-card-small">
+                    <div class="measure-header-small">
+                        <span class="measure-source">UC Law SF</span>
+                    </div>
+                    <h4 class="measure-title-small">Proposition Item 3: AMENDS CONSUMER PRIVACY LAWS. INITIATIVE STATUTE</h4>
+                    <div class="measure-status-small">
+                        <a href="https://repository.uclawsf.edu/ca_ballot_props/1389" class="read-more-small" target="_blank">View →</a>
+                    </div>
+                </div>
+                <div class="measure-card-small">
+                    <div class="measure-header-small">
+                        <span class="measure-source">UC Law SF</span>
+                    </div>
+                    <h4 class="measure-title-small">Proposition Item 4: AUTHORIZES BONDS FOR FACILITY REPAIR, CONSTRUCTION, AND MODE...</h4>
+                    <div class="measure-status-small">
+                        <a href="https://repository.uclawsf.edu/ca_ballot_props/1380" class="read-more-small" target="_blank">View →</a>
+                    </div>
+                </div>
+                <div class="measure-card-small">
+                    <div class="measure-header-small">
+                        <span class="measure-source">UC Law SF</span>
+                    </div>
+                    <h4 class="measure-title-small">Proposition Item 5: AUTHORIZES BONDS TO CONTINUE FUNDING STEM CELL AND OTHER MED...</h4>
+                    <div class="measure-status-small">
+                        <a href="https://repository.uclawsf.edu/ca_ballot_props/1381" class="read-more-small" target="_blank">View →</a>
+                    </div>
+                </div>
+                <div class="measure-card-small">
+                    <div class="measure-header-small">
+                        <span class="measure-source">UC Law SF</span>
+                    </div>
+                    <h4 class="measure-title-small">Proposition Item 6: CHANGES CERTAIN PROPERTY TAX RULES. LEGISLATIVE CONSTITUTION...</h4>
+                    <div class="measure-status-small">
+                        <a href="https://repository.uclawsf.edu/ca_ballot_props/1386" class="read-more-small" target="_blank">View →</a>
+                    </div>
+                </div>
+                <div class="measure-card-small">
+                    <div class="measure-header-small">
+                        <span class="measure-source">UC Law SF</span>
+                    </div>
+                    <h4 class="measure-title-small">Proposition Item 7: ESTABLISHES STATE REQUIREMENTS FOR KIDNEY DIALYSIS CLINICS. ...</h4>
+                    <div class="measure-status-small">
+                        <a href="https://repository.uclawsf.edu/ca_ballot_props/1390" class="read-more-small" target="_blank">View →</a>
+                    </div>
+                </div>
+                <div class="measure-card-small">
+                    <div class="measure-header-small">
+                        <span class="measure-source">UC Law SF</span>
+                    </div>
+                    <h4 class="measure-title-small">Proposition Item 8: EXEMPTS APP-BASED TRANSPORTATION AND DELIVERY COMPANIES FROM...</h4>
+                    <div class="measure-status-small">
+                        <a href="https://repository.uclawsf.edu/ca_ballot_props/1391" class="read-more-small" target="_blank">View →</a>
+                    </div>
+                </div>
+                <div class="measure-card-small">
+                    <div class="measure-header-small">
+                        <span class="measure-source">UC Law SF</span>
+                    </div>
+                    <h4 class="measure-title-small">Proposition Item 9: EXPANDS LOCAL GOVERNMENTS' AUTHORITY TO ENACT RENT CONTROL O...</h4>
+                    <div class="measure-status-small">
+                        <a href="https://repository.uclawsf.edu/ca_ballot_props/1392" class="read-more-small" target="_blank">View →</a>
+                    </div>
+                </div>
+                <div class="measure-card-small">
+                    <div class="measure-header-small">
+                        <span class="measure-source">UC Law SF</span>
+                    </div>
+                    <h4 class="measure-title-small">Proposition Item 10: INCREASES FUNDING SOURCES FOR PUBLIC SCHOOLS, COMMUNITY COL...</h4>
+                    <div class="measure-status-small">
+                        <a href="https://repository.uclawsf.edu/ca_ballot_props/1384" class="read-more-small" target="_blank">View →</a>
+                    </div>
+                </div>
+                <div class="measure-card-small">
+                    <div class="measure-header-small">
+                        <span class="measure-source">UC Law SF</span>
+                    </div>
+                    <h4 class="measure-title-small">Proposition Item 11: REFERENDUM ON LAW THAT REPLACED MONEY BAIL WITH SYSTEM BASE...</h4>
+                    <div class="measure-status-small">
+                        <a href="https://repository.uclawsf.edu/ca_ballot_props/1388" class="read-more-small" target="_blank">View →</a>
+                    </div>
+                </div>
+                <div class="measure-card-small">
+                    <div class="measure-header-small">
+                        <span class="measure-source">UC Law SF</span>
+                    </div>
+                    <h4 class="measure-title-small">Proposition Item 12: RESTORES RIGHT TO VOTE AFTER COMPLETION OF PRISON TERM. LEG...</h4>
+                    <div class="measure-status-small">
+                        <a href="https://repository.uclawsf.edu/ca_ballot_props/1382" class="read-more-small" target="_blank">View →</a>
+                    </div>
+                </div>
+                <div class="measure-card-small">
+                    <div class="measure-header-small">
+                        <span class="measure-source">UC Law SF</span>
+                    </div>
+                    <h4 class="measure-title-small">Proposition Item 13: RESTRICTS PAROLE FOR CERTAIN OFFENSES CURRENTLY CONSIDERED ...</h4>
+                    <div class="measure-status-small">
+                        <a href="https://repository.uclawsf.edu/ca_ballot_props/1385" class="read-more-small" target="_blank">View →</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="year-section">
+            <h2 class="year-header">2018</h2>
+            <div class="year-measures">
+                <div class="measure-card-small">
+                    <div class="measure-header-small">
+                        <span class="measure-source">UC Law SF</span>
+                    </div>
+                    <h4 class="measure-title-small">Proposition Item 15: Authorizes Bonds Funding Construction at Hospitals Providin...</h4>
+                    <div class="measure-status-small">
+                        <a href="https://repository.uclawsf.edu/ca_ballot_props/1370" class="read-more-small" target="_blank">View →</a>
+                    </div>
+                </div>
+                <div class="measure-card-small">
+                    <div class="measure-header-small">
+                        <span class="measure-source">UC Law SF</span>
+                    </div>
+                    <h4 class="measure-title-small">Proposition Item 16: AUTHORIZES BONDS FUNDING PARKS, NATURAL RESOURCES PROTECTIO...</h4>
+                    <div class="measure-status-small">
+                        <a href="https://repository.uclawsf.edu/ca_ballot_props/1362" class="read-more-small" target="_blank">View →</a>
+                    </div>
+                </div>
+                <div class="measure-card-small">
+                    <div class="measure-header-small">
+                        <span class="measure-source">UC Law SF</span>
+                    </div>
+                    <h4 class="measure-title-small">Proposition Item 17: Authorizes Bonds to Fund Existing Housing Program for Indiv...</h4>
+                    <div class="measure-status-small">
+                        <a href="https://repository.uclawsf.edu/ca_ballot_props/1368" class="read-more-small" target="_blank">View →</a>
+                    </div>
+                </div>
+                <div class="measure-card-small">
+                    <div class="measure-header-small">
+                        <span class="measure-source">UC Law SF</span>
+                    </div>
+                    <h4 class="measure-title-small">Proposition Item 18: Authorizes Bonds to Fund Projects for Water Supply and Qual...</h4>
+                    <div class="measure-status-small">
+                        <a href="https://repository.uclawsf.edu/ca_ballot_props/1369" class="read-more-small" target="_blank">View →</a>
+                    </div>
+                </div>
+                <div class="measure-card-small">
+                    <div class="measure-header-small">
+                        <span class="measure-source">UC Law SF</span>
+                    </div>
+                    <h4 class="measure-title-small">Proposition Item 19: Authorizes Bonds to Fund Specified Housing Assistance Progr...</h4>
+                    <div class="measure-status-small">
+                        <a href="https://repository.uclawsf.edu/ca_ballot_props/1367" class="read-more-small" target="_blank">View →</a>
+                    </div>
+                </div>
+                <div class="measure-card-small">
+                    <div class="measure-header-small">
+                        <span class="measure-source">UC Law SF</span>
+                    </div>
+                    <h4 class="measure-title-small">Proposition Item 20: Changes Requirements for Certain Property Owners to Transfe...</h4>
+                    <div class="measure-status-small">
+                        <a href="https://repository.uclawsf.edu/ca_ballot_props/1371" class="read-more-small" target="_blank">View →</a>
+                    </div>
+                </div>
+                <div class="measure-card-small">
+                    <div class="measure-header-small">
+                        <span class="measure-source">UC Law SF</span>
+                    </div>
+                    <h4 class="measure-title-small">Proposition Item 21: Conforms California Daylight Saving Time to Federal Law. Al...</h4>
+                    <div class="measure-status-small">
+                        <a href="https://repository.uclawsf.edu/ca_ballot_props/1373" class="read-more-small" target="_blank">View →</a>
+                    </div>
+                </div>
+                <div class="measure-card-small">
+                    <div class="measure-header-small">
+                        <span class="measure-source">UC Law SF</span>
+                    </div>
+                    <h4 class="measure-title-small">Proposition Item 22: Eliminates Certain Road Repair and Transportation Funding. ...</h4>
+                    <div class="measure-status-small">
+                        <a href="https://repository.uclawsf.edu/ca_ballot_props/1372" class="read-more-small" target="_blank">View →</a>
+                    </div>
+                </div>
+                <div class="measure-card-small">
+                    <div class="measure-header-small">
+                        <span class="measure-source">UC Law SF</span>
+                    </div>
+                    <h4 class="measure-title-small">Proposition Item 23: Establishes New Standards for Confinement of Specified Farm...</h4>
+                    <div class="measure-status-small">
+                        <a href="https://repository.uclawsf.edu/ca_ballot_props/1377" class="read-more-small" target="_blank">View →</a>
+                    </div>
+                </div>
+                <div class="measure-card-small">
+                    <div class="measure-header-small">
+                        <span class="measure-source">UC Law SF</span>
+                    </div>
+                    <h4 class="measure-title-small">Proposition Item 24: Expands Local Governments’ Authority to Enact Rent Control ...</h4>
+                    <div class="measure-status-small">
+                        <a href="https://repository.uclawsf.edu/ca_ballot_props/1375" class="read-more-small" target="_blank">View →</a>
+                    </div>
+                </div>
+                <div class="measure-card-small">
+                    <div class="measure-header-small">
+                        <span class="measure-source">UC Law SF</span>
+                    </div>
+                    <h4 class="measure-title-small">Proposition Item 25: PERMITS LEGISLATURE TO EXCLUDE NEWLY CONSTRUCTED RAIN-CAPTU...</h4>
+                    <div class="measure-status-small">
+                        <a href="https://repository.uclawsf.edu/ca_ballot_props/1363" class="read-more-small" target="_blank">View →</a>
+                    </div>
+                </div>
+                <div class="measure-card-small">
+                    <div class="measure-header-small">
+                        <span class="measure-source">UC Law SF</span>
+                    </div>
+                    <h4 class="measure-title-small">Proposition Item 26: Regulates Amounts Outpatient Kidney Dialysis Clinics Charge...</h4>
+                    <div class="measure-status-small">
+                        <a href="https://repository.uclawsf.edu/ca_ballot_props/1374" class="read-more-small" target="_blank">View →</a>
+                    </div>
+                </div>
+                <div class="measure-card-small">
+                    <div class="measure-header-small">
+                        <span class="measure-source">UC Law SF</span>
+                    </div>
+                    <h4 class="measure-title-small">Proposition Item 27: REQUIRES LEGISLATIVE SUPERMAJORITY VOTE APPROVING USE OF CA...</h4>
+                    <div class="measure-status-small">
+                        <a href="https://repository.uclawsf.edu/ca_ballot_props/1365" class="read-more-small" target="_blank">View →</a>
+                    </div>
+                </div>
+                <div class="measure-card-small">
+                    <div class="measure-header-small">
+                        <span class="measure-source">UC Law SF</span>
+                    </div>
+                    <h4 class="measure-title-small">Proposition Item 28: Requires Private-Sector Emergency Ambulance Employees to Re...</h4>
+                    <div class="measure-status-small">
+                        <a href="https://repository.uclawsf.edu/ca_ballot_props/1376" class="read-more-small" target="_blank">View →</a>
+                    </div>
+                </div>
+                <div class="measure-card-small">
+                    <div class="measure-header-small">
+                        <span class="measure-source">UC Law SF</span>
+                    </div>
+                    <h4 class="measure-title-small">Proposition Item 29: REQUIRES THAT CERTAIN NEW TRANSPORTATION REVENUES BE USED F...</h4>
+                    <div class="measure-status-small">
+                        <a href="https://repository.uclawsf.edu/ca_ballot_props/1366" class="read-more-small" target="_blank">View →</a>
+                    </div>
+                </div>
+                <div class="measure-card-small">
+                    <div class="measure-header-small">
+                        <span class="measure-source">UC Law SF</span>
+                    </div>
+                    <h4 class="measure-title-small">Proposition Item 30: SETS EFFECTIVE DATE FOR BALLOT MEASURES. LEGISLATIVE CONSTI...</h4>
+                    <div class="measure-status-small">
+                        <a href="https://repository.uclawsf.edu/ca_ballot_props/1364" class="read-more-small" target="_blank">View →</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+            </div>
+
+            <!-- Loading state (hidden by default) -->
+            <div class="loading-state" id="loading-state" style="display: none;">
+                <div class="loading-spinner"></div>
+                <p>Loading ballot measures...</p>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2025 California Ballot Measures Guide. Data sourced from official state records.</p>
+            <p>This is a non-partisan resource for voter education.</p>
+        </div>
+    </footer>
+
+    <script>
+        // Basic functionality for the search and filter
+        document.addEventListener('DOMContentLoaded', function() {
+            const searchBtn = document.querySelector('.search-btn');
+            const searchInput = document.querySelector('.search-input');
+            const measuresContainer = document.getElementById('measures-container');
+            const loadingState = document.getElementById('loading-state');
+
+            // Simulate search functionality
+            searchBtn.addEventListener('click', function() {
+                performSearch();
+            });
+
+            searchInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    performSearch();
+                }
+            });
+
+            function performSearch() {
+                // Show loading state
+                measuresContainer.style.display = 'none';
+                loadingState.style.display = 'block';
+
+                // Simulate API call delay
+                setTimeout(() => {
+                    loadingState.style.display = 'none';
+                    measuresContainer.style.display = 'grid';
+                    
+                    // Here you would integrate with your scraping/API logic
+                    console.log('Search performed for:', searchInput.value);
+                }, 1500);
+            }
+
+            // Add click handlers for measure cards
+            document.querySelectorAll('.measure-card').forEach(card => {
+                card.addEventListener('click', function(e) {
+                    if (!e.target.classList.contains('read-more')) {
+                        // Handle card click - could expand details or navigate
+                        console.log('Measure card clicked');
+                    }
+                });
+            });
+
+            // Update last updated timestamp
+            document.getElementById('last-updated').textContent = new Date().toLocaleDateString();
+        });
+
+        // Function to add new measures (for when you integrate scraping)
+        function addMeasure(measureData) {
+            const measuresContainer = document.getElementById('measures-container');
+            const measureCard = document.createElement('div');
+            measureCard.className = 'measure-card';
+            
+            measureCard.innerHTML = `
+                <div class="measure-header">
+                    <span class="measure-number">${measureData.number}</span>
+                    <span class="measure-type">${measureData.type}</span>
+                </div>
+                <h3 class="measure-title">${measureData.title}</h3>
+                <p class="measure-summary">${measureData.summary}</p>
+                <div class="measure-status">
+                    <span class="status-badge status-active">${measureData.status}</span>
+                    <a href="#" class="read-more">Read Full Details →</a>
+                </div>
+            `;
+            
+            measuresContainer.appendChild(measureCard);
+        }
+
+        // Function to clear measures
+        function clearMeasures() {
+            document.getElementById('measures-container').innerHTML = '';
+        }
+    </script>
+</body>
+</html>
