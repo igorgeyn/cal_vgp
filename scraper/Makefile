@@ -23,9 +23,12 @@ format:
 	poetry run black src/ tests/
 	poetry run isort src/ tests/
 
+# run-cli:
+# 	@echo "💻 Starting CLI..."
+# 	poetry run python -m ca_gov_scrapers.interfaces.cli
+
 run-cli:
-	@echo "💻 Starting CLI..."
-	poetry run python -m ca_gov_scrapers.interfaces.cli
+	poetry run python -m ca_gov_scrapers.interfaces.cli $(ARGS)
 
 run-gui:
 	@echo "🌐 Starting web interface..."

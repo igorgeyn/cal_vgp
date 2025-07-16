@@ -2,15 +2,15 @@
 name = "ca-gov-scrapers"
 version = "0.1.0"
 description = "California Government Ballot Measures Scraper Suite"
-authors = ["Your Name <your.email@example.com>"]
+authors = ["Igor Geyn <igorgeyn@gmail.com>"]
 packages = [{include = "ca_gov_scrapers", from = "src"}]
 
 [tool.poetry.dependencies]
-python = "^3.9"
+python = ">=3.9, !=3.9.7, <3.13"
 requests = "^2.31.0"
 beautifulsoup4 = "^4.12.0"
 click = "^8.1.0"
-streamlit = "^1.28.0"
+streamlit = "^1.40.0"
 fastapi = "^0.104.0"
 uvicorn = "^0.24.0"
 pandas = "^2.1.0"
