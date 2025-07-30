@@ -1,0 +1,17 @@
+California Ballot Measures Database
+========================================
+
+SQLite Database: data/ballot_measures.db
+
+Connection Examples:
+--------------------
+Python:
+  import sqlite3
+  conn = sqlite3.connect('data/ballot_measures.db')
+
+R:
+  library(DBI)
+  con <- dbConnect(RSQLite::SQLite(), 'data/ballot_measures.db')
+
+Command line:
+  sqlite3 data/ballot_measures.db
