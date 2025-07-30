@@ -1,0 +1,12 @@
+California Ballot Measures - Merged Dataset Summary
+==================================================
+
+Generated: 2025-07-30 10:15
+
+Total Measures: 1261
+Year Range: 2018 - 2026
+Data Sources: CA_SOS_Scraper, ICPSR
+
+Measures by Decade:
+  2010s: 6
+  2020s: 16
