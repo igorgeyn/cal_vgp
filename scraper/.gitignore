@@ -57,3 +57,36 @@ htmlcov/
 
 # Jupyter
 .ipynb_checkpoints
+
+# Database files
+data/*.db
+data/*.db.*
+data/*backup*.db
+
+# Large generated files
+data/enhanced_measures.json
+data/ceda_combined.csv
+data/merged_ballot_measures.json
+data/merged_ballot_measures.csv
+
+# Keep only small essential data files
+!data/.gitkeep
+
+# Database backups
+data/*.db.backup
+data/*.db.*backup*
+
+# Downloaded data files  
+data/downloaded/*.xls
+data/downloaded/*.xlsx
+data/downloaded/*.csv
+
+# Generated HTML files with embedded data
+auto_enhanced_ballot_measures.html
+clean_ballot_measures.html
+ascii_ballot_measures.html
+
+# Large data files
+data/enhanced_measures.json
+data/ceda_combined.csv
+data/ballot_measures.db
