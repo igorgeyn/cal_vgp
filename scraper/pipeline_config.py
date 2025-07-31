@@ -85,7 +85,7 @@ PATHS_CONFIG = {
     'enhanced_json': 'data/enhanced_measures.json',
     'enhanced_csv': 'data/enhanced_measures.csv',
     'basic_json': 'data/all_measures.json',
-    'website_output': 'enhanced_ballot_measures_final.html'
+    'website_output': 'index.html'
 }
 
 # EXTERNAL SERVICES CONFIGURATION

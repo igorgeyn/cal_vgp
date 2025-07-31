@@ -1,0 +1,38 @@
+# California Ballot Measures Scraper Requirements
+# Core dependencies for all scripts
+
+# Web scraping
+requests>=2.31.0
+beautifulsoup4>=4.12.0
+lxml>=4.9.0
+
+# Data processing
+pandas>=2.1.0
+numpy>=1.24.0
+
+# Database
+# sqlite3 is included with Python
+
+# API Framework
+fastapi>=0.104.0
+uvicorn>=0.24.0
+pydantic>=2.4.0
+
+# Web interface (optional, for Streamlit GUI)
+streamlit>=1.28.0
+
+# Visualization (for analysis)
+matplotlib>=3.7.0
+seaborn>=0.12.0
+plotly>=5.17.0
+
+# Utilities
+python-dotenv>=1.0.0
+pyyaml>=6.0
+click>=8.1.0
+
+# Development tools (optional)
+pytest>=7.4.0
+black>=23.9.0
+flake8>=6.1.0
+isort>=5.12.0

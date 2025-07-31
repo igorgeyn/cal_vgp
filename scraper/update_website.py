@@ -172,7 +172,9 @@ def update_html_with_data(scraper_data):
     updated_html = re.sub(stats_pattern, stats_replacement, updated_html)
     
     # Write updated HTML
-    output_file = Path('updated_ballot_measures.html')
+    from pathlib import Path
+    ROOT = Path(__file__).resolve().parent.parent  # one level up from scraper/
+    output_file = ROOT / 'index.html'
     output_file.write_text(updated_html)
     print(f"📄 Updated website: {output_file}")
 

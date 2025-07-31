@@ -1,45 +1,121 @@
 #!/usr/bin/env python3
 """
-Enhanced Website Generator 
+Generate Static Website from Ballot Measures Data
 Modern redesign with faceted navigation and progressive disclosure
 """
 
 import json
-import re
+import sqlite3
 from pathlib import Path
+from datetime import datetime
 from collections import defaultdict, Counter
+import re
 
-def update_html_with_auto_summaries(scraper_data):
-    """Generate website using modern faceted navigation design"""
+def load_data_from_json():
+    """Load data from JSON files (original workflow)"""
+    data_files = [
+        'data/enhanced_measures.json',
+        'data/all_measures.json'
+    ]
     
-    # Extract data
-    measures = scraper_data.get('measures', [])
-    total_summaries = scraper_data.get('measures_with_summaries', 0)
-    measures_with_votes = sum(1 for m in measures if m.get('yes_votes') is not None)
-    total_measures = scraper_data.get('total_measures', len(measures))
+    for file_path in data_files:
+        if Path(file_path).exists():
+            print(f"📄 Loading data from {file_path}")
+            with open(file_path, 'r') as f:
+                return json.load(f)
     
-    # Calculate statistics
-    stats = {
-        'total_measures': total_measures,
-        'with_summaries': total_summaries,
-        'with_votes': measures_with_votes,
-        'passed': sum(1 for m in measures if m.get('passed') == 1),
-        'failed': sum(1 for m in measures if m.get('passed') == 0)
+    print("❌ No JSON data found")
+    return None
+
+def load_data_from_database():
+    """Load data from SQLite database (new workflow)"""
+    db_path = 'data/ballot_measures.db'
+    
+    if not Path(db_path).exists():
+        return None
+    
+    print(f"📊 Loading data from {db_path}")
+    
+    conn = sqlite3.connect(db_path)
+    conn.row_factory = sqlite3.Row
+    
+    # Get all measures
+    cursor = conn.execute("""
+        SELECT * FROM measures 
+        ORDER BY year DESC, title ASC
+    """)
+    measures = [dict(row) for row in cursor]
+    
+    # Get statistics
+    stats = {}
+    cursor = conn.execute("SELECT COUNT(*) as total FROM measures")
+    stats['total_measures'] = cursor.fetchone()['total']
+    
+    cursor = conn.execute("SELECT MIN(year) as min_year, MAX(year) as max_year FROM measures WHERE year IS NOT NULL")
+    row = cursor.fetchone()
+    stats['year_min'] = row['min_year']
+    stats['year_max'] = row['max_year']
+    
+    cursor = conn.execute("""
+        SELECT 
+            COUNT(CASE WHEN passed = 1 THEN 1 END) as passed,
+            COUNT(CASE WHEN passed = 0 THEN 1 END) as failed
+        FROM measures
+    """)
+    row = cursor.fetchone()
+    stats['passed'] = row['passed']
+    stats['failed'] = row['failed']
+    
+    cursor = conn.execute("SELECT COUNT(*) as count FROM measures WHERE has_summary = 1")
+    stats['with_summaries'] = cursor.fetchone()['count']
+    
+    # Get topics with counts
+    cursor = conn.execute("""
+        SELECT topic_primary as topic, COUNT(*) as count
+        FROM measures
+        WHERE topic_primary IS NOT NULL
+        GROUP BY topic_primary
+        ORDER BY count DESC
+        LIMIT 20
+    """)
+    topics = [{'topic': row['topic'], 'count': row['count']} for row in cursor]
+    
+    conn.close()
+    
+    return {
+        'measures': measures,
+        'statistics': stats,
+        'topics': topics
     }
+
+def generate_static_html(data):
+    """Generate modern UI with faceted navigation"""
     
-    # Get year range
-    years = [m.get('year') for m in measures if m.get('year') and str(m['year']).isdigit()]
-    numeric_years = [int(y) for y in years if int(y) > 1900 and int(y) < 2100]
-    stats['year_min'] = min(numeric_years) if numeric_years else 1902
-    stats['year_max'] = max(numeric_years) if numeric_years else 2026
-    
-    # Extract topics
-    topic_counts = Counter()
-    for measure in measures:
-        topic = measure.get('topic_primary') or measure.get('topic')
-        if topic:
-            topic_counts[topic] += 1
-    topics = [{'topic': t, 'count': c} for t, c in topic_counts.most_common(20)]
+    # Process data
+    if 'statistics' in data:
+        measures = data['measures']
+        stats = data['statistics']
+        topics = data.get('topics', [])
+    else:
+        measures = data.get('measures', [])
+        
+        # Calculate statistics
+        stats = {
+            'total_measures': len(measures),
+            'year_min': 1902,
+            'year_max': 2026,
+            'passed': sum(1 for m in measures if m.get('passed') == 1),
+            'failed': sum(1 for m in measures if m.get('passed') == 0),
+            'with_summaries': sum(1 for m in measures if m.get('has_summary'))
+        }
+        
+        # Extract topics
+        topic_counts = Counter()
+        for measure in measures:
+            topic = measure.get('topic_primary') or measure.get('topic')
+            if topic:
+                topic_counts[topic] += 1
+        topics = [{'topic': t, 'count': c} for t, c in topic_counts.most_common(20)]
     
     # Convert to JSON for embedding
     measures_json = json.dumps(measures, default=str)
@@ -50,7 +126,7 @@ def update_html_with_auto_summaries(scraper_data):
     pass_rate = round((stats['passed'] / total_with_outcome * 100)) if total_with_outcome > 0 else 0
     
     # Generate modern HTML
-    html = f'''<!DOCTYPE html>
+    html = f"""<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -739,7 +815,7 @@ def update_html_with_auto_summaries(scraper_data):
                         </div>
                         <div class="filter-option" onclick="toggleFilter('features', 'votes')">
                             <span class="filter-option-label">Has Vote Data</span>
-                            <span class="filter-option-count">{stats['with_votes']}</span>
+                            <span class="filter-option-count">{sum(1 for m in measures if m.get('yes_votes') is not None)}</span>
                         </div>
                     </div>
                 </div>
@@ -839,7 +915,7 @@ def update_html_with_auto_summaries(scraper_data):
         function initializeTopicTags() {{
             const container = document.getElementById('topicTags');
             container.innerHTML = topics.slice(0, 12).map(topic => `
-                <div class="topic-tag" onclick="toggleTopic('${{topic.topic.replace(/'/g, "\\\\'")}}')">
+                <div class="topic-tag" onclick="toggleTopic('${{topic.topic.replace(/'/g, "\\'")}}')">
                     ${{topic.topic}} (${{topic.count}})
                 </div>
             `).join('');
@@ -1200,48 +1276,54 @@ def update_html_with_auto_summaries(scraper_data):
         }}
     </script>
 </body>
-</html>'''
+</html>"""
     
-    # Write to output file
-    output_file = Path('auto_enhanced_ballot_measures.html')
-    output_file.write_text(html)
-    print(f"📄 Modern website saved: {output_file}")
+    return html
 
-def run_auto_enhanced_update():
-    """Use enhanced scraper data to create website with modern design"""
-    enhanced_data_file = Path('data/enhanced_measures.json')
-    fallback_data_file = Path('data/all_measures.json')
+def main():
+    """Generate static website from available data"""
+    print("🌐 Generating Modern Faceted Navigation Website")
+    print("=" * 50)
     
-    try:
-        if enhanced_data_file.exists():
-            print("📊 Using enhanced data with summaries...")
-            with open(enhanced_data_file, 'r') as f:
-                data = json.load(f)
-        elif fallback_data_file.exists():
-            print("📊 Using basic scraped data (no summaries)...")
-            with open(fallback_data_file, 'r') as f:
-                data = json.load(f)
-            # Add empty summary fields for compatibility
-            for measure in data.get('measures', []):
-                measure['has_summary'] = False
-            data['measures_with_summaries'] = 0
-        else:
-            print("❌ No scraped data found. Run the enhanced scraper first.")
-            return
-            
-        update_html_with_auto_summaries(data)
-        
-        summary_count = data.get('measures_with_summaries', 0)
-        total_measures = data.get('total_measures', len(data.get('measures', [])))
-        
-        print("✅ Modern faceted navigation website created!")
-        print(f"📈 Statistics:")
-        print(f"   • Total measures: {total_measures}")
-        print(f"   • With summaries: {summary_count}")
-        print(f"   • Coverage: {(summary_count/total_measures*100):.1f}%")
-        
-    except Exception as e:
-        print(f"❌ Error creating website: {e}")
+    # Try to load from database first
+    data = load_data_from_database()
+    
+    # Fall back to JSON if no database
+    if not data:
+        data = load_data_from_json()
+    
+    if not data:
+        print("❌ No data available! Run scraper or database setup first.")
+        return
+    
+    # Generate HTML
+    html = generate_static_html(data)
+    
+    # Save HTML
+    output_file = Path('index.html')
+    with open(output_file, 'w', encoding='utf-8') as f:
+        f.write(html)
+    
+    print(f"✅ Static website generated: {output_file}")
+    print(f"📊 Total measures: {len(data.get('measures', []))}")
+    
+    # Also save to parent directory for deployment
+    parent_output = Path('../index.html')
+    with open(parent_output, 'w', encoding='utf-8') as f:
+        f.write(html)
+    print(f"✅ Also saved to: {parent_output}")
+    
+    print("\n🎯 Key Features:")
+    print("   • Modern faceted navigation sidebar")
+    print("   • Live search with instant filtering")
+    print("   • Grid and list view options")
+    print("   • Featured/recent measures section")
+    print("   • Smart progressive disclosure")
+    print("   • Topic-based filtering")
+    print("   • Year range slider")
+    print("   • Clean, scannable card design")
+    print("   • Responsive layout")
+    print("   • Stats dashboard")
 
 if __name__ == "__main__":
-    run_auto_enhanced_update()
+    main()

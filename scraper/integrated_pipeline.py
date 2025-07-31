@@ -10,6 +10,9 @@ import json
 from pathlib import Path
 import time
 
+# Path to repo root  (scraper/..  →  cal_vgp/)
+ROOT_DIR = Path(__file__).resolve().parent.parent
+
 def run_command(cmd, description):
     """Run a command and handle errors gracefully"""
     print(f"\n🔄 {description}...")
@@ -169,120 +172,16 @@ if __name__ == "__main__":
         print(f"❌ Scraper execution failed: {e}")
     
     # Step 2: Generate enhanced website  
-    print(f"\n🌐 STEP 2: Website Generation with Auto-Summaries")
+    print(f"\n🌐 STEP 2: Website Generation")
     print("-" * 50)
     
     try:
         website_success = run_command([
-            sys.executable, '-c',
-            """
-import json
-from pathlib import Path
-from collections import defaultdict
-import re
-
-def generate_website():
-    # Check for enhanced data first
-    enhanced_data_file = Path('data/enhanced_measures.json')
-    
-    if not enhanced_data_file.exists():
-        print("❌ No enhanced data found")
-        return False
-    
-    with open(enhanced_data_file, 'r') as f:
-        data = json.load(f)
-    
-    # Group measures by year
-    measures_by_year = defaultdict(list)
-    for measure in data.get('measures', []):
-        year = measure.get('year', 'Unknown')
-        measures_by_year[year].append(measure)
-    
-    # Generate simple HTML
-    html_content = '''<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>California Ballot Measures</title>
-    <style>
-        body { font-family: Arial, sans-serif; max-width: 900px; margin: 0 auto; padding: 20px; }
-        .header { text-align: center; margin-bottom: 40px; border-bottom: 2px solid #000; padding-bottom: 20px; }
-        .year-section { margin-bottom: 30px; }
-        .year-title { font-size: 24px; font-weight: bold; border-bottom: 1px solid #ccc; padding-bottom: 10px; }
-        .measure-enhanced { background: #f8f9fa; padding: 20px; margin: 15px 0; border-left: 4px solid #0066cc; border-radius: 4px; }
-        .measure-basic { padding: 10px 0; border-bottom: 1px solid #eee; }
-        .summary-title { color: #0066cc; font-weight: bold; margin-bottom: 10px; }
-        .summary-text { line-height: 1.6; color: #444; }
-        .measure-title { font-weight: 600; margin-bottom: 10px; }
-        .source-tag { background: #000; color: #fff; padding: 2px 6px; font-size: 11px; margin-right: 10px; }
-        .view-link { color: #0066cc; text-decoration: none; }
-    </style>
-</head>
-<body>
-    <div class="header">
-        <h1>CALIFORNIA BALLOT MEASURES</h1>
-        <p>Enhanced with Auto-Generated Summaries</p>
-    </div>
-'''
-    
-    # Add content by year
-    total_summaries = data.get('measures_with_summaries', 0)
-    
-    for year in sorted(measures_by_year.keys(), reverse=True):
-        measures = measures_by_year[year]
-        html_content += f'<div class="year-section"><h2 class="year-title">{year}</h2>'
+            sys.executable, 'generate_static_website.py'
+        ], "Static website generation")
         
-        for measure in measures:
-            measure_text = measure.get('measure_text', 'Unknown')
-            source = measure.get('source', 'Unknown')
-            pdf_url = measure.get('pdf_url', '#')
-            has_summary = measure.get('has_summary', False)
-            
-            if has_summary:
-                summary_title = measure.get('summary_title', '')
-                summary_text = measure.get('summary_text', '')
-                html_content += f'''
-                <div class="measure-enhanced">
-                    <div class="measure-title">
-                        <span class="source-tag">{source}</span>
-                        {measure_text}
-                        <a href="{pdf_url}" class="view-link" target="_blank">→ View PDF</a>
-                    </div>
-                    <div class="summary-title">{summary_title}</div>
-                    <div class="summary-text">{summary_text}</div>
-                </div>'''
-            else:
-                # ALWAYS show measures without summaries too
-                html_content += f'''
-                <div class="measure-basic">
-                    <span class="source-tag">{source}</span>
-                    {measure_text}
-                    <a href="{pdf_url}" class="view-link" target="_blank">→ View PDF</a>
-                </div>'''
-        
-        html_content += '</div>'
-    
-    html_content += f'''
-    <div style="margin-top: 40px; text-align: center; color: #666; font-size: 14px;">
-        Generated with {total_summaries} auto-summaries • Last updated: {data.get('scraped_at', 'Unknown')}
-    </div>
-</body>
-</html>'''
-    
-    # Save website
-    with open('enhanced_ballot_measures_final.html', 'w') as f:
-        f.write(html_content)
-    
-    print(f"✅ Website generated: enhanced_ballot_measures_final.html")
-    print(f"📊 Total measures: {data.get('total_measures', 0)}")
-    print(f"📝 With summaries: {total_summaries}")
-    return True
-
-if __name__ == "__main__":
-    generate_website()
-            """
-        ], "Website generation with auto-summaries")
+        if website_success:
+            print("✅ Static website generated successfully!")
         
     except Exception as e:
         print(f"❌ Website generation failed: {e}")
@@ -305,7 +204,8 @@ if __name__ == "__main__":
             print(f"📊 Total measures processed: {total_measures}")
             print(f"📝 Summaries generated: {summaries}")
             print(f"📄 Coverage: {(summaries/total_measures*100):.1f}%" if total_measures > 0 else "📄 Coverage: 0%")
-            print(f"🌐 Website: enhanced_ballot_measures_final.html")
+            # print(f"🌐 Website: enhanced_ballot_measures_final.html")
+            print(f"🌐 Website: index.html")
             print(f"💾 Data: data/enhanced_measures.json")
             
             if summaries > 0:
