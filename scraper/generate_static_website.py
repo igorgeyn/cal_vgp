@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """
 Generate Static Website from Ballot Measures Data
-Modern redesign with faceted navigation and progressive disclosure
+Standalone version with modern faceted navigation design
+Outputs directly to index.html
 """
 
 import json
@@ -109,6 +110,14 @@ def generate_static_html(data):
             'with_summaries': sum(1 for m in measures if m.get('has_summary'))
         }
         
+        # Calculate year range
+        years = [m.get('year') for m in measures if m.get('year') and str(m['year']).isdigit()]
+        if years:
+            numeric_years = [int(y) for y in years if int(y) > 1900 and int(y) < 2100]
+            if numeric_years:
+                stats['year_min'] = min(numeric_years)
+                stats['year_max'] = max(numeric_years)
+        
         # Extract topics
         topic_counts = Counter()
         for measure in measures:
@@ -116,6 +125,9 @@ def generate_static_html(data):
             if topic:
                 topic_counts[topic] += 1
         topics = [{'topic': t, 'count': c} for t, c in topic_counts.most_common(20)]
+    
+    # Calculate derived stats
+    stats['with_votes'] = sum(1 for m in measures if m.get('yes_votes') is not None)
     
     # Convert to JSON for embedding
     measures_json = json.dumps(measures, default=str)
@@ -815,7 +827,7 @@ def generate_static_html(data):
                         </div>
                         <div class="filter-option" onclick="toggleFilter('features', 'votes')">
                             <span class="filter-option-label">Has Vote Data</span>
-                            <span class="filter-option-count">{sum(1 for m in measures if m.get('yes_votes') is not None)}</span>
+                            <span class="filter-option-count">{stats['with_votes']}</span>
                         </div>
                     </div>
                 </div>
@@ -915,7 +927,7 @@ def generate_static_html(data):
         function initializeTopicTags() {{
             const container = document.getElementById('topicTags');
             container.innerHTML = topics.slice(0, 12).map(topic => `
-                <div class="topic-tag" onclick="toggleTopic('${{topic.topic.replace(/'/g, "\\'")}}')">
+                <div class="topic-tag" onclick="toggleTopic('${{topic.topic.replace(/'/g, "\\\\'")}}')">
                     ${{topic.topic}} (${{topic.count}})
                 </div>
             `).join('');
@@ -1282,7 +1294,7 @@ def generate_static_html(data):
 
 def main():
     """Generate static website from available data"""
-    print("🌐 Generating Modern Faceted Navigation Website")
+    print("🌐 Generating Static Website (Direct to index.html)")
     print("=" * 50)
     
     # Try to load from database first
@@ -1324,6 +1336,9 @@ def main():
     print("   • Clean, scannable card design")
     print("   • Responsive layout")
     print("   • Stats dashboard")
+    
+    print("\n📝 Note: This script outputs directly to index.html")
+    print("   It can be run independently of the make force-website workflow")
 
 if __name__ == "__main__":
     main()
