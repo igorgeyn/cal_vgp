@@ -1,0 +1,29 @@
+{
+  "timestamp": "2025-08-08T10:10:18.638443",
+  "dry_run": false,
+  "actions": [
+    "Consolidated backup: ballot_measures.db.backup",
+    "Consolidated backup: ballot_measures.db.pre_dedupe_backup",
+    "Consolidated backup: ballot_measures_test_backup.db",
+    "Consolidated backup: ballot_measures_backup_20250730_180629.db",
+    "Removed directory: new_structure_files/",
+    "Removed directory: downloaded/",
+    "Removed directory: dep/",
+    "Removed file: reorganize_project.py",
+    "Removed file: inspect_post_reorg.py",
+    "Removed file: updated_ballot_measures.html",
+    "Removed file: poetry.lock",
+    "Removed file: pyproject.toml",
+    "Removed file: run_python.sh",
+    "Removed file: setup.sh",
+    "Removed file: poetry-installer-error-u0dai9wx.log",
+    "Removed log: migration_test1.log",
+    "Removed log: migration_test1_fixed5.log",
+    "Removed log: migration_test1_fixed4.log",
+    "Removed log: migration_test1_fixed6.log",
+    "Removed log: migration_test1_fixed3.log",
+    "Removed log: migration_test1_fixed.log"
+  ],
+  "space_saved_bytes": 685815,
+  "space_saved_readable": "669.7 KB"
+}

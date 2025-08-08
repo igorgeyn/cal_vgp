@@ -1,8 +1,0 @@
-dyld[10433]: Library not loaded: @executable_path/../Python3
-  Referenced from: <70231E2C-109D-3773-9B6C-63366FFF3C8E> /Users/igorgeyn/Library/Application Support/pypoetry/venv/bin/python3
-  Reason: tried: '/Users/igorgeyn/Library/Application Support/pypoetry/venv/Python3' (no such file), '/usr/local/lib/Python3' (no such file), '/usr/lib/Python3' (no such file, not in dyld cache)
-
-Traceback:
-
-  File "<stdin>", line 937, in main
-  File "<stdin>", line 576, in run

@@ -1,0 +1,1274 @@
+{
+  "timestamp": "2025-08-08T10:03:04.830758",
+  "base_directory": "/Users/igorgeyn/Desktop/personal/cal_vgp/scraper",
+  "statistics": {
+    "total_files": 266,
+    "total_dirs": 68,
+    "python_files": 140,
+    "data_files": 54,
+    "config_files": 10,
+    "archive_dirs": 2,
+    "backup_dirs": 2
+  },
+  "structure_check": {
+    "src/scrapers": true,
+    "src/parsers": true,
+    "src/database": true,
+    "src/enrichment": true,
+    "src/website": true,
+    "src/api": true,
+    "scripts": true,
+    "data": true,
+    "data/raw": true,
+    "data/processed": true,
+    "tests": true,
+    "docs": true,
+    "logs": true
+  },
+  "file_categories": {
+    "Config": [
+      ".env",
+      ".gitignore",
+      "Makefile",
+      "Makefile",
+      "Makefile",
+      ".env",
+      ".gitignore",
+      "Makefile",
+      "Makefile",
+      "Makefile"
+    ],
+    "Documentation": [
+      "README.md",
+      "README.md",
+      "db_connection_info.txt",
+      "merge_summary.txt",
+      "makefile_guide.md",
+      "requirements.txt",
+      "db_connection_info.txt",
+      "merge_summary.txt",
+      "makefile_guide.md",
+      "README.md",
+      "requirements.txt",
+      "requirements.txt",
+      "README.md",
+      "README.md",
+      "makefile_guide.md",
+      "requirements.txt",
+      "db_connection_info.txt",
+      "merge_summary.txt",
+      "makefile_guide.md",
+      "README.md",
+      "requirements.txt",
+      "requirements.txt"
+    ],
+    "Python": [
+      "analysis_examples.py",
+      "ascii_website.py",
+      "ballot_measures_api.py",
+      "ceda_integration.py",
+      "ceda_parser_comprehensive.py",
+      "check_downloads.py",
+      "clean_website.py",
+      "duplicate_diagnosis.py",
+      "enhanced_scraper.py",
+      "enhanced_scraper_with_summaries.py",
+      "enhanced_website_generator.py",
+      "generate_static_website.py",
+      "integrated_ballot_system.py",
+      "integrated_pipeline.py",
+      "merge_historical_data.py",
+      "__init__.py",
+      "pipeline_config.py",
+      "run_complete_pipeline.py",
+      "scraper.py",
+      "setup_ballot_database.py",
+      "smart_scraper_pipeline.py",
+      "smart_scraper_sqlite.py",
+      "update_website.py",
+      "analysis_examples.py",
+      "ascii_website.py",
+      "ballot_measures_api.py",
+      "ceda_integration.py",
+      "ceda_parser_comprehensive.py",
+      "check_downloads.py",
+      "clean_website.py",
+      "duplicate_diagnosis.py",
+      "enhanced_scraper.py",
+      "enhanced_scraper_with_summaries.py",
+      "enhanced_website_generator.py",
+      "generate_static_website.py",
+      "integrated_ballot_system.py",
+      "integrated_pipeline.py",
+      "merge_historical_data.py",
+      "pipeline_config.py",
+      "run_complete_pipeline.py",
+      "scraper.py",
+      "setup_ballot_database.py",
+      "smart_scraper_pipeline.py",
+      "smart_scraper_sqlite.py",
+      "update_website.py",
+      "inspect_post_reorg.py",
+      "inspect_new_structure.py",
+      "prepare_new_files.py",
+      "check_updates.py",
+      "generate_site.py",
+      "initialize_db.py",
+      "migrate_to_new_structure.py",
+      "scrape.py",
+      "update_db.py",
+      "__init__.py",
+      "config.py",
+      "reorganize_project.py",
+      "check_updates.py",
+      "generate_site.py",
+      "initialize_db.py",
+      "migrate_to_new_structure.py",
+      "scrape.py",
+      "update_db.py",
+      "__init__.py",
+      "__init__.py",
+      "server.py",
+      "config.py",
+      "__init__.py",
+      "deduplication.py",
+      "models.py",
+      "operations.py",
+      "__init__.py",
+      "summaries.py",
+      "__init__.py",
+      "ceda.py",
+      "icpsr.py",
+      "ncsl.py",
+      "__init__.py",
+      "base.py",
+      "ca_sos.py",
+      "__init__.py",
+      "generator.py",
+      "__init__.py",
+      "analysis_examples.py",
+      "ascii_website.py",
+      "ballot_measures_api.py",
+      "ceda_integration.py",
+      "ceda_parser_comprehensive.py",
+      "check_downloads.py",
+      "clean_website.py",
+      "duplicate_diagnosis.py",
+      "enhanced_scraper.py",
+      "enhanced_scraper_with_summaries.py",
+      "enhanced_website_generator.py",
+      "generate_static_website.py",
+      "integrated_ballot_system.py",
+      "integrated_pipeline.py",
+      "merge_historical_data.py",
+      "pipeline_config.py",
+      "run_complete_pipeline.py",
+      "scraper.py",
+      "setup_ballot_database.py",
+      "smart_scraper_pipeline.py",
+      "smart_scraper_sqlite.py",
+      "update_website.py",
+      "analysis_examples.py",
+      "ascii_website.py",
+      "ballot_measures_api.py",
+      "ceda_integration.py",
+      "ceda_parser_comprehensive.py",
+      "check_downloads.py",
+      "clean_website.py",
+      "duplicate_diagnosis.py",
+      "enhanced_scraper.py",
+      "enhanced_scraper_with_summaries.py",
+      "enhanced_website_generator.py",
+      "generate_static_website.py",
+      "integrated_ballot_system.py",
+      "integrated_pipeline.py",
+      "merge_historical_data.py",
+      "pipeline_config.py",
+      "run_complete_pipeline.py",
+      "scraper.py",
+      "setup_ballot_database.py",
+      "smart_scraper_pipeline.py",
+      "smart_scraper_sqlite.py",
+      "update_website.py",
+      "inspect_post_reorg.py",
+      "inspect_new_structure.py",
+      "prepare_new_files.py",
+      "reorganize_project.py",
+      "check_updates.py",
+      "generate_site.py",
+      "initialize_db.py",
+      "migrate_to_new_structure.py",
+      "scrape.py",
+      "update_db.py",
+      "__init__.py",
+      "config.py",
+      "__init__.py"
+    ],
+    "Data": [
+      "ca_ballot_measures.csv",
+      "all_measures.csv",
+      "all_measures.json",
+      "ballot_measures.db",
+      "ballot_measures_backup_20250730_180629.db",
+      "ballot_measures_test_backup.db",
+      "ceda_combined.csv",
+      "ceda_summary.json",
+      "current_measures.csv",
+      "enhanced_measures.csv",
+      "enhanced_measures.json",
+      "historical_measures.csv",
+      "latest_measures.csv",
+      "latest_measures.json",
+      "merged_ballot_measures.csv",
+      "merged_ballot_measures.json",
+      "output.json",
+      "ca_ballot_measures.csv",
+      "all_measures.csv",
+      "ballot_measures.db",
+      "ballot_measures_backup_20250730_180629.db",
+      "ballot_measures_test_backup.db",
+      "ceda_summary.json",
+      "current_measures.csv",
+      "enhanced_measures.csv",
+      "historical_measures.csv",
+      "latest_measures.csv",
+      "latest_measures.json",
+      "merged_ballot_measures.csv",
+      "output.json",
+      "enhanced_measures.json",
+      "merged_ballot_measures.json",
+      "all_measures.json",
+      "ceda_combined.csv",
+      "ncsl_ballot_measures_2014_present.xlsx",
+      "ncslballotmeasures_icpsr_1902_2016.csv",
+      "migration_report_20250808_095812.json",
+      "new_structure_inspection.json",
+      "ca_ballot_measures.csv",
+      "ca_ballot_measures.csv",
+      "all_measures.csv",
+      "ballot_measures.db",
+      "ballot_measures_backup_20250730_180629.db",
+      "ballot_measures_test_backup.db",
+      "ceda_summary.json",
+      "current_measures.csv",
+      "enhanced_measures.csv",
+      "historical_measures.csv",
+      "latest_measures.csv",
+      "latest_measures.json",
+      "merged_ballot_measures.csv",
+      "output.json",
+      "migration_report_20250808_095812.json",
+      "new_structure_inspection.json"
+    ],
+    "Other": [
+      "ballot_measures.db.backup",
+      "ballot_measures.db.pre_dedupe_backup",
+      "ballot_measures.db.backup",
+      "ballot_measures.db.pre_dedupe_backup",
+      "migration_test1.log",
+      "migration_test1_fixed.log",
+      "migration_test1_fixed3.log",
+      "migration_test1_fixed4.log",
+      "migration_test1_fixed5.log",
+      "migration_test1_fixed6.log",
+      "poetry-installer-error-u0dai9wx.log",
+      "poetry.lock",
+      "pyproject.toml",
+      "run_python.sh",
+      "setup.sh",
+      "ballot_measures.db.backup",
+      "ballot_measures.db.pre_dedupe_backup",
+      "migration_test1.log",
+      "migration_test1_fixed.log",
+      "migration_test1_fixed3.log",
+      "migration_test1_fixed4.log",
+      "migration_test1_fixed5.log",
+      "migration_test1_fixed6.log",
+      "poetry-installer-error-u0dai9wx.log",
+      "poetry.lock",
+      "pyproject.toml",
+      "run_python.sh",
+      "setup.sh"
+    ],
+    "Web": [
+      "updated_ballot_measures.html",
+      "ascii_ballot_measures.html",
+      "ballot_measures_site.html",
+      "clean_ballot_measures.html",
+      "enhanced_ballot_measures_final.html",
+      "updated_ballot_measures.html",
+      "updated_ballot_measures.html",
+      "ascii_ballot_measures.html",
+      "ballot_measures_site.html",
+      "clean_ballot_measures.html",
+      "enhanced_ballot_measures_final.html",
+      "updated_ballot_measures.html"
+    ]
+  },
+  "archives": {
+    "archive_20250808_095812": {
+      "type": "archive",
+      "file_count": 42,
+      "total_size": "319.4 KB",
+      "created": "2025-08-08 09:58"
+    },
+    "backup_20250808_095812": {
+      "type": "backup",
+      "file_count": 53,
+      "total_size": "68.1 MB",
+      "created": "2025-08-08 09:58"
+    }
+  },
+  "orphaned_files": [
+    "updated_ballot_measures.html"
+  ],
+  "directory_tree": [
+    {
+      "type": "file",
+      "name": ".env",
+      "size": "1.3 KB",
+      "category": "Config",
+      "path": ".env"
+    },
+    {
+      "type": "file",
+      "name": ".gitignore",
+      "size": "292.0 B",
+      "category": "Config",
+      "path": ".gitignore"
+    },
+    {
+      "type": "file",
+      "name": "Makefile",
+      "size": "6.2 KB",
+      "category": "Config",
+      "path": "Makefile"
+    },
+    {
+      "type": "file",
+      "name": "README.md",
+      "size": "6.0 KB",
+      "category": "Documentation",
+      "path": "README.md"
+    },
+    {
+      "type": "dir",
+      "name": "archive_20250808_095812",
+      "path": "archive_20250808_095812",
+      "file_count": 22,
+      "items": [
+        {
+          "type": "file",
+          "name": "analysis_examples.py",
+          "size": "11.9 KB",
+          "category": "Python",
+          "path": "archive_20250808_095812/analysis_examples.py"
+        },
+        {
+          "type": "file",
+          "name": "ascii_website.py",
+          "size": "8.5 KB",
+          "category": "Python",
+          "path": "archive_20250808_095812/ascii_website.py"
+        },
+        {
+          "type": "file",
+          "name": "ballot_measures_api.py",
+          "size": "9.5 KB",
+          "category": "Python",
+          "path": "archive_20250808_095812/ballot_measures_api.py"
+        },
+        {
+          "type": "file",
+          "name": "ceda_integration.py",
+          "size": "19.6 KB",
+          "category": "Python",
+          "path": "archive_20250808_095812/ceda_integration.py"
+        },
+        {
+          "type": "file",
+          "name": "ceda_parser_comprehensive.py",
+          "size": "19.5 KB",
+          "category": "Python",
+          "path": "archive_20250808_095812/ceda_parser_comprehensive.py"
+        },
+        {
+          "type": "file",
+          "name": "check_downloads.py",
+          "size": "2.5 KB",
+          "category": "Python",
+          "path": "archive_20250808_095812/check_downloads.py"
+        },
+        {
+          "type": "file",
+          "name": "clean_website.py",
+          "size": "5.0 KB",
+          "category": "Python",
+          "path": "archive_20250808_095812/clean_website.py"
+        },
+        {
+          "type": "file",
+          "name": "duplicate_diagnosis.py",
+          "size": "2.8 KB",
+          "category": "Python",
+          "path": "archive_20250808_095812/duplicate_diagnosis.py"
+        },
+        {
+          "type": "file",
+          "name": "enhanced_scraper.py",
+          "size": "4.0 KB",
+          "category": "Python",
+          "path": "archive_20250808_095812/enhanced_scraper.py"
+        },
+        {
+          "type": "file",
+          "name": "enhanced_scraper_with_summaries.py",
+          "size": "10.6 KB",
+          "category": "Python",
+          "path": "archive_20250808_095812/enhanced_scraper_with_summaries.py"
+        },
+        {
+          "type": "file",
+          "name": "enhanced_website_generator.py",
+          "size": "42.4 KB",
+          "category": "Python",
+          "path": "archive_20250808_095812/enhanced_website_generator.py"
+        },
+        {
+          "type": "file",
+          "name": "generate_static_website.py",
+          "size": "44.8 KB",
+          "category": "Python",
+          "path": "archive_20250808_095812/generate_static_website.py"
+        },
+        {
+          "type": "file",
+          "name": "integrated_ballot_system.py",
+          "size": "7.7 KB",
+          "category": "Python",
+          "path": "archive_20250808_095812/integrated_ballot_system.py"
+        },
+        {
+          "type": "file",
+          "name": "integrated_pipeline.py",
+          "size": "9.3 KB",
+          "category": "Python",
+          "path": "archive_20250808_095812/integrated_pipeline.py"
+        },
+        {
+          "type": "file",
+          "name": "merge_historical_data.py",
+          "size": "12.3 KB",
+          "category": "Python",
+          "path": "archive_20250808_095812/merge_historical_data.py"
+        },
+        {
+          "type": "dir",
+          "name": "old_scripts",
+          "path": "archive_20250808_095812/old_scripts",
+          "file_count": 0,
+          "items": []
+        },
+        {
+          "type": "dir",
+          "name": "old_src",
+          "path": "archive_20250808_095812/old_src",
+          "file_count": 0,
+          "items": []
+        },
+        {
+          "type": "file",
+          "name": "pipeline_config.py",
+          "size": "6.1 KB",
+          "category": "Python",
+          "path": "archive_20250808_095812/pipeline_config.py"
+        },
+        {
+          "type": "file",
+          "name": "run_complete_pipeline.py",
+          "size": "2.2 KB",
+          "category": "Python",
+          "path": "archive_20250808_095812/run_complete_pipeline.py"
+        },
+        {
+          "type": "file",
+          "name": "scraper.py",
+          "size": "3.0 KB",
+          "category": "Python",
+          "path": "archive_20250808_095812/scraper.py"
+        },
+        {
+          "type": "file",
+          "name": "setup_ballot_database.py",
+          "size": "45.2 KB",
+          "category": "Python",
+          "path": "archive_20250808_095812/setup_ballot_database.py"
+        },
+        {
+          "type": "file",
+          "name": "smart_scraper_pipeline.py",
+          "size": "14.6 KB",
+          "category": "Python",
+          "path": "archive_20250808_095812/smart_scraper_pipeline.py"
+        },
+        {
+          "type": "file",
+          "name": "smart_scraper_sqlite.py",
+          "size": "12.4 KB",
+          "category": "Python",
+          "path": "archive_20250808_095812/smart_scraper_sqlite.py"
+        },
+        {
+          "type": "file",
+          "name": "update_website.py",
+          "size": "5.3 KB",
+          "category": "Python",
+          "path": "archive_20250808_095812/update_website.py"
+        }
+      ]
+    },
+    {
+      "type": "dir",
+      "name": "backup_20250808_095812",
+      "path": "backup_20250808_095812",
+      "file_count": 28,
+      "items": [
+        {
+          "type": "file",
+          "name": "Makefile",
+          "size": "18.6 KB",
+          "category": "Config",
+          "path": "backup_20250808_095812/Makefile"
+        },
+        {
+          "type": "file",
+          "name": "README.md",
+          "size": "2.7 KB",
+          "category": "Documentation",
+          "path": "backup_20250808_095812/README.md"
+        },
+        {
+          "type": "file",
+          "name": "analysis_examples.py",
+          "size": "11.9 KB",
+          "category": "Python",
+          "path": "backup_20250808_095812/analysis_examples.py"
+        },
+        {
+          "type": "file",
+          "name": "ascii_website.py",
+          "size": "8.5 KB",
+          "category": "Python",
+          "path": "backup_20250808_095812/ascii_website.py"
+        },
+        {
+          "type": "file",
+          "name": "ballot_measures_api.py",
+          "size": "9.5 KB",
+          "category": "Python",
+          "path": "backup_20250808_095812/ballot_measures_api.py"
+        },
+        {
+          "type": "file",
+          "name": "ca_ballot_measures.csv",
+          "size": "542.0 B",
+          "category": "Data",
+          "path": "backup_20250808_095812/ca_ballot_measures.csv"
+        },
+        {
+          "type": "file",
+          "name": "ceda_integration.py",
+          "size": "19.6 KB",
+          "category": "Python",
+          "path": "backup_20250808_095812/ceda_integration.py"
+        },
+        {
+          "type": "file",
+          "name": "ceda_parser_comprehensive.py",
+          "size": "19.5 KB",
+          "category": "Python",
+          "path": "backup_20250808_095812/ceda_parser_comprehensive.py"
+        },
+        {
+          "type": "file",
+          "name": "check_downloads.py",
+          "size": "2.5 KB",
+          "category": "Python",
+          "path": "backup_20250808_095812/check_downloads.py"
+        },
+        {
+          "type": "file",
+          "name": "clean_website.py",
+          "size": "5.0 KB",
+          "category": "Python",
+          "path": "backup_20250808_095812/clean_website.py"
+        },
+        {
+          "type": "dir",
+          "name": "data",
+          "path": "backup_20250808_095812/data",
+          "file_count": 0,
+          "items": []
+        },
+        {
+          "type": "file",
+          "name": "duplicate_diagnosis.py",
+          "size": "2.8 KB",
+          "category": "Python",
+          "path": "backup_20250808_095812/duplicate_diagnosis.py"
+        },
+        {
+          "type": "file",
+          "name": "enhanced_scraper.py",
+          "size": "4.0 KB",
+          "category": "Python",
+          "path": "backup_20250808_095812/enhanced_scraper.py"
+        },
+        {
+          "type": "file",
+          "name": "enhanced_scraper_with_summaries.py",
+          "size": "10.6 KB",
+          "category": "Python",
+          "path": "backup_20250808_095812/enhanced_scraper_with_summaries.py"
+        },
+        {
+          "type": "file",
+          "name": "enhanced_website_generator.py",
+          "size": "42.4 KB",
+          "category": "Python",
+          "path": "backup_20250808_095812/enhanced_website_generator.py"
+        },
+        {
+          "type": "file",
+          "name": "generate_static_website.py",
+          "size": "44.8 KB",
+          "category": "Python",
+          "path": "backup_20250808_095812/generate_static_website.py"
+        },
+        {
+          "type": "file",
+          "name": "integrated_ballot_system.py",
+          "size": "7.7 KB",
+          "category": "Python",
+          "path": "backup_20250808_095812/integrated_ballot_system.py"
+        },
+        {
+          "type": "file",
+          "name": "integrated_pipeline.py",
+          "size": "9.3 KB",
+          "category": "Python",
+          "path": "backup_20250808_095812/integrated_pipeline.py"
+        },
+        {
+          "type": "file",
+          "name": "makefile_guide.md",
+          "size": "4.0 KB",
+          "category": "Documentation",
+          "path": "backup_20250808_095812/makefile_guide.md"
+        },
+        {
+          "type": "file",
+          "name": "merge_historical_data.py",
+          "size": "12.3 KB",
+          "category": "Python",
+          "path": "backup_20250808_095812/merge_historical_data.py"
+        },
+        {
+          "type": "file",
+          "name": "pipeline_config.py",
+          "size": "6.1 KB",
+          "category": "Python",
+          "path": "backup_20250808_095812/pipeline_config.py"
+        },
+        {
+          "type": "file",
+          "name": "requirements.txt",
+          "size": "605.0 B",
+          "category": "Documentation",
+          "path": "backup_20250808_095812/requirements.txt"
+        },
+        {
+          "type": "file",
+          "name": "run_complete_pipeline.py",
+          "size": "2.2 KB",
+          "category": "Python",
+          "path": "backup_20250808_095812/run_complete_pipeline.py"
+        },
+        {
+          "type": "file",
+          "name": "scraper.py",
+          "size": "3.0 KB",
+          "category": "Python",
+          "path": "backup_20250808_095812/scraper.py"
+        },
+        {
+          "type": "file",
+          "name": "setup_ballot_database.py",
+          "size": "45.2 KB",
+          "category": "Python",
+          "path": "backup_20250808_095812/setup_ballot_database.py"
+        },
+        {
+          "type": "file",
+          "name": "smart_scraper_pipeline.py",
+          "size": "14.6 KB",
+          "category": "Python",
+          "path": "backup_20250808_095812/smart_scraper_pipeline.py"
+        },
+        {
+          "type": "file",
+          "name": "smart_scraper_sqlite.py",
+          "size": "12.4 KB",
+          "category": "Python",
+          "path": "backup_20250808_095812/smart_scraper_sqlite.py"
+        },
+        {
+          "type": "file",
+          "name": "update_website.py",
+          "size": "5.3 KB",
+          "category": "Python",
+          "path": "backup_20250808_095812/update_website.py"
+        },
+        {
+          "type": "file",
+          "name": "updated_ballot_measures.html",
+          "size": "33.2 KB",
+          "category": "Web",
+          "path": "backup_20250808_095812/updated_ballot_measures.html"
+        }
+      ]
+    },
+    {
+      "type": "file",
+      "name": "ca_ballot_measures.csv",
+      "size": "542.0 B",
+      "category": "Data",
+      "path": "ca_ballot_measures.csv"
+    },
+    {
+      "type": "dir",
+      "name": "config",
+      "path": "config",
+      "file_count": 0,
+      "items": []
+    },
+    {
+      "type": "dir",
+      "name": "data",
+      "path": "data",
+      "file_count": 16,
+      "items": [
+        {
+          "type": "file",
+          "name": "all_measures.csv",
+          "size": "6.8 KB",
+          "category": "Data",
+          "path": "data/all_measures.csv"
+        },
+        {
+          "type": "file",
+          "name": "ballot_measures.db",
+          "size": "18.6 MB",
+          "category": "Data",
+          "path": "data/ballot_measures.db"
+        },
+        {
+          "type": "file",
+          "name": "ballot_measures.db.backup",
+          "size": "564.0 KB",
+          "category": "Other",
+          "path": "data/ballot_measures.db.backup"
+        },
+        {
+          "type": "file",
+          "name": "ballot_measures.db.pre_dedupe_backup",
+          "size": "13.4 MB",
+          "category": "Other",
+          "path": "data/ballot_measures.db.pre_dedupe_backup"
+        },
+        {
+          "type": "file",
+          "name": "ballot_measures_backup_20250730_180629.db",
+          "size": "13.4 MB",
+          "category": "Data",
+          "path": "data/ballot_measures_backup_20250730_180629.db"
+        },
+        {
+          "type": "file",
+          "name": "ballot_measures_test_backup.db",
+          "size": "564.0 KB",
+          "category": "Data",
+          "path": "data/ballot_measures_test_backup.db"
+        },
+        {
+          "type": "file",
+          "name": "ceda_summary.json",
+          "size": "4.9 KB",
+          "category": "Data",
+          "path": "data/ceda_summary.json"
+        },
+        {
+          "type": "file",
+          "name": "current_measures.csv",
+          "size": "570.0 B",
+          "category": "Data",
+          "path": "data/current_measures.csv"
+        },
+        {
+          "type": "file",
+          "name": "db_connection_info.txt",
+          "size": "372.0 B",
+          "category": "Documentation",
+          "path": "data/db_connection_info.txt"
+        },
+        {
+          "type": "dir",
+          "name": "downloaded",
+          "path": "data/downloaded",
+          "file_count": 0,
+          "items": []
+        },
+        {
+          "type": "file",
+          "name": "enhanced_measures.csv",
+          "size": "6.1 KB",
+          "category": "Data",
+          "path": "data/enhanced_measures.csv"
+        },
+        {
+          "type": "dir",
+          "name": "exports",
+          "path": "data/exports",
+          "file_count": 0,
+          "items": []
+        },
+        {
+          "type": "file",
+          "name": "historical_measures.csv",
+          "size": "1.2 KB",
+          "category": "Data",
+          "path": "data/historical_measures.csv"
+        },
+        {
+          "type": "file",
+          "name": "latest_measures.csv",
+          "size": "542.0 B",
+          "category": "Data",
+          "path": "data/latest_measures.csv"
+        },
+        {
+          "type": "file",
+          "name": "latest_measures.json",
+          "size": "898.0 B",
+          "category": "Data",
+          "path": "data/latest_measures.json"
+        },
+        {
+          "type": "file",
+          "name": "merge_summary.txt",
+          "size": "258.0 B",
+          "category": "Documentation",
+          "path": "data/merge_summary.txt"
+        },
+        {
+          "type": "file",
+          "name": "merged_ballot_measures.csv",
+          "size": "206.7 KB",
+          "category": "Data",
+          "path": "data/merged_ballot_measures.csv"
+        },
+        {
+          "type": "file",
+          "name": "output.json",
+          "size": "1.0 KB",
+          "category": "Data",
+          "path": "data/output.json"
+        },
+        {
+          "type": "dir",
+          "name": "processed",
+          "path": "data/processed",
+          "file_count": 0,
+          "items": []
+        },
+        {
+          "type": "dir",
+          "name": "raw",
+          "path": "data/raw",
+          "file_count": 0,
+          "items": []
+        }
+      ]
+    },
+    {
+      "type": "dir",
+      "name": "dep",
+      "path": "dep",
+      "file_count": 4,
+      "items": [
+        {
+          "type": "file",
+          "name": "ascii_ballot_measures.html",
+          "size": "42.9 KB",
+          "category": "Web",
+          "path": "dep/ascii_ballot_measures.html"
+        },
+        {
+          "type": "file",
+          "name": "ballot_measures_site.html",
+          "size": "14.8 KB",
+          "category": "Web",
+          "path": "dep/ballot_measures_site.html"
+        },
+        {
+          "type": "file",
+          "name": "clean_ballot_measures.html",
+          "size": "17.6 KB",
+          "category": "Web",
+          "path": "dep/clean_ballot_measures.html"
+        },
+        {
+          "type": "file",
+          "name": "enhanced_ballot_measures_final.html",
+          "size": "5.1 KB",
+          "category": "Web",
+          "path": "dep/enhanced_ballot_measures_final.html"
+        }
+      ]
+    },
+    {
+      "type": "dir",
+      "name": "docs",
+      "path": "docs",
+      "file_count": 0,
+      "items": []
+    },
+    {
+      "type": "dir",
+      "name": "downloaded",
+      "path": "downloaded",
+      "file_count": 0,
+      "items": []
+    },
+    {
+      "type": "file",
+      "name": "inspect_post_reorg.py",
+      "size": "13.4 KB",
+      "category": "Python",
+      "path": "inspect_post_reorg.py"
+    },
+    {
+      "type": "dir",
+      "name": "logs",
+      "path": "logs",
+      "file_count": 6,
+      "items": [
+        {
+          "type": "file",
+          "name": "migration_test1.log",
+          "size": "7.4 KB",
+          "category": "Other",
+          "path": "logs/migration_test1.log"
+        },
+        {
+          "type": "file",
+          "name": "migration_test1_fixed.log",
+          "size": "5.9 KB",
+          "category": "Other",
+          "path": "logs/migration_test1_fixed.log"
+        },
+        {
+          "type": "file",
+          "name": "migration_test1_fixed3.log",
+          "size": "7.4 KB",
+          "category": "Other",
+          "path": "logs/migration_test1_fixed3.log"
+        },
+        {
+          "type": "file",
+          "name": "migration_test1_fixed4.log",
+          "size": "7.4 KB",
+          "category": "Other",
+          "path": "logs/migration_test1_fixed4.log"
+        },
+        {
+          "type": "file",
+          "name": "migration_test1_fixed5.log",
+          "size": "7.1 KB",
+          "category": "Other",
+          "path": "logs/migration_test1_fixed5.log"
+        },
+        {
+          "type": "file",
+          "name": "migration_test1_fixed6.log",
+          "size": "11.0 KB",
+          "category": "Other",
+          "path": "logs/migration_test1_fixed6.log"
+        }
+      ]
+    },
+    {
+      "type": "file",
+      "name": "makefile_guide.md",
+      "size": "4.0 KB",
+      "category": "Documentation",
+      "path": "makefile_guide.md"
+    },
+    {
+      "type": "file",
+      "name": "migration_report_20250808_095812.json",
+      "size": "2.4 KB",
+      "category": "Data",
+      "path": "migration_report_20250808_095812.json"
+    },
+    {
+      "type": "dir",
+      "name": "new_structure_files",
+      "path": "new_structure_files",
+      "file_count": 6,
+      "items": [
+        {
+          "type": "file",
+          "name": "Makefile",
+          "size": "6.2 KB",
+          "category": "Config",
+          "path": "new_structure_files/Makefile"
+        },
+        {
+          "type": "file",
+          "name": "README.md",
+          "size": "6.0 KB",
+          "category": "Documentation",
+          "path": "new_structure_files/README.md"
+        },
+        {
+          "type": "file",
+          "name": "inspect_new_structure.py",
+          "size": "9.6 KB",
+          "category": "Python",
+          "path": "new_structure_files/inspect_new_structure.py"
+        },
+        {
+          "type": "file",
+          "name": "new_structure_inspection.json",
+          "size": "10.9 KB",
+          "category": "Data",
+          "path": "new_structure_files/new_structure_inspection.json"
+        },
+        {
+          "type": "file",
+          "name": "prepare_new_files.py",
+          "size": "4.7 KB",
+          "category": "Python",
+          "path": "new_structure_files/prepare_new_files.py"
+        },
+        {
+          "type": "file",
+          "name": "requirements.txt",
+          "size": "877.0 B",
+          "category": "Documentation",
+          "path": "new_structure_files/requirements.txt"
+        },
+        {
+          "type": "dir",
+          "name": "scripts",
+          "path": "new_structure_files/scripts",
+          "file_count": 0,
+          "items": []
+        },
+        {
+          "type": "dir",
+          "name": "src",
+          "path": "new_structure_files/src",
+          "file_count": 0,
+          "items": []
+        }
+      ]
+    },
+    {
+      "type": "file",
+      "name": "poetry-installer-error-u0dai9wx.log",
+      "size": "468.0 B",
+      "category": "Other",
+      "path": "poetry-installer-error-u0dai9wx.log"
+    },
+    {
+      "type": "file",
+      "name": "poetry.lock",
+      "size": "208.8 KB",
+      "category": "Other",
+      "path": "poetry.lock"
+    },
+    {
+      "type": "file",
+      "name": "pyproject.toml",
+      "size": "836.0 B",
+      "category": "Other",
+      "path": "pyproject.toml"
+    },
+    {
+      "type": "file",
+      "name": "reorganize_project.py",
+      "size": "15.7 KB",
+      "category": "Python",
+      "path": "reorganize_project.py"
+    },
+    {
+      "type": "file",
+      "name": "requirements.txt",
+      "size": "877.0 B",
+      "category": "Documentation",
+      "path": "requirements.txt"
+    },
+    {
+      "type": "file",
+      "name": "run_python.sh",
+      "size": "256.0 B",
+      "category": "Other",
+      "path": "run_python.sh"
+    },
+    {
+      "type": "dir",
+      "name": "scripts",
+      "path": "scripts",
+      "file_count": 6,
+      "items": [
+        {
+          "type": "file",
+          "name": "check_updates.py",
+          "size": "9.8 KB",
+          "category": "Python",
+          "path": "scripts/check_updates.py"
+        },
+        {
+          "type": "file",
+          "name": "generate_site.py",
+          "size": "5.1 KB",
+          "category": "Python",
+          "path": "scripts/generate_site.py"
+        },
+        {
+          "type": "file",
+          "name": "initialize_db.py",
+          "size": "6.6 KB",
+          "category": "Python",
+          "path": "scripts/initialize_db.py"
+        },
+        {
+          "type": "file",
+          "name": "migrate_to_new_structure.py",
+          "size": "12.8 KB",
+          "category": "Python",
+          "path": "scripts/migrate_to_new_structure.py"
+        },
+        {
+          "type": "file",
+          "name": "scrape.py",
+          "size": "5.6 KB",
+          "category": "Python",
+          "path": "scripts/scrape.py"
+        },
+        {
+          "type": "file",
+          "name": "update_db.py",
+          "size": "7.5 KB",
+          "category": "Python",
+          "path": "scripts/update_db.py"
+        }
+      ]
+    },
+    {
+      "type": "file",
+      "name": "setup.sh",
+      "size": "17.8 KB",
+      "category": "Other",
+      "path": "setup.sh"
+    },
+    {
+      "type": "dir",
+      "name": "src",
+      "path": "src",
+      "file_count": 2,
+      "items": [
+        {
+          "type": "file",
+          "name": "__init__.py",
+          "size": "838.0 B",
+          "category": "Python",
+          "path": "src/__init__.py"
+        },
+        {
+          "type": "dir",
+          "name": "api",
+          "path": "src/api",
+          "file_count": 0,
+          "items": []
+        },
+        {
+          "type": "file",
+          "name": "config.py",
+          "size": "3.9 KB",
+          "category": "Python",
+          "path": "src/config.py"
+        },
+        {
+          "type": "dir",
+          "name": "database",
+          "path": "src/database",
+          "file_count": 0,
+          "items": []
+        },
+        {
+          "type": "dir",
+          "name": "enrichment",
+          "path": "src/enrichment",
+          "file_count": 0,
+          "items": []
+        },
+        {
+          "type": "dir",
+          "name": "parsers",
+          "path": "src/parsers",
+          "file_count": 0,
+          "items": []
+        },
+        {
+          "type": "dir",
+          "name": "scrapers",
+          "path": "src/scrapers",
+          "file_count": 0,
+          "items": []
+        },
+        {
+          "type": "dir",
+          "name": "website",
+          "path": "src/website",
+          "file_count": 0,
+          "items": []
+        }
+      ]
+    },
+    {
+      "type": "dir",
+      "name": "tests",
+      "path": "tests",
+      "file_count": 1,
+      "items": [
+        {
+          "type": "file",
+          "name": "__init__.py",
+          "size": "0.0 B",
+          "category": "Python",
+          "path": "tests/__init__.py"
+        }
+      ]
+    },
+    {
+      "type": "file",
+      "name": "updated_ballot_measures.html",
+      "size": "33.2 KB",
+      "category": "Web",
+      "path": "updated_ballot_measures.html"
+    }
+  ]
+}

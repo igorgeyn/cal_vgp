@@ -1,0 +1,20 @@
+{
+  "scraped_at": "2025-07-16T17:07:58.837290",
+  "source": "California Secretary of State",
+  "measures": [
+    {
+      "title": "Content from qualified page",
+      "description": "Qualified Statewide Ballot Measures :: California Secretary of State\nSkip to Main Content\nSkip to Footer\nCalifornia Secretary of State\nShirley N. Weber, Ph.D.\nView Search\nView Navigation\nHome\nAbout\nBu...",
+      "type": "qualified",
+      "scraped_at": "2025-07-16T17:07:59.284893",
+      "source_url": "https://www.sos.ca.gov/elections/ballot-measures/qualified-ballot-measures"
+    },
+    {
+      "title": "Content from initiative_status page",
+      "description": "Initiative and Referendum Qualification Status :: California Secretary of State\nSkip to Main Content\nSkip to Footer\nCalifornia Secretary of State\nShirley N. Weber, Ph.D.\nView Search\nView Navigation\nHo...",
+      "type": "initiative_status",
+      "scraped_at": "2025-07-16T17:08:00.839335",
+      "source_url": "https://www.sos.ca.gov/elections/ballot-measures/initiative-and-referendum-status"
+    }
+  ]
+}

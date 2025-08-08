@@ -1,0 +1,22 @@
+{
+  "scraped_at": "2025-06-26T14:47:22.833178",
+  "source": "California Secretary of State - Qualified Ballot Measures",
+  "total_measures": 3,
+  "measures": [
+    {
+      "election": "November 3, 2026, Statewide Ballot Measures",
+      "measure_text": "ACA 13 (Ward) Voting thresholds. (Res. Ch. 176, 2023)",
+      "pdf_url": "https://elections.cdn.sos.ca.gov/ballot-measures/pdf/aca-13.pdf"
+    },
+    {
+      "election": "November 3, 2026, Statewide Ballot Measures",
+      "measure_text": "SCA 1 (Newman) Elections: recall of state officers. (Res. Ch. 204, 2024)",
+      "pdf_url": "https://elections.cdn.sos.ca.gov/ballot-measures/pdf/sca-1-24.pdf"
+    },
+    {
+      "election": "November 3, 2026, Statewide Ballot Measures",
+      "measure_text": "Assembly Bill 440, Chapter 82, Statutes of 2024",
+      "pdf_url": "https://elections.cdn.sos.ca.gov/ballot-measures/pdf/ab440.pdf"
+    }
+  ]
+}
