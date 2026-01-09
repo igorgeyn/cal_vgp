@@ -19,19 +19,21 @@ logger = logging.getLogger(__name__)
 class WebsiteGenerator:
     """Generates static website from ballot measures data"""
     
-    def __init__(self, database: Database = None, output_path: Path = None):
+    def __init__(self, database: Database = None, output_path: Path = None, style: str = 'modern'):
         self.db = database or Database()
-        self.output_path = output_path or BASE_DIR.parent / WEBSITE_CONFIG['output_filename']
-        self.template = WEBSITE_CONFIG.get('template', 'modern')
+        self.output_path = output_path or BASE_DIR.parent / WEBSITE_CONFIG.get('output_filename', 'index.html')
+        self.template = style
         self.features = WEBSITE_CONFIG.get('features', {})
         
-    def generate(self) -> Path:
+    def generate(self, measures: List[BallotMeasure] = None, stats: Dict = None) -> str:
         """Generate the complete website"""
         logger.info("Generating website...")
         
-        # Get data from database
-        measures = self.db.get_all_active_measures()
-        stats = self.db.get_statistics()
+        # Get data from database if not provided
+        if measures is None:
+            measures = self.db.get_all_active_measures()
+        if stats is None:
+            stats = self.db.get_statistics()
         
         # Process data for website
         measures_data = self._prepare_measures_data(measures)
@@ -49,7 +51,7 @@ class WebsiteGenerator:
         index_path.write_text(html, encoding='utf-8')
         logger.info(f"Also saved to: {index_path}")
         
-        return self.output_path
+        return html
     
     def _prepare_measures_data(self, measures: List[BallotMeasure]) -> List[Dict]:
         """Convert measures to format needed for website"""
@@ -63,7 +65,7 @@ class WebsiteGenerator:
             data['measure_text'] = data.get('title') or data.get('ballot_question', 'Unknown Measure')
             data['source'] = data.get('data_source', 'Historical')
             
-            # Ensure year is string for consistency
+            # Ensure year is string for consistency in JSON
             if data.get('year'):
                 data['year'] = str(data['year'])
             
@@ -88,16 +90,60 @@ class WebsiteGenerator:
         
         return topics
     
+    def _sanitize_stats(self, stats: Dict) -> Dict:
+        """Ensure all statistics are the correct type"""
+        sanitized = {}
+        
+        # Integer fields
+        int_fields = [
+            'total_measures', 'with_summaries', 'with_votes',
+            'passed', 'failed', 'year_min', 'year_max',
+            'counties', 'topics'
+        ]
+        
+        for field in int_fields:
+            value = stats.get(field)
+            if value is not None:
+                try:
+                    sanitized[field] = int(value)
+                except (ValueError, TypeError):
+                    # Provide sensible defaults
+                    if field in ['year_min']:
+                        sanitized[field] = 1902
+                    elif field in ['year_max']:
+                        sanitized[field] = 2026
+                    else:
+                        sanitized[field] = 0
+            else:
+                # Provide defaults for missing fields
+                if field == 'year_min':
+                    sanitized[field] = 1902
+                elif field == 'year_max':
+                    sanitized[field] = 2026
+                else:
+                    sanitized[field] = 0
+        
+        # Copy over other fields
+        sanitized['by_source'] = stats.get('by_source', {})
+        sanitized['sources'] = stats.get('sources', [])
+        
+        return sanitized
+    
     def _generate_html(self, measures: List[Dict], stats: Dict, 
                       topics: List[Dict]) -> str:
-        """Generate the complete HTML"""
+        """Generate the complete HTML with type safety"""
+        
+        # Ensure all stats are proper types
+        stats = self._sanitize_stats(stats)
+        
         # Convert data to JSON for embedding
         measures_json = json.dumps(measures, default=str)
         topics_json = json.dumps(topics, default=str)
         
-        # Calculate additional stats
+        # Calculate additional stats with type safety
         total_with_outcome = stats['passed'] + stats['failed']
         pass_rate = round((stats['passed'] / total_with_outcome * 100)) if total_with_outcome > 0 else 0
+        year_range = stats['year_max'] - stats['year_min']  # Now guaranteed to be integers
         
         # Generate HTML using modern template
         html = f"""<!DOCTYPE html>
@@ -163,9 +209,9 @@ class WebsiteGenerator:
                 <div class="filter-group">
                     <div class="filter-label">Year Range</div>
                     <div class="year-range">
-                        <input type="number" class="year-input" id="yearMin" value="{stats.get('year_min', 1902)}" min="{stats.get('year_min', 1902)}" max="{stats.get('year_max', 2026)}">
+                        <input type="number" class="year-input" id="yearMin" value="{stats['year_min']}" min="{stats['year_min']}" max="{stats['year_max']}">
                         <span class="year-separator">–</span>
-                        <input type="number" class="year-input" id="yearMax" value="{stats.get('year_max', 2026)}" min="{stats.get('year_min', 1902)}" max="{stats.get('year_max', 2026)}">
+                        <input type="number" class="year-input" id="yearMax" value="{stats['year_max']}" min="{stats['year_min']}" max="{stats['year_max']}">
                     </div>
                 </div>
                 
@@ -226,7 +272,7 @@ class WebsiteGenerator:
                     <div class="stat-label">Pass Rate</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-number">{stats['year_max'] - stats['year_min']} years</div>
+                    <div class="stat-number">{year_range} years</div>
                     <div class="stat-label">Historical Coverage</div>
                 </div>
                 <div class="stat-card">
@@ -1070,6 +1116,7 @@ class WebsiteGenerator:
                     const searchText = [
                         measure.title,
                         measure.measure_text,
+                        measure.measure_id,
                         measure.description,
                         measure.summary_text,
                         measure.topic_primary,
@@ -1186,6 +1233,8 @@ class WebsiteGenerator:
         // Create card HTML
         function createCard(measure, featured = false) {{
             const title = measure.title || measure.measure_text || 'Untitled Measure';
+            const measureId = measure.measure_id || '';
+            const displayTitle = measureId ? `${{measureId}}: ${{title}}` : title;
             const year = measure.year || 'Unknown';
             const passed = measure.passed;
             const passedClass = passed === 1 ? 'passed' : passed === 0 ? 'failed' : 'pending';
@@ -1209,7 +1258,7 @@ class WebsiteGenerator:
                             <span class="badge badge-${{passedClass}}">${{passedText}}</span>
                         </div>
                     </div>
-                    <h3 class="card-title">${{title}}</h3>
+                    <h3 class="card-title">${{displayTitle}}</h3>
                     ${{voteBar}}
                     <div class="card-meta">
                         ${{percentYes != null ? `<div class="meta-item">📊 ${{Math.round(percentYes)}}% Yes</div>` : ''}}
@@ -1223,6 +1272,8 @@ class WebsiteGenerator:
         // Create list item HTML
         function createListItem(measure) {{
             const title = measure.title || measure.measure_text || 'Untitled Measure';
+            const measureId = measure.measure_id || '';
+            const displayTitle = measureId ? `${{measureId}}: ${{title}}` : title;
             const year = measure.year || 'Unknown';
             const passed = measure.passed;
             const passedClass = passed === 1 ? 'passed' : passed === 0 ? 'failed' : 'pending';
@@ -1232,7 +1283,7 @@ class WebsiteGenerator:
                 <div class="measure-list-item" onclick="viewMeasure(${{JSON.stringify(measure).replace(/"/g, '&quot;')}})">
                     <div class="badge badge-${{passedClass}}">${{passedText}}</div>
                     <div>
-                        <div style="font-weight: 500;">${{title}}</div>
+                        <div style="font-weight: 500;">${{displayTitle}}</div>
                         <div style="font-size: 0.875rem; color: var(--text-secondary);">
                             ${{year}} • ${{measure.topic_primary || measure.category_topic || 'General'}}
                         </div>

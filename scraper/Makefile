@@ -1,4 +1,4 @@
-# California Ballot Measures - Simplified Makefile
+# California Ballot Measures - Fixed Makefile
 # For use with the reorganized project structure
 
 .PHONY: help install setup update scrape check website api clean test backup migrate
@@ -45,14 +45,14 @@ setup: install
 	@python scripts/initialize_db.py
 	@echo "✅ Setup complete!"
 
-# Main operations
+# Main operations - FIXED COMMANDS
 update:
 	@echo "🔄 Updating ballot measures database..."
 	@python scripts/update_db.py
 
 scrape:
 	@echo "🕷️ Scraping latest measures..."
-	@python scripts/scrape.py --sources all
+	@python scripts/scrape.py --source all
 
 check:
 	@echo "🔍 Checking for new measures..."
@@ -101,7 +101,7 @@ backup:
 	@python -c "from src.database.operations import Database; \
 	           from src.config import DB_PATH; \
 	           db = Database(DB_PATH); \
-	           backup_path = db.backup_database(); \
+	           backup_path = db.backup(); \
 	           print(f'Backup saved to: {backup_path}')"
 
 export-csv:
@@ -112,8 +112,8 @@ export-csv:
 	           import pandas as pd; \
 	           from datetime import datetime; \
 	           db = Database(DB_PATH); \
-	           measures = db.get_all_measures(); \
-	           df = pd.DataFrame(measures); \
+	           measures = db.get_all_active_measures(); \
+	           df = pd.DataFrame([m.to_dict() for m in measures]); \
 	           filename = f'data/exports/measures_{datetime.now().strftime(\"%Y%m%d\")}.csv'; \
 	           df.to_csv(filename, index=False); \
 	           print(f'Exported to: {filename}')"
@@ -195,3 +195,8 @@ dev:
 	@echo "2. make website   - Generate website"
 	@echo "3. make api       - Start API server"
 	@echo "4. make test      - Run tests"
+
+# Complete pipeline
+full-run: db-init scrape update website
+	@echo "✅ Full pipeline complete!"
+	@$(MAKE) -s status

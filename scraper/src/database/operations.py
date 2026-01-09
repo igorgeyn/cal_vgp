@@ -97,7 +97,9 @@ class Database:
             
             # Define expected columns
             expected_columns = {
-                'fingerprint', 'measure_fingerprint', 'content_hash',
+                'id', 'fingerprint', 'measure_fingerprint', 'content_hash',
+                'measure_id', 'measure_letter', 'year', 'state', 'county',
+                'jurisdiction', 'title', 'description', 'ballot_question',
                 'is_active', 'is_duplicate', 'duplicate_type', 'master_id',
                 'merged_from', 'update_count', 'last_seen_at'
             }
@@ -123,9 +125,34 @@ class Database:
                             logger.warning(f"Error adding column {col}: {e}")
                             
                 conn.commit()
+            
+            # Fix year column type if needed
+            self._fix_year_types(conn)
                 
         finally:
             self.close()
+    
+    def _fix_year_types(self, conn):
+        """Ensure year columns are stored as integers"""
+        try:
+            # Check if we have any non-integer years
+            cursor = conn.execute("""
+                SELECT COUNT(*) as count 
+                FROM measures 
+                WHERE typeof(year) != 'integer' AND year IS NOT NULL
+            """)
+            count = cursor.fetchone()['count']
+            
+            if count > 0:
+                logger.info(f"Converting {count} year values to integers")
+                conn.execute("""
+                    UPDATE measures 
+                    SET year = CAST(year AS INTEGER)
+                    WHERE typeof(year) != 'integer' AND year IS NOT NULL
+                """)
+                conn.commit()
+        except Exception as e:
+            logger.warning(f"Could not fix year types: {e}")
     
     def insert_measure(self, measure: BallotMeasure) -> int:
         """Insert a new measure"""
@@ -134,6 +161,10 @@ class Database:
         
         # Remove id field if present
         data.pop('id', None)
+        
+        # Ensure year is integer
+        if 'year' in data and data['year'] is not None:
+            data['year'] = int(data['year'])
         
         # Build insert query
         fields = list(data.keys())
@@ -164,6 +195,10 @@ class Database:
         updates.pop('id', None)
         updates.pop('fingerprint', None)
         updates.pop('created_at', None)
+        
+        # Ensure year is integer if present
+        if 'year' in updates and updates['year'] is not None:
+            updates['year'] = int(updates['year'])
         
         # Add update metadata
         updates['updated_at'] = datetime.now()
@@ -219,40 +254,62 @@ class Database:
             measures.append(BallotMeasure.from_dict(dict(row)))
         return measures
     
-    def search_measures(self, query: str, limit: int = 100) -> List[BallotMeasure]:
-        """Full-text search for measures"""
+    def search_measures(self, query: str = None, limit: int = 100, **filters) -> List[BallotMeasure]:
+        """Full-text search for measures with filters"""
         conn = self.connect()
         
-        try:
-            cursor = conn.execute("""
-                SELECT m.* FROM measures m
-                JOIN measure_search ms ON m.id = ms.rowid
-                WHERE measure_search MATCH ?
-                AND m.is_active = 1 AND m.is_duplicate = 0
-                ORDER BY rank
-                LIMIT ?
-            """, (query, limit))
+        # Build query
+        where_clauses = ["is_active = 1", "is_duplicate = 0"]
+        params = []
+        
+        # Add filters
+        if filters.get('year'):
+            where_clauses.append("year = ?")
+            params.append(int(filters['year']))
+        
+        if filters.get('year_min'):
+            where_clauses.append("year >= ?")
+            params.append(int(filters['year_min']))
             
-            measures = []
-            for row in cursor:
-                measures.append(BallotMeasure.from_dict(dict(row)))
-            return measures
-            
-        except sqlite3.OperationalError:
-            # Fallback to LIKE search if FTS not available
-            logger.warning("FTS search failed, falling back to LIKE search")
-            cursor = conn.execute("""
-                SELECT * FROM measures
-                WHERE (title LIKE ? OR description LIKE ? OR ballot_question LIKE ?)
-                AND is_active = 1 AND is_duplicate = 0
-                ORDER BY year DESC
-                LIMIT ?
-            """, (f"%{query}%", f"%{query}%", f"%{query}%", limit))
-            
-            measures = []
-            for row in cursor:
-                measures.append(BallotMeasure.from_dict(dict(row)))
-            return measures
+        if filters.get('year_max'):
+            where_clauses.append("year <= ?")
+            params.append(int(filters['year_max']))
+        
+        if filters.get('county'):
+            where_clauses.append("county = ?")
+            params.append(filters['county'])
+        
+        if filters.get('passed') is not None:
+            where_clauses.append("passed = ?")
+            params.append(filters['passed'])
+        
+        if filters.get('has_summary') is not None:
+            where_clauses.append("has_summary = ?")
+            params.append(filters['has_summary'])
+        
+        # Add text search if query provided
+        if query:
+            where_clauses.append("""
+                (title LIKE ? OR description LIKE ? OR ballot_question LIKE ?)
+            """)
+            search_pattern = f"%{query}%"
+            params.extend([search_pattern, search_pattern, search_pattern])
+        
+        # Build final query
+        sql = f"""
+            SELECT * FROM measures
+            WHERE {' AND '.join(where_clauses)}
+            ORDER BY year DESC, county, measure_letter
+            LIMIT ?
+        """
+        params.append(limit)
+        
+        cursor = conn.execute(sql, params)
+        
+        measures = []
+        for row in cursor:
+            measures.append(BallotMeasure.from_dict(dict(row)))
+        return measures
     
     def get_all_active_measures(self) -> List[BallotMeasure]:
         """Get all active (non-duplicate) measures"""
@@ -268,33 +325,38 @@ class Database:
         return measures
     
     def get_statistics(self) -> Dict:
-        """Get database statistics"""
+        """Get database statistics with proper type handling"""
         conn = self.connect()
         stats = {}
         
         # Total measures
         cursor = conn.execute("SELECT COUNT(*) as count FROM active_measures")
-        stats['total_measures'] = cursor.fetchone()['count']
+        stats['total_measures'] = int(cursor.fetchone()['count'] or 0)
         
         # With summaries
         cursor = conn.execute(
             "SELECT COUNT(*) as count FROM active_measures WHERE has_summary = 1"
         )
-        stats['with_summaries'] = cursor.fetchone()['count']
+        stats['with_summaries'] = int(cursor.fetchone()['count'] or 0)
         
         # With votes
         cursor = conn.execute(
             "SELECT COUNT(*) as count FROM active_measures WHERE yes_votes IS NOT NULL"
         )
-        stats['with_votes'] = cursor.fetchone()['count']
+        stats['with_votes'] = int(cursor.fetchone()['count'] or 0)
         
-        # Year range
-        cursor = conn.execute(
-            "SELECT MIN(year) as min_year, MAX(year) as max_year FROM active_measures"
-        )
+        # Year range - ENSURE INTEGERS
+        cursor = conn.execute("""
+            SELECT 
+                MIN(CAST(year AS INTEGER)) as min_year, 
+                MAX(CAST(year AS INTEGER)) as max_year 
+            FROM active_measures
+            WHERE year IS NOT NULL
+        """)
         row = cursor.fetchone()
-        stats['year_min'] = row['min_year']
-        stats['year_max'] = row['max_year']
+        # Convert to int, with defaults if None
+        stats['year_min'] = int(row['min_year']) if row['min_year'] is not None else 1902
+        stats['year_max'] = int(row['max_year']) if row['max_year'] is not None else 2026
         
         # By source
         cursor = conn.execute("""
@@ -302,9 +364,15 @@ class Database:
             FROM active_measures
             GROUP BY data_source
         """)
-        stats['by_source'] = {row['data_source']: row['count'] for row in cursor}
+        stats['by_source'] = {}
+        stats['sources'] = []
+        for row in cursor:
+            source = row['data_source'] or 'Unknown'
+            count = int(row['count'] or 0)
+            stats['by_source'][source] = count
+            stats['sources'].append(source)
         
-        # Pass rate
+        # Pass rate - ENSURE INTEGERS
         cursor = conn.execute("""
             SELECT 
                 SUM(CASE WHEN passed = 1 THEN 1 ELSE 0 END) as passed,
@@ -312,8 +380,12 @@ class Database:
             FROM active_measures
         """)
         row = cursor.fetchone()
-        stats['passed'] = row['passed'] or 0
-        stats['failed'] = row['failed'] or 0
+        stats['passed'] = int(row['passed'] or 0)
+        stats['failed'] = int(row['failed'] or 0)
+        
+        # Additional stats for completeness
+        stats['counties'] = 1  # Placeholder
+        stats['topics'] = 0  # Placeholder
         
         return stats
     
@@ -364,8 +436,74 @@ class Database:
         logger.info(f"Database backed up to {backup_path}")
         
         return backup_path
+    
+    # Additional helper methods for compatibility
+    def get_years_with_counts(self) -> List[Dict]:
+        """Get all years with measure counts"""
+        conn = self.connect()
+        cursor = conn.execute("""
+            SELECT 
+                CAST(year AS INTEGER) as year,
+                COUNT(*) as count
+            FROM active_measures
+            WHERE year IS NOT NULL
+            GROUP BY year
+            ORDER BY year DESC
+        """)
+        
+        results = []
+        for row in cursor:
+            results.append({
+                'year': int(row['year']),
+                'count': int(row['count'])
+            })
+        return results
+    
+    def get_topics_with_counts(self) -> List[Dict]:
+        """Get all topics with counts"""
+        conn = self.connect()
+        cursor = conn.execute("""
+            SELECT 
+                COALESCE(topic_primary, category_topic, 'Unknown') as topic,
+                COUNT(*) as count
+            FROM active_measures
+            GROUP BY topic
+            ORDER BY count DESC
+        """)
+        
+        results = []
+        for row in cursor:
+            results.append({
+                'topic': row['topic'],
+                'count': int(row['count'])
+            })
+        return results
+    
+    def get_counties_with_counts(self) -> List[Dict]:
+        """Get all counties with measure counts"""
+        conn = self.connect()
+        cursor = conn.execute("""
+            SELECT 
+                county,
+                COUNT(*) as count
+            FROM active_measures
+            GROUP BY county
+            ORDER BY count DESC
+        """)
+        
+        results = []
+        for row in cursor:
+            results.append({
+                'county': row['county'] or 'Unknown',
+                'count': int(row['count'])
+            })
+        return results
 
 
 class DuplicateError(Exception):
     """Raised when attempting to insert a duplicate measure"""
     pass
+
+
+# Convenience class for backward compatibility
+DatabaseOperations = Database

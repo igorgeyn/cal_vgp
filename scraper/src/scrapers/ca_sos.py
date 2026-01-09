@@ -3,7 +3,7 @@ California Secretary of State ballot measures scraper
 """
 import re
 import logging
-from typing import Dict, List
+from typing import Dict, List, Optional
 from urllib.parse import urljoin
 from bs4 import BeautifulSoup
 
@@ -65,9 +65,8 @@ class CASOSScraper(BaseScraper):
                     
                 # This is a measure PDF link
                 measure_text = tag.get_text(" ", strip=True)
-                measure_text = re.sub(r"\s*\(PDF\)\s*$", "", measure_text, flags=re.I)
                 
-                if not measure_text:
+                if not measure_text or measure_text == "(PDF)":
                     continue
                 
                 # Parse the measure
@@ -104,34 +103,136 @@ class CASOSScraper(BaseScraper):
         return info
     
     def _parse_measure(self, measure_text: str, pdf_href: str, election_info: Dict = None) -> Dict:
-        """Parse individual measure information"""
+        """Parse individual measure information
+        
+        Expected formats:
+        - "ACA 1 - Protect and Retain the Majority Vote Act (PDF)"
+        - "SCA 2 - Recall Process Reform (PDF)"
+        - "Proposition 47 - Criminal Sentences Initiative (PDF)"
+        - "Assembly Bill 440, Chapter 82, Statutes of 2024 (PDF)"
+        """
         # Build the full PDF URL
         pdf_url = urljoin(self.base_url, pdf_href)
         
-        # Try to extract year from election info or default to current year
+        # Clean the measure text - remove (PDF) suffix
+        cleaned_text = re.sub(r"\s*\(PDF\)\s*$", "", measure_text, flags=re.I).strip()
+        
+        # Initialize variables
+        measure_id = None
+        title = None
+        
+        # Try to parse the measure text format: "MEASURE_ID - TITLE"
+        # Handle different types of dashes/hyphens
+        patterns = [
+            r'^([AS]CA\s+\d+)\s*[-–—]\s*(.+)$',  # ACA/SCA format
+            r'^(Prop(?:osition)?\s+\d+[A-Z]?)\s*[-–—]\s*(.+)$',  # Proposition format
+            r'^(Measure\s+[A-Z])\s*[-–—]\s*(.+)$',  # Local measure format
+            r'^(Assembly\s+Bill\s+\d+|AB\s+\d+)\s*[-–—,]\s*(.+)$',  # Assembly Bill
+            r'^(Senate\s+Bill\s+\d+|SB\s+\d+)\s*[-–—,]\s*(.+)$',  # Senate Bill
+        ]
+        
+        matched = False
+        for pattern in patterns:
+            match = re.match(pattern, cleaned_text, re.IGNORECASE)
+            if match:
+                measure_id = match.group(1).strip()
+                title = match.group(2).strip()
+                # Clean up title - remove chapter references if present
+                title = re.sub(r',?\s*Chapter\s+\d+,?\s*Statutes\s+of\s+\d+\s*$', '', title, flags=re.I).strip()
+                matched = True
+                break
+        
+        if not matched:
+            # Special handling for Assembly/Senate Bills without hyphen
+            bill_match = re.match(r'^((?:Assembly|Senate)\s+Bill\s+\d+),?\s*(.*)$', cleaned_text, re.IGNORECASE)
+            if bill_match:
+                measure_id = bill_match.group(1).strip()
+                rest = bill_match.group(2).strip()
+                # Remove chapter/statutes info to get title
+                title = re.sub(r'^Chapter\s+\d+,?\s*Statutes\s+of\s+\d+,?\s*', '', rest, flags=re.I).strip()
+                if not title or title == rest:
+                    # If no clear title after removing chapter info, use the whole rest
+                    title = rest if rest else cleaned_text
+                matched = True
+        
+        if not matched:
+            # Fallback: try to extract just the measure ID at the beginning
+            id_patterns = [
+                r'^([AS]CA\s+\d+)\b',  # ACA 1, SCA 2, etc.
+                r'^(Prop(?:osition)?\s+\d+[A-Z]?)\b',  # Proposition 47, Prop 8, etc.
+                r'^(Measure\s+[A-Z])\b',  # Measure A, Measure B, etc.
+                r'^(Assembly\s+Bill\s+\d+|AB\s+\d+)\b',  # Assembly Bill
+                r'^(Senate\s+Bill\s+\d+|SB\s+\d+)\b',  # Senate Bill
+            ]
+            
+            for pattern in id_patterns:
+                id_match = re.match(pattern, cleaned_text, re.IGNORECASE)
+                if id_match:
+                    measure_id = id_match.group(1).strip()
+                    # Get the rest as title
+                    rest = cleaned_text[len(measure_id):].strip()
+                    # Remove leading punctuation/separators
+                    title = re.sub(r'^[-–—:,\s]+', '', rest).strip()
+                    if not title:
+                        title = cleaned_text
+                    break
+            
+            if not measure_id:
+                # Last resort: use the whole cleaned text as title
+                title = cleaned_text
+                logger.debug(f"Could not parse measure format: {cleaned_text}")
+        
+        # Normalize measure_id format
+        if measure_id:
+            # Ensure consistent spacing (e.g., "ACA1" -> "ACA 1")
+            measure_id = re.sub(r'([A-Z]+)(\d+)', r'\1 \2', measure_id)
+            # Normalize "Proposition" to "Prop"
+            measure_id = re.sub(r'^Proposition\s+', 'Prop ', measure_id, flags=re.IGNORECASE)
+            # Normalize "Assembly Bill" to "AB"
+            measure_id = re.sub(r'^Assembly\s+Bill\s+', 'AB ', measure_id, flags=re.IGNORECASE)
+            # Normalize "Senate Bill" to "SB"
+            measure_id = re.sub(r'^Senate\s+Bill\s+', 'SB ', measure_id, flags=re.IGNORECASE)
+            # Uppercase the measure ID
+            measure_id = measure_id.upper()
+        
+        # Extract year (AS INTEGER)
+        year = self._extract_year(election_info, cleaned_text)
+        
+        return {
+            'measure_id': measure_id,
+            'measure_text': cleaned_text,  # Keep cleaned text for reference
+            'title': title or "Unknown",
+            'year': year,  # This is now guaranteed to be an integer
+            'pdf_url': pdf_url,
+            'election_date': election_info.get('date') if election_info else None,
+            'election_type': election_info.get('type') if election_info else None,
+        }
+    
+    def _extract_year(self, election_info: Dict = None, text: str = "") -> int:
+        """Extract year from various sources - ALWAYS RETURNS INTEGER"""
         year = None
+        
+        # Try to extract from election info first
         if election_info and election_info.get('date'):
             year_match = re.search(r'(\d{4})', election_info['date'])
             if year_match:
                 year = year_match.group(1)
         
-        # If no year found, check if it's in the measure text
-        if not year:
-            year_match = re.search(r'\b(20\d{2})\b', measure_text)
+        # If no year found, check if it's in the text
+        if not year and text:
+            year_match = re.search(r'\b(20\d{2})\b', text)
             if year_match:
                 year = year_match.group(1)
         
-        # Default to 2026 for current measures
-        if not year:
-            year = "2026"
+        # Convert to integer and return with default
+        if year:
+            try:
+                return int(year)
+            except (ValueError, TypeError):
+                pass
         
-        return {
-            'measure_text': measure_text,
-            'year': year,
-            'pdf_url': pdf_url,
-            'election_date': election_info.get('date') if election_info else None,
-            'election_type': election_info.get('type') if election_info else None,
-        }
+        # Default to 2026 as integer
+        return 2026
 
 
 class UCLawSFScraper(BaseScraper):
@@ -195,14 +296,16 @@ class UCLawSFScraper(BaseScraper):
         # Extract year and proposition number
         year = None
         prop_num = None
+        measure_id = None
         
         year_match = re.search(r'\((\d{4})\)', full_text)
         if year_match:
-            year = year_match.group(1)
-            
-        prop_match = re.search(r'Proposition\s+(\d+)', full_text)
+            year = int(year_match.group(1))  # Convert to int immediately
+        
+        prop_match = re.search(r'Proposition\s+(\d+[A-Z]?)', full_text, re.IGNORECASE)
         if prop_match:
             prop_num = prop_match.group(1)
+            measure_id = f"PROP {prop_num}"  # Standardize to uppercase PROP
         
         # Build measure text
         if prop_num:
@@ -211,8 +314,9 @@ class UCLawSFScraper(BaseScraper):
             measure_text = title
             
         return {
+            'measure_id': measure_id,
             'measure_text': measure_text,
-            'year': year or "Unknown",
+            'year': year if year else 0,  # Return integer, 0 if unknown
             'title': title,
             'pdf_url': urljoin(self.base_url, href),
             'source_url': self.base_url + self.config["endpoint"]

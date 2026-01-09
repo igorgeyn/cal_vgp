@@ -6,20 +6,24 @@ from typing import Optional, Dict, List
 from datetime import datetime
 import hashlib
 import re
+import json
 
 
 @dataclass
 class BallotMeasure:
     """Main ballot measure data model"""
+    # Database identity (None for new records, populated after insert)
+    id: Optional[int] = None
+    
     # Core identification
-    fingerprint: str  # Unique fingerprint for deduplication
-    measure_fingerprint: str  # Cross-source matching fingerprint
-    content_hash: str  # Content-based hash
+    fingerprint: str = ""  # Unique fingerprint for deduplication
+    measure_fingerprint: str = ""  # Cross-source matching fingerprint
+    content_hash: str = ""  # Content-based hash
     
     # Basic information
     measure_id: Optional[str] = None
     measure_letter: Optional[str] = None
-    year: Optional[int] = None
+    year: Optional[int] = None  # Always store as integer
     state: str = "CA"
     county: str = "Statewide"
     jurisdiction: Optional[str] = None
@@ -62,20 +66,36 @@ class BallotMeasure:
     century: Optional[int] = None
     
     # Tracking
-    created_at: datetime = datetime.now()
-    updated_at: datetime = datetime.now()
-    last_seen_at: datetime = datetime.now()
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+    last_seen_at: Optional[datetime] = None
     update_count: int = 0
     
     # Deduplication flags
     is_active: bool = True
     is_duplicate: bool = False
     duplicate_type: Optional[str] = None
-    master_id: Optional[int] = None
+    master_id: Optional[int] = None  # References another measure's id
     merged_from: Optional[List[int]] = None
     
     def __post_init__(self):
         """Post-initialization processing"""
+        # Ensure year is an integer
+        if self.year is not None:
+            try:
+                self.year = int(self.year)
+            except (ValueError, TypeError):
+                self.year = None
+        
+        # Initialize timestamps if not provided
+        now = datetime.now()
+        if self.created_at is None:
+            self.created_at = now
+        if self.updated_at is None:
+            self.updated_at = now
+        if self.last_seen_at is None:
+            self.last_seen_at = now
+            
         # Calculate decade and century if year is provided
         if self.year and isinstance(self.year, int):
             self.decade = (self.year // 10) * 10
@@ -105,6 +125,11 @@ class BallotMeasure:
     
     def extract_measure_identifier(self) -> str:
         """Extract standardized measure identifier"""
+        # Use measure_id if available
+        if self.measure_id:
+            return self.measure_id.upper().replace('PROPOSITION', 'PROP')
+            
+        # Otherwise try to extract from text
         text = self.title or self.ballot_question or ''
         if not text:
             return "UNKNOWN"
@@ -123,10 +148,8 @@ class BallotMeasure:
                 groups = match.groups()
                 return format_str.format(*groups).upper()
                 
-        # Use measure_id or measure_letter if available
-        if self.measure_id:
-            return f"ID_{self.measure_id}"
-        elif self.measure_letter:
+        # Use measure_letter if available
+        if self.measure_letter:
             return f"MEASURE_{self.measure_letter}"
             
         # Last resort: hash of content
@@ -139,21 +162,62 @@ class BallotMeasure:
             value = getattr(self, field)
             if isinstance(value, datetime):
                 value = value.isoformat()
+            elif isinstance(value, list):
+                value = json.dumps(value) if value else None
+            # Ensure year is stored as integer
+            elif field == 'year' and value is not None:
+                value = int(value)
             data[field] = value
         return data
     
     @classmethod
     def from_dict(cls, data: Dict) -> 'BallotMeasure':
         """Create from dictionary"""
+        # Make a copy to avoid modifying original
+        data = data.copy()
+        
+        # Ensure year is an integer
+        if 'year' in data and data['year'] is not None:
+            try:
+                data['year'] = int(data['year'])
+            except (ValueError, TypeError):
+                data['year'] = None
+        
         # Convert datetime strings back to datetime objects
         for field in ['created_at', 'updated_at', 'last_seen_at', 'election_date']:
             if field in data and isinstance(data[field], str):
                 try:
                     data[field] = datetime.fromisoformat(data[field])
                 except:
-                    pass
-                    
+                    data[field] = None
+        
+        # Convert JSON strings back to lists
+        if 'merged_from' in data and isinstance(data['merged_from'], str):
+            try:
+                data['merged_from'] = json.loads(data['merged_from'])
+            except:
+                data['merged_from'] = None
+                
         return cls(**data)
+    
+    @property
+    def is_new(self) -> bool:
+        """Check if this is a new measure (not yet in database)"""
+        return self.id is None
+    
+    @property
+    def needs_update(self) -> bool:
+        """Check if measure might need updating"""
+        # Measures without summaries or vote data might need updates
+        return not self.has_summary or self.yes_votes is None
+    
+    def __str__(self) -> str:
+        """String representation"""
+        return f"BallotMeasure({self.measure_id or 'Unknown'}: {self.title or 'Untitled'})"
+    
+    def __repr__(self) -> str:
+        """Developer representation"""
+        return f"BallotMeasure(id={self.id}, fingerprint='{self.fingerprint}', year={self.year}, title='{self.title}')"
 
 
 # Database schema for SQLite
