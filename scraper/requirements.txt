@@ -18,25 +18,11 @@ uvicorn[standard]>=0.24.0
 pydantic>=2.4.0
 python-multipart>=0.0.6  # For form data
 
-# Database (SQLite is built-in, but we need these for advanced features)
-sqlalchemy>=2.0.0  # Optional, for ORM if needed
-
 # Environment and configuration
 python-dotenv>=1.0.0
-pyyaml>=6.0
-
-# CLI enhancements
-click>=8.1.0
-rich>=13.0.0  # For pretty terminal output
 
 # Development tools (optional, but recommended)
 pytest>=7.4.0
 pytest-cov>=4.1.0
 black>=23.9.0
 flake8>=6.1.0
-isort>=5.12.0
-mypy>=1.6.0
-
-# Documentation (optional)
-mkdocs>=1.5.0
-mkdocs-material>=9.4.0

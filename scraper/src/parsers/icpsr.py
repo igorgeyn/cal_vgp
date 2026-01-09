@@ -16,8 +16,8 @@ class ICPSRParser:
     def __init__(self, data_dir: Path):
         self.data_dir = data_dir
         self.file_paths = [
+            data_dir / 'raw' / 'ncslballotmeasures_icpsr_1902_2016.csv',  # Check raw first
             data_dir / 'downloaded' / 'ncslballotmeasures_icpsr_1902_2016.csv',
-            data_dir / 'raw' / 'ncslballotmeasures_icpsr_1902_2016.csv',
             data_dir.parent / 'downloaded' / 'ncslballotmeasures_icpsr_1902_2016.csv',
             data_dir / 'downloaded' / 'icpsr_ballot_measures.csv',
             data_dir / 'raw' / 'icpsr_ballot_measures.csv'

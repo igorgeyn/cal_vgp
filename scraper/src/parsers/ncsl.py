@@ -16,8 +16,8 @@ class NCSLParser:
     def __init__(self, data_dir: Path):
         self.data_dir = data_dir
         self.file_paths = [
+            data_dir / 'raw' / 'ncsl_ballot_measures_2014_present.xlsx',  # Check raw first
             data_dir / 'downloaded' / 'ncsl_ballot_measures_2014_present.xlsx',
-            data_dir / 'raw' / 'ncsl_ballot_measures_2014_present.xlsx',
             data_dir.parent / 'downloaded' / 'ncsl_ballot_measures_2014_present.xlsx'
         ]
     

@@ -10,11 +10,13 @@ Provides data models, operations, and deduplication functionality
 from .models import BallotMeasure
 from .operations import Database
 from .deduplication import Deduplicator
+from .utils import normalize_measure_data
 
 __all__ = [
     'BallotMeasure',
-    'Database', 
-    'Deduplicator'
+    'Database',
+    'Deduplicator',
+    'normalize_measure_data'
 ]
 
 # Package metadata

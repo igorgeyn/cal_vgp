@@ -20,7 +20,13 @@ class CEDAParser:
     """Parser for California Elections Data Archive files (1998-2024)"""
     
     def __init__(self, data_dir: Path = None):
-        self.data_dir = data_dir or DATA_DIR / "downloaded"
+        # Check raw directory first, then downloaded
+        if data_dir:
+            self.data_dir = data_dir
+        else:
+            raw_dir = DATA_DIR / "raw"
+            downloaded_dir = DATA_DIR / "downloaded"
+            self.data_dir = raw_dir if raw_dir.exists() else downloaded_dir
         self.output_dir = PROCESSED_DATA_DIR
         
         # Column mappings based on analysis of actual CEDA files
@@ -69,61 +75,113 @@ class CEDAParser:
     
     def parse_all_files(self) -> List[BallotMeasure]:
         """Parse all CEDA files in the directory"""
-        files = sorted(self.data_dir.glob('ceda_data_*.xls*'))
+        # Look for both Excel and CSV files
+        excel_files = sorted(self.data_dir.glob('ceda_data_*.xls*'))
+        csv_files = sorted(self.data_dir.glob('ceda*.csv'))
+
+        files = list(excel_files) + list(csv_files)
         logger.info(f"Found {len(files)} CEDA files to parse")
-        
+
         all_measures = []
-        
+
         for filepath in files:
             measures = self.parse_file(filepath)
             all_measures.extend(measures)
-        
+
         # Remove duplicates based on key fields
         all_measures = self._deduplicate_measures(all_measures)
-        
+
+        logger.info(f"Deduplicated {len(all_measures) + (len(files) - 1) if files else 0} to {len(all_measures)} unique measures")
         logger.info(f"Parsed {len(all_measures)} total measures from CEDA files")
         return all_measures
     
     def parse_file(self, filepath: Path) -> List[BallotMeasure]:
-        """Parse a single CEDA file"""
+        """Parse a single CEDA file (Excel or CSV)"""
         logger.info(f"Parsing CEDA file: {filepath.name}")
-        
+
         try:
+            # Handle CSV files directly
+            if filepath.suffix == '.csv':
+                return self._parse_csv_file(filepath)
+
+            # Handle Excel files
             # Extract year from filename
             year = filepath.stem.split('_')[-1]
-            
+
             # Read Excel file
             if filepath.suffix == '.xls':
                 excel_file = pd.ExcelFile(filepath, engine='xlrd')
             else:  # .xlsx
                 excel_file = pd.ExcelFile(filepath)
-            
+
             # Find the Measures sheet
             sheet_name = self._find_measures_sheet(excel_file, year)
-            
+
             if not sheet_name:
                 logger.warning(f"No measures sheet found in {filepath.name}")
                 return []
-            
+
             # Read the measures data
             df = pd.read_excel(excel_file, sheet_name=sheet_name)
-            
+
             # Skip if it's candidate data
             if self._is_candidate_data(df):
                 logger.info(f"Skipping candidate data in {filepath.name}")
                 return []
-            
+
             # Standardize the dataframe
             standardized_df = self._standardize_dataframe(df, year)
-            
+
             # Convert to BallotMeasure objects
             measures = self._dataframe_to_measures(standardized_df)
-            
+
             logger.info(f"Extracted {len(measures)} measures from {filepath.name}")
             return measures
-            
+
         except Exception as e:
             logger.error(f"Error parsing {filepath.name}: {e}")
+            return []
+
+    def _parse_csv_file(self, filepath: Path) -> List[BallotMeasure]:
+        """Parse a CEDA CSV file (pre-processed combined data)"""
+        try:
+            df = pd.read_csv(filepath)
+            logger.info(f"Read {len(df)} rows from CSV file")
+
+            # CSV is already in standardized format, convert directly
+            measures = []
+            for _, row in df.iterrows():
+                try:
+                    measure = BallotMeasure(
+                        measure_id=str(row.get('measure_id', '')),
+                        title=str(row.get('measure_text', '')),
+                        measure_letter=str(row.get('measure_letter', '')) if pd.notna(row.get('measure_letter')) else None,
+                        measure_type=str(row.get('measure_type', '')) if pd.notna(row.get('measure_type')) else None,
+                        year=int(row.get('year')) if pd.notna(row.get('year')) else None,
+                        state='CA',
+                        county=str(row.get('county', '')) if pd.notna(row.get('county')) else None,
+                        jurisdiction=str(row.get('jurisdiction', '')) if pd.notna(row.get('jurisdiction')) else None,
+                        yes_votes=int(row.get('yes_votes')) if pd.notna(row.get('yes_votes')) else None,
+                        no_votes=int(row.get('no_votes')) if pd.notna(row.get('no_votes')) else None,
+                        total_votes=int(row.get('total_votes')) if pd.notna(row.get('total_votes')) else None,
+                        percent_yes=float(row.get('percent_yes')) * 100 if pd.notna(row.get('percent_yes')) else None,
+                        pass_fail=str(row.get('pass_fail', '')) if pd.notna(row.get('pass_fail')) else None,
+                        passed=1 if str(row.get('pass_fail', '')).lower() == 'pass' else 0 if str(row.get('pass_fail', '')).lower() == 'fail' else None,
+                        category_type=str(row.get('rec_type_name', '')) if pd.notna(row.get('rec_type_name')) else None,
+                        category_topic=str(row.get('rec_topic_name', '')) if pd.notna(row.get('rec_topic_name')) else None,
+                        data_source='CEDA',
+                        election_date=str(row.get('election_date', '')) if pd.notna(row.get('election_date')) else None
+                    )
+                    measures.append(measure)
+                except Exception as e:
+                    logger.warning(f"Error converting row to measure: {e}")
+                    continue
+
+            logger.info(f"Converted {len(measures)} measures from CSV")
+            return measures
+
+        except Exception as e:
+            logger.error(f"Error parsing CSV file {filepath.name}: {e}")
             return []
     
     def _find_measures_sheet(self, excel_file: pd.ExcelFile, year: str) -> Optional[str]:

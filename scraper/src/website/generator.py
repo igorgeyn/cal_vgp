@@ -904,6 +904,107 @@ class WebsiteGenerator:
             margin: 0.25rem 0;
         }
         
+        /* Pagination */
+        .pagination-container {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            margin-top: 2rem;
+            padding: 1.5rem;
+            background: var(--bg-primary);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-sm);
+        }
+        
+        .pagination-controls {
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+        
+        .pagination-btn {
+            min-width: 40px;
+            height: 40px;
+            padding: 0.5rem;
+            border: 1px solid var(--border);
+            background: var(--bg-primary);
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .pagination-btn:hover:not(:disabled) {
+            background: var(--bg-secondary);
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+        
+        .pagination-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+        
+        .pagination-btn.active {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+        
+        .pagination-ellipsis {
+            padding: 0 0.5rem;
+            color: var(--text-tertiary);
+        }
+        
+        .pagination-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-left: 1rem;
+            padding-left: 1rem;
+            border-left: 1px solid var(--border);
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+        
+        .page-size-select {
+            padding: 0.375rem 0.75rem;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            background: var(--bg-primary);
+            font-size: 0.875rem;
+            cursor: pointer;
+        }
+        
+        /* Featured card enhancements */
+        .featured-label {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            padding: 0.25rem 0.5rem;
+            background: var(--bg-tertiary);
+            border-radius: var(--radius-sm);
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+        
+        .measure-card.featured {
+            border-left: 4px solid var(--primary);
+            background: linear-gradient(135deg, var(--bg-primary) 0%, rgba(26, 115, 232, 0.03) 100%);
+        }
+        
+        .measure-card.featured .card-title {
+            font-size: 1.05rem;
+        }
+        
         /* Responsive */
         @media (max-width: 1024px) {
             .main-container {
@@ -938,6 +1039,27 @@ class WebsiteGenerator:
             .results-grid {
                 grid-template-columns: 1fr;
             }
+            
+            .pagination-container {
+                flex-direction: column;
+                gap: 1rem;
+            }
+            
+            .pagination-info {
+                margin-left: 0;
+                padding-left: 0;
+                border-left: none;
+                padding-top: 0.75rem;
+                border-top: 1px solid var(--border);
+                width: 100%;
+                justify-content: center;
+            }
+            
+            .pagination-btn {
+                min-width: 36px;
+                height: 36px;
+                font-size: 0.8rem;
+            }
         }
         """
     
@@ -962,12 +1084,71 @@ class WebsiteGenerator:
         let currentSort = 'year-desc';
         let filteredMeasures = [];
         
+        // Pagination state
+        let pagination = {{
+            currentPage: 1,
+            itemsPerPage: 25,
+            totalPages: 0
+        }};
+        
+        // Featured measures (selected once on load)
+        let featuredMeasures = [];
+        
         // Initialize
         document.addEventListener('DOMContentLoaded', () => {{
+            selectFeaturedMeasures();
             initializeTopicTags();
             setupEventListeners();
+            loadPageFromURL();
             applyFilters();
         }});
+        
+        // Select interesting featured measures
+        function selectFeaturedMeasures() {{
+            const candidates = [...allMeasures];
+            const selected = [];
+            
+            // 1. Get 2 most recent measures (2026 or latest year)
+            const recent = candidates
+                .filter(m => m.year)
+                .sort((a, b) => (parseInt(b.year) || 0) - (parseInt(a.year) || 0))
+                .slice(0, 2);
+            recent.forEach(m => {{
+                m._featuredReason = '🗓️ Upcoming';
+                selected.push(m);
+            }});
+            
+            // 2. Get 1-2 historical measures (oldest with vote data)
+            const historical = candidates
+                .filter(m => m.year && parseInt(m.year) < 1930 && m.yes_votes != null && !selected.includes(m))
+                .sort((a, b) => (parseInt(a.year) || 9999) - (parseInt(b.year) || 9999))
+                .slice(0, 2);
+            historical.forEach(m => {{
+                m._featuredReason = '📜 Historical';
+                selected.push(m);
+            }});
+            
+            // 3. Get 1 close vote (closest to 50%)
+            const closeVote = candidates
+                .filter(m => m.percent_yes != null && !selected.includes(m))
+                .sort((a, b) => Math.abs(a.percent_yes - 50) - Math.abs(b.percent_yes - 50))
+                .slice(0, 1);
+            closeVote.forEach(m => {{
+                m._featuredReason = '⚖️ Close Vote';
+                selected.push(m);
+            }});
+            
+            // 4. Fill remaining with random picks (for discovery)
+            const remaining = candidates.filter(m => !selected.includes(m) && m.title);
+            while (selected.length < 5 && remaining.length > 0) {{
+                const randomIndex = Math.floor(Math.random() * remaining.length);
+                const pick = remaining.splice(randomIndex, 1)[0];
+                pick._featuredReason = '🎲 Discover';
+                selected.push(pick);
+            }}
+            
+            featuredMeasures = selected.slice(0, 5);
+        }}
         
         // Initialize topic tags
         function initializeTopicTags() {{
@@ -979,6 +1160,23 @@ class WebsiteGenerator:
             `).join('');
         }}
         
+        // Load page number from URL hash
+        function loadPageFromURL() {{
+            const hash = window.location.hash;
+            const match = hash.match(/page=(\d+)/);
+            if (match) {{
+                pagination.currentPage = Math.max(1, parseInt(match[1]));
+            }}
+        }}
+        
+        // Update URL hash with current page
+        function updateURL() {{
+            const newHash = pagination.currentPage > 1 ? `#page=${{pagination.currentPage}}` : '';
+            if (window.location.hash !== newHash) {{
+                history.replaceState(null, '', newHash || window.location.pathname);
+            }}
+        }}
+        
         // Setup event listeners
         function setupEventListeners() {{
             // Search input with debounce
@@ -987,6 +1185,7 @@ class WebsiteGenerator:
                 clearTimeout(searchTimeout);
                 searchTimeout = setTimeout(() => {{
                     currentFilters.search = e.target.value.toLowerCase();
+                    pagination.currentPage = 1; // Reset to first page on search
                     applyFilters();
                 }}, 300);
             }});
@@ -994,12 +1193,20 @@ class WebsiteGenerator:
             // Year inputs
             document.getElementById('yearMin').addEventListener('change', (e) => {{
                 currentFilters.yearMin = parseInt(e.target.value);
+                pagination.currentPage = 1;
                 applyFilters();
             }});
             
             document.getElementById('yearMax').addEventListener('change', (e) => {{
                 currentFilters.yearMax = parseInt(e.target.value);
+                pagination.currentPage = 1;
                 applyFilters();
+            }});
+            
+            // Handle browser back/forward
+            window.addEventListener('hashchange', () => {{
+                loadPageFromURL();
+                updateResults();
             }});
         }}
         
@@ -1011,6 +1218,9 @@ class WebsiteGenerator:
             }} else {{
                 currentFilters[type].push(value);
             }}
+            
+            // Reset pagination on filter change
+            pagination.currentPage = 1;
             
             // Update UI
             updateFilterUI();
@@ -1025,6 +1235,9 @@ class WebsiteGenerator:
             }} else {{
                 currentFilters.topics.push(topic);
             }}
+            
+            // Reset pagination on filter change
+            pagination.currentPage = 1;
             
             // Update UI
             updateTopicUI();
@@ -1167,6 +1380,13 @@ class WebsiteGenerator:
         
         // Update results display
         function updateResults() {{
+            // Calculate pagination
+            pagination.totalPages = Math.ceil(filteredMeasures.length / pagination.itemsPerPage);
+            pagination.currentPage = Math.min(pagination.currentPage, Math.max(1, pagination.totalPages));
+            
+            // Update URL
+            updateURL();
+            
             // Update count
             document.getElementById('resultsCount').textContent = filteredMeasures.length.toLocaleString();
             
@@ -1176,35 +1396,38 @@ class WebsiteGenerator:
                 'measures found';
             document.getElementById('resultsDescription').textContent = desc;
             
-            // Show/hide featured section
+            // Determine if we should show featured section (only on "home" view with no filters)
             const featuredSection = document.getElementById('featuredSection');
-            if (!currentFilters.search && currentFilters.status.length === 0 && 
-                currentFilters.features.length === 0 && currentFilters.topics.length === 0 &&
-                currentFilters.yearMin === {stats.get('year_min', 1902)} && currentFilters.yearMax === {stats.get('year_max', 2026)}) {{
-                // Show featured section
+            const isHomeView = !currentFilters.search && 
+                currentFilters.status.length === 0 && 
+                currentFilters.features.length === 0 && 
+                currentFilters.topics.length === 0 &&
+                currentFilters.yearMin === {stats.get('year_min', 1902)} && 
+                currentFilters.yearMax === {stats.get('year_max', 2026)} &&
+                pagination.currentPage === 1;
+            
+            if (isHomeView) {{
                 featuredSection.style.display = 'block';
                 displayFeatured();
-                displayResults(filteredMeasures.slice(5)); // Skip featured items
             }} else {{
-                // Hide featured section
                 featuredSection.style.display = 'none';
-                displayResults(filteredMeasures);
             }}
-        }}
-        
-        // Display featured measures
-        function displayFeatured() {{
-            const featured = filteredMeasures.slice(0, 5);
-            const grid = document.getElementById('featuredGrid');
             
-            grid.innerHTML = featured.map(measure => createCard(measure, true)).join('');
+            // Display paginated results
+            displayResults();
         }}
         
-        // Display results
-        function displayResults(measures) {{
+        // Display featured measures (curated selection)
+        function displayFeatured() {{
+            const grid = document.getElementById('featuredGrid');
+            grid.innerHTML = featuredMeasures.map(measure => createCard(measure, true, measure._featuredReason)).join('');
+        }}
+        
+        // Display paginated results
+        function displayResults() {{
             const container = document.getElementById('resultsContainer');
             
-            if (measures.length === 0) {{
+            if (filteredMeasures.length === 0) {{
                 container.innerHTML = `
                     <div class="empty-state">
                         <div class="empty-icon">🔍</div>
@@ -1215,23 +1438,120 @@ class WebsiteGenerator:
                 return;
             }}
             
+            // Calculate slice for current page
+            const startIndex = (pagination.currentPage - 1) * pagination.itemsPerPage;
+            const endIndex = startIndex + pagination.itemsPerPage;
+            const pageMeasures = filteredMeasures.slice(startIndex, endIndex);
+            
+            // Render results
+            let resultsHTML;
             if (currentView === 'grid') {{
-                container.innerHTML = `
+                resultsHTML = `
                     <div class="results-grid">
-                        ${{measures.map(m => createCard(m)).join('')}}
+                        ${{pageMeasures.map(m => createCard(m)).join('')}}
                     </div>
                 `;
             }} else {{
-                container.innerHTML = `
+                resultsHTML = `
                     <div class="results-list">
-                        ${{measures.map(m => createListItem(m)).join('')}}
+                        ${{pageMeasures.map(m => createListItem(m)).join('')}}
                     </div>
                 `;
             }}
+            
+            // Add pagination controls
+            const paginationHTML = renderPaginationControls(startIndex, endIndex);
+            
+            container.innerHTML = resultsHTML + paginationHTML;
+        }}
+        
+        // Render pagination controls
+        function renderPaginationControls(startIndex, endIndex) {{
+            if (pagination.totalPages <= 1) {{
+                return ''; // No pagination needed for single page
+            }}
+            
+            const current = pagination.currentPage;
+            const total = pagination.totalPages;
+            
+            // Build page buttons
+            let pageButtons = '';
+            
+            // Calculate which page numbers to show
+            const pages = [];
+            pages.push(1); // Always show first page
+            
+            // Pages around current
+            for (let i = Math.max(2, current - 2); i <= Math.min(total - 1, current + 2); i++) {{
+                pages.push(i);
+            }}
+            
+            if (total > 1) pages.push(total); // Always show last page
+            
+            // Remove duplicates and sort
+            const uniquePages = [...new Set(pages)].sort((a, b) => a - b);
+            
+            // Build buttons with ellipsis
+            let lastPage = 0;
+            uniquePages.forEach(page => {{
+                if (page - lastPage > 1) {{
+                    pageButtons += '<span class="pagination-ellipsis">...</span>';
+                }}
+                const activeClass = page === current ? 'active' : '';
+                pageButtons += `<button class="pagination-btn ${{activeClass}}" onclick="goToPage(${{page}})">${{page}}</button>`;
+                lastPage = page;
+            }});
+            
+            const showingStart = startIndex + 1;
+            const showingEnd = Math.min(endIndex, filteredMeasures.length);
+            
+            return `
+                <div class="pagination-container">
+                    <div class="pagination-controls">
+                        <button class="pagination-btn" onclick="goToPage(1)" ${{current === 1 ? 'disabled' : ''}} title="First page">
+                            ⟪
+                        </button>
+                        <button class="pagination-btn" onclick="goToPage(${{current - 1}})" ${{current === 1 ? 'disabled' : ''}} title="Previous page">
+                            ←
+                        </button>
+                        ${{pageButtons}}
+                        <button class="pagination-btn" onclick="goToPage(${{current + 1}})" ${{current === total ? 'disabled' : ''}} title="Next page">
+                            →
+                        </button>
+                        <button class="pagination-btn" onclick="goToPage(${{total}})" ${{current === total ? 'disabled' : ''}} title="Last page">
+                            ⟫
+                        </button>
+                    </div>
+                    <div class="pagination-info">
+                        <span>Showing ${{showingStart.toLocaleString()}}–${{showingEnd.toLocaleString()}} of ${{filteredMeasures.length.toLocaleString()}}</span>
+                        <select class="page-size-select" onchange="updateItemsPerPage(this.value)">
+                            <option value="25" ${{pagination.itemsPerPage === 25 ? 'selected' : ''}}>25 per page</option>
+                            <option value="50" ${{pagination.itemsPerPage === 50 ? 'selected' : ''}}>50 per page</option>
+                            <option value="100" ${{pagination.itemsPerPage === 100 ? 'selected' : ''}}>100 per page</option>
+                        </select>
+                    </div>
+                </div>
+            `;
+        }}
+        
+        // Go to specific page
+        function goToPage(page) {{
+            pagination.currentPage = Math.max(1, Math.min(page, pagination.totalPages));
+            updateResults();
+            
+            // Scroll to top of results
+            document.getElementById('resultsContainer').scrollIntoView({{ behavior: 'smooth', block: 'start' }});
+        }}
+        
+        // Update items per page
+        function updateItemsPerPage(value) {{
+            pagination.itemsPerPage = parseInt(value);
+            pagination.currentPage = 1; // Reset to first page
+            updateResults();
         }}
         
         // Create card HTML
-        function createCard(measure, featured = false) {{
+        function createCard(measure, featured = false, featuredReason = null) {{
             const title = measure.title || measure.measure_text || 'Untitled Measure';
             const measureId = measure.measure_id || '';
             const displayTitle = measureId ? `${{measureId}}: ${{title}}` : title;
@@ -1250,10 +1570,13 @@ class WebsiteGenerator:
             const topic = measure.topic_primary || measure.category_topic || '';
             const source = measure.data_source || measure.source || 'Unknown';
             
+            const featuredLabel = featured && featuredReason ? 
+                `<span class="featured-label">${{featuredReason}}</span>` : '';
+            
             return `
                 <div class="measure-card ${{featured ? 'featured' : ''}}" onclick="viewMeasure(${{JSON.stringify(measure).replace(/"/g, '&quot;')}})">
                     <div class="card-header">
-                        <div class="card-year">${{year}}</div>
+                        <div class="card-year">${{year}} ${{featuredLabel}}</div>
                         <div class="card-badges">
                             <span class="badge badge-${{passedClass}}">${{passedText}}</span>
                         </div>
@@ -1312,9 +1635,7 @@ class WebsiteGenerator:
             currentView = view;
             document.querySelectorAll('.view-btn').forEach(btn => btn.classList.remove('active'));
             document.getElementById(view + 'View').classList.add('active');
-            displayResults(currentFilters.search || currentFilters.status.length > 0 || 
-                          currentFilters.features.length > 0 || currentFilters.topics.length > 0 ? 
-                          filteredMeasures : filteredMeasures.slice(5));
+            displayResults();
         }}
         
         // Clear all filters
@@ -1327,6 +1648,9 @@ class WebsiteGenerator:
                 topics: [],
                 search: ''
             }};
+            
+            // Reset pagination
+            pagination.currentPage = 1;
             
             // Reset UI
             document.getElementById('searchInput').value = '';

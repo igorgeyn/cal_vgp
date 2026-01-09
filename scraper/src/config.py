@@ -50,7 +50,7 @@ SOURCES = {
         "name": "UC Law SF Repository",
         "base_url": "https://repository.uclawsf.edu",
         "endpoint": "/ca_ballot_props/",
-        "max_items": 50
+        "max_items": 200  # Increased from 50 to get more historical data
     }
 }
 
@@ -95,6 +95,7 @@ HISTORICAL_DATA = {
     "ncsl": {
         "filename": "ncsl_ballot_measures_2014_present.xlsx",
         "search_paths": [
+            DATA_DIR / "raw",  # Check raw first
             DATA_DIR / "downloaded",
             BASE_DIR / "downloaded",
             BASE_DIR.parent / "downloaded"
@@ -103,6 +104,7 @@ HISTORICAL_DATA = {
     "icpsr": {
         "filename": "ncslballotmeasures_icpsr_1902_2016.csv",
         "search_paths": [
+            DATA_DIR / "raw",  # Check raw first (file currently exists here)
             DATA_DIR / "downloaded",
             BASE_DIR / "downloaded",
             BASE_DIR.parent / "downloaded"

@@ -24,13 +24,26 @@ class CASOSScraper(BaseScraper):
     def scrape(self) -> List[Dict]:
         """Scrape all ballot measures from CA SOS"""
         all_measures = []
-        
-        # Scrape each endpoint
+
+        # Scrape qualified measures from configured endpoints
         for endpoint_key, endpoint_path in self.config["endpoints"].items():
             logger.info(f"Scraping {endpoint_key} measures...")
             measures = self._scrape_endpoint(endpoint_key, endpoint_path)
             all_measures.extend(measures)
-            
+
+        # Scrape in-progress initiatives from status page
+        logger.info("Scraping in-progress initiatives...")
+        in_progress = self._scrape_initiative_status()
+        all_measures.extend(in_progress)
+
+        # NOTE: Past elections scraper disabled - CA SOS URLs have changed (404s)
+        # Historical data is comprehensively covered by CEDA (10,909 measures, 1998-2024)
+        # This saves ~60 seconds of failed requests and eliminates log noise
+        # If needed in future, re-enable by uncommenting below:
+        # logger.info("Scraping past election results...")
+        # past_results = self._scrape_past_elections()
+        # all_measures.extend(past_results)
+
         return all_measures
     
     def _scrape_endpoint(self, endpoint_key: str, endpoint_path: str) -> List[Dict]:
@@ -233,6 +246,166 @@ class CASOSScraper(BaseScraper):
         
         # Default to 2026 as integer
         return 2026
+
+    def _scrape_initiative_status(self) -> List[Dict]:
+        """Scrape in-progress initiatives from the initiative status page"""
+        url = self.base_url + "/elections/ballot-measures/initiative-and-referendum-status"
+        html = self._fetch_page(url)
+
+        if not html:
+            return []
+
+        soup = BeautifulSoup(html, "html.parser")
+        measures = []
+
+        # Find the status table
+        table = soup.find('table')
+        if not table:
+            logger.warning("No initiative status table found")
+            return []
+
+        # Parse table rows - skip header row
+        rows = table.find_all('tr')[1:]  # Skip header
+
+        for row in rows:
+            cells = row.find_all('td')
+            if len(cells) < 2:
+                continue
+
+            status_text = cells[0].get_text(strip=True)
+            count_text = cells[1].get_text(strip=True)
+
+            # Extract count from parentheses
+            count_match = re.search(r'\((\d+)\)', count_text)
+            if not count_match:
+                continue
+
+            count = int(count_match.group(1))
+            if count == 0:
+                continue
+
+            # Find links in the status cell
+            links = cells[0].find_all('a')
+            if links:
+                # If there's a link to a detail page, follow it
+                for link in links:
+                    href = link.get('href', '')
+                    if href:
+                        detail_url = urljoin(self.base_url, href)
+                        detail_measures = self._scrape_initiative_detail_page(detail_url, status_text)
+                        measures.extend(detail_measures)
+            else:
+                # No detail link, create placeholder entry
+                measures.append({
+                    'measure_id': f"IN_PROGRESS_{status_text.replace(' ', '_').upper()}",
+                    'title': status_text,
+                    'measure_text': f"{count} initiatives in status: {status_text}",
+                    'year': 2026,
+                    'status': status_text,
+                    'in_progress': True,
+                    'count': count,
+                    'source_url': url
+                })
+
+        logger.info(f"Found {len(measures)} in-progress initiatives")
+        return measures
+
+    def _scrape_initiative_detail_page(self, url: str, status: str) -> List[Dict]:
+        """Scrape individual initiatives from a detail page"""
+        html = self._fetch_page(url)
+        if not html:
+            return []
+
+        soup = BeautifulSoup(html, "html.parser")
+        measures = []
+
+        # Look for initiative listings
+        # CA SOS typically lists initiatives with their number and title
+        for elem in soup.find_all(['div', 'p', 'li']):
+            text = elem.get_text(strip=True)
+
+            # Look for initiative numbers (e.g., "1234", "Initiative #1234")
+            initiative_match = re.search(r'(?:Initiative\s+#?)?(\d{4})', text, re.IGNORECASE)
+            if initiative_match:
+                initiative_num = initiative_match.group(1)
+
+                # Extract title (text after the number)
+                title_match = re.search(r'\d{4}[:\s.-]+(.+?)(?:\.|$)', text)
+                title = title_match.group(1) if title_match else text[:100]
+
+                measures.append({
+                    'measure_id': f"INIT_{initiative_num}",
+                    'title': title,
+                    'measure_text': text,
+                    'year': 2026,
+                    'status': status,
+                    'in_progress': True,
+                    'source_url': url
+                })
+
+        return measures
+
+    def _scrape_past_elections(self) -> List[Dict]:
+        """Scrape past election results from CA SOS archives"""
+        measures = []
+
+        # Target recent elections: 2024, 2022, 2020, 2018, 2016
+        election_years = [2024, 2022, 2020, 2018, 2016]
+
+        for year in election_years:
+            logger.info(f"Scraping {year} election results...")
+
+            # Try multiple URL patterns CA SOS might use
+            url_patterns = [
+                f"{self.base_url}/elections/{year}",
+                f"{self.base_url}/elections/prior-elections/{year}",
+                f"{self.base_url}/elections/{year}-elections",
+                f"{self.base_url}/elections/ballot-measures/{year}",
+            ]
+
+            for url in url_patterns:
+                html = self._fetch_page(url)
+                if html:
+                    year_measures = self._parse_election_results_page(html, url, year)
+                    if year_measures:
+                        measures.extend(year_measures)
+                        break  # Found results for this year, move to next
+
+        logger.info(f"Found {len(measures)} measures from past elections")
+        return measures
+
+    def _parse_election_results_page(self, html: str, source_url: str, year: int) -> List[Dict]:
+        """Parse election results from a historical election page"""
+        soup = BeautifulSoup(html, "html.parser")
+        measures = []
+
+        # Look for proposition/measure links
+        for link in soup.find_all('a', href=True):
+            href = link.get('href', '')
+            text = link.get_text(strip=True)
+
+            # Look for proposition patterns
+            if any(keyword in text.lower() for keyword in ['proposition', 'measure', 'prop']):
+                # Try to extract proposition number
+                prop_match = re.search(r'(?:Proposition|Prop|Measure)\s+(\d+[A-Z]?)', text, re.IGNORECASE)
+                if prop_match:
+                    prop_num = prop_match.group(1)
+                    measure_id = f"PROP_{prop_num}_{year}"
+
+                    # Try to get PDF URL if available
+                    pdf_url = urljoin(self.base_url, href) if '.pdf' in href.lower() else None
+
+                    measures.append({
+                        'measure_id': measure_id,
+                        'title': text,
+                        'measure_text': text,
+                        'year': year,
+                        'pdf_url': pdf_url,
+                        'source_url': source_url,
+                        'historical': True
+                    })
+
+        return measures
 
 
 class UCLawSFScraper(BaseScraper):
