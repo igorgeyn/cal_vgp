@@ -12,6 +12,7 @@ from collections import Counter
 from ..database.operations import Database
 from ..database.models import BallotMeasure
 from ..config import WEBSITE_CONFIG, BASE_DIR
+from ..utils import TitleGenerator
 
 logger = logging.getLogger(__name__)
 
@@ -24,6 +25,7 @@ class WebsiteGenerator:
         self.output_path = output_path or BASE_DIR.parent / WEBSITE_CONFIG.get('output_filename', 'index.html')
         self.template = style
         self.features = WEBSITE_CONFIG.get('features', {})
+        self.title_generator = TitleGenerator(database=self.db)
         
     def generate(self, measures: List[BallotMeasure] = None, stats: Dict = None) -> str:
         """Generate the complete website"""
@@ -56,21 +58,24 @@ class WebsiteGenerator:
     def _prepare_measures_data(self, measures: List[BallotMeasure]) -> List[Dict]:
         """Convert measures to format needed for website"""
         measures_data = []
-        
+
         for measure in measures:
             # Convert to dict
             data = measure.to_dict()
-            
+
             # Add display fields
             data['measure_text'] = data.get('title') or data.get('ballot_question', 'Unknown Measure')
             data['source'] = data.get('data_source', 'Historical')
-            
+
             # Ensure year is string for consistency in JSON
             if data.get('year'):
                 data['year'] = str(data['year'])
-            
+
+            # Generate concise title if needed
+            data = self.title_generator.process_measure(data)
+
             measures_data.append(data)
-        
+
         return measures_data
     
     def _extract_topics(self, measures: List[BallotMeasure]) -> List[Dict]:
@@ -298,9 +303,20 @@ class WebsiteGenerator:
                 </div>
             </div>
 
+            <!-- Hero Section for 2026 Upcoming Measures -->
+            <div class="hero-section" id="heroSection">
+                <div class="hero-header">
+                    <h2 class="hero-title">🗳️ Upcoming 2026 Ballot Measures</h2>
+                    <p class="hero-description">Get informed about California's upcoming ballot measures before you vote</p>
+                </div>
+                <div class="hero-grid" id="heroGrid">
+                    <!-- Will be populated by JavaScript -->
+                </div>
+            </div>
+
             <!-- Featured Section -->
             <div class="featured-section" id="featuredSection">
-                <h2 class="section-title">Recent Measures</h2>
+                <h2 class="section-title">Featured Measures</h2>
                 <div class="featured-grid" id="featuredGrid">
                     <!-- Will be populated by JavaScript -->
                 </div>
@@ -679,18 +695,52 @@ class WebsiteGenerator:
             font-size: 0.875rem;
         }
         
+        /* Hero Section for 2026 Measures */
+        .hero-section {
+            background: linear-gradient(135deg, rgba(26, 115, 232, 0.08) 0%, rgba(26, 115, 232, 0.02) 100%);
+            border: 2px solid rgba(26, 115, 232, 0.2);
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 3rem;
+        }
+
+        .hero-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .hero-title {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .hero-description {
+            font-size: 1rem;
+            color: var(--text-secondary);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .hero-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.25rem;
+        }
+
         /* Featured Section */
         .featured-section {
             margin-bottom: 2rem;
         }
-        
+
         .section-title {
             font-size: 1.25rem;
             font-weight: 600;
             color: var(--text-primary);
             margin-bottom: 1rem;
         }
-        
+
         .featured-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -702,20 +752,35 @@ class WebsiteGenerator:
         .measure-card {
             background: var(--bg-primary);
             border-radius: var(--radius);
-            padding: 1.25rem;
+            padding: 1.5rem;
             box-shadow: var(--shadow-sm);
-            transition: var(--transition);
+            transition: all 0.2s ease;
             cursor: pointer;
             display: flex;
             flex-direction: column;
-            gap: 0.75rem;
+            gap: 0.875rem;
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            min-height: 200px;
+            max-height: 400px;
         }
-        
+
         .measure-card:hover {
-            box-shadow: var(--shadow-md);
-            transform: translateY(-1px);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.12);
+            transform: translateY(-2px);
+            border-color: rgba(66, 133, 244, 0.2);
         }
         
+        .measure-card.hero {
+            border: 2px solid var(--primary);
+            box-shadow: 0 4px 12px rgba(26, 115, 232, 0.15);
+            background: linear-gradient(135deg, var(--bg-primary) 0%, rgba(26, 115, 232, 0.02) 100%);
+        }
+
+        .measure-card.hero:hover {
+            box-shadow: 0 8px 24px rgba(26, 115, 232, 0.25);
+            transform: translateY(-4px);
+        }
+
         .measure-card.featured {
             border-left: 4px solid var(--primary);
         }
@@ -731,68 +796,157 @@ class WebsiteGenerator:
             font-size: 0.875rem;
             font-weight: 600;
             color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
         }
-        
+
+        .featured-label {
+            background: var(--primary);
+            color: white;
+            padding: 0.125rem 0.5rem;
+            border-radius: var(--radius-sm);
+            font-size: 0.688rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
         .card-badges {
             display: flex;
             gap: 0.5rem;
         }
         
         .badge {
-            padding: 0.25rem 0.5rem;
+            padding: 0.375rem 0.75rem;
             border-radius: var(--radius-sm);
             font-size: 0.75rem;
-            font-weight: 500;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.025em;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.375rem;
         }
-        
+
+        .badge::before {
+            content: '';
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+
         .badge-passed {
-            background: rgba(30, 142, 62, 0.1);
-            color: var(--success);
+            background: linear-gradient(135deg, rgba(30, 142, 62, 0.15), rgba(30, 142, 62, 0.08));
+            color: #1a7a3e;
+            border: 1px solid rgba(30, 142, 62, 0.25);
         }
-        
+
+        .badge-passed::before {
+            background: #1a7a3e;
+        }
+
         .badge-failed {
-            background: rgba(217, 48, 37, 0.1);
-            color: var(--danger);
+            background: linear-gradient(135deg, rgba(217, 48, 37, 0.15), rgba(217, 48, 37, 0.08));
+            color: #c4241f;
+            border: 1px solid rgba(217, 48, 37, 0.25);
         }
-        
+
+        .badge-failed::before {
+            background: #c4241f;
+        }
+
         .badge-pending {
-            background: rgba(249, 171, 0, 0.1);
-            color: var(--warning);
+            background: linear-gradient(135deg, rgba(249, 171, 0, 0.15), rgba(249, 171, 0, 0.08));
+            color: #b87503;
+            border: 1px solid rgba(249, 171, 0, 0.25);
+        }
+
+        .badge-pending::before {
+            background: #b87503;
         }
         
         .card-title {
-            font-size: 1rem;
-            font-weight: 500;
+            font-size: 1.0625rem;
+            font-weight: 600;
             color: var(--text-primary);
-            line-height: 1.4;
+            line-height: 1.5;
+            margin-bottom: 0.25rem;
+            display: -webkit-box;
+            -webkit-line-clamp: 4;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .card-description {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            line-height: 1.6;
+            margin: 0.5rem 0;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .read-more {
+            color: var(--primary);
+            font-size: 0.813rem;
+            font-weight: 500;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            margin-top: 0.25rem;
+        }
+
+        .read-more:hover {
+            text-decoration: underline;
         }
         
         .card-meta {
             display: flex;
             flex-wrap: wrap;
-            gap: 1rem;
+            gap: 1.25rem;
             font-size: 0.813rem;
             color: var(--text-secondary);
+            padding-top: 0.5rem;
+            border-top: 1px solid rgba(0, 0, 0, 0.06);
         }
-        
+
         .meta-item {
             display: flex;
             align-items: center;
-            gap: 0.375rem;
+            gap: 0.5rem;
+            font-weight: 500;
+        }
+
+        .meta-item::before {
+            font-size: 1rem;
+            line-height: 1;
         }
         
         .vote-bar {
-            height: 4px;
-            background: var(--bg-tertiary);
-            border-radius: 2px;
+            height: 6px;
+            background: rgba(0, 0, 0, 0.08);
+            border-radius: 3px;
             overflow: hidden;
             margin: 0.5rem 0;
+            position: relative;
         }
-        
+
         .vote-bar-fill {
             height: 100%;
-            background: var(--success);
+            background: linear-gradient(90deg, var(--success), #34a853);
             transition: width 0.3s ease;
+            border-radius: 3px;
+        }
+
+        .measure-card:hover .vote-bar-fill {
+            box-shadow: 0 0 8px rgba(30, 142, 62, 0.4);
         }
         
         /* Grid View */
@@ -1093,31 +1247,49 @@ class WebsiteGenerator:
         
         // Featured measures (selected once on load)
         let featuredMeasures = [];
-        
+        let heroMeasures = [];
+
         // Initialize
         document.addEventListener('DOMContentLoaded', () => {{
+            selectHeroMeasures();
             selectFeaturedMeasures();
             initializeTopicTags();
             setupEventListeners();
             loadPageFromURL();
             applyFilters();
         }});
-        
-        // Select interesting featured measures
+
+        // Select 2026 upcoming measures for hero section
+        function selectHeroMeasures() {{
+            heroMeasures = allMeasures
+                .filter(m => {{
+                    const year = parseInt(m.year);
+                    // Include 2026 measures (pending/upcoming)
+                    return year === 2026;
+                }})
+                .sort((a, b) => {{
+                    // Sort statewide first, then by measure ID
+                    if (a.county && !b.county) return 1;
+                    if (!a.county && b.county) return -1;
+                    return (a.measure_id || '').localeCompare(b.measure_id || '');
+                }});
+        }}
+
+        // Select interesting featured measures (excluding 2026 which are in hero)
         function selectFeaturedMeasures() {{
-            const candidates = [...allMeasures];
+            const candidates = allMeasures.filter(m => parseInt(m.year) !== 2026);
             const selected = [];
-            
-            // 1. Get 2 most recent measures (2026 or latest year)
+
+            // 1. Get 2 most recent measures (2025 or latest year excluding 2026)
             const recent = candidates
                 .filter(m => m.year)
                 .sort((a, b) => (parseInt(b.year) || 0) - (parseInt(a.year) || 0))
                 .slice(0, 2);
             recent.forEach(m => {{
-                m._featuredReason = '🗓️ Upcoming';
+                m._featuredReason = '🗓️ Recent';
                 selected.push(m);
             }});
-            
+
             // 2. Get 1-2 historical measures (oldest with vote data)
             const historical = candidates
                 .filter(m => m.year && parseInt(m.year) < 1930 && m.yes_votes != null && !selected.includes(m))
@@ -1127,7 +1299,7 @@ class WebsiteGenerator:
                 m._featuredReason = '📜 Historical';
                 selected.push(m);
             }});
-            
+
             // 3. Get 1 close vote (closest to 50%)
             const closeVote = candidates
                 .filter(m => m.percent_yes != null && !selected.includes(m))
@@ -1137,7 +1309,7 @@ class WebsiteGenerator:
                 m._featuredReason = '⚖️ Close Vote';
                 selected.push(m);
             }});
-            
+
             // 4. Fill remaining with random picks (for discovery)
             const remaining = candidates.filter(m => !selected.includes(m) && m.title);
             while (selected.length < 5 && remaining.length > 0) {{
@@ -1146,7 +1318,7 @@ class WebsiteGenerator:
                 pick._featuredReason = '🎲 Discover';
                 selected.push(pick);
             }}
-            
+
             featuredMeasures = selected.slice(0, 5);
         }}
         
@@ -1396,27 +1568,43 @@ class WebsiteGenerator:
                 'measures found';
             document.getElementById('resultsDescription').textContent = desc;
             
-            // Determine if we should show featured section (only on "home" view with no filters)
+            // Determine if we should show hero and featured sections (only on "home" view with no filters)
+            const heroSection = document.getElementById('heroSection');
             const featuredSection = document.getElementById('featuredSection');
-            const isHomeView = !currentFilters.search && 
-                currentFilters.status.length === 0 && 
-                currentFilters.features.length === 0 && 
+            const isHomeView = !currentFilters.search &&
+                currentFilters.status.length === 0 &&
+                currentFilters.features.length === 0 &&
                 currentFilters.topics.length === 0 &&
-                currentFilters.yearMin === {stats.get('year_min', 1902)} && 
+                currentFilters.yearMin === {stats.get('year_min', 1902)} &&
                 currentFilters.yearMax === {stats.get('year_max', 2026)} &&
                 pagination.currentPage === 1;
-            
+
             if (isHomeView) {{
+                // Show hero section only if we have 2026 measures
+                if (heroMeasures.length > 0) {{
+                    heroSection.style.display = 'block';
+                    displayHero();
+                }} else {{
+                    heroSection.style.display = 'none';
+                }}
+
                 featuredSection.style.display = 'block';
                 displayFeatured();
             }} else {{
+                heroSection.style.display = 'none';
                 featuredSection.style.display = 'none';
             }}
-            
+
             // Display paginated results
             displayResults();
         }}
-        
+
+        // Display hero measures (2026 upcoming measures)
+        function displayHero() {{
+            const grid = document.getElementById('heroGrid');
+            grid.innerHTML = heroMeasures.map(measure => createCard(measure, false, null, true)).join('');
+        }}
+
         // Display featured measures (curated selection)
         function displayFeatured() {{
             const grid = document.getElementById('featuredGrid');
@@ -1551,42 +1739,63 @@ class WebsiteGenerator:
         }}
         
         // Create card HTML
-        function createCard(measure, featured = false, featuredReason = null) {{
-            const title = measure.title || measure.measure_text || 'Untitled Measure';
+        function createCard(measure, featured = false, featuredReason = null, isHero = false) {{
+            // Use generated title if available, otherwise fall back to original
+            const title = measure.generated_title || measure.title || measure.measure_text || 'Untitled Measure';
+            const originalTitle = measure.original_title || measure.title || measure.measure_text;
             const measureId = measure.measure_id || '';
             const displayTitle = measureId ? `${{measureId}}: ${{title}}` : title;
             const year = measure.year || 'Unknown';
             const passed = measure.passed;
             const passedClass = passed === 1 ? 'passed' : passed === 0 ? 'failed' : 'pending';
             const passedText = passed === 1 ? 'Passed' : passed === 0 ? 'Failed' : 'Pending';
-            
+
+            // Get description from various possible fields
+            // If we generated a title, show the original as the description
+            let description = '';
+            if (measure.generated_title && measure.original_title) {{
+                description = measure.original_title;
+            }} else {{
+                description = measure.description || measure.summary || measure.ballot_question || '';
+            }}
+
+            const truncatedDesc = description.length > 200 ? description.substring(0, 200) + '...' : description;
+            const descriptionHtml = truncatedDesc ? `
+                <div class="card-description">${{truncatedDesc}}</div>
+                ${{description.length > 200 ? '<span class="read-more">Read more →</span>' : ''}}
+            ` : '';
+
             const percentYes = measure.percent_yes;
             const voteBar = percentYes != null ? `
                 <div class="vote-bar">
                     <div class="vote-bar-fill" style="width: ${{Math.round(percentYes)}}%"></div>
                 </div>
             ` : '';
-            
+
             const topic = measure.topic_primary || measure.category_topic || '';
             const source = measure.data_source || measure.source || 'Unknown';
-            
-            const featuredLabel = featured && featuredReason ? 
+
+            const featuredLabel = featured && featuredReason ?
                 `<span class="featured-label">${{featuredReason}}</span>` : '';
-            
+
+            // Determine card class
+            const cardClass = isHero ? 'hero' : (featured ? 'featured' : '');
+
             return `
-                <div class="measure-card ${{featured ? 'featured' : ''}}" onclick="viewMeasure(${{JSON.stringify(measure).replace(/"/g, '&quot;')}})">
+                <div class="measure-card ${{cardClass}}" onclick="viewMeasure(${{JSON.stringify(measure).replace(/"/g, '&quot;')}})">
                     <div class="card-header">
-                        <div class="card-year">${{year}} ${{featuredLabel}}</div>
+                        <div class="card-year">📅 ${{year}} ${{featuredLabel}}</div>
                         <div class="card-badges">
                             <span class="badge badge-${{passedClass}}">${{passedText}}</span>
                         </div>
                     </div>
                     <h3 class="card-title">${{displayTitle}}</h3>
+                    ${{descriptionHtml}}
                     ${{voteBar}}
                     <div class="card-meta">
                         ${{percentYes != null ? `<div class="meta-item">📊 ${{Math.round(percentYes)}}% Yes</div>` : ''}}
                         ${{topic ? `<div class="meta-item">🏷️ ${{topic}}</div>` : ''}}
-                        <div class="meta-item">📁 ${{source}}</div>
+                        <div class="meta-item">🗂️ ${{source}}</div>
                     </div>
                 </div>
             `;

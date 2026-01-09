@@ -1,0 +1,460 @@
+{
+  "timestamp": "2026-01-09T11:42:24.693875",
+  "providers": [
+    "ollama"
+  ],
+  "sample_size": 50,
+  "total_cost_estimate": 0.0,
+  "results": [
+    {
+      "measure_id": "201900028",
+      "year": 2019,
+      "original_title": "Shall the measure, amending the City Charter to change the City's General Municipal Election date  to the Statewide General Election date of the first Tuesday after the first Monday in November of even-numbered years (from current date of the first Tuesday after the first Monday in March of odd-numbered years), commencing on November 3, 2020, and as a consequence reducing one-time councilmember terms by four months, be adopted?",
+      "original_length": 431,
+      "generated_titles": {
+        "ollama": "Change City Election Date to Statewide General Election"
+      }
+    },
+    {
+      "measure_id": "201200297",
+      "year": 2012,
+      "original_title": "To address the City of Fairfield\u2019s Fiscal Emergency, offset significant budget cuts and state financial takeaways, and maintain City services, including neighborhood police patrols, firefighters, 9-1-1 response times, crime, drug and gang prevention programs, maintenance of streets, medians and street lights, parks and recreation services, and other general services, shall an ordinance be adopted to enact a one cent sales tax for five years, with citizen\u2019s oversight, annual independent audits and all funds spent only in Fairfield?",
+      "original_length": 536,
+      "generated_titles": {
+        "ollama": "Fairfield One Cent Sales Tax Measure"
+      }
+    },
+    {
+      "measure_id": "200600485",
+      "year": 2006,
+      "original_title": "To improve the overall quality of public education, expand neighborhood schools, maintain a safe learning environment, ensure small class sizes and provide more personal attention from teachers, shall the Madera Unified School District renovate, acquire and construct additional classrooms and school buildings by issuing $32.5 million in bonds with citizen oversight, independent annual audits, and no money for school administrator's salaries?",
+      "original_length": 445,
+      "generated_titles": {
+        "ollama": "Madera Unified School Bond Measure"
+      }
+    },
+    {
+      "measure_id": "199800040",
+      "year": 1998,
+      "original_title": "Shall the Paramount Unified School District incur bonded indebtedness in an amount not to exceed $35,000,000 with an interest rate not to exceed the maximum rate allowed by law in order to build schools, air condition existing schools, repair and replace plumbing, wiring, and security systems, provide permanent classrooms for Class-Size Reduction, and to provide  computers, science, and technology laboratories at schools throughout the District so long as no bond monies are used for administrative salaries?",
+      "original_length": 512,
+      "generated_titles": {
+        "ollama": "Paramount Unified School Bond Measure (35M)"
+      }
+    },
+    {
+      "measure_id": "201400237",
+      "year": 2014,
+      "original_title": "For a period of five (5) years shall a one-half cent transactions and use tax, to be used solely to fund Public Safety and Parks and Recreation projects and services for the City of Isleton, be adopted?",
+      "original_length": 202,
+      "generated_titles": {
+        "ollama": "Isleton Half-Cent Tax for Public Safety and Parks"
+      }
+    },
+    {
+      "measure_id": "201800367",
+      "year": 2018,
+      "original_title": "Shall the citizen measure authorizing the commercial storefront retail sales of medicinal cannabis by up to 11 retailers in the City of Vista to be located in any of Vista's commercial, industrial, business park, and mixed use zoning districts; and imposing a 7% special use tax on gross receipts potentially raising $117,600 per dispensary annually until ended by voters; be adopted?",
+      "original_length": 384,
+      "generated_titles": {
+        "ollama": "Vista Medicinal Cannabis Retail Sales Tax"
+      }
+    },
+    {
+      "measure_id": "201200473",
+      "year": 2012,
+      "original_title": "To offset severe state budget cuts to our junior high and high schools and continue providing dedicated local funding that will otherwise expire for math, science, technology, music, arts, foreign language and theater, and to augment carerr skills courses, shall Santa Barbara Unified School District levy an annual $45 secondary parcel tax for four years, that can't be taken away by the state, with exemptions available for seniors, mandatory independent oversight, and no funds for administrator salaries or benefits?",
+      "original_length": 520,
+      "generated_titles": {
+        "ollama": "Santa Barbara Unified Parcel Tax to Support Local Education Funding"
+      }
+    },
+    {
+      "measure_id": "202200362",
+      "year": 2022,
+      "original_title": "Without increasing local taxes, shall the City of South San Francisco be authorized to develop, construct, and/or acquire affordable, decent, and safe rental housing for low-income persons, including families, seniors, people with disabilities, and veterans, in an amount up to 1% of the total number of existing housing units in the City of South San Francisco annually for an eight (8) year period, with any year's unused units being carried over each year?",
+      "original_length": 459,
+      "generated_titles": {
+        "ollama": "Affordable Housing Development for Low-Income Residents"
+      }
+    },
+    {
+      "measure_id": "201800109",
+      "year": 2018,
+      "original_title": "Shall Section 3.01 of the Albany City Charter be amended, as set forth in the voter pamphlet, to provide that the City Treasurer shall be appointed by the City Council effective December 10, 2020, or sooner if there is a vacancy in the office?",
+      "original_length": 243,
+      "generated_titles": {
+        "ollama": "Albany City Treasurer Appointment"
+      }
+    },
+    {
+      "measure_id": "201800172",
+      "year": 2018,
+      "original_title": "To fund general municipal expenses such as police, fire, roads and recreation, shall the City tax cannabis (marijuana) businesses at annual rates not to exceed $10.00 per canopy square foot for cultivation (adjustable for inflation), 6% of gross receipts for retail cannabis businesses, and 4% for all other cannabis businesses; which is expected to generate an estimated $40,000 to $60,000 annually and will be levied until repealed by the voters or the City Council?",
+      "original_length": 468,
+      "generated_titles": {
+        "ollama": "California Measure: Cannabis Tax for Municipal Expenses"
+      }
+    },
+    {
+      "measure_id": "200600463",
+      "year": 2006,
+      "original_title": "To improve the quality of education, shall Selma Unified School District be authorized to construct and modernize classrooms and school facilities to relieve student overcrowding, replace deteriorating plumbing and sewer systems, upgrade fire alarm systems, install outdoor lighting to improve safety and security, and make the District eligible to receive up to $4,000,000 in State-matching funds by issuing $23,800,000 in bonds, at legal rates with annual audits, an independent citizens' oversight committee and NO money for administrators' salaries?",
+      "original_length": 553,
+      "generated_titles": {
+        "ollama": "Selma Unified School District Bond Measure for Modernization and Improvement"
+      }
+    },
+    {
+      "measure_id": "200100140",
+      "year": 2001,
+      "original_title": "Shall the City of Malibu issue its general obligation bond in the amount of $15 million to acquire land for such public purposes as parks, playgrounds, playing fields, trails, community centers in order to serve children, teens, families, adults, and seniors with recreation, social and education programs, including improvements and construction; and to protect natural areas and wildlife habitat? Up to 15% of these funds may be used for improvements or construction.",
+      "original_length": 469,
+      "generated_titles": {
+        "ollama": "Malibu General Obligation Bond Measure"
+      }
+    },
+    {
+      "measure_id": "202000348",
+      "year": 2020,
+      "original_title": "Shall the City Charter be amended to dissolve the Community Review Board on Police Practices and replace it with a Commission on Police Practices, with members appointed by the City Council, its own staff, subpoena power, independent legal counsel, and authority to investigate police officer misconduct, review complaints against officers, and make recommendations on police officer discipline, police policies, and Police Department legal compliance?",
+      "original_length": 452,
+      "generated_titles": {
+        "ollama": "Amend City Charter to Establish Police Practices Commission"
+      }
+    },
+    {
+      "measure_id": "199800216",
+      "year": 1998,
+      "original_title": "Shall Cabrillo Community College District repair and rehabilitate its school facilities to meet current health, safety, accessibility, and instructional standards including aging roofs, inadequate lighting, deteriorated plumbing, heating, ventilation and electrical systems; refurbish classrooms, laboratories, restrooms, vocational training facilities; and construct and acquire other facilities and sites by issuing $85 million in bonds at interest rates within the legal limit with no proceeds used for administrator salaries?",
+      "original_length": 529,
+      "generated_titles": {
+        "ollama": "Shall Cabrillo Community College District Repair and Rehabilitate Facilities?"
+      }
+    },
+    {
+      "measure_id": "200400430",
+      "year": 2004,
+      "original_title": "Shall the Alhambra City Charter be amended to update the election provisions related to the Alhambra Unified School District, all of which amendments are shown in the ballot pamphlet?",
+      "original_length": 183,
+      "generated_titles": {
+        "ollama": "Update Alhambra Unified School District Election Provisions"
+      }
+    },
+    {
+      "measure_id": "200100015",
+      "year": 2001,
+      "original_title": "(Initiative) Shall an Initiative Ordinance of the City of Pasadena be adopted to declare the policy of the City of Pasadena to be in favor of completing the 710 Freeway extension between the 1-210 and the 1-10 Freeways, and to declare that such policy could not be changed or repealed without a vote of people?",
+      "original_length": 310,
+      "generated_titles": {
+        "ollama": "Pasadena 710 Freeway Extension Initiative"
+      }
+    },
+    {
+      "measure_id": "201800320",
+      "year": 2018,
+      "original_title": "To maintain general City services such as police and fire protection, street operations and maintenance, and community activities including Indian Wells Golf Resort, shall the Indian Wells Municipal Code be amended to increase the Transient Occupancy (Hotel) Tax rate from 11.25% to 12.25% of rent charged for transient occupancy of any hotel room or similar lodging, generating approximately $700,000 annually for unrestricted general revenue purposes, until ended by voters?",
+      "original_length": 476,
+      "generated_titles": {
+        "ollama": "Increase Hotel Tax Rate in Indian Wells"
+      }
+    },
+    {
+      "measure_id": "201600332",
+      "year": 2016,
+      "original_title": "Shall Ordinance No. 2016-1, establishing a one percent sales tax, to remain in effect until ended or modified by the voters, and raising an estimated $1,500,000 annually for any and all governmental purposes of the City, which may include any general fund services such as police patrols and crime prevention; 9-1-1 emergency response; and street maintenance/pothole repair; with the requirement for public audits and disclosures of all funds spent, be adopted?",
+      "original_length": 461,
+      "generated_titles": {
+        "ollama": "Establish One Percent Sales Tax for City Government Funding"
+      }
+    },
+    {
+      "measure_id": "201600610",
+      "year": 2016,
+      "original_title": "For College of the Desert to modernize career training facilities for nursing, public safety, science, technology, engineering and other in-demand jobs that prepare students for the success in college/careers; repair/construct/acquire classrooms facilities, sites and equipment throughout Coachella Valley; improve the Veteran's Center to provide counseling /training/job placement for returning veterans, shall Desert Community College District issue $577,860,000 in bonds at legal rates, with independent citizen oversight, no money for administrators and all money locally-controlled?",
+      "original_length": 587,
+      "generated_titles": {
+        "ollama": "Coachella Valley Career Training and Facilities Modernization Bond Measure"
+      }
+    },
+    {
+      "measure_id": "201600836",
+      "year": 2016,
+      "original_title": "To improve the quality of school education and atmosphere, install a new air conditioning system in the gym, re-roof the gym, provide an all-weather track and for student safety install a security camera system, shall Hughson Unified School District issue $2.2 million of bonds at legal rates, have an independent citizen\u2019s oversight committee and No money for administrative salaries?",
+      "original_length": 385,
+      "generated_titles": {
+        "ollama": "Hughson Unified School District Bond Measure"
+      }
+    },
+    {
+      "measure_id": "200000541",
+      "year": 2000,
+      "original_title": "To relieve overcrowding, improve high-tech training facilities, repair classrooms, and build college buildings, by: Repairing aging classrooms; Replacing leaking roofs, aging ventilation and aging plumbing; Renovating science labs, libraries; Building new classrooms, science labs, libraries; Acquiring/improving real property; Renovating electrical systems for modern technology/Internet access; Upgrading fire security, alarms, sprinklers; shall Southwestern Community College District issue $89,354,000 in bonds at interest rates within the legal limit, with annual independent audits and NO money for administrators' salaries?",
+      "original_length": 630,
+      "generated_titles": {
+        "ollama": "Southwestern Community College District Bond Measure"
+      }
+    },
+    {
+      "measure_id": "199900023",
+      "year": 1999,
+      "original_title": "To enable the Livermore Valley Joint Unified School District to improve the health and safety conditions of the District's facilities, Including the renovation of roofing, heating, plumbing and air-conditioning systems, the acquisition and construction of a new library and community center, and the acquisition, renovation, and construction of other necessary facilities, shall the District be authorized to issue bonds in the amount of not to exceed $150 million with an interest rate not to exceed the legal limit?",
+      "original_length": 517,
+      "generated_titles": {
+        "ollama": "Livermore Valley Joint Unified School District Facility Improvement Bond Measure"
+      }
+    },
+    {
+      "measure_id": "202000112",
+      "year": 2020,
+      "original_title": "Shall a measure amending the City of Oakland Charter to authorize the City Council, by adoption of an ordinance, to authorize persons aged 16 and above, who are otherwise eligible to vote under state and local law, to vote for the Office of School Board Director, be adopted?",
+      "original_length": 275,
+      "generated_titles": {
+        "ollama": "Oakland Youth Vote for School Board Directors"
+      }
+    },
+    {
+      "measure_id": "202000593",
+      "year": 2020,
+      "original_title": "Without increasing future tax rates, shall the measure to repair classrooms, facilities and labs at American River, Cosumnes River, El Dorado, Folsom Lake and Sacramento City campuses for job training, nursing/ healthcare, engineering/ science and fire/ police programs, by Los Rios Community College District to authorize $650 million of bonds be adopted with legal rates, raising an average $52 million per year until repaid, an average tax levy less than $0.02 per $100 assessed valuation, annual audits and taxpayer oversight?",
+      "original_length": 530,
+      "generated_titles": {
+        "ollama": "Repair Classrooms and Facilities at Los Rios Colleges"
+      }
+    },
+    {
+      "measure_id": "202400827",
+      "year": 2024,
+      "original_title": "To improve local schools with funds that cannot be taken by the State, shall Woodland Joint Unified School District's measure to remodel/ create Science, Technology, Engineering, Arts and Mathematics classrooms; and replace aging roofs, wiring, heating/ cooling systems be adopted authorizing $160 million of bonds with legal rates, levies averaging below $58 assessed valuation (raising $9 million annually) while bonds are outstanding, annual audits, citizen oversight, full public disclosure of spending and no funds for administrator salaries or benefits?",
+      "original_length": 559,
+      "generated_titles": {
+        "ollama": "Woodland Joint Unified School District Bond Measure to Improve Local Schools"
+      }
+    },
+    {
+      "measure_id": "202400348",
+      "year": 2024,
+      "original_title": "Shall the voters of the City of Carlsbad adopt the measure amending the city charter and municipal code to: (1) increase the expenditure limit for using city funds to acquire or improve real property from $1 million (the limit established by voters in 1982) to $3.09 million (the 1982 limit in today\u2019s dollars); (2) adjust the limit annually on January 1 by the percentage increase in the regional construction cost index; and (3) exempt public safety facilities from the limit?",
+      "original_length": 478,
+      "generated_titles": {
+        "ollama": "Carlsbad Expenditure Limit Increase for Property Acquisition"
+      }
+    },
+    {
+      "measure_id": "199800192",
+      "year": 1998,
+      "original_title": "To repair and modernize aging schools, remove safety hazards, and help reduce class size, shall the South Bay School District incur bonded indebtedness of $1,500,000 at interest rates within the legal limits, for purposes including:  Modernizing schools for computer technology; removing asbestos; replacing leaky roofs, broken heating systems and deteriorating walls, restrooms, and flooring; constructing new classrooms/facilities, a school library, and community center; upgrading security and fire alarms?",
+      "original_length": 509,
+      "generated_titles": {
+        "ollama": "South Bay School District Bond Measure to Repair Aging Schools"
+      }
+    },
+    {
+      "measure_id": "201400269",
+      "year": 2014,
+      "original_title": "Shall the ordinance amending Chapter 20, Article III \"transient occupancy tax\" of the City of Needles municipal code to increase the rate of the city's existing transient occupancy tax from ten percent (10%) to twelve percent (12%), and adding the definition of \"commercial establishment\" be adopted?",
+      "original_length": 300,
+      "generated_titles": {
+        "ollama": "Shall Transient Occupancy Tax Rate Be Increased to 12%?"
+      }
+    },
+    {
+      "measure_id": "199900056",
+      "year": 1999,
+      "original_title": "Shall the Inglewood City Charter be amended to provide that the salaries of the members of the City Council shall not exceed the average household income in Los Angeles County as determined by the 1990 US Census, and shall not be less than half the average household income in Los Angeles as determined by said Census?",
+      "original_length": 318,
+      "generated_titles": {
+        "ollama": "Limiting Inglewood City Council Salaries to LA Household Income"
+      }
+    },
+    {
+      "measure_id": "200000235",
+      "year": 2000,
+      "original_title": "Shall Ordinance 2000-26 of the Board of Supervisors of Contra Costa County be approved so as to authorize a special tax increase on property located in County Service Area P-2 (Zone B), from $18 to $36 per parcel for single residential property for the first fiscal year, and not to exceed $54 per parcel per year for single residential property in succeeding years, with corresponding increases for properties in other use categories identified in the ordinance (i.e., small multiple residential, large multiple residential, and commercial/industrial/institutional), in order to provide additional funding for police protection service?",
+      "original_length": 637,
+      "generated_titles": {
+        "ollama": "Contra Costa County Tax Increase for Residential Properties"
+      }
+    },
+    {
+      "measure_id": "201100128",
+      "year": 2011,
+      "original_title": "Shall San Francisco Unified School District repair and rehabilitate facilities to current accessibility, health, safety and instructional standards, replace worn out plumbing, electrical and other major building systems, replace aging heating, ventilation and air handling systems, renovate outdated classrooms and training facilities, construct facilities to replace aging modular classrooms, by issuing bonds in an amount not to exceed $531,000,000, at legal interest rates, with guaranteed annual audits, citizens' oversight and no money for school administrators' salaries?",
+      "original_length": 577,
+      "generated_titles": {
+        "ollama": "San Francisco Schools Bond Measure (Measure E)"
+      }
+    },
+    {
+      "measure_id": "200400207",
+      "year": 2004,
+      "original_title": "To prepare students for jobs/transfer to four year colleges, repair buildings, improve safety, accommodate growing enrollment by: Reparing leaky roofs, decaying walls, electrical wiring; Improving fire safety; Removing asbestors; Expanding/establishing Stockton, Manteca, Tracy, Lodi/Galt, Foothill Area campuses/Education centers; Upgrading, acquiring, constructing, equipping buildings, sites, classrooms; shall San Joaquin Delta Community College District issue $250,000,000 in bonds, at legal rates, with citizen oversight, guaranteed annual audits and no money for administrators' salaries?",
+      "original_length": 595,
+      "generated_titles": {
+        "ollama": "San Joaquin Delta Community College Bond Measure"
+      }
+    },
+    {
+      "measure_id": "202300029",
+      "year": 2023,
+      "original_title": "To construct a new track and shade structures, replace portable classrooms and other outdated infrastructure; acquire and improve school facilities; and improve the quality of education; shall San Lucas Union School District\u2019s measure be adopted to issue $3,600,000 in bonds at legal interest rates, estimated levies of approximately 6\u00a2 per $100 assessed value, generating on average $240,000 annually while bonds are outstanding, with annual reports, no money for salaries and all money improving local schools?",
+      "original_length": 512,
+      "generated_titles": {
+        "ollama": "San Lucas Union School District Bond Measure"
+      }
+    },
+    {
+      "measure_id": "201600314",
+      "year": 2016,
+      "original_title": "To modernize the City\u2019s existing 5% telephone users tax for non-residential users, and existing 2% rate for residential users, and to maintain funding for such essential City services as police, fire, streets, libraries and parks, shall the tax be extended to include wireless, internet, and other modern telecommunications without increasing the tax rate to raise approximately $560,000 per year for City services on an ongoing basis?",
+      "original_length": 435,
+      "generated_titles": {
+        "ollama": "Update City Telephone Users Tax to Include Modern Telecommunications"
+      }
+    },
+    {
+      "measure_id": "199900022",
+      "year": 1999,
+      "original_title": "Shall the Santa Cruz Municipal Code be amended by repealing Chapter 6.85 and adding a new Chapter 6.85 prohibiting the use of City's water supply to deliver products or substances intended to affect the physical or mental functions of persons consuming such water?",
+      "original_length": 264,
+      "generated_titles": {
+        "ollama": "Repeal, Add: Ban Water Supply for Psychoactive Products"
+      }
+    },
+    {
+      "measure_id": "200800094",
+      "year": 2008,
+      "original_title": "To improve the quality of education, shall the Geyserville Unified School District repair, upgrade, replace and acquire safety, communication, electrical and heating/air conditioning systems, restrooms, plumbing, roofing, dry rot, and other school facilities, furniture and equipment needs; and help qualify for State matching funds, by issuing $3,250,000 of bonds at interest rates within legal limits, with accountability provided by citizens' oversight and independent audits, and with no funds used for administrators' or teachers' salaries?",
+      "original_length": 545,
+      "generated_titles": {
+        "ollama": "Geyserville Unified School District Bond Measure to Upgrade Facilities"
+      }
+    },
+    {
+      "measure_id": "201000048",
+      "year": 2010,
+      "original_title": "Shall Ordinance No. 3106, which amends Chapter 3.32 of the Tuolumne County Ordinance Code to increase the Transient Occupancy Tax rate from eight percent (8%) to ten percent (10%), be adopted?",
+      "original_length": 192,
+      "generated_titles": {
+        "ollama": "Increase Tuolumne County Transient Occupancy Tax Rate"
+      }
+    },
+    {
+      "measure_id": "202400441",
+      "year": 2024,
+      "original_title": "To maintain locally controlled funding for services, such as repairing potholes/maintaining streets; maintaining youth violence prevention, drug/gang intervention programs; keeping city parks clean safe/well maintained; and improving wildfire prevention/preparedness, shall City of Santa Rosa\u2019s general business tax measure be adopted increasing the maximum tax, adjusting rates and taxing short-term rental businesses, as described in the voter pamphlet, providing $3,000,000 annually, until ended by voters, with all funds staying local?",
+      "original_length": 539,
+      "generated_titles": {
+        "ollama": "Santa Rosa General Business Tax Measure to Fund Public Services"
+      }
+    },
+    {
+      "measure_id": "200200546",
+      "year": 2002,
+      "original_title": "To build a permanent high school and qualify our community for State matching funds, shall Acton-Agua Dulce Unified School District issue $21,500,000 of bonds at legal interest rates, with all funds staying in our community to provide permanent classrooms, a library, modern science and computer labs, technology, student restrooms and core high school facilities, with an independent Citizens Oversight Committee, annual financial and performance audits, and no money for administrative salaries?",
+      "original_length": 497,
+      "generated_titles": {
+        "ollama": "Acton-Agua Dulce High School Bond Measure"
+      }
+    },
+    {
+      "measure_id": "202200528",
+      "year": 2022,
+      "original_title": "To modernize classrooms, restrooms, and school facilities; make health, safety and security improvements, equip schools with 21st century learning technology, and construct local affordable rental housing for teachers and staff, shall South San Francisco Unified School District measure authorizing $436.0 million in bonds, at legal rates, be adopted levying an estimated 6 cents per $100 of assessed value generating on average $27 million annually while bonds are outstanding, with a citizens ' oversight committee and independent audits on all bond money?",
+      "original_length": 558,
+      "generated_titles": {
+        "ollama": "South San Francisco Unified School District Bond Measure"
+      }
+    },
+    {
+      "measure_id": "201800243",
+      "year": 2018,
+      "original_title": "To maintain/enhance City of San Rafael services, with funding that cannot be taken by Sacramento, including: enhancing police and fire services, repairing potholes/maintaining streets, enhancing community centers, and administering a cannabis oversight program; shall the City of San Rafael\u2019s ordinance levying, until repealed, a tax of up to 8% on cannabis (marijuana) businesses\u2019 gross receipts in the city, eventually ramping up to approximately $1,000,000 in new funding annually, requiring independent citizen oversight and financial audits be adopted?",
+      "original_length": 557,
+      "generated_titles": {
+        "ollama": "San Rafael Cannabis Tax for City Services"
+      }
+    },
+    {
+      "measure_id": "202000589",
+      "year": 2020,
+      "original_title": "To repair deteriorating roofs/plumbing/electrical systems; update classrooms/labs/facilities/technology to support college readiness/career preparation in math, science, engineering, technology, arts/skilled trades; upgrade older schools to meet the same academic/safety standards as newer schools, and improve student safety; shall the Jurupa Unified School District measure authorizing $192,000,000 in bonds at legal rates be adopted, levying 4\u00a2 per $100 assessed value ($10,800,000 annually) while bonds are outstanding, with citizen oversight, independent audits, local control?",
+      "original_length": 582,
+      "generated_titles": {
+        "ollama": "Jurupa Unified School District Bond Measure to Upgrade Facilities and Improve..."
+      }
+    },
+    {
+      "measure_id": "202400443",
+      "year": 2024,
+      "original_title": "To maintain Sebastopol's City services such as 911 emergency medical/police/fire response, wildfire/emergency preparedness, maintenance of streets/roads, parks/trails, library, youth and senior services, retaining/attracting local businesses; and for general government use, shall the measure establishing a \u00bd-cent sales tax generating approximately $1,520,000 annually, terminating after 12 years, requiring audits, public spending disclosure, all funds used locally, be adopted?",
+      "original_length": 480,
+      "generated_titles": {
+        "ollama": "Sebastopol Half-Cent Sales Tax Measure"
+      }
+    },
+    {
+      "measure_id": "199900145",
+      "year": 1999,
+      "original_title": "Shall the City make changes in the requirements and procedures regarding public access to City records and meetings provided in the Sunshine Ordinance?",
+      "original_length": 151,
+      "generated_titles": {
+        "ollama": "Update Public Access Requirements for City Records and Meetings"
+      }
+    },
+    {
+      "measure_id": "200400694",
+      "year": 2004,
+      "original_title": "To maintain high quality local education, protect local schools from budget cuts, improve science and mathematics programs, enhance literacy and reading instruction, maintain music and art programs, attract and retain highly qualified teachers and staff, and maintain college preparation and advanced placement classes, shall Benicia Unified School District be authorized to levy, a $105.00 annual parcel tax, for 5 years beginning July 1, 2005, with exemption to persons 65 years or over, with independent community oversight and annual audits?",
+      "original_length": 545,
+      "generated_titles": {
+        "ollama": "Benicia Unified School District Parcel Tax Measure (2005)"
+      }
+    },
+    {
+      "measure_id": "202100014",
+      "year": 2021,
+      "original_title": "To protect Taft' s long-term financial stability; maintain police/fire/ emergency response times; number of police officers/firefighters; repair streets/potholes; keep public areas clean/ safe; help address homelessness; retain local businesses/jobs, other general City services; shall the measure be adopted establishing a 10 sales tax providing approximately $ 1,600,000 annually until ended by voters; requiring public disclosure of spending, audits, all revenues benefiting Taft residents/ no money for Sacramento?",
+      "original_length": 518,
+      "generated_titles": {
+        "ollama": "Taft Financial Stability and Public Services Measure"
+      }
+    },
+    {
+      "measure_id": "201000250",
+      "year": 2010,
+      "original_title": "Shall there be a continuation of the four year special tax for paramedic services in the amount of $42 (plus fifty cents County administrative fee) and incrementally increase if needed by $3, not to exceed $51 per year (plus fifty cent County administrative fee) per taxable living unit and per 1,500 square feet of structure developed parcel in non-residential use in the fourth year, to be collected in addition to fees for transport to the hospital charged to insurance providesr for Ross Valley residents, with the appropriations limit increased by the amount of said tax for the next four years?",
+      "original_length": 600,
+      "generated_titles": {
+        "ollama": "Continuation of Paramedic Services Tax"
+      }
+    },
+    {
+      "measure_id": "200100024",
+      "year": 2001,
+      "original_title": "Shall the Napa City Charter Section 101 Public works to be done by contract be amended to waive any and all requirements for the erection, improvement or repair of recreational facilities, excepting any auxiliary building, parking lot and off-site improvement exceeding $75,000.00, if the City Council determines by a four-fifths (4/5) vote that one or more community organizations and/or volunteers will perform a substantial portion of the labor?",
+      "original_length": 448,
+      "generated_titles": {
+        "ollama": "Napa Rec Facilities Waiver for Community Labor"
+      }
+    },
+    {
+      "measure_id": "202200174",
+      "year": 2022,
+      "original_title": "Shall the measure to establish a Sports Wagering Tax at a rate of up to 5% of sports wagering gross revenues, providing approximately $1,000,000 annually until ended by voters for general government use such as City parks, streets and public safety, be adopted?",
+      "original_length": 261,
+      "generated_titles": {
+        "ollama": "Establish Sports Wagering Tax for General Government Use"
+      }
+    },
+    {
+      "measure_id": "202400085",
+      "year": 2024,
+      "original_title": "Shall the City place an additional tax permanently on transportation network companies and autonomous vehicle businesses that provide passenger service for compensation with rates between 1% and 4.5% of gross receipts in San Francisco above $500,000 for an estimated annual revenue of $25 million, and use the funds the City collects from the tax to support Muni transportation services and fare discount programs?",
+      "original_length": 414,
+      "generated_titles": {
+        "ollama": "San Francisco Tax on Ride-Sharing Services"
+      }
+    }
+  ]
+}

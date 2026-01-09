@@ -32,6 +32,10 @@ class BallotMeasure:
     title: Optional[str] = None
     description: Optional[str] = None
     ballot_question: Optional[str] = None
+
+    # AI-generated content
+    generated_title: Optional[str] = None  # Short, AI-generated title
+    original_title: Optional[str] = None   # Original title before generation
     
     # Vote results
     yes_votes: Optional[int] = None
@@ -240,7 +244,11 @@ CREATE TABLE IF NOT EXISTS measures (
     title TEXT,
     description TEXT,
     ballot_question TEXT,
-    
+
+    -- AI-generated content
+    generated_title TEXT,
+    original_title TEXT,
+
     -- Vote results
     yes_votes INTEGER,
     no_votes INTEGER,

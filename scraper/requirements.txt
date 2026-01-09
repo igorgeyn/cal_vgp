@@ -21,6 +21,11 @@ python-multipart>=0.0.6  # For form data
 # Environment and configuration
 python-dotenv>=1.0.0
 
+# AI/LLM
+anthropic>=0.18.0  # Claude (paid)
+groq>=0.4.0  # Groq (free)
+# ollama - no package needed, uses HTTP API
+
 # Development tools (optional, but recommended)
 pytest>=7.4.0
 pytest-cov>=4.1.0

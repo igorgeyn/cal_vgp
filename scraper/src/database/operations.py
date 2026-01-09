@@ -100,6 +100,7 @@ class Database:
                 'id', 'fingerprint', 'measure_fingerprint', 'content_hash',
                 'measure_id', 'measure_letter', 'year', 'state', 'county',
                 'jurisdiction', 'title', 'description', 'ballot_question',
+                'generated_title', 'original_title',
                 'is_active', 'is_duplicate', 'duplicate_type', 'master_id',
                 'merged_from', 'update_count', 'last_seen_at'
             }

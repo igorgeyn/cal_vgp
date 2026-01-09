@@ -91,6 +91,7 @@ def main():
             'fingerprint', 'measure_fingerprint', 'content_hash',
             'measure_id', 'measure_letter', 'year', 'state', 'county', 'jurisdiction',
             'title', 'description', 'ballot_question',
+            'generated_title', 'original_title',
             'yes_votes', 'no_votes', 'total_votes', 'percent_yes', 'percent_no',
             'passed', 'pass_fail',
             'measure_type', 'topic_primary', 'topic_secondary', 'category_type', 'category_topic',
