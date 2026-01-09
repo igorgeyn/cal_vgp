@@ -173,9 +173,20 @@ def main():
         logger.info(f"Website saved to: {output_path}")
         
         # Also save to root directory for GitHub Pages
-        root_index = BASE_DIR.parent / 'index.html'
-        root_index.write_text(html_content, encoding='utf-8')
-        logger.info(f"Also saved to: {root_index}")
+        # Get the actual project root (parent of scraper directory)
+        script_dir = Path(__file__).resolve().parent.parent  # This is the scraper/ directory
+        project_root = script_dir.parent  # This is cal_vgp/ directory
+        root_index = project_root / 'index.html'
+        logger.info(f"Copying to project root: {root_index.resolve()}")
+        try:
+            root_index.write_text(html_content, encoding='utf-8')
+            # Verify the write
+            if root_index.exists() and root_index.stat().st_size > 1000000:  # Should be > 1MB
+                logger.info(f"✓ Successfully saved to: {root_index.resolve()}")
+            else:
+                logger.warning(f"⚠️  File may not have been written correctly: {root_index.resolve()}")
+        except Exception as e:
+            logger.error(f"Failed to save to project root: {e}")
         
         # Deploy if requested
         if args.deploy:

@@ -60,7 +60,14 @@ check:
 
 website:
 	@echo "🌐 Generating website..."
-	@python scripts/generate_site.py
+	@python scripts/generate_site.py --force
+	@echo ""
+	@echo "✓ Checking files were created..."
+	@ls -lh index.html ../index.html | awk '{print "  " $$5, $$6, $$7, $$8, $$9}'
+	@echo ""
+	@echo "📂 Files ready for deployment:"
+	@echo "  - scraper/index.html (for local testing)"
+	@echo "  - index.html (project root, for GitHub Pages)"
 
 website-preview: website
 	@echo "👀 Opening website in browser..."

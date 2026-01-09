@@ -73,9 +73,20 @@ def main():
         print("✅ All measures have suitable titles!")
         return
 
-    # Ask for confirmation
-    print(f"\n⚠️  This will make ~{len(needs_title)} API calls to Claude")
-    print(f"💰 Estimated cost: ~${len(needs_title) * 0.0001:.2f} (using Haiku model)")
+    # Ask for confirmation with provider-specific messaging
+    print(f"\n⚠️  This will generate titles for {len(needs_title)} measures")
+
+    if title_gen.active_provider == 'ollama':
+        print(f"🤖 Using Ollama (local, free)")
+        print(f"⏱️  Estimated time: ~{len(needs_title) * 3} seconds ({len(needs_title) * 3 / 60:.1f} minutes)")
+    elif title_gen.active_provider == 'groq':
+        print(f"⚡ Using Groq (cloud, free with rate limits)")
+        print(f"⏱️  Estimated time: ~{len(needs_title) * 2} seconds ({len(needs_title) * 2 / 60:.1f} minutes)")
+    elif title_gen.active_provider == 'claude':
+        cost = len(needs_title) * 0.0001
+        print(f"💰 Using Claude Haiku - Estimated cost: ~${cost:.2f}")
+        print(f"⏱️  Estimated time: ~{len(needs_title) * 2} seconds ({len(needs_title) * 2 / 60:.1f} minutes)")
+
     response = input("\nProceed? (y/n): ")
 
     if response.lower() != 'y':
@@ -106,7 +117,9 @@ def main():
     print("=" * 60)
     print(f"✅ Successfully generated {generated}/{len(needs_title)} titles")
     print(f"💾 Cached to: {title_gen.cache_path}")
-    print("\n🌐 Run 'python scripts/generate_site.py --force' to rebuild website with new titles")
+    print("\n📋 Next steps:")
+    print("  1. Run 'python scripts/update_generated_titles.py' to save titles to database")
+    print("  2. Run 'make website' to rebuild website with new titles")
     print("=" * 60)
 
 
