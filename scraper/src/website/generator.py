@@ -1811,7 +1811,7 @@ class WebsiteGenerator:
 
             const descriptionHtml = truncatedSummary ? `
                 <div class="card-summary ${{hasSummary ? 'has-summary' : ''}}">${{truncatedSummary}}</div>
-                ${{summary.length > maxLength ? '<span class="read-more">Read more →</span>' : ''}}
+                ${{summary.length > maxLength && measure.source_url ? '<a href="' + measure.source_url + '" target="_blank" rel="noopener noreferrer" class="read-more">Read more →</a>' : ''}}
             ` : '';
 
             const percentYes = measure.percent_yes;
