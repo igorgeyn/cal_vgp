@@ -24,7 +24,7 @@ python-dotenv>=1.0.0
 # AI/LLM
 anthropic>=0.18.0  # Claude (paid)
 groq>=0.4.0  # Groq (free)
-# ollama - no package needed, uses HTTP API
+ollama>=0.1.0  # Ollama (local, free)
 
 # Development tools (optional, but recommended)
 pytest>=7.4.0

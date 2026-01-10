@@ -147,6 +147,20 @@ class BallotpediaCountyScraper:
             month_match = re.search(r'(January|February|March|April|May|June|July|August|September|October|November|December)', election_date, re.IGNORECASE)
             election_type = "Primary" if month_match and month_match.group(1) in ["March", "June"] else "General"
 
+            # Fetch detailed summary from measure page (for recent measures)
+            summary_title = None
+            summary_text = None
+            ballot_question = None
+            has_summary = False
+
+            if measure_url and year >= 2020:  # Only fetch summaries for recent measures
+                summary_data = self._fetch_measure_summary(measure_url)
+                if summary_data:
+                    ballot_question = summary_data.get('ballot_question')
+                    summary_title = summary_data.get('summary_title')
+                    summary_text = summary_data.get('summary_text')
+                    has_summary = bool(summary_title or summary_text or ballot_question)
+
             # Create BallotMeasure object
             measure = BallotMeasure(
                 measure_id=measure_id,
@@ -154,6 +168,10 @@ class BallotpediaCountyScraper:
                 county=county.upper(),
                 title=measure_title,
                 description=description,
+                ballot_question=ballot_question,
+                summary_title=summary_title,
+                summary_text=summary_text,
+                has_summary=has_summary,
                 passed=passed,
                 election_date=self._parse_election_date(election_date, year),
                 election_type=election_type,
@@ -165,6 +183,127 @@ class BallotpediaCountyScraper:
 
         except Exception as e:
             logger.warning(f"Failed to parse measure item: {e}")
+            return None
+
+    def _fetch_measure_summary(self, url: str, retry_count: int = 0) -> Optional[Dict[str, str]]:
+        """
+        Fetch detailed summary information from a measure's Ballotpedia page
+
+        Args:
+            url: Full URL to the measure page
+            retry_count: Current retry attempt (for rate limiting)
+
+        Returns:
+            Dict with ballot_question, summary_title, summary_text, or None if unavailable
+        """
+        import time
+
+        try:
+            response = self.session.get(url, timeout=15)
+
+            # Handle rate limiting (HTTP 202 with empty content)
+            if response.status_code == 202 or len(response.content) == 0:
+                if retry_count < 3:
+                    # Exponential backoff: wait longer each retry
+                    wait_time = 10 * (2 ** retry_count)  # 10s, 20s, 40s
+                    logger.warning(f"Rate limited (HTTP {response.status_code}), waiting {wait_time}s before retry {retry_count + 1}/3")
+                    time.sleep(wait_time)
+                    return self._fetch_measure_summary(url, retry_count + 1)
+                else:
+                    logger.warning(f"Rate limited after 3 retries, skipping URL: {url}")
+                    return None
+
+            response.raise_for_status()
+
+            soup = BeautifulSoup(response.content, 'html.parser')
+            result = {}
+
+            # Find the main content area
+            content = soup.find('div', class_='mw-parser-output')
+            if not content:
+                logger.debug(f"No content found for {url}")
+                return None
+
+            # Look for "Ballot question" section
+            ballot_question_heading = content.find(['h2', 'h3', 'h4'], string=re.compile(r'Ballot question', re.IGNORECASE))
+            if ballot_question_heading:
+                # Get the paragraph(s) after the heading
+                ballot_text = []
+                current = ballot_question_heading.find_next_sibling()
+
+                while current and current.name not in ['h1', 'h2', 'h3', 'h4']:
+                    if current.name == 'p':
+                        text = current.get_text().strip()
+                        if text:
+                            ballot_text.append(text)
+                    current = current.find_next_sibling()
+
+                    # Stop after 2-3 paragraphs to avoid getting too much
+                    if len(ballot_text) >= 3:
+                        break
+
+                if ballot_text:
+                    result['ballot_question'] = ' '.join(ballot_text)
+
+            # Look for "Impartial analysis" section (this is the detailed summary)
+            analysis_heading = content.find(['h2', 'h3', 'h4'], string=re.compile(r'Impartial analysis', re.IGNORECASE))
+            if analysis_heading:
+                analysis_text = []
+                current = analysis_heading.find_next_sibling()
+
+                while current and current.name not in ['h1', 'h2', 'h3', 'h4']:
+                    if current.name == 'p':
+                        text = current.get_text().strip()
+                        # Skip meta text like "The following impartial analysis..."
+                        if text and not re.match(r'^The following impartial analysis', text, re.IGNORECASE):
+                            analysis_text.append(text)
+                    elif current.name == 'table':
+                        # Extract text from table (often contains the actual analysis)
+                        table_text = current.get_text().strip()
+                        # Clean up excessive whitespace
+                        table_text = re.sub(r'\s+', ' ', table_text)
+                        if table_text and len(table_text) > 50:
+                            analysis_text.append(table_text)
+                    elif current.name == 'ul':
+                        # Include bullet points
+                        for li in current.find_all('li'):
+                            text = li.get_text().strip()
+                            if text:
+                                analysis_text.append(f"• {text}")
+                    current = current.find_next_sibling()
+
+                    # Limit to ~500 words
+                    if len(' '.join(analysis_text)) > 2500:
+                        break
+
+                if analysis_text:
+                    full_summary = ' '.join(analysis_text)
+                    result['summary_text'] = full_summary
+
+                    # Create a short summary_title from first sentence
+                    first_sentence = re.split(r'[.!?]', full_summary)[0]
+                    if len(first_sentence) > 150:
+                        first_sentence = first_sentence[:147] + '...'
+                    result['summary_title'] = first_sentence.strip()
+
+            # If no impartial analysis, look for opening paragraph as summary
+            if not result.get('summary_text'):
+                # Find first substantial paragraph before any heading
+                first_p = content.find('p')
+                if first_p:
+                    text = first_p.get_text().strip()
+                    if len(text) > 50:  # Must be substantial
+                        result['summary_text'] = text
+                        # Create title from first part
+                        if len(text) > 150:
+                            result['summary_title'] = text[:147] + '...'
+                        else:
+                            result['summary_title'] = text
+
+            return result if result else None
+
+        except Exception as e:
+            logger.debug(f"Could not fetch summary from {url}: {e}")
             return None
 
     def _parse_election_date(self, date_str: str, year: int) -> Optional[datetime]:

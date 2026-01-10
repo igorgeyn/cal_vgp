@@ -866,7 +866,20 @@ class WebsiteGenerator:
         .badge-pending::before {
             background: #b87503;
         }
-        
+
+        .badge-summary {
+            background: linear-gradient(135deg, rgba(26, 115, 232, 0.12), rgba(26, 115, 232, 0.06));
+            color: #1a73e8;
+            border: 1px solid rgba(26, 115, 232, 0.25);
+            font-size: 0.75rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
         .card-title {
             font-size: 1.0625rem;
             font-weight: 600;
@@ -892,6 +905,27 @@ class WebsiteGenerator:
             text-overflow: ellipsis;
         }
 
+        /* Card summary (new - replaces description when summary available) */
+        .card-summary {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            line-height: 1.6;
+            margin: 0.75rem 0 0.5rem 0;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .card-summary.has-summary {
+            /* Subtle background to indicate it's a real summary */
+            background: rgba(26, 115, 232, 0.02);
+            padding: 0.5rem;
+            border-radius: 4px;
+            border-left: 2px solid rgba(26, 115, 232, 0.15);
+        }
+
         .read-more {
             color: var(--primary);
             font-size: 0.813rem;
@@ -901,10 +935,13 @@ class WebsiteGenerator:
             align-items: center;
             gap: 0.25rem;
             margin-top: 0.25rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
         }
 
         .read-more:hover {
             text-decoration: underline;
+            transform: translateX(2px);
         }
         
         .card-meta {
@@ -1750,19 +1787,31 @@ class WebsiteGenerator:
             const passedClass = passed === 1 ? 'passed' : passed === 0 ? 'failed' : 'pending';
             const passedText = passed === 1 ? 'Passed' : passed === 0 ? 'Failed' : 'Pending';
 
-            // Get description from various possible fields
-            // If we generated a title, show the original as the description
-            let description = '';
-            if (measure.generated_title && measure.original_title) {{
-                description = measure.original_title;
-            }} else {{
-                description = measure.description || measure.summary || measure.ballot_question || '';
+            // Get summary/description - prioritize summary fields
+            let summary = '';
+            let hasSummary = false;
+
+            // Priority order: summary_text > ballot_question > description > original_title
+            if (measure.summary_text && measure.summary_text.length > 50) {{
+                summary = measure.summary_text;
+                hasSummary = true;
+            }} else if (measure.ballot_question && measure.ballot_question.length > 50) {{
+                summary = measure.ballot_question;
+                hasSummary = true;
+            }} else if (measure.description) {{
+                summary = measure.description;
+            }} else if (measure.generated_title && measure.original_title) {{
+                // If we generated a title, show the original as fallback
+                summary = measure.original_title;
             }}
 
-            const truncatedDesc = description.length > 200 ? description.substring(0, 200) + '...' : description;
-            const descriptionHtml = truncatedDesc ? `
-                <div class="card-description">${{truncatedDesc}}</div>
-                ${{description.length > 200 ? '<span class="read-more">Read more →</span>' : ''}}
+            // Truncate to 2-3 lines (approximately 200 chars)
+            const maxLength = 200;
+            const truncatedSummary = summary.length > maxLength ? summary.substring(0, maxLength) + '...' : summary;
+
+            const descriptionHtml = truncatedSummary ? `
+                <div class="card-summary ${{hasSummary ? 'has-summary' : ''}}">${{truncatedSummary}}</div>
+                ${{summary.length > maxLength ? '<span class="read-more">Read more →</span>' : ''}}
             ` : '';
 
             const percentYes = measure.percent_yes;
@@ -1778,6 +1827,9 @@ class WebsiteGenerator:
             const featuredLabel = featured && featuredReason ?
                 `<span class="featured-label">${{featuredReason}}</span>` : '';
 
+            // Add summary badge if has_summary
+            const summaryBadge = hasSummary ? '<span class="badge badge-summary" title="Has detailed summary">📄 Summary</span>' : '';
+
             // Determine card class
             const cardClass = isHero ? 'hero' : (featured ? 'featured' : '');
 
@@ -1787,6 +1839,7 @@ class WebsiteGenerator:
                         <div class="card-year">📅 ${{year}} ${{featuredLabel}}</div>
                         <div class="card-badges">
                             <span class="badge badge-${{passedClass}}">${{passedText}}</span>
+                            ${{summaryBadge}}
                         </div>
                     </div>
                     <h3 class="card-title">${{displayTitle}}</h3>

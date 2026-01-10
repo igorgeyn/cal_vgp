@@ -30,6 +30,11 @@ help:
 	@echo "  make export-csv   - Export data to CSV"
 	@echo "  make stats        - Show database statistics"
 	@echo ""
+	@echo "Summary Generation:"
+	@echo "  make summaries    - Complete summary workflow (Ballotpedia + AI)"
+	@echo "  make summaries-web    - Scrape summaries from Ballotpedia only"
+	@echo "  make summaries-ai     - Generate AI summaries for remaining measures"
+	@echo ""
 	@echo "Migration:"
 	@echo "  make migrate      - Migrate from old structure to new"
 
@@ -202,6 +207,19 @@ dev:
 	@echo "2. make website   - Generate website"
 	@echo "3. make api       - Start API server"
 	@echo "4. make test      - Run tests"
+
+# Summary generation commands
+summaries:
+	@echo "🤖 Running complete summary workflow..."
+	@python scripts/complete_summary_workflow.py
+
+summaries-web:
+	@echo "🌐 Scraping summaries from Ballotpedia..."
+	@python scripts/update_ballotpedia_summaries_deduped.py
+
+summaries-ai:
+	@echo "🤖 Generating AI summaries..."
+	@python scripts/generate_ai_summaries.py
 
 # Complete pipeline
 full-run: db-init scrape update website
