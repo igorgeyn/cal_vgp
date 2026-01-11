@@ -322,8 +322,44 @@ class WebsiteGenerator:
                 </div>
             </div>
 
+            <!-- Regional Navigation -->
+            <div class="regional-navigation" id="regionalNavigation">
+                <div class="regional-header">
+                    <h2 class="section-title">Browse by Region</h2>
+                    <p class="regional-subtitle">Explore ballot measures from different areas of California</p>
+                </div>
+
+                <div class="region-cards" id="regionCards">
+                    <!-- Will be populated by JavaScript -->
+                </div>
+
+                <div class="county-navigation">
+                    <label for="countySelect" class="county-label">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                            <circle cx="12" cy="10" r="3"></circle>
+                        </svg>
+                        Or select a specific county:
+                    </label>
+                    <select id="countySelect" class="county-select" onchange="filterByCounty(this.value)">
+                        <option value="">All Counties</option>
+                        <!-- Will be populated by JavaScript -->
+                    </select>
+                </div>
+            </div>
+
             <!-- Results Container -->
             <div id="resultsContainer">
+                <div class="results-header" id="resultsHeader" style="display: none;">
+                    <h2 class="results-title" id="resultsTitle">All Measures</h2>
+                    <button class="back-button" id="backButton" onclick="clearRegionFilter()" style="display: none;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="19" y1="12" x2="5" y2="12"></line>
+                            <polyline points="12 19 5 12 12 5"></polyline>
+                        </svg>
+                        Back to regions
+                    </button>
+                </div>
                 <div class="loading">
                     <div class="spinner"></div>
                 </div>
@@ -850,7 +886,202 @@ class WebsiteGenerator:
             gap: 1rem;
             margin-bottom: 2rem;
         }
-        
+
+        /* Regional Navigation */
+        .regional-navigation {
+            margin: 3rem 0;
+            padding: 2rem 0;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .regional-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .regional-subtitle {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            margin-top: 0.5rem;
+        }
+
+        .region-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2.5rem;
+        }
+
+        .region-card {
+            background: linear-gradient(135deg, var(--bg-primary) 0%, rgba(255,255,255,0.95) 100%);
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: var(--shadow-sm);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+            border: 2px solid transparent;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .region-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, rgba(66, 133, 244, 0.05) 0%, transparent 100%);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .region-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
+            border-color: rgba(66, 133, 244, 0.3);
+        }
+
+        .region-card:hover::before {
+            opacity: 1;
+        }
+
+        .region-card-header {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 0.75rem;
+            position: relative;
+        }
+
+        .region-emoji {
+            font-size: 2rem;
+            line-height: 1;
+        }
+
+        .region-name {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .region-description {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            line-height: 1.4;
+            margin-bottom: 1rem;
+            position: relative;
+        }
+
+        .region-stats {
+            display: flex;
+            gap: 1rem;
+            padding-top: 0.75rem;
+            border-top: 1px solid var(--border-color);
+            position: relative;
+        }
+
+        .region-stat {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .region-stat-value {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .region-stat-label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .county-navigation {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1.5rem;
+            background: rgba(66, 133, 244, 0.05);
+            border-radius: var(--radius);
+            border: 1px solid rgba(66, 133, 244, 0.1);
+        }
+
+        .county-label {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-weight: 500;
+            color: var(--text-primary);
+            white-space: nowrap;
+            cursor: pointer;
+        }
+
+        .county-label svg {
+            color: var(--accent);
+        }
+
+        .county-select {
+            flex: 1;
+            max-width: 300px;
+            padding: 0.75rem 1rem;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            background: var(--bg-primary);
+            font-size: 0.95rem;
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .county-select:hover {
+            border-color: var(--accent);
+        }
+
+        .county-select:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(66, 133, 244, 0.1);
+        }
+
+        .results-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        .results-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .back-button {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            color: var(--text-primary);
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .back-button:hover {
+            background: rgba(66, 133, 244, 0.05);
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
         /* Card Styles */
         .measure-card {
             background: var(--bg-primary);
@@ -1797,27 +2028,79 @@ class WebsiteGenerator:
         // Data
         const allMeasures = {measures_json};
         const topics = {topics_json};
-        
+
+        // California Regions
+        const CA_REGIONS = {{
+            "Greater Bay Area": {{
+                counties: ["ALAMEDA", "CONTRA COSTA", "MARIN", "NAPA", "SAN FRANCISCO", "SAN MATEO", "SANTA CLARA", "SOLANO", "SONOMA"],
+                emoji: "🌉",
+                description: "San Francisco Bay Area & Silicon Valley"
+            }},
+            "Greater Los Angeles": {{
+                counties: ["LOS ANGELES", "ORANGE", "VENTURA", "RIVERSIDE", "SAN BERNARDINO"],
+                emoji: "🌴",
+                description: "Los Angeles, Orange County & Inland Empire"
+            }},
+            "San Diego Region": {{
+                counties: ["SAN DIEGO", "IMPERIAL"],
+                emoji: "🏖️",
+                description: "San Diego & Imperial Valley"
+            }},
+            "Central Valley": {{
+                counties: ["FRESNO", "KERN", "KINGS", "MADERA", "MERCED", "SAN JOAQUIN", "STANISLAUS", "TULARE"],
+                emoji: "🌾",
+                description: "Agricultural heartland from Stockton to Bakersfield"
+            }},
+            "Sacramento Region": {{
+                counties: ["SACRAMENTO", "PLACER", "EL DORADO", "YOLO", "SUTTER", "YUBA"],
+                emoji: "🏛️",
+                description: "State capital region & Sierra foothills"
+            }},
+            "Central Coast": {{
+                counties: ["MONTEREY", "SAN LUIS OBISPO", "SANTA BARBARA", "SANTA CRUZ", "SAN BENITO"],
+                emoji: "🌊",
+                description: "Coastal region from Santa Cruz to Santa Barbara"
+            }},
+            "North Coast": {{
+                counties: ["MENDOCINO", "HUMBOLDT", "DEL NORTE", "LAKE"],
+                emoji: "🌲",
+                description: "Redwood country & wine regions"
+            }},
+            "Northern California": {{
+                counties: ["SHASTA", "TEHAMA", "BUTTE", "GLENN", "COLUSA", "TRINITY", "SISKIYOU", "MODOC", "LASSEN", "PLUMAS"],
+                emoji: "⛰️",
+                description: "Rural northern counties & Cascade Range"
+            }},
+            "Eastern Sierra": {{
+                counties: ["MONO", "INYO", "ALPINE", "AMADOR", "CALAVERAS", "TUOLUMNE", "MARIPOSA", "NEVADA", "SIERRA"],
+                emoji: "🏔️",
+                description: "Sierra Nevada mountains & eastern desert"
+            }}
+        }};
+
         // State
         let currentView = 'grid';
+        let currentRegion = null;
         let currentFilters = {{
             yearMin: {stats.get('year_min', 1902)},
             yearMax: {stats.get('year_max', 2026)},
             status: [],
             features: [],
             topics: [],
-            search: ''
+            search: '',
+            region: null,
+            county: null
         }};
         let currentSort = 'year-desc';
         let filteredMeasures = [];
-        
+
         // Pagination state
         let pagination = {{
             currentPage: 1,
             itemsPerPage: 25,
             totalPages: 0
         }};
-        
+
         // Featured measures (selected once on load)
         let featuredMeasures = [];
         let heroMeasures = [];
@@ -1826,6 +2109,7 @@ class WebsiteGenerator:
         document.addEventListener('DOMContentLoaded', () => {{
             selectHeroMeasures();
             selectFeaturedMeasures();
+            populateRegionalNavigation();
             initializeTopicTags();
             setupEventListeners();
             loadPageFromURL();
@@ -1894,7 +2178,130 @@ class WebsiteGenerator:
 
             featuredMeasures = selected.slice(0, 5);
         }}
-        
+
+        // Regional Navigation Functions
+        function populateRegionalNavigation() {{
+            // Calculate stats for each region
+            const regionStats = {{}};
+            Object.keys(CA_REGIONS).forEach(regionName => {{
+                const regionData = CA_REGIONS[regionName];
+                const regionMeasures = allMeasures.filter(m =>
+                    m.county && regionData.counties.includes(m.county.toUpperCase())
+                );
+
+                regionStats[regionName] = {{
+                    count: regionMeasures.length,
+                    withVotes: regionMeasures.filter(m => m.yes_votes != null).length
+                }};
+            }});
+
+            // Populate region cards
+            const regionCardsContainer = document.getElementById('regionCards');
+            regionCardsContainer.innerHTML = Object.keys(CA_REGIONS).map(regionName => {{
+                const regionData = CA_REGIONS[regionName];
+                const stats = regionStats[regionName];
+
+                return `
+                    <div class="region-card" onclick="filterByRegion('${{regionName}}')">
+                        <div class="region-card-header">
+                            <span class="region-emoji">${{regionData.emoji}}</span>
+                            <span class="region-name">${{regionName}}</span>
+                        </div>
+                        <p class="region-description">${{regionData.description}}</p>
+                        <div class="region-stats">
+                            <div class="region-stat">
+                                <div class="region-stat-value">${{stats.count.toLocaleString()}}</div>
+                                <div class="region-stat-label">Measures</div>
+                            </div>
+                            <div class="region-stat">
+                                <div class="region-stat-value">${{stats.withVotes.toLocaleString()}}</div>
+                                <div class="region-stat-label">With Data</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }}).join('');
+
+            // Populate county dropdown
+            const countySelect = document.getElementById('countySelect');
+            const allCounties = new Set();
+            allMeasures.forEach(m => {{
+                if (m.county) allCounties.add(m.county);
+            }});
+
+            const sortedCounties = Array.from(allCounties).sort();
+            countySelect.innerHTML = '<option value="">All Counties</option>' +
+                sortedCounties.map(county => `
+                    <option value="${{county}}">${{county}}</option>
+                `).join('');
+        }}
+
+        function filterByRegion(regionName) {{
+            currentRegion = regionName;
+            currentFilters.region = regionName;
+            currentFilters.county = null;
+
+            // Update UI
+            document.getElementById('countySelect').value = '';
+            document.getElementById('regionalNavigation').style.display = 'none';
+            document.getElementById('heroSection').style.display = 'none';
+            document.getElementById('featuredSection').style.display = 'none';
+            document.getElementById('resultsHeader').style.display = 'flex';
+            document.getElementById('backButton').style.display = 'flex';
+            document.getElementById('resultsTitle').textContent = `${{CA_REGIONS[regionName].emoji}} ${{regionName}}`;
+
+            // Apply filters
+            applyFilters();
+
+            // Scroll to results
+            document.getElementById('resultsContainer').scrollIntoView({{ behavior: 'smooth', block: 'start' }});
+        }}
+
+        function filterByCounty(county) {{
+            if (!county) {{
+                clearRegionFilter();
+                return;
+            }}
+
+            currentRegion = null;
+            currentFilters.region = null;
+            currentFilters.county = county;
+
+            // Update UI
+            document.getElementById('regionalNavigation').style.display = 'none';
+            document.getElementById('heroSection').style.display = 'none';
+            document.getElementById('featuredSection').style.display = 'none';
+            document.getElementById('resultsHeader').style.display = 'flex';
+            document.getElementById('backButton').style.display = 'flex';
+            document.getElementById('resultsTitle').textContent = `📍 ${{county}}`;
+
+            // Apply filters
+            applyFilters();
+
+            // Scroll to results
+            document.getElementById('resultsContainer').scrollIntoView({{ behavior: 'smooth', block: 'start' }});
+        }}
+
+        function clearRegionFilter() {{
+            currentRegion = null;
+            currentFilters.region = null;
+            currentFilters.county = null;
+
+            // Update UI
+            document.getElementById('countySelect').value = '';
+            document.getElementById('regionalNavigation').style.display = 'block';
+            document.getElementById('heroSection').style.display = 'block';
+            document.getElementById('featuredSection').style.display = 'block';
+            document.getElementById('resultsHeader').style.display = 'none';
+            document.getElementById('backButton').style.display = 'none';
+
+            // Apply filters
+            applyFilters();
+
+            // Scroll to top
+            window.scrollTo({{ top: 0, behavior: 'smooth' }});
+        }}
+
         // Initialize topic tags
         function initializeTopicTags() {{
             const container = document.getElementById('topicTags');
@@ -2099,12 +2506,27 @@ class WebsiteGenerator:
                         measure.topic_primary,
                         measure.year
                     ].filter(Boolean).join(' ').toLowerCase();
-                    
+
                     if (!searchText.includes(currentFilters.search)) {{
                         return false;
                     }}
                 }}
-                
+
+                // Region filter
+                if (currentFilters.region) {{
+                    const regionData = CA_REGIONS[currentFilters.region];
+                    if (!measure.county || !regionData.counties.includes(measure.county.toUpperCase())) {{
+                        return false;
+                    }}
+                }}
+
+                // County filter
+                if (currentFilters.county) {{
+                    if (!measure.county || measure.county.toUpperCase() !== currentFilters.county.toUpperCase()) {{
+                        return false;
+                    }}
+                }}
+
                 return true;
             }});
             
