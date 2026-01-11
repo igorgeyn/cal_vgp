@@ -337,8 +337,111 @@ class WebsiteGenerator:
         <p>Data sources: CA Secretary of State, NCSL, ICPSR, CEDA</p>
     </footer>
 
+    <!-- AI Chat Interface -->
+    <div id="chatWidget" class="chat-widget">
+        <button id="chatToggle" class="chat-toggle" onclick="toggleChat()">
+            <svg class="chat-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+            </svg>
+            <svg class="close-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: none;">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+        </button>
+
+        <div id="chatPanel" class="chat-panel" style="display: none;">
+            <div class="chat-header">
+                <div class="chat-header-title">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                    </svg>
+                    <span>Ask about ballot measures</span>
+                </div>
+                <button class="chat-settings-btn" onclick="openChatSettings()" title="Configure AI">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="3"></circle>
+                        <path d="M12 1v6m0 6v6m9-9h-6m-6 0H3"></path>
+                    </svg>
+                </button>
+            </div>
+
+            <div id="chatMessages" class="chat-messages">
+                <div class="chat-message bot">
+                    <div class="chat-message-content">
+                        <p>Hi! I can help you explore California ballot measures.</p>
+                        <p>To get started, configure your AI provider in settings (click the ⚙️ icon above).</p>
+                        <div class="example-prompts">
+                            <p><strong>Example questions:</strong></p>
+                            <button class="example-prompt" onclick="askExample(this)">What were the 10 closest ballot measures in the last 5 years?</button>
+                            <button class="example-prompt" onclick="askExample(this)">Show me all housing-related measures in San Francisco</button>
+                            <button class="example-prompt" onclick="askExample(this)">What topics have the lowest pass rates?</button>
+                            <button class="example-prompt" onclick="askExample(this)">Tell me about education measures from 2020-2024</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="chat-input-container">
+                <textarea id="chatInput" class="chat-input" placeholder="Ask a question about ballot measures..." rows="1"></textarea>
+                <button id="chatSend" class="chat-send-btn" onclick="sendMessage()" disabled>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="22" y1="2" x2="11" y2="13"></line>
+                        <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- AI Settings Modal -->
+    <div id="chatSettingsModal" class="modal" style="display: none;">
+        <div class="modal-content chat-settings-modal">
+            <div class="modal-header">
+                <h2>AI Configuration</h2>
+                <button class="modal-close" onclick="closeChatSettings()">×</button>
+            </div>
+
+            <div class="modal-body">
+                <div class="settings-section">
+                    <label class="settings-label">AI Provider</label>
+                    <select id="aiProvider" class="settings-select" onchange="updateProviderFields()">
+                        <option value="">Select provider...</option>
+                        <option value="openai">OpenAI (GPT-4)</option>
+                        <option value="anthropic">Anthropic (Claude)</option>
+                        <option value="ollama">Local Ollama</option>
+                    </select>
+                </div>
+
+                <div id="apiKeySection" class="settings-section" style="display: none;">
+                    <label class="settings-label" id="apiKeyLabel">API Key</label>
+                    <input type="password" id="apiKey" class="settings-input" placeholder="sk-...">
+                    <p class="settings-hint">Your API key is stored locally in your browser and never sent to our servers.</p>
+                </div>
+
+                <div id="ollamaSection" class="settings-section" style="display: none;">
+                    <label class="settings-label">Ollama URL</label>
+                    <input type="text" id="ollamaUrl" class="settings-input" value="http://localhost:11434" placeholder="http://localhost:11434">
+                    <label class="settings-label">Model</label>
+                    <input type="text" id="ollamaModel" class="settings-input" value="llama3.2:3b" placeholder="llama3.2:3b">
+                    <p class="settings-hint">Make sure Ollama is running locally. <a href="https://ollama.ai" target="_blank">Download Ollama</a></p>
+                </div>
+
+                <div class="settings-section">
+                    <button id="testConnection" class="btn-primary" onclick="testAIConnection()" disabled>Test Connection</button>
+                    <span id="connectionStatus" class="connection-status"></span>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="closeChatSettings()">Cancel</button>
+                <button class="btn-primary" onclick="saveChatSettings()">Save Settings</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         {self._get_javascript(measures_json, topics_json, stats)}
+        {self._get_chat_javascript()}
     </script>
 </body>
 </html>"""
@@ -926,6 +1029,16 @@ class WebsiteGenerator:
             border-left: 2px solid rgba(26, 115, 232, 0.15);
         }
 
+        .card-summary[data-full-text]:hover {
+            background: rgba(26, 115, 232, 0.04);
+            border-left-color: rgba(26, 115, 232, 0.25);
+        }
+
+        .card-summary.expanded {
+            -webkit-line-clamp: unset !important;
+            -webkit-box-orient: unset !important;
+        }
+
         .read-more {
             color: var(--primary);
             font-size: 0.813rem;
@@ -1252,6 +1365,429 @@ class WebsiteGenerator:
                 font-size: 0.8rem;
             }
         }
+
+        /* AI Chat Interface Styles */
+        .chat-widget {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            z-index: 1000;
+        }
+
+        .chat-toggle {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: var(--primary);
+            border: none;
+            box-shadow: var(--shadow-md);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            transition: var(--transition);
+        }
+
+        .chat-toggle:hover {
+            background: var(--primary-dark);
+            transform: scale(1.05);
+        }
+
+        .chat-panel {
+            position: fixed;
+            bottom: 100px;
+            right: 24px;
+            width: 400px;
+            height: 600px;
+            background: var(--bg-primary);
+            border-radius: 12px;
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.15);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .chat-header {
+            padding: 1rem;
+            background: var(--primary);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .chat-header-title {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-weight: 600;
+        }
+
+        .chat-settings-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            border-radius: 4px;
+            padding: 0.5rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: var(--transition);
+        }
+
+        .chat-settings-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .chat-message {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .chat-message.user {
+            align-items: flex-end;
+        }
+
+        .chat-message.bot {
+            align-items: flex-start;
+        }
+
+        .chat-message-content {
+            max-width: 85%;
+            padding: 0.75rem 1rem;
+            border-radius: 12px;
+            line-height: 1.5;
+        }
+
+        .chat-message.user .chat-message-content {
+            background: var(--primary);
+            color: white;
+        }
+
+        .chat-message.bot .chat-message-content {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+        }
+
+        .chat-message-content p {
+            margin: 0.5rem 0;
+        }
+
+        .chat-message-content p:first-child {
+            margin-top: 0;
+        }
+
+        .chat-message-content p:last-child {
+            margin-bottom: 0;
+        }
+
+        .example-prompts {
+            margin-top: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .example-prompts p {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.25rem;
+        }
+
+        .example-prompt {
+            background: white;
+            border: 1px solid var(--border);
+            padding: 0.5rem 0.75rem;
+            border-radius: 8px;
+            text-align: left;
+            cursor: pointer;
+            font-size: 0.875rem;
+            transition: var(--transition);
+        }
+
+        .example-prompt:hover {
+            background: var(--bg-secondary);
+            border-color: var(--primary);
+        }
+
+        .chat-input-container {
+            padding: 1rem;
+            border-top: 1px solid var(--border);
+            display: flex;
+            gap: 0.5rem;
+            align-items: flex-end;
+        }
+
+        .chat-input {
+            flex: 1;
+            padding: 0.75rem;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-family: inherit;
+            font-size: 1rem;
+            resize: none;
+            max-height: 120px;
+            min-height: 44px;
+        }
+
+        .chat-input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .chat-send-btn {
+            width: 44px;
+            height: 44px;
+            background: var(--primary);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: var(--transition);
+        }
+
+        .chat-send-btn:hover:not(:disabled) {
+            background: var(--primary-dark);
+        }
+
+        .chat-send-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .chat-typing-indicator {
+            display: flex;
+            gap: 0.25rem;
+            padding: 0.75rem 1rem;
+        }
+
+        .chat-typing-dot {
+            width: 8px;
+            height: 8px;
+            background: var(--text-tertiary);
+            border-radius: 50%;
+            animation: typing 1.4s infinite;
+        }
+
+        .chat-typing-dot:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .chat-typing-dot:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes typing {
+            0%, 60%, 100% {
+                opacity: 0.3;
+                transform: translateY(0);
+            }
+            30% {
+                opacity: 1;
+                transform: translateY(-8px);
+            }
+        }
+
+        /* Modal Styles */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            padding: 1rem;
+        }
+
+        .modal-content {
+            background: var(--bg-primary);
+            border-radius: 12px;
+            max-width: 500px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+        }
+
+        .modal-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .modal-header h2 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin: 0;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: var(--text-secondary);
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+            transition: var(--transition);
+        }
+
+        .modal-close:hover {
+            background: var(--bg-secondary);
+        }
+
+        .modal-body {
+            padding: 1.5rem;
+        }
+
+        .modal-footer {
+            padding: 1rem 1.5rem;
+            border-top: 1px solid var(--border);
+            display: flex;
+            gap: 0.75rem;
+            justify-content: flex-end;
+        }
+
+        .settings-section {
+            margin-bottom: 1.5rem;
+        }
+
+        .settings-section:last-child {
+            margin-bottom: 0;
+        }
+
+        .settings-label {
+            display: block;
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+            color: var(--text-primary);
+        }
+
+        .settings-select,
+        .settings-input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-family: inherit;
+            font-size: 1rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .settings-select:focus,
+        .settings-input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .settings-hint {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            margin: 0.5rem 0 0 0;
+        }
+
+        .settings-hint a {
+            color: var(--primary);
+        }
+
+        .connection-status {
+            margin-left: 1rem;
+            font-size: 0.875rem;
+        }
+
+        .connection-status.success {
+            color: var(--success);
+        }
+
+        .connection-status.error {
+            color: var(--danger);
+        }
+
+        .btn-primary,
+        .btn-secondary {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background: var(--primary-dark);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+        }
+
+        .btn-secondary:hover {
+            background: var(--bg-tertiary);
+        }
+
+        /* Mobile Responsiveness for Chat */
+        @media (max-width: 768px) {
+            .chat-panel {
+                bottom: 90px;
+                right: 12px;
+                left: 12px;
+                width: auto;
+                height: 500px;
+            }
+
+            .chat-widget {
+                bottom: 12px;
+                right: 12px;
+            }
+        }
         """
     
     def _get_javascript(self, measures_json: str, topics_json: str, 
@@ -1377,7 +1913,26 @@ class WebsiteGenerator:
                 pagination.currentPage = Math.max(1, parseInt(match[1]));
             }}
         }}
-        
+
+        // Toggle summary expansion
+        function toggleSummary(element) {{
+            const fullText = element.getAttribute('data-full-text');
+            const shortText = element.getAttribute('data-short-text');
+            const isExpanded = element.classList.contains('expanded');
+
+            if (isExpanded) {{
+                element.textContent = shortText;
+                element.classList.remove('expanded');
+                element.style.display = '-webkit-box';
+                element.title = 'Click to expand';
+            }} else {{
+                element.textContent = fullText;
+                element.classList.add('expanded');
+                element.style.display = 'block';
+                element.title = 'Click to collapse';
+            }}
+        }}
+
         // Update URL hash with current page
         function updateURL() {{
             const newHash = pagination.currentPage > 1 ? `#page=${{pagination.currentPage}}` : '';
@@ -1808,10 +2363,14 @@ class WebsiteGenerator:
             // Truncate to 2-3 lines (approximately 200 chars)
             const maxLength = 200;
             const truncatedSummary = summary.length > maxLength ? summary.substring(0, maxLength) + '...' : summary;
+            const isLongSummary = summary.length > maxLength;
 
             const descriptionHtml = truncatedSummary ? `
-                <div class="card-summary ${{hasSummary ? 'has-summary' : ''}}">${{truncatedSummary}}</div>
-                ${{summary.length > maxLength && measure.source_url ? '<a href="' + measure.source_url + '" target="_blank" rel="noopener noreferrer" class="read-more">Read more →</a>' : ''}}
+                <div class="card-summary ${{hasSummary ? 'has-summary' : ''}}"
+                     ${{isLongSummary ? 'data-full-text="' + summary.replace(/"/g, '&quot;') + '" data-short-text="' + truncatedSummary.replace(/"/g, '&quot;') + '"' : ''}}
+                     ${{isLongSummary ? 'style="cursor: pointer;" title="Click to expand"' : ''}}
+                     onclick="${{isLongSummary ? 'toggleSummary(this)' : ''}}">${{truncatedSummary}}</div>
+                ${{isLongSummary && measure.source_url ? '<a href="' + measure.source_url + '" target="_blank" rel="noopener noreferrer" class="read-more">Read more on Ballotpedia →</a>' : ''}}
             ` : '';
 
             const percentYes = measure.percent_yes;
@@ -1923,4 +2482,493 @@ class WebsiteGenerator:
             
             applyFilters();
         }}
+        """
+
+    def _get_chat_javascript(self) -> str:
+        """Get JavaScript for AI chat functionality"""
+        return """
+        // AI Chat Configuration
+        const AI_CONFIG_KEY = 'ballotMeasuresAIConfig';
+        let aiConfig = null;
+
+        // Load AI configuration from localStorage
+        function loadAIConfig() {
+            const saved = localStorage.getItem(AI_CONFIG_KEY);
+            if (saved) {
+                aiConfig = JSON.parse(saved);
+                updateChatInputState();
+            }
+        }
+
+        // Save AI configuration to localStorage
+        function saveAIConfig(config) {
+            aiConfig = config;
+            localStorage.setItem(AI_CONFIG_KEY, JSON.stringify(config));
+            updateChatInputState();
+        }
+
+        // Update chat input state based on whether AI is configured
+        function updateChatInputState() {
+            const chatInput = document.getElementById('chatInput');
+            const chatSend = document.getElementById('chatSend');
+
+            if (aiConfig && aiConfig.provider) {
+                chatInput.disabled = false;
+                chatInput.placeholder = 'Ask a question about ballot measures...';
+                chatSend.disabled = false;
+            } else {
+                chatInput.disabled = true;
+                chatInput.placeholder = 'Configure AI provider first (click ⚙️)';
+                chatSend.disabled = true;
+            }
+        }
+
+        // Toggle chat panel
+        function toggleChat() {
+            const panel = document.getElementById('chatPanel');
+            const chatIcon = document.querySelector('.chat-icon');
+            const closeIcon = document.querySelector('.close-icon');
+
+            if (panel.style.display === 'none' || !panel.style.display) {
+                panel.style.display = 'flex';
+                chatIcon.style.display = 'none';
+                closeIcon.style.display = 'block';
+            } else {
+                panel.style.display = 'none';
+                chatIcon.style.display = 'block';
+                closeIcon.style.display = 'none';
+            }
+        }
+
+        // Open settings modal
+        function openChatSettings() {
+            const modal = document.getElementById('chatSettingsModal');
+            modal.style.display = 'flex';
+
+            // Load current settings
+            if (aiConfig) {
+                document.getElementById('aiProvider').value = aiConfig.provider || '';
+                if (aiConfig.apiKey) {
+                    document.getElementById('apiKey').value = aiConfig.apiKey;
+                }
+                if (aiConfig.ollamaUrl) {
+                    document.getElementById('ollamaUrl').value = aiConfig.ollamaUrl;
+                }
+                if (aiConfig.ollamaModel) {
+                    document.getElementById('ollamaModel').value = aiConfig.ollamaModel;
+                }
+                updateProviderFields();
+            }
+        }
+
+        // Close settings modal
+        function closeChatSettings() {
+            const modal = document.getElementById('chatSettingsModal');
+            modal.style.display = 'none';
+        }
+
+        // Update provider fields based on selection
+        function updateProviderFields() {
+            const provider = document.getElementById('aiProvider').value;
+            const apiKeySection = document.getElementById('apiKeySection');
+            const ollamaSection = document.getElementById('ollamaSection');
+            const testBtn = document.getElementById('testConnection');
+            const apiKeyLabel = document.getElementById('apiKeyLabel');
+
+            apiKeySection.style.display = 'none';
+            ollamaSection.style.display = 'none';
+            testBtn.disabled = !provider;
+
+            if (provider === 'openai') {
+                apiKeySection.style.display = 'block';
+                apiKeyLabel.textContent = 'OpenAI API Key';
+                document.getElementById('apiKey').placeholder = 'sk-...';
+            } else if (provider === 'anthropic') {
+                apiKeySection.style.display = 'block';
+                apiKeyLabel.textContent = 'Anthropic API Key';
+                document.getElementById('apiKey').placeholder = 'sk-ant-...';
+            } else if (provider === 'ollama') {
+                ollamaSection.style.display = 'block';
+            }
+        }
+
+        // Test AI connection
+        async function testAIConnection() {
+            const provider = document.getElementById('aiProvider').value;
+            const statusEl = document.getElementById('connectionStatus');
+            const testBtn = document.getElementById('testConnection');
+
+            testBtn.disabled = true;
+            statusEl.textContent = 'Testing...';
+            statusEl.className = 'connection-status';
+
+            try {
+                if (provider === 'openai') {
+                    const apiKey = document.getElementById('apiKey').value;
+                    const response = await fetch('https://api.openai.com/v1/models', {
+                        headers: { 'Authorization': `Bearer ${apiKey}` }
+                    });
+                    if (response.ok) {
+                        statusEl.textContent = '✓ Connected';
+                        statusEl.className = 'connection-status success';
+                    } else {
+                        throw new Error('Invalid API key');
+                    }
+                } else if (provider === 'anthropic') {
+                    const apiKey = document.getElementById('apiKey').value;
+                    const response = await fetch('https://api.anthropic.com/v1/messages', {
+                        method: 'POST',
+                        headers: {
+                            'x-api-key': apiKey,
+                            'anthropic-version': '2023-06-01',
+                            'content-type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            model: 'claude-3-5-sonnet-20241022',
+                            max_tokens: 1,
+                            messages: [{ role: 'user', content: 'test' }]
+                        })
+                    });
+                    if (response.ok || response.status === 400) {
+                        statusEl.textContent = '✓ Connected';
+                        statusEl.className = 'connection-status success';
+                    } else {
+                        throw new Error('Invalid API key');
+                    }
+                } else if (provider === 'ollama') {
+                    const url = document.getElementById('ollamaUrl').value;
+                    const response = await fetch(`${url}/api/tags`);
+                    if (response.ok) {
+                        statusEl.textContent = '✓ Connected';
+                        statusEl.className = 'connection-status success';
+                    } else {
+                        throw new Error('Cannot connect to Ollama');
+                    }
+                }
+            } catch (error) {
+                statusEl.textContent = '✗ ' + error.message;
+                statusEl.className = 'connection-status error';
+            }
+
+            testBtn.disabled = false;
+        }
+
+        // Save chat settings
+        function saveChatSettings() {
+            const provider = document.getElementById('aiProvider').value;
+
+            if (!provider) {
+                alert('Please select an AI provider');
+                return;
+            }
+
+            const config = { provider };
+
+            if (provider === 'openai' || provider === 'anthropic') {
+                const apiKey = document.getElementById('apiKey').value;
+                if (!apiKey) {
+                    alert('Please enter an API key');
+                    return;
+                }
+                config.apiKey = apiKey;
+            } else if (provider === 'ollama') {
+                config.ollamaUrl = document.getElementById('ollamaUrl').value;
+                config.ollamaModel = document.getElementById('ollamaModel').value;
+            }
+
+            saveAIConfig(config);
+            closeChatSettings();
+
+            // Show success message in chat
+            addBotMessage('AI configured successfully! You can now ask questions about ballot measures.');
+        }
+
+        // Send user message
+        async function sendMessage() {
+            const input = document.getElementById('chatInput');
+            const message = input.value.trim();
+
+            if (!message || !aiConfig) return;
+
+            // Add user message to chat
+            addUserMessage(message);
+            input.value = '';
+
+            // Show typing indicator
+            showTypingIndicator();
+
+            try {
+                // Query data and get AI response
+                const response = await queryAI(message);
+                hideTypingIndicator();
+                addBotMessage(response);
+            } catch (error) {
+                hideTypingIndicator();
+                addBotMessage('Sorry, I encountered an error: ' + error.message);
+            }
+        }
+
+        // Query AI with relevant data
+        async function queryAI(question) {
+            // Get relevant data from the measures
+            const context = prepareDataContext(question);
+
+            // Build prompt
+            const prompt = `You are a helpful assistant analyzing California ballot measures data.
+
+Here's information about the ballot measures database:
+${context}
+
+User question: ${question}
+
+Please provide a helpful, accurate response based on the data provided. If you reference specific measures, include their title and year.`;
+
+            // Call appropriate AI API
+            if (aiConfig.provider === 'openai') {
+                return await callOpenAI(prompt);
+            } else if (aiConfig.provider === 'anthropic') {
+                return await callAnthropic(prompt);
+            } else if (aiConfig.provider === 'ollama') {
+                return await callOllama(prompt);
+            }
+        }
+
+        // Prepare data context for AI
+        function prepareDataContext(question) {
+            const q = question.toLowerCase();
+            let context = `Total measures in database: ${allMeasures.length}\\n`;
+            context += `Years covered: ${Math.min(...allMeasures.map(m => m.year || 0))} - ${Math.max(...allMeasures.map(m => m.year || 0))}\\n\\n`;
+
+            // Check if question is about specific topics
+            const topics = [...new Set(allMeasures.map(m => m.topic_primary).filter(Boolean))];
+            if (q.includes('topic') || q.includes('category')) {
+                context += `Topics available: ${topics.slice(0, 20).join(', ')}\\n\\n`;
+            }
+
+            // Check if question is about pass rates
+            if (q.includes('pass') || q.includes('fail') || q.includes('success')) {
+                const passed = allMeasures.filter(m => m.result === 'Passed').length;
+                const failed = allMeasures.filter(m => m.result === 'Failed').length;
+                context += `Pass/Fail statistics: ${passed} passed, ${failed} failed\\n\\n`;
+            }
+
+            // Check if question is about close races
+            if (q.includes('close') || q.includes('narrow') || q.includes('margin')) {
+                const withVotes = allMeasures.filter(m => m.votes_for && m.votes_against);
+                const closeMeasures = withVotes
+                    .map(m => ({
+                        ...m,
+                        margin: Math.abs(m.votes_for - m.votes_against) / (m.votes_for + m.votes_against)
+                    }))
+                    .sort((a, b) => a.margin - b.margin)
+                    .slice(0, 10);
+
+                context += `10 Closest measures:\\n`;
+                closeMeasures.forEach((m, i) => {
+                    context += `${i+1}. ${m.concise_title || m.title} (${m.year}) - ${(m.margin * 100).toFixed(1)}% margin\\n`;
+                });
+                context += '\\n';
+            }
+
+            // Check if question is about specific years
+            const yearMatch = question.match(/20\\d{2}/);
+            if (yearMatch) {
+                const year = yearMatch[0];
+                const yearMeasures = allMeasures.filter(m => m.year == year);
+                context += `Measures from ${year}: ${yearMeasures.length} total\\n\\n`;
+            }
+
+            // Check if question is about specific counties
+            const counties = [...new Set(allMeasures.map(m => m.county).filter(Boolean))];
+            counties.forEach(county => {
+                if (q.includes(county.toLowerCase())) {
+                    const countyMeasures = allMeasures.filter(m => m.county === county);
+                    context += `Measures in ${county}: ${countyMeasures.length} total\\n\\n`;
+                }
+            });
+
+            return context;
+        }
+
+        // Call OpenAI API
+        async function callOpenAI(prompt) {
+            const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${aiConfig.apiKey}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    model: 'gpt-4o',
+                    messages: [{ role: 'user', content: prompt }],
+                    max_tokens: 500
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error('OpenAI API error');
+            }
+
+            const data = await response.json();
+            return data.choices[0].message.content;
+        }
+
+        // Call Anthropic API
+        async function callAnthropic(prompt) {
+            const response = await fetch('https://api.anthropic.com/v1/messages', {
+                method: 'POST',
+                headers: {
+                    'x-api-key': aiConfig.apiKey,
+                    'anthropic-version': '2023-06-01',
+                    'content-type': 'application/json'
+                },
+                body: JSON.stringify({
+                    model: 'claude-3-5-sonnet-20241022',
+                    max_tokens: 500,
+                    messages: [{ role: 'user', content: prompt }]
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error('Anthropic API error');
+            }
+
+            const data = await response.json();
+            return data.content[0].text;
+        }
+
+        // Call Ollama API
+        async function callOllama(prompt) {
+            const response = await fetch(`${aiConfig.ollamaUrl}/api/generate`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    model: aiConfig.ollamaModel,
+                    prompt: prompt,
+                    stream: false
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error('Ollama API error');
+            }
+
+            const data = await response.json();
+            return data.response;
+        }
+
+        // Add user message to chat
+        function addUserMessage(text) {
+            const messagesContainer = document.getElementById('chatMessages');
+            const messageEl = document.createElement('div');
+            messageEl.className = 'chat-message user';
+            messageEl.innerHTML = `
+                <div class="chat-message-content">
+                    <p>${escapeHtml(text)}</p>
+                </div>
+            `;
+            messagesContainer.appendChild(messageEl);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        // Add bot message to chat
+        function addBotMessage(text) {
+            const messagesContainer = document.getElementById('chatMessages');
+            const messageEl = document.createElement('div');
+            messageEl.className = 'chat-message bot';
+            messageEl.innerHTML = `
+                <div class="chat-message-content">
+                    ${formatBotMessage(text)}
+                </div>
+            `;
+            messagesContainer.appendChild(messageEl);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        // Format bot message (support markdown-like syntax)
+        function formatBotMessage(text) {
+            // Simple markdown: **bold**, numbered lists
+            let html = text
+                .split('\\n\\n')
+                .map(para => `<p>${para}</p>`)
+                .join('');
+
+            // Bold text
+            html = html.replace(/\\*\\*(.*?)\\*\\*/g, '<strong>$1</strong>');
+
+            return html;
+        }
+
+        // Escape HTML
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Show typing indicator
+        function showTypingIndicator() {
+            const messagesContainer = document.getElementById('chatMessages');
+            const indicator = document.createElement('div');
+            indicator.id = 'typingIndicator';
+            indicator.className = 'chat-message bot';
+            indicator.innerHTML = `
+                <div class="chat-typing-indicator">
+                    <div class="chat-typing-dot"></div>
+                    <div class="chat-typing-dot"></div>
+                    <div class="chat-typing-dot"></div>
+                </div>
+            `;
+            messagesContainer.appendChild(indicator);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        // Hide typing indicator
+        function hideTypingIndicator() {
+            const indicator = document.getElementById('typingIndicator');
+            if (indicator) {
+                indicator.remove();
+            }
+        }
+
+        // Handle example prompt click
+        function askExample(button) {
+            const question = button.textContent;
+            document.getElementById('chatInput').value = question;
+            sendMessage();
+        }
+
+        // Handle Enter key in chat input
+        document.addEventListener('DOMContentLoaded', function() {
+            const chatInput = document.getElementById('chatInput');
+            if (chatInput) {
+                chatInput.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        sendMessage();
+                    }
+                });
+
+                // Auto-resize textarea
+                chatInput.addEventListener('input', function() {
+                    this.style.height = 'auto';
+                    this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+                });
+            }
+
+            // Load AI config on page load
+            loadAIConfig();
+
+            // Close modal when clicking outside
+            const modal = document.getElementById('chatSettingsModal');
+            if (modal) {
+                modal.addEventListener('click', function(e) {
+                    if (e.target === modal) {
+                        closeChatSettings();
+                    }
+                });
+            }
+        });
         """

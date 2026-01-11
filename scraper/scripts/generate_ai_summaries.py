@@ -152,17 +152,17 @@ def main():
 
     # Ask for model choice
     print("\nAvailable models:")
-    print("  1. llama3.2 (fast, recommended)")
+    print("  1. llama3.2:3b (fast, recommended)")
     print("  2. llama3.2:1b (faster, smaller)")
     print("  3. mistral (alternative)")
 
     model_choice = input("\nSelect model (1-3, default=1): ").strip() or "1"
     model_map = {
-        "1": "llama3.2",
+        "1": "llama3.2:3b",
         "2": "llama3.2:1b",
         "3": "mistral"
     }
-    model = model_map.get(model_choice, "llama3.2")
+    model = model_map.get(model_choice, "llama3.2:3b")
 
     # Estimate time
     avg_time_per_measure = 3  # seconds
