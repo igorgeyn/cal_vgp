@@ -1,0 +1,7 @@
+name = "cal-vgp-proxy"
+main = "worker.js"
+compatibility_date = "2024-01-01"
+
+# Cloudflare Worker configuration for California Ballot Measures API Proxy
+# This worker proxies requests to AI APIs (Anthropic, OpenAI) to bypass CORS
+# Users provide their own API keys - zero cost to site owner

@@ -2605,7 +2605,7 @@ class WebsiteGenerator:
             try {
                 if (provider === 'openai') {
                     const apiKey = document.getElementById('apiKey').value;
-                    const response = await fetch('https://api.openai.com/v1/models', {
+                    const response = await fetch('https://cal-vgp-proxy.igorgeyn.workers.dev/openai', {
                         headers: { 'Authorization': `Bearer ${apiKey}` }
                     });
                     if (response.ok) {
@@ -2616,7 +2616,7 @@ class WebsiteGenerator:
                     }
                 } else if (provider === 'anthropic') {
                     const apiKey = document.getElementById('apiKey').value;
-                    const response = await fetch('https://api.anthropic.com/v1/messages', {
+                    const response = await fetch('https://cal-vgp-proxy.igorgeyn.workers.dev/anthropic', {
                         method: 'POST',
                         headers: {
                             'x-api-key': apiKey,
@@ -2792,7 +2792,7 @@ Please provide a helpful, accurate response based on the data provided. If you r
 
         // Call OpenAI API
         async function callOpenAI(prompt) {
-            const response = await fetch('https://api.openai.com/v1/chat/completions', {
+            const response = await fetch('https://cal-vgp-proxy.igorgeyn.workers.dev/openai', {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${aiConfig.apiKey}`,
@@ -2815,7 +2815,7 @@ Please provide a helpful, accurate response based on the data provided. If you r
 
         // Call Anthropic API
         async function callAnthropic(prompt) {
-            const response = await fetch('https://api.anthropic.com/v1/messages', {
+            const response = await fetch('https://cal-vgp-proxy.igorgeyn.workers.dev/anthropic', {
                 method: 'POST',
                 headers: {
                     'x-api-key': aiConfig.apiKey,
