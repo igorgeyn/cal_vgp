@@ -145,10 +145,7 @@ class WebsiteGenerator:
         measures_json = json.dumps(measures, default=str)
         topics_json = json.dumps(topics, default=str)
         
-        # Calculate additional stats with type safety
-        total_with_outcome = stats['passed'] + stats['failed']
-        pass_rate = round((stats['passed'] / total_with_outcome * 100)) if total_with_outcome > 0 else 0
-        year_range = stats['year_max'] - stats['year_min']  # Now guaranteed to be integers
+        # Calculate additional stats with type safety (unused variables removed)
         
         # Generate HTML using modern template
         html = f"""<!DOCTYPE html>
@@ -266,23 +263,42 @@ class WebsiteGenerator:
 
         <!-- Main Content Area -->
         <main class="content">
-            <!-- Stats Dashboard -->
-            <div class="stats-dashboard">
-                <div class="stat-card">
-                    <div class="stat-number">{stats['total_measures']:,}</div>
-                    <div class="stat-label">Total Measures</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-number">{pass_rate}%</div>
-                    <div class="stat-label">Pass Rate</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-number">{year_range} years</div>
-                    <div class="stat-label">Historical Coverage</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-number">{len(topics)}</div>
-                    <div class="stat-label">Topic Categories</div>
+            <!-- Tool Description -->
+            <div class="tool-description">
+                <h2 class="tool-title">Explore California's Ballot Measures</h2>
+                <p class="tool-intro">
+                    Search and analyze over <strong>{stats['total_measures']:,} ballot measures</strong> from across California,
+                    spanning more than a century of direct democracy. Discover how voters have decided on everything from
+                    local school funding to statewide policy changes.
+                </p>
+                <div class="tool-features">
+                    <div class="feature-item">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <polyline points="12 6 12 12 16 14"></polyline>
+                        </svg>
+                        <span><strong>Historical data</strong> from {stats['year_min']} to present</span>
+                    </div>
+                    <div class="feature-item">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                            <circle cx="12" cy="10" r="3"></circle>
+                        </svg>
+                        <span><strong>58 counties</strong> plus statewide propositions</span>
+                    </div>
+                    <div class="feature-item">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+                        </svg>
+                        <span><strong>Vote results</strong> for {stats['with_votes']:,} measures</span>
+                    </div>
+                    <div class="feature-item">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                            <polyline points="14 2 14 8 20 8"></polyline>
+                        </svg>
+                        <span><strong>AI summaries</strong> for easier understanding</span>
+                    </div>
                 </div>
             </div>
 
@@ -360,6 +376,27 @@ class WebsiteGenerator:
                         Back to regions
                     </button>
                 </div>
+
+                <!-- Dynamic Stats Summary -->
+                <div class="dynamic-stats" id="dynamicStats" style="display: none;">
+                    <div class="dynamic-stat-card">
+                        <div class="dynamic-stat-value" id="statTotal">0</div>
+                        <div class="dynamic-stat-label">Total Measures</div>
+                    </div>
+                    <div class="dynamic-stat-card">
+                        <div class="dynamic-stat-value" id="statPassRate">-</div>
+                        <div class="dynamic-stat-label">Pass Rate</div>
+                    </div>
+                    <div class="dynamic-stat-card">
+                        <div class="dynamic-stat-value" id="statWithData">0</div>
+                        <div class="dynamic-stat-label">With Vote Data</div>
+                    </div>
+                    <div class="dynamic-stat-card">
+                        <div class="dynamic-stat-value" id="statYearRange">-</div>
+                        <div class="dynamic-stat-label">Year Range</div>
+                    </div>
+                </div>
+
                 <div class="loading">
                     <div class="spinner"></div>
                 </div>
@@ -1082,6 +1119,39 @@ class WebsiteGenerator:
             color: var(--accent);
         }
 
+        /* Dynamic Stats */
+        .dynamic-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+            padding: 1.5rem;
+            background: rgba(66, 133, 244, 0.03);
+            border-radius: var(--radius);
+            border: 1px solid rgba(66, 133, 244, 0.1);
+        }
+
+        .dynamic-stat-card {
+            text-align: center;
+            padding: 1rem;
+            background: var(--bg-primary);
+            border-radius: var(--radius);
+        }
+
+        .dynamic-stat-value {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 0.25rem;
+        }
+
+        .dynamic-stat-label {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
         /* Card Styles */
         .measure-card {
             background: var(--bg-primary);
@@ -1362,31 +1432,68 @@ class WebsiteGenerator:
         }
         
         /* Stats Dashboard */
-        .stats-dashboard {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1rem;
+        /* Tool Description */
+        .tool-description {
+            background: linear-gradient(135deg, rgba(66, 133, 244, 0.05) 0%, rgba(255, 255, 255, 0.95) 100%);
+            border-radius: 12px;
+            padding: 2rem;
             margin-bottom: 2rem;
+            border: 1px solid rgba(66, 133, 244, 0.1);
         }
-        
-        .stat-card {
+
+        .tool-title {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 0.75rem;
+        }
+
+        .tool-intro {
+            font-size: 1.05rem;
+            line-height: 1.6;
+            color: var(--text-secondary);
+            margin-bottom: 1.5rem;
+        }
+
+        .tool-intro strong {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        .tool-features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+        }
+
+        .feature-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem;
             background: var(--bg-primary);
             border-radius: var(--radius);
-            padding: 1.5rem;
-            text-align: center;
+            transition: all 0.2s ease;
+        }
+
+        .feature-item:hover {
             box-shadow: var(--shadow-sm);
+            transform: translateY(-1px);
         }
-        
-        .stat-number {
-            font-size: 2rem;
-            font-weight: 600;
+
+        .feature-item svg {
+            flex-shrink: 0;
             color: var(--primary);
-            margin-bottom: 0.25rem;
         }
-        
-        .stat-label {
-            font-size: 0.875rem;
+
+        .feature-item span {
+            font-size: 0.9rem;
             color: var(--text-secondary);
+        }
+
+        .feature-item strong {
+            color: var(--text-primary);
+            font-weight: 600;
         }
         
         /* Loading State */
@@ -2294,12 +2401,36 @@ class WebsiteGenerator:
             document.getElementById('featuredSection').style.display = 'block';
             document.getElementById('resultsHeader').style.display = 'none';
             document.getElementById('backButton').style.display = 'none';
+            document.getElementById('dynamicStats').style.display = 'none';
 
             // Apply filters
             applyFilters();
 
             // Scroll to top
             window.scrollTo({{ top: 0, behavior: 'smooth' }});
+        }}
+
+        function updateDynamicStats(measures) {{
+            const total = measures.length;
+            const withVotes = measures.filter(m => m.yes_votes != null).length;
+            const passed = measures.filter(m => m.passed === 1).length;
+            const failed = measures.filter(m => m.passed === 0).length;
+            const totalWithOutcome = passed + failed;
+            const passRate = totalWithOutcome > 0 ? Math.round((passed / totalWithOutcome) * 100) : 0;
+
+            const years = measures.map(m => parseInt(m.year)).filter(y => !isNaN(y));
+            const minYear = years.length > 0 ? Math.min(...years) : 0;
+            const maxYear = years.length > 0 ? Math.max(...years) : 0;
+            const yearRange = minYear > 0 && maxYear > 0 ? `${{minYear}}-${{maxYear}}` : '-';
+
+            document.getElementById('statTotal').textContent = total.toLocaleString();
+            document.getElementById('statPassRate').textContent = totalWithOutcome > 0 ? `${{passRate}}%` : '-';
+            document.getElementById('statWithData').textContent = withVotes.toLocaleString();
+            document.getElementById('statYearRange').textContent = yearRange;
+
+            // Show stats when filtering by region/county
+            document.getElementById('dynamicStats').style.display =
+                (currentFilters.region || currentFilters.county) ? 'grid' : 'none';
         }}
 
         // Initialize topic tags
@@ -2663,8 +2794,11 @@ class WebsiteGenerator:
             
             // Add pagination controls
             const paginationHTML = renderPaginationControls(startIndex, endIndex);
-            
+
             container.innerHTML = resultsHTML + paginationHTML;
+
+            // Update dynamic stats
+            updateDynamicStats(filteredMeasures);
         }}
         
         // Render pagination controls
