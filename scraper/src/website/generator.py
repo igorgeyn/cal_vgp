@@ -341,8 +341,8 @@ class WebsiteGenerator:
             <!-- Regional Navigation -->
             <div class="regional-navigation" id="regionalNavigation">
                 <div class="regional-header">
-                    <h2 class="section-title">Browse by Region</h2>
-                    <p class="regional-subtitle">Explore ballot measures from different areas of California</p>
+                    <h2 class="section-title">Filter by Region</h2>
+                    <p class="regional-subtitle">Click to select one or more regions (click again to deselect)</p>
                 </div>
 
                 <div class="region-cards" id="regionCards">
@@ -366,37 +366,6 @@ class WebsiteGenerator:
 
             <!-- Results Container -->
             <div id="resultsContainer">
-                <div class="results-header" id="resultsHeader" style="display: none;">
-                    <h2 class="results-title" id="resultsTitle">All Measures</h2>
-                    <button class="back-button" id="backButton" onclick="clearRegionFilter()" style="display: none;">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <line x1="19" y1="12" x2="5" y2="12"></line>
-                            <polyline points="12 19 5 12 12 5"></polyline>
-                        </svg>
-                        Back to regions
-                    </button>
-                </div>
-
-                <!-- Dynamic Stats Summary -->
-                <div class="dynamic-stats" id="dynamicStats" style="display: none;">
-                    <div class="dynamic-stat-card">
-                        <div class="dynamic-stat-value" id="statTotal">0</div>
-                        <div class="dynamic-stat-label">Total Measures</div>
-                    </div>
-                    <div class="dynamic-stat-card">
-                        <div class="dynamic-stat-value" id="statPassRate">-</div>
-                        <div class="dynamic-stat-label">Pass Rate</div>
-                    </div>
-                    <div class="dynamic-stat-card">
-                        <div class="dynamic-stat-value" id="statWithData">0</div>
-                        <div class="dynamic-stat-label">With Vote Data</div>
-                    </div>
-                    <div class="dynamic-stat-card">
-                        <div class="dynamic-stat-value" id="statYearRange">-</div>
-                        <div class="dynamic-stat-label">Year Range</div>
-                    </div>
-                </div>
-
                 <div class="loading">
                     <div class="spinner"></div>
                 </div>
@@ -943,98 +912,59 @@ class WebsiteGenerator:
         }
 
         .region-cards {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 1.5rem;
-            margin-bottom: 2.5rem;
-        }
-
-        .region-card {
-            background: linear-gradient(135deg, var(--bg-primary) 0%, rgba(255,255,255,0.95) 100%);
-            border-radius: 12px;
-            padding: 2rem;
-            box-shadow: var(--shadow-sm);
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            cursor: pointer;
-            border: 2px solid transparent;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .region-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: linear-gradient(135deg, rgba(66, 133, 244, 0.05) 0%, transparent 100%);
-            opacity: 0;
-            transition: opacity 0.3s ease;
-        }
-
-        .region-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
-            border-color: rgba(66, 133, 244, 0.3);
-        }
-
-        .region-card:hover::before {
-            opacity: 1;
-        }
-
-        .region-card-header {
             display: flex;
-            align-items: center;
+            flex-wrap: wrap;
             gap: 0.75rem;
-            margin-bottom: 0.75rem;
-            position: relative;
+            margin-bottom: 1.5rem;
         }
 
-        .region-emoji {
-            font-size: 2rem;
-            line-height: 1;
+        .region-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.6rem 1rem;
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 100px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 0.9rem;
+            color: var(--text-primary);
+            user-select: none;
         }
 
-        .region-name {
+        .region-chip:hover {
+            border-color: var(--primary);
+            background: rgba(66, 133, 244, 0.05);
+        }
+
+        .region-chip.selected {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: white;
+        }
+
+        .region-chip.selected:hover {
+            background: var(--primary-dark);
+            border-color: var(--primary-dark);
+        }
+
+        .region-chip-emoji {
             font-size: 1.1rem;
-            font-weight: 600;
-            color: var(--text-primary);
         }
 
-        .region-description {
-            color: var(--text-secondary);
-            font-size: 0.875rem;
-            line-height: 1.4;
-            margin-bottom: 1rem;
-            position: relative;
+        .region-chip-name {
+            font-weight: 500;
         }
 
-        .region-stats {
-            display: flex;
-            gap: 1rem;
-            padding-top: 0.75rem;
-            border-top: 1px solid var(--border-color);
-            position: relative;
+        .region-chip-count {
+            font-size: 0.8rem;
+            opacity: 0.8;
+            margin-left: 0.25rem;
         }
 
-        .region-stat {
-            display: flex;
-            flex-direction: column;
-            gap: 0.25rem;
-        }
-
-        .region-stat-value {
-            font-size: 1.25rem;
-            font-weight: 700;
-            color: var(--text-primary);
-        }
-
-        .region-stat-label {
-            font-size: 0.75rem;
-            color: var(--text-secondary);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
+        .region-chip.selected .region-chip-count {
+            opacity: 0.9;
         }
 
         .county-navigation {
@@ -1082,74 +1012,6 @@ class WebsiteGenerator:
             outline: none;
             border-color: var(--accent);
             box-shadow: 0 0 0 3px rgba(66, 133, 244, 0.1);
-        }
-
-        .results-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1.5rem;
-            padding-bottom: 1rem;
-            border-bottom: 2px solid var(--border-color);
-        }
-
-        .results-title {
-            font-size: 1.5rem;
-            font-weight: 600;
-            color: var(--text-primary);
-        }
-
-        .back-button {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            padding: 0.5rem 1rem;
-            background: var(--bg-primary);
-            border: 1px solid var(--border-color);
-            border-radius: var(--radius);
-            color: var(--text-primary);
-            font-size: 0.9rem;
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
-
-        .back-button:hover {
-            background: rgba(66, 133, 244, 0.05);
-            border-color: var(--accent);
-            color: var(--accent);
-        }
-
-        /* Dynamic Stats */
-        .dynamic-stats {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-            gap: 1rem;
-            margin-bottom: 2rem;
-            padding: 1.5rem;
-            background: rgba(66, 133, 244, 0.03);
-            border-radius: var(--radius);
-            border: 1px solid rgba(66, 133, 244, 0.1);
-        }
-
-        .dynamic-stat-card {
-            text-align: center;
-            padding: 1rem;
-            background: var(--bg-primary);
-            border-radius: var(--radius);
-        }
-
-        .dynamic-stat-value {
-            font-size: 1.75rem;
-            font-weight: 700;
-            color: var(--primary);
-            margin-bottom: 0.25rem;
-        }
-
-        .dynamic-stat-label {
-            font-size: 0.8rem;
-            color: var(--text-secondary);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
         }
 
         /* Card Styles */
@@ -2187,7 +2049,6 @@ class WebsiteGenerator:
 
         // State
         let currentView = 'grid';
-        let currentRegion = null;
         let currentFilters = {{
             yearMin: {stats.get('year_min', 1902)},
             yearMax: {stats.get('year_max', 2026)},
@@ -2195,7 +2056,7 @@ class WebsiteGenerator:
             features: [],
             topics: [],
             search: '',
-            region: null,
+            regions: [],
             county: null
         }};
         let currentSort = 'year-desc';
@@ -2297,34 +2158,21 @@ class WebsiteGenerator:
                 );
 
                 regionStats[regionName] = {{
-                    count: regionMeasures.length,
-                    withVotes: regionMeasures.filter(m => m.yes_votes != null).length
+                    count: regionMeasures.length
                 }};
             }});
 
-            // Populate region cards
+            // Populate region chips
             const regionCardsContainer = document.getElementById('regionCards');
             regionCardsContainer.innerHTML = Object.keys(CA_REGIONS).map(regionName => {{
                 const regionData = CA_REGIONS[regionName];
                 const stats = regionStats[regionName];
 
                 return `
-                    <div class="region-card" onclick="filterByRegion('${{regionName}}')">
-                        <div class="region-card-header">
-                            <span class="region-emoji">${{regionData.emoji}}</span>
-                            <span class="region-name">${{regionName}}</span>
-                        </div>
-                        <p class="region-description">${{regionData.description}}</p>
-                        <div class="region-stats">
-                            <div class="region-stat">
-                                <div class="region-stat-value">${{stats.count.toLocaleString()}}</div>
-                                <div class="region-stat-label">Measures</div>
-                            </div>
-                            <div class="region-stat">
-                                <div class="region-stat-value">${{stats.withVotes.toLocaleString()}}</div>
-                                <div class="region-stat-label">With Data</div>
-                            </div>
-                        </div>
+                    <div class="region-chip" data-region="${{regionName}}" onclick="toggleRegion('${{regionName}}')">
+                        <span class="region-chip-emoji">${{regionData.emoji}}</span>
+                        <span class="region-chip-name">${{regionName}}</span>
+                        <span class="region-chip-count">(${{stats.count.toLocaleString()}})</span>
                     </div>
                 `;
             }}).join('');
@@ -2343,94 +2191,63 @@ class WebsiteGenerator:
                 `).join('');
         }}
 
-        function filterByRegion(regionName) {{
-            currentRegion = regionName;
-            currentFilters.region = regionName;
-            currentFilters.county = null;
+        function toggleRegion(regionName) {{
+            // Toggle region in the selected regions array
+            if (!currentFilters.regions) {{
+                currentFilters.regions = [];
+            }}
 
-            // Update UI
+            const index = currentFilters.regions.indexOf(regionName);
+            if (index > -1) {{
+                // Remove region
+                currentFilters.regions.splice(index, 1);
+            }} else {{
+                // Add region
+                currentFilters.regions.push(regionName);
+            }}
+
+            // Update chip visual state
+            const chip = document.querySelector(`.region-chip[data-region="${{regionName}}"]`);
+            if (chip) {{
+                chip.classList.toggle('selected');
+            }}
+
+            // Clear county selection when using regions
+            currentFilters.county = null;
             document.getElementById('countySelect').value = '';
-            document.getElementById('regionalNavigation').style.display = 'none';
-            document.getElementById('heroSection').style.display = 'none';
-            document.getElementById('featuredSection').style.display = 'none';
-            document.getElementById('resultsHeader').style.display = 'flex';
-            document.getElementById('backButton').style.display = 'flex';
-            document.getElementById('resultsTitle').textContent = `${{CA_REGIONS[regionName].emoji}} ${{regionName}}`;
 
             // Apply filters
             applyFilters();
-
-            // Scroll to results
-            document.getElementById('resultsContainer').scrollIntoView({{ behavior: 'smooth', block: 'start' }});
         }}
 
         function filterByCounty(county) {{
-            if (!county) {{
-                clearRegionFilter();
-                return;
-            }}
+            // Clear region selections when selecting county
+            currentFilters.regions = [];
+            document.querySelectorAll('.region-chip.selected').forEach(chip => {{
+                chip.classList.remove('selected');
+            }});
 
-            currentRegion = null;
-            currentFilters.region = null;
-            currentFilters.county = county;
-
-            // Update UI
-            document.getElementById('regionalNavigation').style.display = 'none';
-            document.getElementById('heroSection').style.display = 'none';
-            document.getElementById('featuredSection').style.display = 'none';
-            document.getElementById('resultsHeader').style.display = 'flex';
-            document.getElementById('backButton').style.display = 'flex';
-            document.getElementById('resultsTitle').textContent = `📍 ${{county}}`;
+            currentFilters.county = county || null;
 
             // Apply filters
             applyFilters();
-
-            // Scroll to results
-            document.getElementById('resultsContainer').scrollIntoView({{ behavior: 'smooth', block: 'start' }});
         }}
 
         function clearRegionFilter() {{
-            currentRegion = null;
-            currentFilters.region = null;
+            currentFilters.regions = [];
             currentFilters.county = null;
 
             // Update UI
             document.getElementById('countySelect').value = '';
-            document.getElementById('regionalNavigation').style.display = 'block';
-            document.getElementById('heroSection').style.display = 'block';
-            document.getElementById('featuredSection').style.display = 'block';
-            document.getElementById('resultsHeader').style.display = 'none';
-            document.getElementById('backButton').style.display = 'none';
-            document.getElementById('dynamicStats').style.display = 'none';
+            document.querySelectorAll('.region-chip.selected').forEach(chip => {{
+                chip.classList.remove('selected');
+            }});
 
             // Apply filters
             applyFilters();
 
             // Scroll to top
             window.scrollTo({{ top: 0, behavior: 'smooth' }});
-        }}
-
-        function updateDynamicStats(measures) {{
-            const total = measures.length;
-            const withVotes = measures.filter(m => m.yes_votes != null).length;
-            const passed = measures.filter(m => m.passed === 1).length;
-            const failed = measures.filter(m => m.passed === 0).length;
-            const totalWithOutcome = passed + failed;
-            const passRate = totalWithOutcome > 0 ? Math.round((passed / totalWithOutcome) * 100) : 0;
-
-            const years = measures.map(m => parseInt(m.year)).filter(y => !isNaN(y));
-            const minYear = years.length > 0 ? Math.min(...years) : 0;
-            const maxYear = years.length > 0 ? Math.max(...years) : 0;
-            const yearRange = minYear > 0 && maxYear > 0 ? `${{minYear}}-${{maxYear}}` : '-';
-
-            document.getElementById('statTotal').textContent = total.toLocaleString();
-            document.getElementById('statPassRate').textContent = totalWithOutcome > 0 ? `${{passRate}}%` : '-';
-            document.getElementById('statWithData').textContent = withVotes.toLocaleString();
-            document.getElementById('statYearRange').textContent = yearRange;
-
-            // Show stats when filtering by region/county
-            document.getElementById('dynamicStats').style.display =
-                (currentFilters.region || currentFilters.county) ? 'grid' : 'none';
         }}
 
         // Initialize topic tags
@@ -2643,10 +2460,19 @@ class WebsiteGenerator:
                     }}
                 }}
 
-                // Region filter
-                if (currentFilters.region) {{
-                    const regionData = CA_REGIONS[currentFilters.region];
-                    if (!measure.county || !regionData.counties.includes(measure.county.toUpperCase())) {{
+                // Regions filter (multi-select)
+                if (currentFilters.regions && currentFilters.regions.length > 0) {{
+                    // Get all counties from selected regions
+                    const selectedCounties = [];
+                    currentFilters.regions.forEach(regionName => {{
+                        const regionData = CA_REGIONS[regionName];
+                        if (regionData) {{
+                            selectedCounties.push(...regionData.counties);
+                        }}
+                    }});
+
+                    // Check if measure is in any selected region
+                    if (!measure.county || !selectedCounties.includes(measure.county.toUpperCase())) {{
                         return false;
                     }}
                 }}
@@ -2796,9 +2622,6 @@ class WebsiteGenerator:
             const paginationHTML = renderPaginationControls(startIndex, endIndex);
 
             container.innerHTML = resultsHTML + paginationHTML;
-
-            // Update dynamic stats
-            updateDynamicStats(filteredMeasures);
         }}
         
         // Render pagination controls
