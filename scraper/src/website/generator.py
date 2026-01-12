@@ -1035,6 +1035,10 @@ class WebsiteGenerator:
             transform: translateY(-2px);
             border-color: rgba(66, 133, 244, 0.2);
         }
+
+        .measure-card:has(.card-summary.expanded) {
+            max-height: none;
+        }
         
         .measure-card.hero {
             border: 2px solid var(--primary);
@@ -1199,7 +1203,10 @@ class WebsiteGenerator:
 
         .card-summary.expanded {
             -webkit-line-clamp: unset !important;
-            -webkit-box-orient: unset !important;
+            -webkit-box-orient: vertical !important;
+            display: block !important;
+            overflow: visible !important;
+            max-height: none !important;
         }
 
         .read-more {
@@ -2271,20 +2278,24 @@ class WebsiteGenerator:
 
         // Toggle summary expansion
         function toggleSummary(element) {{
+            event.stopPropagation(); // Prevent card click from interfering
             const fullText = element.getAttribute('data-full-text');
             const shortText = element.getAttribute('data-short-text');
             const isExpanded = element.classList.contains('expanded');
+            const card = element.closest('.measure-card');
 
             if (isExpanded) {{
                 element.textContent = shortText;
                 element.classList.remove('expanded');
                 element.style.display = '-webkit-box';
                 element.title = 'Click to expand';
+                if (card) card.classList.remove('expanded');
             }} else {{
                 element.textContent = fullText;
                 element.classList.add('expanded');
                 element.style.display = 'block';
                 element.title = 'Click to collapse';
+                if (card) card.classList.add('expanded');
             }}
         }}
 
