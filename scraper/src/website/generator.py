@@ -1093,10 +1093,6 @@ class WebsiteGenerator:
             border-color: rgba(66, 133, 244, 0.2);
         }
 
-        .measure-card:has(.card-summary.expanded) {
-            max-height: none;
-        }
-        
         .measure-card.hero {
             border: 2px solid var(--primary);
             box-shadow: 0 4px 12px rgba(26, 115, 232, 0.15);
@@ -1243,14 +1239,6 @@ class WebsiteGenerator:
         .card-summary[data-full-text]:hover {
             background: rgba(26, 115, 232, 0.04);
             border-left-color: rgba(26, 115, 232, 0.25);
-        }
-
-        .card-summary.expanded {
-            -webkit-line-clamp: unset !important;
-            -webkit-box-orient: vertical !important;
-            display: block !important;
-            overflow: visible !important;
-            max-height: none !important;
         }
 
         .read-more {
@@ -2526,29 +2514,6 @@ class WebsiteGenerator:
             }}
         }}
 
-        // Toggle summary expansion
-        function toggleSummary(element) {{
-            event.stopPropagation(); // Prevent card click from interfering
-            const fullText = element.getAttribute('data-full-text');
-            const shortText = element.getAttribute('data-short-text');
-            const isExpanded = element.classList.contains('expanded');
-            const card = element.closest('.measure-card');
-
-            if (isExpanded) {{
-                element.textContent = shortText;
-                element.classList.remove('expanded');
-                element.style.display = '-webkit-box';
-                element.title = 'Click to expand';
-                if (card) card.classList.remove('expanded');
-            }} else {{
-                element.textContent = fullText;
-                element.classList.add('expanded');
-                element.style.display = 'block';
-                element.title = 'Click to collapse';
-                if (card) card.classList.add('expanded');
-            }}
-        }}
-
         // Update URL hash with current page
         function updateURL() {{
             const newHash = pagination.currentPage > 1 ? `#page=${{pagination.currentPage}}` : '';
@@ -2996,16 +2961,12 @@ class WebsiteGenerator:
                 summary = measure.original_title;
             }}
 
-            // Truncate to 2-3 lines (approximately 200 chars)
+            // Truncate summary for card preview (full text available in modal)
             const maxLength = 200;
             const truncatedSummary = summary.length > maxLength ? summary.substring(0, maxLength) + '...' : summary;
-            const isLongSummary = summary.length > maxLength;
 
             const descriptionHtml = truncatedSummary ? `
-                <div class="card-summary"
-                     ${{isLongSummary ? 'data-full-text="' + summary.replace(/"/g, '&quot;') + '" data-short-text="' + truncatedSummary.replace(/"/g, '&quot;') + '"' : ''}}
-                     ${{isLongSummary ? 'style="cursor: pointer;" title="Click to expand"' : ''}}
-                     onclick="${{isLongSummary ? 'toggleSummary(this)' : ''}}">${{truncatedSummary}}</div>
+                <div class="card-summary">${{truncatedSummary}}</div>
             ` : '';
 
             const percentYes = measure.percent_yes;
