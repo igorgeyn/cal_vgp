@@ -19,6 +19,8 @@ ENV/
 data/*.db
 data/raw/*
 data/exports/*
+data/embeddings.npz
+data/embedding_metadata.json
 logs/*.log
 backup_*/
 archive_*/

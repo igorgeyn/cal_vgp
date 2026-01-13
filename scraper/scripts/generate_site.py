@@ -161,10 +161,13 @@ def main():
             {'topic': topic, 'count': count}
             for topic, count in topic_counts.most_common(20)
         ]
-        
+
+        # Load recommendations for related measures
+        recommendations = generator._load_recommendations()
+
         # Generate website
         logger.info(f"Generating website...")
-        html_content = generator._generate_html(measures_for_website, stats, topics)
+        html_content = generator._generate_html(measures_for_website, stats, topics, recommendations)
         
         # Save website
         output_path = Path(args.output)

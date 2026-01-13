@@ -30,19 +30,22 @@ class WebsiteGenerator:
     def generate(self, measures: List[BallotMeasure] = None, stats: Dict = None) -> str:
         """Generate the complete website"""
         logger.info("Generating website...")
-        
+
         # Get data from database if not provided
         if measures is None:
             measures = self.db.get_all_active_measures()
         if stats is None:
             stats = self.db.get_statistics()
-        
+
         # Process data for website
         measures_data = self._prepare_measures_data(measures)
         topics = self._extract_topics(measures)
-        
+
+        # Load recommendations if available
+        recommendations = self._load_recommendations()
+
         # Generate HTML
-        html = self._generate_html(measures_data, stats, topics)
+        html = self._generate_html(measures_data, stats, topics, recommendations)
         
         # Save to file
         self.output_path.write_text(html, encoding='utf-8')
@@ -131,12 +134,31 @@ class WebsiteGenerator:
         # Copy over other fields
         sanitized['by_source'] = stats.get('by_source', {})
         sanitized['sources'] = stats.get('sources', [])
-        
+
         return sanitized
-    
-    def _generate_html(self, measures: List[Dict], stats: Dict, 
-                      topics: List[Dict]) -> str:
+
+    def _load_recommendations(self) -> Dict:
+        """Load pre-computed recommendations from embedding metadata"""
+        recommendations_path = BASE_DIR / "data" / "embedding_metadata.json"
+        if recommendations_path.exists():
+            try:
+                with open(recommendations_path, 'r') as f:
+                    metadata = json.load(f)
+                    # Return just the neighbors lookup
+                    neighbors = metadata.get('neighbors', {})
+                    logger.info(f"Loaded recommendations for {len(neighbors)} measures")
+                    return neighbors
+            except Exception as e:
+                logger.warning(f"Could not load recommendations: {e}")
+                return {}
+        else:
+            logger.info("No recommendations file found, skipping related measures")
+            return {}
+
+    def _generate_html(self, measures: List[Dict], stats: Dict,
+                      topics: List[Dict], recommendations: Dict = None) -> str:
         """Generate the complete HTML with type safety"""
+        recommendations = recommendations or {}
         
         # Ensure all stats are proper types
         stats = self._sanitize_stats(stats)
@@ -144,6 +166,7 @@ class WebsiteGenerator:
         # Convert data to JSON for embedding
         measures_json = json.dumps(measures, default=str)
         topics_json = json.dumps(topics, default=str)
+        recommendations_json = json.dumps(recommendations, default=str)
         
         # Calculate additional stats with type safety (unused variables removed)
         
@@ -539,7 +562,7 @@ class WebsiteGenerator:
     </div>
 
     <script>
-        {self._get_javascript(measures_json, topics_json, stats)}
+        {self._get_javascript(measures_json, topics_json, recommendations_json, stats)}
         {self._get_chat_javascript()}
     </script>
 </body>
@@ -2047,11 +2070,11 @@ class WebsiteGenerator:
 
         .measure-detail-related {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
             gap: 0.75rem;
         }
 
-        .related-measure-card {
+        .related-card {
             background: var(--bg-secondary);
             border: 1px solid var(--border-light);
             border-radius: 8px;
@@ -2060,30 +2083,59 @@ class WebsiteGenerator:
             transition: var(--transition);
         }
 
-        .related-measure-card:hover {
+        .related-card:hover {
             border-color: var(--primary);
             transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
         }
 
-        .related-measure-id {
+        .related-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .related-id {
             font-weight: 600;
-            font-size: 0.875rem;
+            font-size: 0.8rem;
             color: var(--primary);
         }
 
-        .related-measure-title {
-            font-size: 0.8rem;
-            color: var(--text-secondary);
-            margin: 0.25rem 0;
+        .related-year {
+            font-size: 0.75rem;
+            color: var(--text-tertiary);
+            background: var(--bg-tertiary);
+            padding: 0.125rem 0.375rem;
+            border-radius: 4px;
+        }
+
+        .related-title {
+            font-size: 0.85rem;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+            line-height: 1.3;
             display: -webkit-box;
             -webkit-line-clamp: 2;
             -webkit-box-orient: vertical;
             overflow: hidden;
         }
 
-        .related-measure-meta {
+        .related-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
             font-size: 0.75rem;
+        }
+
+        .badge-small {
+            font-size: 0.7rem;
+            padding: 0.125rem 0.375rem;
+        }
+
+        .similarity-score {
             color: var(--text-tertiary);
+            font-size: 0.7rem;
         }
 
         .measure-detail-links {
@@ -2218,13 +2270,14 @@ class WebsiteGenerator:
         }
         """
     
-    def _get_javascript(self, measures_json: str, topics_json: str, 
-                       stats: Dict) -> str:
+    def _get_javascript(self, measures_json: str, topics_json: str,
+                       recommendations_json: str, stats: Dict) -> str:
         """Get JavaScript code for the website"""
         return f"""
         // Data
         const allMeasures = {measures_json};
         const topics = {topics_json};
+        const recommendations = {recommendations_json};
 
         // Utility function to detect AI refusal patterns in summaries
         function isAiRefusal(text) {{
@@ -3102,9 +3155,43 @@ class WebsiteGenerator:
                 ballotSection.style.display = 'none';
             }}
 
-            // Related measures section (placeholder for now - will be populated by recommendations)
+            // Related measures section - populated from recommendations
             const relatedSection = document.getElementById('modalRelatedSection');
-            relatedSection.style.display = 'none'; // Hidden until we have recommendations
+            const relatedContainer = document.getElementById('modalRelatedMeasures');
+            const measureRecs = recommendations[measure.measure_id];
+
+            if (measureRecs && measureRecs.length > 0) {{
+                // Build related measures cards
+                const relatedHtml = measureRecs.slice(0, 4).map(rec => {{
+                    const relatedMeasure = allMeasures.find(m => m.measure_id === rec.measure_id);
+                    if (!relatedMeasure) return '';
+
+                    const title = relatedMeasure.generated_title || relatedMeasure.title || relatedMeasure.measure_text || 'Unknown';
+                    const shortTitle = title.length > 60 ? title.substring(0, 57) + '...' : title;
+                    const similarity = Math.round(rec.score * 100);
+                    const passedClass = relatedMeasure.passed === 1 ? 'passed' : relatedMeasure.passed === 0 ? 'failed' : 'pending';
+                    const passedIcon = relatedMeasure.passed === 1 ? '✓' : relatedMeasure.passed === 0 ? '✗' : '•';
+
+                    return `
+                        <div class="related-card" onclick="viewMeasure(allMeasures.find(m => m.measure_id === '${{rec.measure_id}}'))">
+                            <div class="related-header">
+                                <span class="related-id">${{relatedMeasure.measure_id}}</span>
+                                <span class="related-year">${{relatedMeasure.year}}</span>
+                            </div>
+                            <div class="related-title">${{shortTitle}}</div>
+                            <div class="related-meta">
+                                <span class="badge badge-${{passedClass}} badge-small">${{passedIcon}}</span>
+                                <span class="similarity-score">${{similarity}}% similar</span>
+                            </div>
+                        </div>
+                    `;
+                }}).join('');
+
+                relatedContainer.innerHTML = relatedHtml;
+                relatedSection.style.display = 'block';
+            }} else {{
+                relatedSection.style.display = 'none';
+            }}
 
             // Links section
             const linksContainer = document.getElementById('modalLinks');
