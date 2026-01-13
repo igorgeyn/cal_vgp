@@ -481,6 +481,63 @@ class WebsiteGenerator:
         </div>
     </div>
 
+    <!-- Measure Detail Modal -->
+    <div id="measureDetailModal" class="modal" style="display: none;">
+        <div class="modal-content measure-detail-modal">
+            <div class="modal-header">
+                <div class="measure-detail-header">
+                    <span id="modalMeasureId" class="measure-detail-id"></span>
+                    <span id="modalYear" class="measure-detail-year"></span>
+                </div>
+                <button class="modal-close" onclick="closeMeasureDetail()">×</button>
+            </div>
+
+            <div class="modal-body">
+                <h2 id="modalTitle" class="measure-detail-title"></h2>
+
+                <div id="modalJurisdiction" class="measure-detail-jurisdiction"></div>
+
+                <div class="measure-detail-badges" id="modalBadges"></div>
+
+                <div class="measure-detail-section">
+                    <h3>📝 Summary</h3>
+                    <p id="modalSummary" class="measure-detail-summary"></p>
+                </div>
+
+                <div id="modalResultsSection" class="measure-detail-section" style="display: none;">
+                    <h3>📊 Results</h3>
+                    <div class="measure-detail-results">
+                        <div class="result-bar-container">
+                            <div class="result-bar">
+                                <div id="modalYesBar" class="result-bar-yes"></div>
+                            </div>
+                            <div class="result-labels">
+                                <span id="modalYesLabel" class="result-yes-label"></span>
+                                <span id="modalNoLabel" class="result-no-label"></span>
+                            </div>
+                        </div>
+                        <div id="modalTotalVotes" class="result-total"></div>
+                    </div>
+                </div>
+
+                <div id="modalBallotQuestion" class="measure-detail-section" style="display: none;">
+                    <h3>📜 Ballot Question</h3>
+                    <p id="modalBallotText" class="measure-detail-ballot-text"></p>
+                </div>
+
+                <div id="modalRelatedSection" class="measure-detail-section" style="display: none;">
+                    <h3>🔗 Related Measures</h3>
+                    <div id="modalRelatedMeasures" class="measure-detail-related"></div>
+                </div>
+
+                <div id="modalLinksSection" class="measure-detail-section">
+                    <h3>📎 Links</h3>
+                    <div id="modalLinks" class="measure-detail-links"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
         {self._get_javascript(measures_json, topics_json, stats)}
         {self._get_chat_javascript()}
@@ -1135,6 +1192,12 @@ class WebsiteGenerator:
 
         .badge-pending::before {
             background: #b87503;
+        }
+
+        .badge-neutral {
+            background: var(--bg-secondary);
+            color: var(--text-secondary);
+            border: 1px solid var(--border-light);
         }
 
         .badge-summary {
@@ -1890,6 +1953,211 @@ class WebsiteGenerator:
             display: flex;
             gap: 0.75rem;
             justify-content: flex-end;
+        }
+
+        /* Measure Detail Modal */
+        .measure-detail-modal {
+            max-width: 680px;
+            width: 100%;
+        }
+
+        .measure-detail-header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .measure-detail-id {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .measure-detail-year {
+            font-size: 1rem;
+            color: var(--text-secondary);
+            background: var(--bg-secondary);
+            padding: 0.25rem 0.75rem;
+            border-radius: 100px;
+        }
+
+        .measure-detail-title {
+            font-size: 1.35rem;
+            font-weight: 600;
+            margin: 0 0 0.75rem 0;
+            color: var(--text-primary);
+            line-height: 1.4;
+        }
+
+        .measure-detail-jurisdiction {
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+            margin-bottom: 1rem;
+        }
+
+        .measure-detail-badges {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .measure-detail-badges .badge {
+            font-size: 0.875rem;
+            padding: 0.4rem 0.75rem;
+        }
+
+        .measure-detail-section {
+            margin-bottom: 1.5rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 1px solid var(--border-light);
+        }
+
+        .measure-detail-section:last-child {
+            margin-bottom: 0;
+            padding-bottom: 0;
+            border-bottom: none;
+        }
+
+        .measure-detail-section h3 {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin: 0 0 0.75rem 0;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .measure-detail-summary {
+            font-size: 1rem;
+            line-height: 1.7;
+            color: var(--text-primary);
+            margin: 0;
+        }
+
+        .measure-detail-results {
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            padding: 1rem;
+        }
+
+        .result-bar-container {
+            margin-bottom: 0.75rem;
+        }
+
+        .result-bar {
+            height: 32px;
+            background: var(--danger);
+            border-radius: 6px;
+            overflow: hidden;
+        }
+
+        .result-bar-yes {
+            height: 100%;
+            background: var(--success);
+            transition: width 0.5s ease;
+        }
+
+        .result-labels {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 0.5rem;
+            font-size: 0.95rem;
+        }
+
+        .result-yes-label {
+            color: var(--success);
+            font-weight: 600;
+        }
+
+        .result-no-label {
+            color: var(--danger);
+            font-weight: 600;
+        }
+
+        .result-total {
+            text-align: center;
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+
+        .measure-detail-ballot-text {
+            font-size: 0.95rem;
+            line-height: 1.6;
+            color: var(--text-primary);
+            background: var(--bg-secondary);
+            padding: 1rem;
+            border-radius: 8px;
+            border-left: 3px solid var(--primary);
+            margin: 0;
+        }
+
+        .measure-detail-related {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 0.75rem;
+        }
+
+        .related-measure-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-light);
+            border-radius: 8px;
+            padding: 0.75rem;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .related-measure-card:hover {
+            border-color: var(--primary);
+            transform: translateY(-2px);
+        }
+
+        .related-measure-id {
+            font-weight: 600;
+            font-size: 0.875rem;
+            color: var(--primary);
+        }
+
+        .related-measure-title {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin: 0.25rem 0;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .related-measure-meta {
+            font-size: 0.75rem;
+            color: var(--text-tertiary);
+        }
+
+        .measure-detail-links {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .measure-detail-links a {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--primary);
+            text-decoration: none;
+            font-size: 0.95rem;
+            padding: 0.5rem;
+            border-radius: 6px;
+            transition: var(--transition);
+        }
+
+        .measure-detail-links a:hover {
+            background: var(--bg-secondary);
+        }
+
+        .no-summary-text {
+            color: var(--text-tertiary);
+            font-style: italic;
         }
 
         .settings-section {
@@ -2850,15 +3118,107 @@ class WebsiteGenerator:
             `;
         }}
         
-        // View measure details
+        // View measure details in modal
         function viewMeasure(measure) {{
-            // In a real app, this would open a modal or navigate to a detail page
-            console.log('View measure:', measure);
-            if (measure.pdf_url && measure.pdf_url !== '#') {{
-                window.open(measure.pdf_url, '_blank');
+            const modal = document.getElementById('measureDetailModal');
+
+            // Populate header
+            document.getElementById('modalMeasureId').textContent = measure.measure_id || '';
+            document.getElementById('modalYear').textContent = measure.year || '';
+
+            // Title
+            const title = measure.generated_title || measure.title || measure.measure_text || 'Untitled Measure';
+            document.getElementById('modalTitle').textContent = title;
+
+            // Jurisdiction
+            const jurisdiction = [];
+            if (measure.jurisdiction) jurisdiction.push(measure.jurisdiction);
+            if (measure.county && measure.county !== 'Statewide') jurisdiction.push(measure.county + ' County');
+            else if (measure.county === 'Statewide') jurisdiction.push('California Statewide');
+            document.getElementById('modalJurisdiction').textContent = jurisdiction.join(' • ') || 'California';
+
+            // Badges
+            const badgesHtml = [];
+            const passed = measure.passed;
+            const passedClass = passed === 1 ? 'passed' : passed === 0 ? 'failed' : 'pending';
+            const passedText = passed === 1 ? '✓ Passed' : passed === 0 ? '✗ Failed' : '• Pending';
+            badgesHtml.push(`<span class="badge badge-${{passedClass}}">${{passedText}}</span>`);
+
+            if (measure.percent_yes != null) {{
+                badgesHtml.push(`<span class="badge badge-neutral">📊 ${{Math.round(measure.percent_yes)}}% Yes</span>`);
             }}
+            if (measure.category_type) {{
+                badgesHtml.push(`<span class="badge badge-neutral">${{measure.category_type}}</span>`);
+            }}
+            if (measure.category_topic) {{
+                badgesHtml.push(`<span class="badge badge-neutral">${{measure.category_topic}}</span>`);
+            }}
+            document.getElementById('modalBadges').innerHTML = badgesHtml.join('');
+
+            // Summary
+            const summaryEl = document.getElementById('modalSummary');
+            if (measure.summary_text && !isAiRefusal(measure.summary_text)) {{
+                summaryEl.textContent = measure.summary_text;
+                summaryEl.classList.remove('no-summary-text');
+            }} else if (measure.description) {{
+                summaryEl.textContent = measure.description;
+                summaryEl.classList.remove('no-summary-text');
+            }} else {{
+                summaryEl.textContent = 'No summary available for this measure.';
+                summaryEl.classList.add('no-summary-text');
+            }}
+
+            // Results section
+            const resultsSection = document.getElementById('modalResultsSection');
+            if (measure.percent_yes != null && measure.yes_votes != null) {{
+                resultsSection.style.display = 'block';
+                document.getElementById('modalYesBar').style.width = measure.percent_yes + '%';
+                document.getElementById('modalYesLabel').textContent = `Yes: ${{measure.yes_votes?.toLocaleString() || 0}} (${{measure.percent_yes?.toFixed(1) || 0}}%)`;
+                document.getElementById('modalNoLabel').textContent = `No: ${{measure.no_votes?.toLocaleString() || 0}} (${{measure.percent_no?.toFixed(1) || 0}}%)`;
+                document.getElementById('modalTotalVotes').textContent = `Total votes: ${{measure.total_votes?.toLocaleString() || 0}}`;
+            }} else {{
+                resultsSection.style.display = 'none';
+            }}
+
+            // Ballot question section
+            const ballotSection = document.getElementById('modalBallotQuestion');
+            if (measure.ballot_question && measure.ballot_question.length > 20) {{
+                ballotSection.style.display = 'block';
+                document.getElementById('modalBallotText').textContent = measure.ballot_question;
+            }} else {{
+                ballotSection.style.display = 'none';
+            }}
+
+            // Related measures section (placeholder for now - will be populated by recommendations)
+            const relatedSection = document.getElementById('modalRelatedSection');
+            relatedSection.style.display = 'none'; // Hidden until we have recommendations
+
+            // Links section
+            const linksContainer = document.getElementById('modalLinks');
+            const links = [];
+            if (measure.source_url) {{
+                links.push(`<a href="${{measure.source_url}}" target="_blank" rel="noopener noreferrer">🔗 View on ${{measure.data_source || 'Source'}}</a>`);
+            }}
+            if (measure.pdf_url && measure.pdf_url !== '#') {{
+                links.push(`<a href="${{measure.pdf_url}}" target="_blank" rel="noopener noreferrer">📄 Full Ballot Text (PDF)</a>`);
+            }}
+            if (links.length === 0) {{
+                links.push('<span class="no-summary-text">No external links available</span>');
+            }}
+            linksContainer.innerHTML = links.join('');
+
+            // Show modal
+            modal.style.display = 'flex';
+            document.body.style.overflow = 'hidden'; // Prevent background scrolling
         }}
-        
+
+        // Close measure detail modal
+        function closeMeasureDetail() {{
+            const modal = document.getElementById('measureDetailModal');
+            modal.style.display = 'none';
+            document.body.style.overflow = ''; // Restore scrolling
+        }}
+
         // Set view mode
         function setView(view) {{
             currentView = view;
@@ -3378,5 +3738,23 @@ Please provide a helpful, accurate response based on the data provided. If you r
                     }
                 });
             }
+
+            // Close measure detail modal when clicking outside
+            const measureModal = document.getElementById('measureDetailModal');
+            if (measureModal) {
+                measureModal.addEventListener('click', function(e) {
+                    if (e.target === measureModal) {
+                        closeMeasureDetail();
+                    }
+                });
+            }
+
+            // Close modals with Escape key
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') {
+                    closeMeasureDetail();
+                    closeChatSettings();
+                }
+            });
         });
         """
