@@ -354,53 +354,81 @@ class WebsiteGenerator:
                 </div>
             </div>
 
-            <!-- Regional Navigation -->
-            <div class="regional-navigation" id="regionalNavigation">
-                <div class="regional-header">
-                    <h2 class="section-title">Filter by Region</h2>
-                    <p class="regional-subtitle">Click to select one or more regions (click again to deselect)</p>
+            <!-- Filter Accordion -->
+            <div class="filter-accordion">
+                <div class="accordion-header">
+                    <h2 class="section-title">Filter Results</h2>
+                    <p class="accordion-subtitle">Select a filter type to refine your search</p>
                 </div>
 
-                <div class="region-cards" id="regionCards">
-                    <!-- Will be populated by JavaScript -->
-                </div>
-
-                <div class="county-navigation">
-                    <label for="countySelect" class="county-label">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
-                            <circle cx="12" cy="10" r="3"></circle>
+                <div class="accordion-tabs">
+                    <button class="accordion-tab" data-panel="region" onclick="toggleAccordion('region')">
+                        <span class="tab-icon">🗺️</span>
+                        <span class="tab-label">Region</span>
+                        <span class="tab-count" id="regionFilterCount"></span>
+                        <svg class="tab-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="6 9 12 15 18 9"></polyline>
                         </svg>
-                        Or select a specific county:
-                    </label>
-                    <select id="countySelect" class="county-select" onchange="filterByCounty(this.value)">
-                        <option value="">All Counties</option>
-                        <!-- Will be populated by JavaScript -->
-                    </select>
-                </div>
-            </div>
-
-            <!-- Topic Navigation -->
-            <div class="topic-navigation" id="topicNavigation">
-                <div class="regional-header">
-                    <h2 class="section-title">Filter by Topic</h2>
-                    <p class="regional-subtitle">Click to select one or more topics (click again to deselect)</p>
-                </div>
-
-                <div class="topic-cards" id="topicCards">
-                    <!-- Will be populated by JavaScript -->
-                </div>
-            </div>
-
-            <!-- Year Navigation -->
-            <div class="year-navigation" id="yearNavigation">
-                <div class="regional-header">
-                    <h2 class="section-title">Filter by Year</h2>
-                    <p class="regional-subtitle">Click to select one or more years (click again to deselect)</p>
+                    </button>
+                    <button class="accordion-tab" data-panel="topic" onclick="toggleAccordion('topic')">
+                        <span class="tab-icon">📑</span>
+                        <span class="tab-label">Topic</span>
+                        <span class="tab-count" id="topicFilterCount"></span>
+                        <svg class="tab-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                    </button>
+                    <button class="accordion-tab" data-panel="year" onclick="toggleAccordion('year')">
+                        <span class="tab-icon">📅</span>
+                        <span class="tab-label">Year</span>
+                        <span class="tab-count" id="yearFilterCount"></span>
+                        <svg class="tab-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                    </button>
                 </div>
 
-                <div class="decade-groups" id="decadeGroups">
-                    <!-- Will be populated by JavaScript -->
+                <!-- Region Panel -->
+                <div class="accordion-panel" id="regionPanel" style="display: none;">
+                    <div class="panel-content">
+                        <p class="panel-hint">Click to select one or more regions (click again to deselect)</p>
+                        <div class="region-cards" id="regionCards">
+                            <!-- Will be populated by JavaScript -->
+                        </div>
+                        <div class="county-navigation">
+                            <label for="countySelect" class="county-label">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                                    <circle cx="12" cy="10" r="3"></circle>
+                                </svg>
+                                Or select a specific county:
+                            </label>
+                            <select id="countySelect" class="county-select" onchange="filterByCounty(this.value)">
+                                <option value="">All Counties</option>
+                                <!-- Will be populated by JavaScript -->
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Topic Panel -->
+                <div class="accordion-panel" id="topicPanel" style="display: none;">
+                    <div class="panel-content">
+                        <p class="panel-hint">Click to select one or more topics (click again to deselect)</p>
+                        <div class="topic-cards" id="topicCards">
+                            <!-- Will be populated by JavaScript -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Year Panel -->
+                <div class="accordion-panel" id="yearPanel" style="display: none;">
+                    <div class="panel-content">
+                        <p class="panel-hint">Click to select one or more years (click again to deselect)</p>
+                        <div class="decade-groups" id="decadeGroups">
+                            <!-- Will be populated by JavaScript -->
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -990,7 +1018,121 @@ class WebsiteGenerator:
             margin-bottom: 2rem;
         }
 
-        /* Regional Navigation */
+        /* Filter Accordion */
+        .filter-accordion {
+            margin: 2rem 0;
+            padding: 1.5rem 0;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .accordion-header {
+            text-align: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .accordion-subtitle {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-top: 0.25rem;
+        }
+
+        .accordion-tabs {
+            display: flex;
+            gap: 0.75rem;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 1rem;
+        }
+
+        .accordion-tab {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.25rem;
+            background: var(--bg-primary);
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 0.95rem;
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+
+        .accordion-tab:hover {
+            border-color: var(--primary);
+            background: rgba(66, 133, 244, 0.05);
+        }
+
+        .accordion-tab.active {
+            border-color: var(--primary);
+            background: var(--primary);
+            color: white;
+        }
+
+        .accordion-tab.active .tab-chevron {
+            transform: rotate(180deg);
+        }
+
+        .accordion-tab.has-selection {
+            border-color: var(--accent);
+        }
+
+        .accordion-tab.has-selection:not(.active) {
+            background: rgba(52, 168, 83, 0.1);
+        }
+
+        .tab-icon {
+            font-size: 1.1rem;
+        }
+
+        .tab-label {
+            font-weight: 500;
+        }
+
+        .tab-count {
+            font-size: 0.8rem;
+            background: rgba(0, 0, 0, 0.1);
+            padding: 0.125rem 0.5rem;
+            border-radius: 10px;
+            min-width: 20px;
+            text-align: center;
+        }
+
+        .accordion-tab.active .tab-count {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .accordion-tab.has-selection .tab-count {
+            background: var(--accent);
+            color: white;
+        }
+
+        .tab-chevron {
+            transition: transform 0.2s ease;
+            opacity: 0.6;
+        }
+
+        .accordion-panel {
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .panel-content {
+            padding: 1.5rem;
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+        }
+
+        .panel-hint {
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            margin-bottom: 1rem;
+        }
+
+        /* Regional Navigation (inside accordion) */
         .regional-navigation {
             margin: 3rem 0;
             padding: 2rem 0;
@@ -2672,6 +2814,9 @@ class WebsiteGenerator:
             currentFilters.county = null;
             document.getElementById('countySelect').value = '';
 
+            // Update filter count badges
+            updateFilterCountBadges();
+
             // Apply filters
             applyFilters();
         }}
@@ -2682,6 +2827,9 @@ class WebsiteGenerator:
             document.querySelectorAll('.region-chip.selected').forEach(chip => {{
                 chip.classList.remove('selected');
             }});
+
+            // Update filter count badges
+            updateFilterCountBadges();
 
             currentFilters.county = county || null;
 
@@ -2706,7 +2854,75 @@ class WebsiteGenerator:
             window.scrollTo({{ top: 0, behavior: 'smooth' }});
         }}
 
-        // Initialize topic tags
+        // Accordion toggle functionality
+        let activeAccordionPanel = null;
+
+        function toggleAccordion(panelName) {{
+            const panel = document.getElementById(panelName + 'Panel');
+            const tab = document.querySelector(`.accordion-tab[data-panel="${{panelName}}"]`);
+            const allPanels = document.querySelectorAll('.accordion-panel');
+            const allTabs = document.querySelectorAll('.accordion-tab');
+
+            // If clicking the already active panel, close it
+            if (activeAccordionPanel === panelName) {{
+                panel.style.display = 'none';
+                tab.classList.remove('active');
+                activeAccordionPanel = null;
+                return;
+            }}
+
+            // Close all panels and deactivate all tabs
+            allPanels.forEach(p => p.style.display = 'none');
+            allTabs.forEach(t => t.classList.remove('active'));
+
+            // Open the selected panel
+            panel.style.display = 'block';
+            tab.classList.add('active');
+            activeAccordionPanel = panelName;
+        }}
+
+        // Update filter count badges
+        function updateFilterCountBadges() {{
+            // Region count
+            const regionCount = (currentFilters.regions?.length || 0) + (currentFilters.county ? 1 : 0);
+            const regionBadge = document.getElementById('regionFilterCount');
+            if (regionBadge) {{
+                regionBadge.textContent = regionCount > 0 ? regionCount : '';
+                const regionTab = document.querySelector('.accordion-tab[data-panel="region"]');
+                if (regionCount > 0) {{
+                    regionTab.classList.add('has-selection');
+                }} else {{
+                    regionTab.classList.remove('has-selection');
+                }}
+            }}
+
+            // Topic count
+            const topicCount = currentFilters.topics?.length || 0;
+            const topicBadge = document.getElementById('topicFilterCount');
+            if (topicBadge) {{
+                topicBadge.textContent = topicCount > 0 ? topicCount : '';
+                const topicTab = document.querySelector('.accordion-tab[data-panel="topic"]');
+                if (topicCount > 0) {{
+                    topicTab.classList.add('has-selection');
+                }} else {{
+                    topicTab.classList.remove('has-selection');
+                }}
+            }}
+
+            // Year count
+            const yearCount = currentFilters.selectedYears?.length || 0;
+            const yearBadge = document.getElementById('yearFilterCount');
+            if (yearBadge) {{
+                yearBadge.textContent = yearCount > 0 ? yearCount : '';
+                const yearTab = document.querySelector('.accordion-tab[data-panel="year"]');
+                if (yearCount > 0) {{
+                    yearTab.classList.add('has-selection');
+                }} else {{
+                    yearTab.classList.remove('has-selection');
+                }}
+            }}
+        }}
+
         // Topic icons for visual appeal
         const TOPIC_ICONS = {{
             "School Bonds": "🏫",
@@ -2770,6 +2986,7 @@ class WebsiteGenerator:
                 currentFilters.topics.splice(index, 1);
             }}
             updateTopicChipUI();
+            updateFilterCountBadges();
             pagination.currentPage = 1;
             applyFilters();
         }}
@@ -2841,6 +3058,7 @@ class WebsiteGenerator:
                 currentFilters.selectedYears.splice(index, 1);
             }}
             updateYearChipUI();
+            updateFilterCountBadges();
             pagination.currentPage = 1;
             applyFilters();
         }}
@@ -3559,6 +3777,7 @@ class WebsiteGenerator:
             updateTopicChipUI();
             updateYearChipUI();
             updateRegionChipUI();
+            updateFilterCountBadges();
 
             applyFilters();
         }}
