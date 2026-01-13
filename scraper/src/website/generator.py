@@ -2273,6 +2273,23 @@ class WebsiteGenerator:
         const allMeasures = {measures_json};
         const topics = {topics_json};
 
+        // Utility function to detect AI refusal patterns in summaries
+        function isAiRefusal(text) {{
+            if (!text) return false;
+            const lower = text.toLowerCase();
+            return lower.includes("can't provide") ||
+                   lower.includes("cannot provide") ||
+                   lower.includes("can't help with that") ||
+                   lower.includes("cannot help with that") ||
+                   lower.includes("don't have any information") ||
+                   lower.includes("do not have any information") ||
+                   lower.includes("i don't have information") ||
+                   lower.includes("i'd be happy to provide") ||
+                   lower.includes("if you could provide") ||
+                   lower.includes("please share the details") ||
+                   lower.includes("no information available");
+        }}
+
         // California Regions
         const CA_REGIONS = {{
             "Greater Bay Area": {{
@@ -3004,25 +3021,8 @@ class WebsiteGenerator:
             let summary = '';
             let hasSummary = false;
 
-            // Check for AI refusal patterns (bad summaries that should be filtered out)
-            const isAiRefusal = (text) => {{
-                if (!text) return false;
-                const lower = text.toLowerCase();
-                return lower.includes("can't provide") ||
-                       lower.includes("cannot provide") ||
-                       lower.includes("can't help with that") ||
-                       lower.includes("cannot help with that") ||
-                       lower.includes("don't have any information") ||
-                       lower.includes("do not have any information") ||
-                       lower.includes("i don't have information") ||
-                       lower.includes("i'd be happy to provide") ||
-                       lower.includes("if you could provide") ||
-                       lower.includes("please share the details") ||
-                       lower.includes("no information available");
-            }};
-
             // Priority order: summary_text > ballot_question > description > original_title
-            // But skip AI refusals
+            // Skip AI refusals (using global isAiRefusal function)
             if (measure.summary_text && measure.summary_text.length > 50 && !isAiRefusal(measure.summary_text)) {{
                 summary = measure.summary_text;
                 hasSummary = true;
