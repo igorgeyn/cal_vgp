@@ -221,120 +221,9 @@ class WebsiteGenerator:
     </header>
 
     <!-- Main Content -->
-    <div class="main-container">
-        <!-- Sidebar Filters -->
-        <aside class="sidebar">
-            <div class="filter-section">
-                <div class="filter-header">
-                    Filters
-                    <span class="filter-clear" onclick="clearAllFilters()">Clear all</span>
-                </div>
-                
-                <!-- Year Range -->
-                <div class="filter-group">
-                    <div class="filter-label">Year Range</div>
-                    <div class="year-range">
-                        <input type="number" class="year-input" id="yearMin" value="{stats['year_min']}" min="{stats['year_min']}" max="{stats['year_max']}">
-                        <span class="year-separator">–</span>
-                        <input type="number" class="year-input" id="yearMax" value="{stats['year_max']}" min="{stats['year_min']}" max="{stats['year_max']}">
-                    </div>
-                </div>
-                
-                <!-- Status Filter -->
-                <div class="filter-group">
-                    <div class="filter-label">Status</div>
-                    <div class="filter-options">
-                        <div class="filter-option" onclick="toggleFilter('status', 'passed')">
-                            <span class="filter-option-label">Passed</span>
-                            <span class="filter-option-count">{stats['passed']}</span>
-                        </div>
-                        <div class="filter-option" onclick="toggleFilter('status', 'failed')">
-                            <span class="filter-option-label">Failed</span>
-                            <span class="filter-option-count">{stats['failed']}</span>
-                        </div>
-                        <div class="filter-option" onclick="toggleFilter('status', 'unknown')">
-                            <span class="filter-option-label">Unknown</span>
-                            <span class="filter-option-count">{stats['total_measures'] - stats['passed'] - stats['failed']}</span>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Features Filter -->
-                <div class="filter-group">
-                    <div class="filter-label">Features</div>
-                    <div class="filter-options">
-                        <div class="filter-option" onclick="toggleFilter('features', 'summary')">
-                            <span class="filter-option-label">Has Summary</span>
-                            <span class="filter-option-count">{stats['with_summaries']}</span>
-                        </div>
-                        <div class="filter-option" onclick="toggleFilter('features', 'votes')">
-                            <span class="filter-option-label">Has Vote Data</span>
-                            <span class="filter-option-count">{stats['with_votes']}</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-        </aside>
-
+    <div class="main-container-full">
         <!-- Main Content Area -->
-        <main class="content">
-            <!-- Tool Description -->
-            <div class="tool-description">
-                <h2 class="tool-title">Explore California's Ballot Measures</h2>
-                <p class="tool-intro">
-                    Search and analyze over <strong>{stats['total_measures']:,} ballot measures</strong> from across California,
-                    spanning more than a century of direct democracy. Discover how voters have decided on everything from
-                    local school funding to statewide policy changes.
-                </p>
-                <div class="tool-features">
-                    <div class="feature-item">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <circle cx="12" cy="12" r="10"></circle>
-                            <polyline points="12 6 12 12 16 14"></polyline>
-                        </svg>
-                        <span><strong>Historical data</strong> from {stats['year_min']} to present</span>
-                    </div>
-                    <div class="feature-item">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
-                            <circle cx="12" cy="10" r="3"></circle>
-                        </svg>
-                        <span><strong>58 counties</strong> plus statewide propositions</span>
-                    </div>
-                    <div class="feature-item">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
-                        </svg>
-                        <span><strong>Vote results</strong> for {stats['with_votes']:,} measures</span>
-                    </div>
-                    <div class="feature-item">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                            <polyline points="14 2 14 8 20 8"></polyline>
-                        </svg>
-                        <span><strong>AI summaries</strong> for easier understanding</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Results Header -->
-            <div class="results-header">
-                <div class="results-info">
-                    <div class="results-count" id="resultsCount">0</div>
-                    <div class="results-description" id="resultsDescription">measures found</div>
-                </div>
-                <div class="sort-controls">
-                    <span class="sort-label">Sort by:</span>
-                    <select class="sort-select" id="sortSelect" onchange="applySort()">
-                        <option value="year-desc">Year (Newest First)</option>
-                        <option value="year-asc">Year (Oldest First)</option>
-                        <option value="title">Title (A-Z)</option>
-                        <option value="votes">Most Votes</option>
-                    </select>
-                </div>
-            </div>
-
+        <main class="content-full">
             <!-- Hero Section for 2026 Upcoming Measures -->
             <div class="hero-section" id="heroSection">
                 <div class="hero-header">
@@ -346,21 +235,8 @@ class WebsiteGenerator:
                 </div>
             </div>
 
-            <!-- Featured Section -->
-            <div class="featured-section" id="featuredSection">
-                <h2 class="section-title">Featured Measures</h2>
-                <div class="featured-grid" id="featuredGrid">
-                    <!-- Will be populated by JavaScript -->
-                </div>
-            </div>
-
             <!-- Filter Accordion -->
             <div class="filter-accordion">
-                <div class="accordion-header">
-                    <h2 class="section-title">Filter Results</h2>
-                    <p class="accordion-subtitle">Select a filter type to refine your search</p>
-                </div>
-
                 <div class="accordion-tabs">
                     <button class="accordion-tab" data-panel="region" onclick="toggleAccordion('region')">
                         <span class="tab-icon">🗺️</span>
@@ -385,6 +261,17 @@ class WebsiteGenerator:
                         <svg class="tab-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <polyline points="6 9 12 15 18 9"></polyline>
                         </svg>
+                    </button>
+                    <button class="accordion-tab" data-panel="status" onclick="toggleAccordion('status')">
+                        <span class="tab-icon">✓</span>
+                        <span class="tab-label">Status</span>
+                        <span class="tab-count" id="statusFilterCount"></span>
+                        <svg class="tab-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                    </button>
+                    <button class="clear-filters-btn" onclick="clearAllFilters()">
+                        Clear All
                     </button>
                 </div>
 
@@ -430,6 +317,30 @@ class WebsiteGenerator:
                         </div>
                     </div>
                 </div>
+
+                <!-- Status Panel -->
+                <div class="accordion-panel" id="statusPanel" style="display: none;">
+                    <div class="panel-content">
+                        <p class="panel-hint">Filter by measure outcome</p>
+                        <div class="status-cards" id="statusCards">
+                            <div class="status-chip" data-status="passed" onclick="toggleStatusFilter('passed')">
+                                <span class="status-chip-icon">✓</span>
+                                <span class="status-chip-name">Passed</span>
+                                <span class="status-chip-count">({stats['passed']:,})</span>
+                            </div>
+                            <div class="status-chip" data-status="failed" onclick="toggleStatusFilter('failed')">
+                                <span class="status-chip-icon">✗</span>
+                                <span class="status-chip-name">Failed</span>
+                                <span class="status-chip-count">({stats['failed']:,})</span>
+                            </div>
+                            <div class="status-chip" data-status="pending" onclick="toggleStatusFilter('pending')">
+                                <span class="status-chip-icon">⏳</span>
+                                <span class="status-chip-name">Pending/Unknown</span>
+                                <span class="status-chip-count">({stats['total_measures'] - stats['passed'] - stats['failed']:,})</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <!-- Stats Ribbon -->
@@ -459,6 +370,23 @@ class WebsiteGenerator:
                         <span class="stat-value" id="statYearRange">—</span>
                         <span class="stat-label">Year Range</span>
                     </div>
+                </div>
+            </div>
+
+            <!-- Results Header -->
+            <div class="results-header">
+                <div class="results-info">
+                    <span class="results-count" id="resultsCount">0</span>
+                    <span class="results-description">measures found</span>
+                </div>
+                <div class="sort-controls">
+                    <label for="sortSelect" class="sort-label">Sort:</label>
+                    <select class="sort-select" id="sortSelect" onchange="applySort()">
+                        <option value="year-desc">Newest First</option>
+                        <option value="year-asc">Oldest First</option>
+                        <option value="title">Title A-Z</option>
+                        <option value="votes">Most Votes</option>
+                    </select>
                 </div>
             </div>
 
@@ -798,7 +726,18 @@ class WebsiteGenerator:
             grid-template-columns: 280px 1fr;
             gap: 2rem;
         }
-        
+
+        /* Full-width layout (no sidebar) */
+        .main-container-full {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .content-full {
+            min-height: 100vh;
+        }
+
         /* Sidebar Filters */
         .sidebar {
             position: sticky;
@@ -806,6 +745,90 @@ class WebsiteGenerator:
             height: fit-content;
             max-height: calc(100vh - 100px);
             overflow-y: auto;
+        }
+
+        /* Status Chips */
+        .status-cards {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+        }
+
+        .status-chip {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1rem;
+            background: var(--bg-secondary);
+            border: 2px solid var(--border);
+            border-radius: var(--radius);
+            cursor: pointer;
+            transition: var(--transition);
+            font-size: 0.9rem;
+        }
+
+        .status-chip:hover {
+            border-color: var(--primary);
+            background: var(--bg-tertiary);
+        }
+
+        .status-chip.selected {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        .status-chip[data-status="passed"]:hover,
+        .status-chip[data-status="passed"].selected {
+            background: var(--success);
+            border-color: var(--success);
+            color: white;
+        }
+
+        .status-chip[data-status="failed"]:hover,
+        .status-chip[data-status="failed"].selected {
+            background: var(--error);
+            border-color: var(--error);
+            color: white;
+        }
+
+        .status-chip[data-status="pending"]:hover,
+        .status-chip[data-status="pending"].selected {
+            background: var(--warning);
+            border-color: var(--warning);
+            color: #1a1a1a;
+        }
+
+        .status-chip-icon {
+            font-size: 1.1rem;
+        }
+
+        .status-chip-name {
+            font-weight: 500;
+        }
+
+        .status-chip-count {
+            opacity: 0.7;
+            font-size: 0.85rem;
+        }
+
+        /* Clear All Filters Button */
+        .clear-filters-btn {
+            padding: 0.5rem 1rem;
+            background: transparent;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: var(--transition);
+            margin-left: auto;
+        }
+
+        .clear-filters-btn:hover {
+            background: var(--bg-secondary);
+            color: var(--error);
+            border-color: var(--error);
         }
         
         .filter-section {
@@ -1970,27 +1993,28 @@ class WebsiteGenerator:
             .header-content {
                 padding: 1rem;
             }
-            
-            .main-container {
+
+            .main-container,
+            .main-container-full {
                 padding: 1rem;
             }
-            
+
             .search-container {
                 order: 3;
                 flex-basis: 100%;
                 max-width: none;
             }
-            
+
             .featured-grid,
             .results-grid {
                 grid-template-columns: 1fr;
             }
-            
+
             .pagination-container {
                 flex-direction: column;
                 gap: 1rem;
             }
-            
+
             .pagination-info {
                 margin-left: 0;
                 padding-left: 0;
@@ -2000,11 +2024,29 @@ class WebsiteGenerator:
                 width: 100%;
                 justify-content: center;
             }
-            
+
             .pagination-btn {
                 min-width: 36px;
                 height: 36px;
                 font-size: 0.8rem;
+            }
+
+            .status-cards {
+                flex-direction: column;
+            }
+
+            .status-chip {
+                width: 100%;
+                justify-content: center;
+            }
+
+            .accordion-tabs {
+                flex-wrap: wrap;
+            }
+
+            .clear-filters-btn {
+                width: 100%;
+                margin-top: 0.5rem;
             }
         }
 
@@ -3019,6 +3061,19 @@ class WebsiteGenerator:
                     yearTab.classList.remove('has-selection');
                 }}
             }}
+
+            // Status count
+            const statusCount = currentFilters.status?.length || 0;
+            const statusBadge = document.getElementById('statusFilterCount');
+            if (statusBadge) {{
+                statusBadge.textContent = statusCount > 0 ? statusCount : '';
+                const statusTab = document.querySelector('.accordion-tab[data-panel="status"]');
+                if (statusCount > 0) {{
+                    statusTab.classList.add('has-selection');
+                }} else {{
+                    statusTab.classList.remove('has-selection');
+                }}
+            }}
         }}
 
         // Topic icons for visual appeal
@@ -3172,7 +3227,33 @@ class WebsiteGenerator:
                 }}
             }});
         }}
-        
+
+        // Toggle status filter
+        function toggleStatusFilter(status) {{
+            const index = currentFilters.status.indexOf(status);
+            if (index === -1) {{
+                currentFilters.status.push(status);
+            }} else {{
+                currentFilters.status.splice(index, 1);
+            }}
+            updateStatusChipUI();
+            updateFilterCountBadges();
+            pagination.currentPage = 1;
+            applyFilters();
+        }}
+
+        // Update status chip visual state
+        function updateStatusChipUI() {{
+            document.querySelectorAll('.status-chip').forEach(chip => {{
+                const status = chip.dataset.status;
+                if (currentFilters.status.includes(status)) {{
+                    chip.classList.add('selected');
+                }} else {{
+                    chip.classList.remove('selected');
+                }}
+            }});
+        }}
+
         // Load page number from URL hash
         function loadPageFromURL() {{
             const hash = window.location.hash;
@@ -3202,20 +3283,7 @@ class WebsiteGenerator:
                     applyFilters();
                 }}, 300);
             }});
-            
-            // Year inputs
-            document.getElementById('yearMin').addEventListener('change', (e) => {{
-                currentFilters.yearMin = parseInt(e.target.value);
-                pagination.currentPage = 1;
-                applyFilters();
-            }});
-            
-            document.getElementById('yearMax').addEventListener('change', (e) => {{
-                currentFilters.yearMax = parseInt(e.target.value);
-                pagination.currentPage = 1;
-                applyFilters();
-            }});
-            
+
             // Handle browser back/forward
             window.addEventListener('hashchange', () => {{
                 loadPageFromURL();
@@ -3309,20 +3377,20 @@ class WebsiteGenerator:
                 // Status filter
                 if (currentFilters.status.length > 0) {{
                     const passed = measure.passed;
-                    if (currentFilters.status.includes('passed') && passed !== 1) {{
-                        if (!currentFilters.status.includes('failed') && !currentFilters.status.includes('unknown')) {{
-                            return false;
-                        }}
+                    let matchesStatus = false;
+
+                    if (currentFilters.status.includes('passed') && passed === 1) {{
+                        matchesStatus = true;
                     }}
-                    if (currentFilters.status.includes('failed') && passed !== 0) {{
-                        if (!currentFilters.status.includes('passed') && !currentFilters.status.includes('unknown')) {{
-                            return false;
-                        }}
+                    if (currentFilters.status.includes('failed') && passed === 0) {{
+                        matchesStatus = true;
                     }}
-                    if (currentFilters.status.includes('unknown') && (passed === 1 || passed === 0)) {{
-                        if (!currentFilters.status.includes('passed') && !currentFilters.status.includes('failed')) {{
-                            return false;
-                        }}
+                    if (currentFilters.status.includes('pending') && passed !== 1 && passed !== 0) {{
+                        matchesStatus = true;
+                    }}
+
+                    if (!matchesStatus) {{
+                        return false;
                     }}
                 }}
                 
@@ -3923,12 +3991,11 @@ class WebsiteGenerator:
 
             // Reset UI
             document.getElementById('searchInput').value = '';
-            document.getElementById('yearMin').value = {stats.get('year_min', 1902)};
-            document.getElementById('yearMax').value = {stats.get('year_max', 2026)};
             document.getElementById('countySelect').value = '';
             updateFilterUI();
             updateTopicChipUI();
             updateYearChipUI();
+            updateStatusChipUI();
             updateRegionChipUI();
             updateFilterCountBadges();
 
