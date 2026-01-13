@@ -275,13 +275,6 @@ class WebsiteGenerator:
                 </div>
             </div>
             
-            <!-- Topic Filter -->
-            <div class="filter-section">
-                <div class="filter-header">Popular Topics</div>
-                <div class="topic-tags" id="topicTags">
-                    <!-- Will be populated by JavaScript -->
-                </div>
-            </div>
         </aside>
 
         <!-- Main Content Area -->
@@ -384,6 +377,30 @@ class WebsiteGenerator:
                         <option value="">All Counties</option>
                         <!-- Will be populated by JavaScript -->
                     </select>
+                </div>
+            </div>
+
+            <!-- Topic Navigation -->
+            <div class="topic-navigation" id="topicNavigation">
+                <div class="regional-header">
+                    <h2 class="section-title">Filter by Topic</h2>
+                    <p class="regional-subtitle">Click to select one or more topics (click again to deselect)</p>
+                </div>
+
+                <div class="topic-cards" id="topicCards">
+                    <!-- Will be populated by JavaScript -->
+                </div>
+            </div>
+
+            <!-- Year Navigation -->
+            <div class="year-navigation" id="yearNavigation">
+                <div class="regional-header">
+                    <h2 class="section-title">Filter by Year</h2>
+                    <p class="regional-subtitle">Click to select one or more years (click again to deselect)</p>
+                </div>
+
+                <div class="decade-groups" id="decadeGroups">
+                    <!-- Will be populated by JavaScript -->
                 </div>
             </div>
 
@@ -1092,6 +1109,145 @@ class WebsiteGenerator:
             outline: none;
             border-color: var(--accent);
             box-shadow: 0 0 0 3px rgba(66, 133, 244, 0.1);
+        }
+
+        /* Topic Navigation */
+        .topic-navigation {
+            margin: 2rem 0;
+            padding: 2rem 0;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .topic-cards {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            justify-content: center;
+        }
+
+        .topic-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.5rem 0.875rem;
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 100px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 0.85rem;
+            color: var(--text-primary);
+            user-select: none;
+        }
+
+        .topic-chip:hover {
+            border-color: var(--accent);
+            background: rgba(52, 168, 83, 0.05);
+        }
+
+        .topic-chip.selected {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: white;
+        }
+
+        .topic-chip.selected:hover {
+            background: #2e7d32;
+            border-color: #2e7d32;
+        }
+
+        .topic-chip-icon {
+            font-size: 0.95rem;
+        }
+
+        .topic-chip-name {
+            font-weight: 500;
+        }
+
+        .topic-chip-count {
+            font-size: 0.75rem;
+            opacity: 0.7;
+            margin-left: 0.125rem;
+        }
+
+        .topic-chip.selected .topic-chip-count {
+            opacity: 0.9;
+        }
+
+        /* Year Navigation */
+        .year-navigation {
+            margin: 2rem 0;
+            padding: 2rem 0;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .decade-groups {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .decade-group {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .decade-label {
+            font-weight: 600;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            min-width: 50px;
+        }
+
+        .year-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.375rem;
+        }
+
+        .year-chip {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.375rem 0.625rem;
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 0.8rem;
+            color: var(--text-primary);
+            user-select: none;
+            min-width: 50px;
+        }
+
+        .year-chip:hover {
+            border-color: var(--warning);
+            background: rgba(251, 188, 4, 0.1);
+        }
+
+        .year-chip.selected {
+            background: var(--warning);
+            border-color: var(--warning);
+            color: #333;
+            font-weight: 600;
+        }
+
+        .year-chip.selected:hover {
+            background: #e6a800;
+            border-color: #e6a800;
+        }
+
+        .year-chip-count {
+            font-size: 0.7rem;
+            opacity: 0.6;
+            margin-left: 0.25rem;
+        }
+
+        .year-chip.selected .year-chip-count {
+            opacity: 0.8;
         }
 
         /* Card Styles */
@@ -2353,6 +2509,7 @@ class WebsiteGenerator:
             status: [],
             features: [],
             topics: [],
+            selectedYears: [],
             search: '',
             regions: [],
             county: null
@@ -2376,7 +2533,8 @@ class WebsiteGenerator:
             selectHeroMeasures();
             selectFeaturedMeasures();
             populateRegionalNavigation();
-            initializeTopicTags();
+            populateTopicNavigation();
+            populateYearNavigation();
             setupEventListeners();
             loadPageFromURL();
             applyFilters();
@@ -2549,13 +2707,154 @@ class WebsiteGenerator:
         }}
 
         // Initialize topic tags
-        function initializeTopicTags() {{
-            const container = document.getElementById('topicTags');
-            container.innerHTML = topics.slice(0, 12).map(topic => `
-                <div class="topic-tag" onclick="toggleTopic('${{topic.topic.replace(/'/g, "\\\\'")}}')">
-                    ${{topic.topic}} (${{topic.count}})
-                </div>
-            `).join('');
+        // Topic icons for visual appeal
+        const TOPIC_ICONS = {{
+            "School Bonds": "🏫",
+            "District Taxes & Bonds": "💰",
+            "Recalls & Appointments": "🗳️",
+            "Utility Taxes": "💡",
+            "School Facilities": "🏗️",
+            "Infrastructure & Safety": "🛡️",
+            "Water & Public Services": "💧",
+            "Community Colleges": "🎓",
+            "Housing & School Bonds": "🏠",
+            "School Parcel Taxes": "📋",
+            "School Governance": "📚",
+            "City Charter Amendments": "📜",
+            "Special District Taxes": "🏛️",
+            "Land Use & Planning": "🗺️",
+            "Local Ordinances": "⚖️",
+            "City Offices": "🏢",
+            "Sales Tax & Services": "🛒",
+            "Hotel & Tourism Taxes": "🏨",
+            "Term Limits & Elections": "⏱️",
+            "Cannabis Regulation": "🌿"
+        }};
+
+        // Populate topic navigation
+        function populateTopicNavigation() {{
+            const container = document.getElementById('topicCards');
+
+            // Count measures by topic
+            const topicCounts = {{}};
+            allMeasures.forEach(m => {{
+                const topic = m.topic_primary;
+                if (topic) {{
+                    topicCounts[topic] = (topicCounts[topic] || 0) + 1;
+                }}
+            }});
+
+            // Sort by count
+            const sortedTopics = Object.entries(topicCounts)
+                .sort((a, b) => b[1] - a[1]);
+
+            container.innerHTML = sortedTopics.map(([topic, count]) => {{
+                const icon = TOPIC_ICONS[topic] || "📌";
+                const escapedTopic = topic.replace(/'/g, "\\\\'");
+                return `
+                    <div class="topic-chip" data-topic="${{escapedTopic}}" onclick="toggleTopicFilter('${{escapedTopic}}')">
+                        <span class="topic-chip-icon">${{icon}}</span>
+                        <span class="topic-chip-name">${{topic}}</span>
+                        <span class="topic-chip-count">(${{count}})</span>
+                    </div>
+                `;
+            }}).join('');
+        }}
+
+        // Toggle topic filter
+        function toggleTopicFilter(topic) {{
+            const index = currentFilters.topics.indexOf(topic);
+            if (index === -1) {{
+                currentFilters.topics.push(topic);
+            }} else {{
+                currentFilters.topics.splice(index, 1);
+            }}
+            updateTopicChipUI();
+            pagination.currentPage = 1;
+            applyFilters();
+        }}
+
+        // Update topic chip visual state
+        function updateTopicChipUI() {{
+            document.querySelectorAll('.topic-chip').forEach(chip => {{
+                const topic = chip.dataset.topic;
+                if (currentFilters.topics.includes(topic)) {{
+                    chip.classList.add('selected');
+                }} else {{
+                    chip.classList.remove('selected');
+                }}
+            }});
+        }}
+
+        // Populate year navigation
+        function populateYearNavigation() {{
+            const container = document.getElementById('decadeGroups');
+
+            // Count measures by year
+            const yearCounts = {{}};
+            allMeasures.forEach(m => {{
+                const year = parseInt(m.year);
+                if (year) {{
+                    yearCounts[year] = (yearCounts[year] || 0) + 1;
+                }}
+            }});
+
+            // Get all years and group by decade
+            const years = Object.keys(yearCounts).map(y => parseInt(y)).sort((a, b) => b - a);
+            const decades = {{}};
+
+            years.forEach(year => {{
+                const decade = Math.floor(year / 10) * 10;
+                if (!decades[decade]) {{
+                    decades[decade] = [];
+                }}
+                decades[decade].push(year);
+            }});
+
+            // Sort decades descending
+            const sortedDecades = Object.keys(decades).map(d => parseInt(d)).sort((a, b) => b - a);
+
+            container.innerHTML = sortedDecades.map(decade => {{
+                const decadeYears = decades[decade].sort((a, b) => b - a);
+                return `
+                    <div class="decade-group">
+                        <span class="decade-label">${{decade}}s</span>
+                        <div class="year-chips">
+                            ${{decadeYears.map(year => `
+                                <div class="year-chip" data-year="${{year}}" onclick="toggleYearFilter(${{year}})">
+                                    ${{year}}
+                                    <span class="year-chip-count">(${{yearCounts[year]}})</span>
+                                </div>
+                            `).join('')}}
+                        </div>
+                    </div>
+                `;
+            }}).join('');
+        }}
+
+        // Toggle year filter
+        function toggleYearFilter(year) {{
+            const index = currentFilters.selectedYears.indexOf(year);
+            if (index === -1) {{
+                currentFilters.selectedYears.push(year);
+            }} else {{
+                currentFilters.selectedYears.splice(index, 1);
+            }}
+            updateYearChipUI();
+            pagination.currentPage = 1;
+            applyFilters();
+        }}
+
+        // Update year chip visual state
+        function updateYearChipUI() {{
+            document.querySelectorAll('.year-chip').forEach(chip => {{
+                const year = parseInt(chip.dataset.year);
+                if (currentFilters.selectedYears.includes(year)) {{
+                    chip.classList.add('selected');
+                }} else {{
+                    chip.classList.remove('selected');
+                }}
+            }});
         }}
         
         // Load page number from URL hash
@@ -2676,14 +2975,21 @@ class WebsiteGenerator:
         // Apply filters
         function applyFilters() {{
             filteredMeasures = allMeasures.filter(measure => {{
-                // Year filter
+                // Year range filter (from sidebar)
                 const year = parseInt(measure.year);
                 if (!isNaN(year)) {{
                     if (year < currentFilters.yearMin || year > currentFilters.yearMax) {{
                         return false;
                     }}
                 }}
-                
+
+                // Selected years filter (from year chips)
+                if (currentFilters.selectedYears.length > 0) {{
+                    if (!currentFilters.selectedYears.includes(year)) {{
+                        return false;
+                    }}
+                }}
+
                 // Status filter
                 if (currentFilters.status.length > 0) {{
                     const passed = measure.passed;
@@ -3235,20 +3541,38 @@ class WebsiteGenerator:
                 status: [],
                 features: [],
                 topics: [],
-                search: ''
+                selectedYears: [],
+                search: '',
+                regions: [],
+                county: null
             }};
-            
+
             // Reset pagination
             pagination.currentPage = 1;
-            
+
             // Reset UI
             document.getElementById('searchInput').value = '';
             document.getElementById('yearMin').value = {stats.get('year_min', 1902)};
             document.getElementById('yearMax').value = {stats.get('year_max', 2026)};
+            document.getElementById('countySelect').value = '';
             updateFilterUI();
-            updateTopicUI();
-            
+            updateTopicChipUI();
+            updateYearChipUI();
+            updateRegionChipUI();
+
             applyFilters();
+        }}
+
+        // Update region chip UI state
+        function updateRegionChipUI() {{
+            document.querySelectorAll('.region-chip').forEach(chip => {{
+                const region = chip.dataset.region;
+                if (currentFilters.regions && currentFilters.regions.includes(region)) {{
+                    chip.classList.add('selected');
+                }} else {{
+                    chip.classList.remove('selected');
+                }}
+            }});
         }}
         """
 
