@@ -432,6 +432,36 @@ class WebsiteGenerator:
                 </div>
             </div>
 
+            <!-- Stats Ribbon -->
+            <div class="stats-ribbon" id="statsRibbon">
+                <div class="stats-ribbon-inner">
+                    <div class="stat-item">
+                        <span class="stat-value" id="statTotal">—</span>
+                        <span class="stat-label">Measures</span>
+                    </div>
+                    <div class="stat-divider"></div>
+                    <div class="stat-item">
+                        <span class="stat-value" id="statPassRate">—</span>
+                        <span class="stat-label">Pass Rate</span>
+                    </div>
+                    <div class="stat-divider"></div>
+                    <div class="stat-item">
+                        <span class="stat-value" id="statAvgMargin">—</span>
+                        <span class="stat-label">Avg. Win Margin</span>
+                    </div>
+                    <div class="stat-divider"></div>
+                    <div class="stat-item">
+                        <span class="stat-value" id="statAvgTurnout">—</span>
+                        <span class="stat-label">Avg. Turnout</span>
+                    </div>
+                    <div class="stat-divider"></div>
+                    <div class="stat-item">
+                        <span class="stat-value" id="statYearRange">—</span>
+                        <span class="stat-label">Year Range</span>
+                    </div>
+                </div>
+            </div>
+
             <!-- Results Container -->
             <div id="resultsContainer">
                 <div class="loading">
@@ -1390,6 +1420,74 @@ class WebsiteGenerator:
 
         .year-chip.selected .year-chip-count {
             opacity: 0.8;
+        }
+
+        /* Stats Ribbon */
+        .stats-ribbon {
+            background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1rem 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .stats-ribbon-inner {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 1.5rem;
+            flex-wrap: wrap;
+        }
+
+        .stat-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-width: 80px;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary);
+            line-height: 1.2;
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-top: 0.25rem;
+        }
+
+        .stat-divider {
+            width: 1px;
+            height: 40px;
+            background: var(--border-color);
+        }
+
+        @media (max-width: 768px) {
+            .stats-ribbon-inner {
+                gap: 1rem;
+            }
+
+            .stat-item {
+                min-width: 60px;
+            }
+
+            .stat-value {
+                font-size: 1.25rem;
+            }
+
+            .stat-label {
+                font-size: 0.65rem;
+            }
+
+            .stat-divider {
+                display: none;
+            }
         }
 
         /* Card Styles */
@@ -3289,14 +3387,69 @@ class WebsiteGenerator:
 
                 return true;
             }});
-            
+
             // Apply sort
             sortMeasures();
-            
+
+            // Update stats ribbon
+            updateStatsRibbon();
+
             // Update UI
             updateResults();
         }}
-        
+
+        // Update stats ribbon with filtered data
+        function updateStatsRibbon() {{
+            const measures = filteredMeasures;
+            const total = measures.length;
+
+            // Calculate pass rate
+            const withVotes = measures.filter(m => m.passed === 1 || m.passed === 0);
+            const passed = measures.filter(m => m.passed === 1).length;
+            const passRate = withVotes.length > 0 ? (passed / withVotes.length * 100).toFixed(1) : null;
+
+            // Calculate average win margin (absolute difference from 50%)
+            const margins = measures
+                .filter(m => m.percent_yes != null && m.percent_yes > 0)
+                .map(m => Math.abs(m.percent_yes - 50));
+            const avgMargin = margins.length > 0
+                ? (margins.reduce((a, b) => a + b, 0) / margins.length).toFixed(1)
+                : null;
+
+            // Calculate average turnout (total votes)
+            const turnouts = measures
+                .filter(m => m.total_votes != null && m.total_votes > 0)
+                .map(m => m.total_votes);
+            const avgTurnout = turnouts.length > 0
+                ? Math.round(turnouts.reduce((a, b) => a + b, 0) / turnouts.length)
+                : null;
+
+            // Get year range
+            const years = measures
+                .filter(m => m.year != null)
+                .map(m => parseInt(m.year))
+                .filter(y => !isNaN(y));
+            const minYear = years.length > 0 ? Math.min(...years) : null;
+            const maxYear = years.length > 0 ? Math.max(...years) : null;
+            const yearRange = minYear && maxYear
+                ? (minYear === maxYear ? `${{minYear}}` : `${{minYear}}-${{maxYear}}`)
+                : null;
+
+            // Format turnout with K/M suffix
+            function formatNumber(num) {{
+                if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+                if (num >= 1000) return (num / 1000).toFixed(0) + 'K';
+                return num.toLocaleString();
+            }}
+
+            // Update DOM
+            document.getElementById('statTotal').textContent = total.toLocaleString();
+            document.getElementById('statPassRate').textContent = passRate ? `${{passRate}}%` : '—';
+            document.getElementById('statAvgMargin').textContent = avgMargin ? `${{avgMargin}}%` : '—';
+            document.getElementById('statAvgTurnout').textContent = avgTurnout ? formatNumber(avgTurnout) : '—';
+            document.getElementById('statYearRange').textContent = yearRange || '—';
+        }}
+
         // Sort measures
         function sortMeasures() {{
             filteredMeasures.sort((a, b) => {{
