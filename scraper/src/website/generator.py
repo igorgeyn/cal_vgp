@@ -377,7 +377,7 @@ class WebsiteGenerator:
             <div class="results-header">
                 <div class="results-info">
                     <span class="results-count" id="resultsCount">0</span>
-                    <span class="results-description">measures found</span>
+                    <span class="results-description" id="resultsDescription">measures found</span>
                 </div>
                 <div class="sort-controls">
                     <label for="sortSelect" class="sort-label">Sort:</label>
