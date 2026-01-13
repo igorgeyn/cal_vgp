@@ -3563,31 +3563,22 @@ class WebsiteGenerator:
                 'measures found';
             document.getElementById('resultsDescription').textContent = desc;
             
-            // Determine if we should show hero and featured sections (only on "home" view with no filters)
+            // Determine if we should show hero section (only on "home" view with no filters)
             const heroSection = document.getElementById('heroSection');
-            const featuredSection = document.getElementById('featuredSection');
             const isHomeView = !currentFilters.search &&
                 currentFilters.status.length === 0 &&
                 currentFilters.features.length === 0 &&
                 currentFilters.topics.length === 0 &&
-                currentFilters.yearMin === {stats.get('year_min', 1902)} &&
-                currentFilters.yearMax === {stats.get('year_max', 2026)} &&
+                currentFilters.selectedYears.length === 0 &&
+                (!currentFilters.regions || currentFilters.regions.length === 0) &&
+                !currentFilters.county &&
                 pagination.currentPage === 1;
 
-            if (isHomeView) {{
-                // Show hero section only if we have 2026 measures
-                if (heroMeasures.length > 0) {{
-                    heroSection.style.display = 'block';
-                    displayHero();
-                }} else {{
-                    heroSection.style.display = 'none';
-                }}
-
-                featuredSection.style.display = 'block';
-                displayFeatured();
+            if (isHomeView && heroMeasures.length > 0) {{
+                heroSection.style.display = 'block';
+                displayHero();
             }} else {{
                 heroSection.style.display = 'none';
-                featuredSection.style.display = 'none';
             }}
 
             // Display paginated results
