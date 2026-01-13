@@ -1114,34 +1114,15 @@ class WebsiteGenerator:
         
         .card-header {
             display: flex;
-            align-items: flex-start;
+            align-items: center;
             justify-content: space-between;
-            gap: 1rem;
+            margin-bottom: 0.75rem;
         }
-        
+
         .card-year {
-            font-size: 0.875rem;
+            font-size: 0.9rem;
             font-weight: 600;
             color: var(--text-secondary);
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .featured-label {
-            background: var(--primary);
-            color: white;
-            padding: 0.125rem 0.5rem;
-            border-radius: var(--radius-sm);
-            font-size: 0.688rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-        }
-
-        .card-badges {
-            display: flex;
-            gap: 0.5rem;
         }
         
         .badge {
@@ -1291,25 +1272,9 @@ class WebsiteGenerator:
         }
         
         .card-meta {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 1.25rem;
-            font-size: 0.813rem;
-            color: var(--text-secondary);
-            padding-top: 0.5rem;
-            border-top: 1px solid rgba(0, 0, 0, 0.06);
-        }
-
-        .meta-item {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            font-weight: 500;
-        }
-
-        .meta-item::before {
-            font-size: 1rem;
-            line-height: 1;
+            font-size: 0.8rem;
+            color: var(--text-tertiary);
+            margin-top: 0.75rem;
         }
         
         .vote-bar {
@@ -3005,34 +2970,29 @@ class WebsiteGenerator:
             updateResults();
         }}
         
-        // Create card HTML
+        // Create card HTML - simplified, cleaner design
         function createCard(measure, featured = false, featuredReason = null, isHero = false) {{
             // Use generated title if available, otherwise fall back to original
             const title = measure.generated_title || measure.title || measure.measure_text || 'Untitled Measure';
-            const originalTitle = measure.original_title || measure.title || measure.measure_text;
             const measureId = measure.measure_id || '';
             const displayTitle = measureId ? `${{measureId}}: ${{title}}` : title;
             const year = measure.year || 'Unknown';
             const passed = measure.passed;
             const passedClass = passed === 1 ? 'passed' : passed === 0 ? 'failed' : 'pending';
-            const passedText = passed === 1 ? 'Passed' : passed === 0 ? 'Failed' : 'Pending';
+            const passedText = passed === 1 ? '✓ Passed' : passed === 0 ? '✗ Failed' : '• Pending';
 
             // Get summary/description - prioritize summary fields
             let summary = '';
-            let hasSummary = false;
 
             // Priority order: summary_text > ballot_question > description > original_title
             // Skip AI refusals (using global isAiRefusal function)
             if (measure.summary_text && measure.summary_text.length > 50 && !isAiRefusal(measure.summary_text)) {{
                 summary = measure.summary_text;
-                hasSummary = true;
             }} else if (measure.ballot_question && measure.ballot_question.length > 50) {{
                 summary = measure.ballot_question;
-                hasSummary = true;
             }} else if (measure.description) {{
                 summary = measure.description;
             }} else if (measure.generated_title && measure.original_title) {{
-                // If we generated a title, show the original as fallback
                 summary = measure.original_title;
             }}
 
@@ -3042,11 +3002,10 @@ class WebsiteGenerator:
             const isLongSummary = summary.length > maxLength;
 
             const descriptionHtml = truncatedSummary ? `
-                <div class="card-summary ${{hasSummary ? 'has-summary' : ''}}"
+                <div class="card-summary"
                      ${{isLongSummary ? 'data-full-text="' + summary.replace(/"/g, '&quot;') + '" data-short-text="' + truncatedSummary.replace(/"/g, '&quot;') + '"' : ''}}
                      ${{isLongSummary ? 'style="cursor: pointer;" title="Click to expand"' : ''}}
                      onclick="${{isLongSummary ? 'toggleSummary(this)' : ''}}">${{truncatedSummary}}</div>
-                ${{isLongSummary && measure.source_url ? '<a href="' + measure.source_url + '" target="_blank" rel="noopener noreferrer" class="read-more">Read more on Ballotpedia →</a>' : ''}}
             ` : '';
 
             const percentYes = measure.percent_yes;
@@ -3057,34 +3016,27 @@ class WebsiteGenerator:
             ` : '';
 
             const topic = measure.topic_primary || measure.category_topic || '';
-            const source = measure.data_source || measure.source || 'Unknown';
-
-            const featuredLabel = featured && featuredReason ?
-                `<span class="featured-label">${{featuredReason}}</span>` : '';
-
-            // Add summary badge if has_summary
-            const summaryBadge = hasSummary ? '<span class="badge badge-summary" title="Has detailed summary">📄 Summary</span>' : '';
+            const source = measure.data_source || measure.source || '';
 
             // Determine card class
             const cardClass = isHero ? 'hero' : (featured ? 'featured' : '');
 
+            // Build meta items - only show what's available, cleaner format
+            const metaItems = [];
+            if (percentYes != null) metaItems.push(`${{Math.round(percentYes)}}% Yes`);
+            if (topic) metaItems.push(topic);
+            if (source) metaItems.push(source);
+
             return `
                 <div class="measure-card ${{cardClass}}" onclick="viewMeasure(${{JSON.stringify(measure).replace(/"/g, '&quot;')}})">
                     <div class="card-header">
-                        <div class="card-year">📅 ${{year}} ${{featuredLabel}}</div>
-                        <div class="card-badges">
-                            <span class="badge badge-${{passedClass}}">${{passedText}}</span>
-                            ${{summaryBadge}}
-                        </div>
+                        <span class="card-year">${{year}}</span>
+                        <span class="badge badge-${{passedClass}}">${{passedText}}</span>
                     </div>
                     <h3 class="card-title">${{displayTitle}}</h3>
                     ${{descriptionHtml}}
                     ${{voteBar}}
-                    <div class="card-meta">
-                        ${{percentYes != null ? `<div class="meta-item">📊 ${{Math.round(percentYes)}}% Yes</div>` : ''}}
-                        ${{topic ? `<div class="meta-item">🏷️ ${{topic}}</div>` : ''}}
-                        <div class="meta-item">🗂️ ${{source}}</div>
-                    </div>
+                    <div class="card-meta">${{metaItems.join(' · ')}}</div>
                 </div>
             `;
         }}
