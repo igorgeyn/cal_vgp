@@ -224,6 +224,15 @@ class WebsiteGenerator:
     <div class="main-container-full">
         <!-- Main Content Area -->
         <main class="content-full">
+            <!-- Site Introduction -->
+            <div class="site-intro">
+                <h1 class="intro-title">California Ballot Measures Database</h1>
+                <p class="intro-text">
+                    Explore <strong>{stats['total_measures']:,}+</strong> ballot measures from {stats.get('year_min', 1998)}-{stats.get('year_max', 2026)}.
+                    Filter by region, topic, year, or status. Click any measure for details, AI-generated summaries, and related measures.
+                </p>
+            </div>
+
             <!-- Hero Section for 2026 Upcoming Measures -->
             <div class="hero-section" id="heroSection">
                 <div class="hero-header">
@@ -736,6 +745,33 @@ class WebsiteGenerator:
 
         .content-full {
             min-height: 100vh;
+        }
+
+        /* Site Introduction */
+        .site-intro {
+            text-align: center;
+            padding: 2rem 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .intro-title {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 0.75rem;
+        }
+
+        .intro-text {
+            font-size: 1.1rem;
+            line-height: 1.6;
+            color: var(--text-secondary);
+            max-width: 700px;
+            margin: 0 auto;
+        }
+
+        .intro-text strong {
+            color: var(--primary);
+            font-weight: 600;
         }
 
         /* Sidebar Filters */
