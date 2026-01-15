@@ -188,7 +188,7 @@ class WebsiteGenerator:
     <!-- Header -->
     <header class="header">
         <div class="header-content">
-            <div class="logo">
+            <div class="logo" onclick="resetToHome()" style="cursor: pointer;" title="Return to home">
                 <div class="logo-icon">CA</div>
                 <h1>California Ballot Measures</h1>
             </div>
@@ -4566,6 +4566,34 @@ class WebsiteGenerator:
             updateFilterCountBadges();
 
             applyFilters();
+        }}
+
+        // Reset to home page (clear filters, scroll to top, reset URL)
+        function resetToHome() {{
+            // Clear all filters
+            clearAllFilters();
+
+            // Clear historical topic selection if any
+            selectedHistoricalTopic = null;
+            document.querySelectorAll('.topic-filter-chip[data-historical-topic]').forEach(el => {{
+                el.classList.remove('selected');
+            }});
+            const historicalPanel = document.getElementById('historical-context-display');
+            if (historicalPanel) historicalPanel.remove();
+
+            // Close any open accordion panels
+            document.querySelectorAll('.accordion-panel').forEach(panel => {{
+                panel.style.display = 'none';
+            }});
+            document.querySelectorAll('.accordion-tab').forEach(tab => {{
+                tab.classList.remove('active');
+            }});
+
+            // Reset URL to clean state
+            window.history.pushState({{}}, '', window.location.pathname);
+
+            // Scroll to top
+            window.scrollTo({{ top: 0, behavior: 'smooth' }});
         }}
 
         // Update region chip UI state
