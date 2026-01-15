@@ -18,6 +18,8 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 from src.config import DB_PATH, VERSION, API_PORT
 from src.database.operations import Database
 from src.database.models import BallotMeasure
+from src.database.historical_operations import HistoricalDatabase
+from src.database.historical_schema import TOPIC_CONFIG, MIN_MEASURES_FOR_FILTER
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -40,22 +42,27 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Global database connection
+# Global database connections
 db_ops = None
+historical_db = None
 
 @app.on_event("startup")
 async def startup_event():
     """Initialize database connection on startup"""
-    global db_ops
+    global db_ops, historical_db
     if not DB_PATH.exists():
         logger.error(f"Database not found at {DB_PATH}")
         raise RuntimeError("Database not initialized")
     db_ops = Database(DB_PATH)
+    historical_db = HistoricalDatabase(DB_PATH)
     logger.info("API server started successfully")
 
 @app.on_event("shutdown")
 async def shutdown_event():
     """Clean up on shutdown"""
+    global historical_db
+    if historical_db:
+        historical_db.close()
     logger.info("API server shutting down")
 
 # Response models
@@ -109,6 +116,81 @@ class StatsResponse(BaseModel):
     sources: Dict[str, int]
     counties: int
     topics: int
+
+
+# Historical Context Response Models
+
+class MostRecentMeasure(BaseModel):
+    """Most recent measure in a topic"""
+    id: int
+    ballot_name: str
+    year: int
+    description: Optional[str]
+    pct_yes: Optional[float]
+    passed: Optional[bool]
+    margin: Optional[float]
+
+
+class TopicContextResponse(BaseModel):
+    """
+    Historical context for a topic.
+    All statistics are descriptive only - they describe what happened historically,
+    not predictions of future outcomes.
+    """
+    topic: str
+    topic_label: str
+    total_measures: int
+    first_year: int
+    last_year: int
+    pass_rate: float  # Percentage (0-100)
+    avg_yes_pct: float
+    passed_count: int
+    failed_count: int
+    most_recent: Optional[MostRecentMeasure]
+    # UI helper fields
+    color: str
+    icon: str
+
+
+class TopicTagResponse(BaseModel):
+    """Topic tag with metadata for UI display"""
+    topic: str
+    label: str
+    color: str
+    icon: str
+    priority: int
+    is_primary: bool = False
+
+
+class HistoricalMeasureResponse(BaseModel):
+    """Historical measure with topic tags"""
+    id: int
+    ballot_name: str
+    year: int
+    description: str
+    description_truncated: str  # First 100 chars
+    pct_yes: Optional[float]
+    passed: Optional[bool]
+    measure_type: str
+    election_type: str
+    topics: List[TopicTagResponse]
+    primary_topic: Optional[str]
+    margin: Optional[float]
+    margin_label: str  # "Landslide", "Comfortable", "Close", "Very Close"
+    is_close: bool
+
+
+class TopicStatsResponse(BaseModel):
+    """Statistics for all topics"""
+    topic: str
+    label: str
+    color: str
+    icon: str
+    priority: int
+    total_measures: int
+    first_year: int
+    pass_rate: float
+    avg_yes_pct: float
 
 # API Endpoints
 
@@ -322,6 +404,321 @@ async def health_check():
                 "error": str(e)
             }
         )
+
+
+# =============================================================================
+# Historical Context Endpoints
+# =============================================================================
+
+@app.get("/api/historical/context/{topic}", response_model=TopicContextResponse, tags=["Historical"])
+async def get_topic_context(
+    topic: str = PathParam(..., description="Topic key (e.g., 'marijuana', 'gambling')"),
+    min_year: int = Query(1970, ge=1900, le=2030, description="Minimum year to include")
+):
+    """
+    Get historical context for a ballot measure topic.
+
+    Returns aggregate statistics about how California has voted on this topic,
+    including pass rates, average yes percentages, and the most recent measure.
+
+    **Note**: All statistics are descriptive only. Historical pass rates do not
+    predict future outcomes.
+
+    Available topics: marijuana, gambling, abortion, marriage, tax, education,
+    health, elections, criminal, environment
+    """
+    if topic not in TOPIC_CONFIG:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Unknown topic: {topic}. Valid topics: {list(TOPIC_CONFIG.keys())}"
+        )
+
+    try:
+        context = historical_db.get_topic_context(topic, min_year)
+        if context is None:
+            raise HTTPException(
+                status_code=404,
+                detail=f"No measures found for topic '{topic}' since {min_year}"
+            )
+
+        config = TOPIC_CONFIG[topic]
+
+        # Build most_recent response
+        most_recent = None
+        if context.most_recent:
+            most_recent = MostRecentMeasure(
+                id=context.most_recent['id'],
+                ballot_name=context.most_recent['ballot_name'],
+                year=context.most_recent['year'],
+                description=context.most_recent['description'],
+                pct_yes=context.most_recent['pct_yes'],
+                passed=context.most_recent['passed'],
+                margin=context.most_recent['margin'],
+            )
+
+        return TopicContextResponse(
+            topic=topic,
+            topic_label=config['label'],
+            total_measures=context.total_measures,
+            first_year=context.first_year,
+            last_year=context.last_year,
+            pass_rate=round(context.pass_rate * 100, 1),
+            avg_yes_pct=round(context.avg_yes_pct, 1),
+            passed_count=context.passed_count,
+            failed_count=context.failed_count,
+            most_recent=most_recent,
+            color=config['color'],
+            icon=config['icon'],
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching topic context for {topic}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/historical/topics", response_model=List[TopicStatsResponse], tags=["Historical"])
+async def get_all_topic_stats(
+    min_year: int = Query(1970, ge=1900, le=2030, description="Minimum year to include")
+):
+    """
+    Get statistics for all available topics.
+
+    Returns topics sorted by priority order, filtered to only include topics
+    with at least 3 historical measures in California.
+    """
+    try:
+        stats = historical_db.get_all_topic_stats(min_year)
+        return [TopicStatsResponse(**s) for s in stats]
+    except Exception as e:
+        logger.error(f"Error fetching topic stats: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/historical/measures", response_model=List[HistoricalMeasureResponse], tags=["Historical"])
+async def get_historical_measures(
+    topic: Optional[str] = Query(None, description="Filter by topic"),
+    min_year: int = Query(1970, ge=1900, le=2030, description="Minimum year"),
+    passed: Optional[bool] = Query(None, description="Filter by pass/fail"),
+    limit: int = Query(50, ge=1, le=500, description="Maximum results"),
+    offset: int = Query(0, ge=0, description="Offset for pagination")
+):
+    """
+    Get historical ballot measures with topic tags.
+
+    Each measure includes all applicable topic tags, with the primary
+    (highest priority) topic indicated.
+    """
+    try:
+        if topic and topic not in TOPIC_CONFIG:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Unknown topic: {topic}. Valid topics: {list(TOPIC_CONFIG.keys())}"
+            )
+
+        measures = historical_db.get_measures_by_topic(
+            topic=topic or 'tax',  # Default to tax if no topic specified
+            min_year=min_year,
+            limit=limit,
+            offset=offset
+        ) if topic else []
+
+        # If no topic specified, we'd need a different query
+        # For now, return empty if no topic
+        if not topic:
+            return []
+
+        results = []
+        for m in measures:
+            # Build topic tags
+            topic_tags = []
+            for i, t in enumerate(m.topics):
+                config = TOPIC_CONFIG[t]
+                topic_tags.append(TopicTagResponse(
+                    topic=t,
+                    label=config['label'],
+                    color=config['color'],
+                    icon=config['icon'],
+                    priority=config['priority'],
+                    is_primary=(i == 0)
+                ))
+
+            results.append(HistoricalMeasureResponse(
+                id=m.id,
+                ballot_name=m.ballot_name,
+                year=m.year,
+                description=m.description,
+                description_truncated=m.description[:100] + '...' if len(m.description) > 100 else m.description,
+                pct_yes=m.pct_yes,
+                passed=m.passed,
+                measure_type=m.measure_type,
+                election_type=m.election_type,
+                topics=topic_tags,
+                primary_topic=m.primary_topic,
+                margin=m.margin,
+                margin_label=m.margin_label,
+                is_close=m.is_close,
+            ))
+
+        return results
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching historical measures: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/historical/measures/{measure_id}", response_model=HistoricalMeasureResponse, tags=["Historical"])
+async def get_historical_measure(
+    measure_id: int = PathParam(..., description="Historical measure ID")
+):
+    """Get a single historical measure by ID with full topic tags."""
+    try:
+        m = historical_db.get_measure_by_id(measure_id)
+        if m is None:
+            raise HTTPException(status_code=404, detail="Measure not found")
+
+        # Build topic tags
+        topic_tags = []
+        for i, t in enumerate(m.topics):
+            config = TOPIC_CONFIG[t]
+            topic_tags.append(TopicTagResponse(
+                topic=t,
+                label=config['label'],
+                color=config['color'],
+                icon=config['icon'],
+                priority=config['priority'],
+                is_primary=(i == 0)
+            ))
+
+        return HistoricalMeasureResponse(
+            id=m.id,
+            ballot_name=m.ballot_name,
+            year=m.year,
+            description=m.description,
+            description_truncated=m.description[:100] + '...' if len(m.description) > 100 else m.description,
+            pct_yes=m.pct_yes,
+            passed=m.passed,
+            measure_type=m.measure_type,
+            election_type=m.election_type,
+            topics=topic_tags,
+            primary_topic=m.primary_topic,
+            margin=m.margin,
+            margin_label=m.margin_label,
+            is_close=m.is_close,
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching historical measure {measure_id}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/historical/measures/{measure_id}/similar", response_model=List[HistoricalMeasureResponse], tags=["Historical"])
+async def get_similar_measures(
+    measure_id: int = PathParam(..., description="Historical measure ID"),
+    limit: int = Query(5, ge=1, le=20, description="Maximum results")
+):
+    """
+    Get measures similar to the given measure (same primary topic).
+
+    Useful for showing "Related measures" in the UI.
+    """
+    try:
+        measures = historical_db.get_similar_measures(measure_id, limit)
+
+        results = []
+        for m in measures:
+            topic_tags = []
+            for i, t in enumerate(m.topics):
+                config = TOPIC_CONFIG[t]
+                topic_tags.append(TopicTagResponse(
+                    topic=t,
+                    label=config['label'],
+                    color=config['color'],
+                    icon=config['icon'],
+                    priority=config['priority'],
+                    is_primary=(i == 0)
+                ))
+
+            results.append(HistoricalMeasureResponse(
+                id=m.id,
+                ballot_name=m.ballot_name,
+                year=m.year,
+                description=m.description,
+                description_truncated=m.description[:100] + '...' if len(m.description) > 100 else m.description,
+                pct_yes=m.pct_yes,
+                passed=m.passed,
+                measure_type=m.measure_type,
+                election_type=m.election_type,
+                topics=topic_tags,
+                primary_topic=m.primary_topic,
+                margin=m.margin,
+                margin_label=m.margin_label,
+                is_close=m.is_close,
+            ))
+
+        return results
+    except Exception as e:
+        logger.error(f"Error fetching similar measures for {measure_id}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/historical/search", tags=["Historical"])
+async def search_historical_measures(
+    query: str = Query(..., min_length=2, description="Search text"),
+    topic: Optional[str] = Query(None, description="Filter by topic"),
+    passed: Optional[bool] = Query(None, description="Filter by pass/fail"),
+    min_year: int = Query(1970, ge=1900, le=2030, description="Minimum year"),
+    limit: int = Query(50, ge=1, le=200, description="Maximum results")
+):
+    """
+    Full-text search on historical measure descriptions.
+
+    Searches ballot names and descriptions. Optionally filter by topic
+    and pass/fail status.
+    """
+    try:
+        measures = historical_db.search_measures(
+            query=query,
+            min_year=min_year,
+            topic=topic,
+            passed=passed,
+            limit=limit
+        )
+
+        results = []
+        for m in measures:
+            topic_tags = []
+            for i, t in enumerate(m.topics):
+                config = TOPIC_CONFIG[t]
+                topic_tags.append({
+                    'topic': t,
+                    'label': config['label'],
+                    'color': config['color'],
+                    'is_primary': (i == 0)
+                })
+
+            results.append({
+                'id': m.id,
+                'ballot_name': m.ballot_name,
+                'year': m.year,
+                'description_truncated': m.description[:100] + '...' if len(m.description) > 100 else m.description,
+                'pct_yes': m.pct_yes,
+                'passed': m.passed,
+                'topics': topic_tags,
+                'margin_label': m.margin_label,
+            })
+
+        return {
+            'query': query,
+            'count': len(results),
+            'results': results
+        }
+    except Exception as e:
+        logger.error(f"Error searching historical measures: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 # Run the API server
 if __name__ == "__main__":

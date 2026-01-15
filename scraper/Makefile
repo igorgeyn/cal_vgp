@@ -1,7 +1,7 @@
 # California Ballot Measures - Fixed Makefile
 # For use with the reorganized project structure
 
-.PHONY: help install setup update scrape check website api clean test backup migrate
+.PHONY: help install setup update scrape check website api clean test backup migrate historical-init historical-import historical-stats
 
 # Default - show help
 help:
@@ -29,6 +29,13 @@ help:
 	@echo "  make backup       - Backup database"
 	@echo "  make export-csv   - Export data to CSV"
 	@echo "  make stats        - Show database statistics"
+	@echo ""
+	@echo "Historical Data:"
+	@echo "  make historical-init   - Initialize with mock data"
+	@echo "  make historical-import - Import from CSV"
+	@echo "  make historical-stats  - Show topic statistics"
+	@echo "  make website-historical - Rebuild website with historical data"
+	@echo "  make full-run-historical - Full pipeline with historical data"
 	@echo ""
 	@echo "Summary Generation:"
 	@echo "  make summaries    - Complete summary workflow (Ballotpedia + AI)"
@@ -208,6 +215,19 @@ dev:
 	@echo "3. make api       - Start API server"
 	@echo "4. make test      - Run tests"
 
+# Historical Data Commands
+historical-init:
+	@echo "📊 Initializing historical measures database with mock data..."
+	@python scripts/init_historical_data.py --mock -v
+
+historical-import:
+	@echo "📥 Importing historical measures from CSV..."
+	@python scripts/init_historical_data.py --csv $(CSV_PATH) -v
+
+historical-stats:
+	@echo "📊 Historical measures statistics..."
+	@python scripts/show_historical_stats.py
+
 # Summary generation commands
 summaries:
 	@echo "🤖 Running complete summary workflow..."
@@ -225,3 +245,13 @@ summaries-ai:
 full-run: db-init scrape update website
 	@echo "✅ Full pipeline complete!"
 	@$(MAKE) -s status
+
+# Complete pipeline with historical data
+full-run-historical: db-init historical-init scrape update website
+	@echo "✅ Full pipeline with historical data complete!"
+	@$(MAKE) -s status
+	@$(MAKE) -s historical-stats
+
+# Website with historical data (quick rebuild)
+website-historical: historical-init website
+	@echo "✅ Website rebuilt with historical data!"
