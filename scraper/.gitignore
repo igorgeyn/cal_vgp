@@ -21,7 +21,7 @@ data/*.db
 data/raw/*
 data/exports/*
 data/embeddings.npz
-data/embedding_metadata.json
+# data/embedding_metadata.json - committed for similar measures feature
 logs/*.log
 backup_*/
 archive_*/
