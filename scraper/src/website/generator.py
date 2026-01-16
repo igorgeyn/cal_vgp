@@ -13,6 +13,7 @@ from ..database.operations import Database
 from ..database.models import BallotMeasure
 from ..config import WEBSITE_CONFIG, BASE_DIR
 from ..utils import TitleGenerator
+from ..utils.topic_mapping import get_display_topic, get_all_display_categories
 
 logger = logging.getLogger(__name__)
 
@@ -73,6 +74,10 @@ class WebsiteGenerator:
             # Ensure year is string for consistency in JSON
             if data.get('year'):
                 data['year'] = str(data['year'])
+
+            # Add consolidated display topic (maps detailed topics to ~12 categories)
+            raw_topic = data.get('topic_primary') or data.get('category_topic')
+            data['display_topic'] = get_display_topic(raw_topic)
 
             # Generate concise title if needed
             data = self.title_generator.process_measure(data)
@@ -3167,38 +3172,30 @@ class WebsiteGenerator:
             }}
         }}
 
-        // Topic icons for visual appeal
+        // Topic icons for consolidated display categories
         const TOPIC_ICONS = {{
-            "School Bonds": "🏫",
-            "District Taxes & Bonds": "💰",
-            "Recalls & Appointments": "🗳️",
-            "Utility Taxes": "💡",
-            "School Facilities": "🏗️",
-            "Infrastructure & Safety": "🛡️",
-            "Water & Public Services": "💧",
-            "Community Colleges": "🎓",
-            "Housing & School Bonds": "🏠",
-            "School Parcel Taxes": "📋",
-            "School Governance": "📚",
-            "City Charter Amendments": "📜",
-            "Special District Taxes": "🏛️",
-            "Land Use & Planning": "🗺️",
-            "Local Ordinances": "⚖️",
-            "City Offices": "🏢",
-            "Sales Tax & Services": "🛒",
-            "Hotel & Tourism Taxes": "🏨",
-            "Term Limits & Elections": "⏱️",
-            "Cannabis Regulation": "🌿"
+            "Education": "🎓",
+            "Public Safety & Crime": "🚔",
+            "Taxes & Finance": "💰",
+            "Government & Elections": "🗳️",
+            "Healthcare & Welfare": "🏥",
+            "Environment & Natural Resources": "🌲",
+            "Transportation": "🚗",
+            "Housing & Land Use": "🏠",
+            "Business & Labor": "💼",
+            "Utilities & Energy": "💡",
+            "Civil Rights": "⚖️",
+            "Other": "📋"
         }};
 
-        // Populate topic navigation
+        // Populate topic navigation (uses consolidated display_topic for cleaner dropdown)
         function populateTopicNavigation() {{
             const container = document.getElementById('topicCards');
 
-            // Count measures by topic
+            // Count measures by display topic (consolidated categories)
             const topicCounts = {{}};
             allMeasures.forEach(m => {{
-                const topic = m.topic_primary;
+                const topic = m.display_topic;  // Use consolidated display topic
                 if (topic) {{
                     topicCounts[topic] = (topicCounts[topic] || 0) + 1;
                 }}
@@ -3495,9 +3492,9 @@ class WebsiteGenerator:
                     }}
                 }}
                 
-                // Topic filter
+                // Topic filter (uses consolidated display_topic)
                 if (currentFilters.topics.length > 0) {{
-                    const measureTopic = measure.topic_primary || measure.category_topic || '';
+                    const measureTopic = measure.display_topic || '';
                     if (!currentFilters.topics.includes(measureTopic)) {{
                         return false;
                     }}
@@ -4380,8 +4377,8 @@ Please provide a helpful, accurate response based on the data provided. If you r
             let context = `Total measures in database: ${allMeasures.length}\\n`;
             context += `Years covered: ${Math.min(...allMeasures.map(m => m.year || 0))} - ${Math.max(...allMeasures.map(m => m.year || 0))}\\n\\n`;
 
-            // Check if question is about specific topics
-            const topics = [...new Set(allMeasures.map(m => m.topic_primary).filter(Boolean))];
+            // Check if question is about specific topics (use display_topic for cleaner list)
+            const topics = [...new Set(allMeasures.map(m => m.display_topic).filter(Boolean))];
             if (q.includes('topic') || q.includes('category')) {
                 context += `Topics available: ${topics.slice(0, 20).join(', ')}\\n\\n`;
             }
