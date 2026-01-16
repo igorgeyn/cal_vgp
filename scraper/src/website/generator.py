@@ -242,7 +242,12 @@ class WebsiteGenerator:
             <div class="hero-section" id="heroSection">
                 <div class="hero-header">
                     <h2 class="hero-title">🗳️ Upcoming 2026 Ballot Measures</h2>
-                    <p class="hero-description">Get informed about California's upcoming ballot measures before you vote</p>
+                    <p class="hero-description">
+                        Get informed about California's upcoming ballot measures before you vote.
+                        <span style="display: block; margin-top: 0.5rem; font-size: 0.85rem; color: var(--text-tertiary);">
+                            📋 Full official details will be available as the election approaches.
+                        </span>
+                    </p>
                 </div>
                 <div class="hero-grid" id="heroGrid">
                     <!-- Will be populated by JavaScript -->
@@ -2023,6 +2028,59 @@ class WebsiteGenerator:
 
         .measure-card.landmark .card-meta {
             color: #b45309;
+        }
+
+        /* Pending/Upcoming Measures (2026+) */
+        .measure-card.pending-measure {
+            border-left: 4px solid #8b5cf6;
+            background: linear-gradient(135deg, var(--bg-primary) 0%, rgba(139, 92, 246, 0.05) 100%);
+            position: relative;
+        }
+
+        .measure-card.pending-measure::before {
+            content: '📋 Pending';
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+            font-size: 0.65rem;
+            padding: 0.2rem 0.5rem;
+            background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+            color: white;
+            border-radius: 4px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+
+        .measure-card.pending-measure .card-summary {
+            font-style: italic;
+            color: var(--text-secondary);
+        }
+
+        /* Pending measure placeholder text */
+        .pending-info-text {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            font-style: italic;
+            padding: 0.75rem 1rem;
+            background: rgba(139, 92, 246, 0.08);
+            border-radius: 8px;
+            margin-top: 0.5rem;
+            border-left: 3px solid #8b5cf6;
+        }
+
+        .pending-disclaimer {
+            font-size: 0.8rem;
+            color: var(--text-tertiary);
+            padding: 1rem;
+            background: rgba(139, 92, 246, 0.05);
+            border-radius: 8px;
+            margin-top: 1rem;
+            text-align: center;
+        }
+
+        .pending-disclaimer strong {
+            color: #7c3aed;
         }
 
         /* Responsive */
@@ -3841,6 +3899,12 @@ class WebsiteGenerator:
             updateResults();
         }}
         
+        // Check if measure is pending (2026 or later, no vote data)
+        function isPendingMeasure(measure) {{
+            const year = parseInt(measure.year);
+            return year >= 2026 || (measure.passed !== 1 && measure.passed !== 0 && !measure.percent_yes);
+        }}
+
         // Create card HTML - simplified, cleaner design
         function createCard(measure, featured = false, featuredReason = null, isHero = false) {{
             // Use generated title if available, otherwise fall back to original
@@ -3849,8 +3913,11 @@ class WebsiteGenerator:
             const displayTitle = measureId ? `${{measureId}}: ${{title}}` : title;
             const year = measure.year || 'Unknown';
             const passed = measure.passed;
-            const passedClass = passed === 1 ? 'passed' : passed === 0 ? 'failed' : 'pending';
-            const passedText = passed === 1 ? '✓ Passed' : passed === 0 ? '✗ Failed' : '• Pending';
+            const isPending = isPendingMeasure(measure);
+
+            // Pending measures get special status display
+            const passedClass = isPending ? 'pending' : (passed === 1 ? 'passed' : passed === 0 ? 'failed' : 'pending');
+            const passedText = isPending ? '⏳ Upcoming' : (passed === 1 ? '✓ Passed' : passed === 0 ? '✗ Failed' : '• Pending');
 
             // Get summary/description - prioritize summary fields
             let summary = '';
@@ -3867,6 +3934,11 @@ class WebsiteGenerator:
                 summary = measure.original_title;
             }}
 
+            // For pending measures without content, show helpful placeholder
+            if (isPending && !summary) {{
+                summary = 'Full measure details will be available closer to the election. Check back for official language, fiscal analysis, and voter guide information.';
+            }}
+
             // Truncate summary for card preview (full text available in modal)
             const maxLength = 200;
             const truncatedSummary = summary.length > maxLength ? summary.substring(0, maxLength) + '...' : summary;
@@ -3875,8 +3947,9 @@ class WebsiteGenerator:
                 <div class="card-summary">${{truncatedSummary}}</div>
             ` : '';
 
+            // Hide vote bar for pending measures (no vote data yet)
             const percentYes = measure.percent_yes;
-            const voteBar = percentYes != null ? `
+            const voteBar = (percentYes != null && !isPending) ? `
                 <div class="vote-bar">
                     <div class="vote-bar-fill" style="width: ${{Math.round(percentYes)}}%"></div>
                 </div>
@@ -3885,16 +3958,18 @@ class WebsiteGenerator:
             const topic = measure.topic_primary || measure.category_topic || '';
             const source = measure.data_source || measure.source || '';
 
-            // Determine card class
+            // Determine card class - add pending-measure class for 2026+ measures
             let cardClass = isHero ? 'hero' : (featured ? 'featured' : '');
             if (measure.is_landmark) cardClass += ' landmark';
+            if (isPending) cardClass += ' pending-measure';
 
             // Build meta items - only show what's available, cleaner format
             const metaItems = [];
             if (measure.is_landmark) metaItems.push('⭐ Historic');
-            if (percentYes != null) metaItems.push(`${{Math.round(percentYes)}}% Yes`);
+            if (percentYes != null && !isPending) metaItems.push(`${{Math.round(percentYes)}}% Yes`);
             if (topic) metaItems.push(topic);
             if (source) metaItems.push(source);
+            if (isPending && !metaItems.length) metaItems.push('Election pending');
 
             return `
                 <div class="measure-card ${{cardClass}}" onclick="viewMeasure(${{JSON.stringify(measure).replace(/"/g, '&quot;')}})">
@@ -3942,6 +4017,7 @@ class WebsiteGenerator:
         // View measure details in modal
         function viewMeasure(measure) {{
             const modal = document.getElementById('measureDetailModal');
+            const isPending = isPendingMeasure(measure);
 
             // Populate header
             document.getElementById('modalMeasureId').textContent = measure.measure_id || '';
@@ -3958,14 +4034,19 @@ class WebsiteGenerator:
             else if (measure.county === 'Statewide') jurisdiction.push('California Statewide');
             document.getElementById('modalJurisdiction').textContent = jurisdiction.join(' • ') || 'California';
 
-            // Badges
+            // Badges - special handling for pending measures
             const badgesHtml = [];
             const passed = measure.passed;
-            const passedClass = passed === 1 ? 'passed' : passed === 0 ? 'failed' : 'pending';
-            const passedText = passed === 1 ? '✓ Passed' : passed === 0 ? '✗ Failed' : '• Pending';
-            badgesHtml.push(`<span class="badge badge-${{passedClass}}">${{passedText}}</span>`);
 
-            if (measure.percent_yes != null) {{
+            if (isPending) {{
+                badgesHtml.push(`<span class="badge badge-pending">⏳ Upcoming Election</span>`);
+            }} else {{
+                const passedClass = passed === 1 ? 'passed' : passed === 0 ? 'failed' : 'pending';
+                const passedText = passed === 1 ? '✓ Passed' : passed === 0 ? '✗ Failed' : '• Unknown';
+                badgesHtml.push(`<span class="badge badge-${{passedClass}}">${{passedText}}</span>`);
+            }}
+
+            if (measure.percent_yes != null && !isPending) {{
                 badgesHtml.push(`<span class="badge badge-neutral">📊 ${{Math.round(measure.percent_yes)}}% Yes</span>`);
             }}
             if (measure.category_type) {{
@@ -3976,22 +4057,31 @@ class WebsiteGenerator:
             }}
             document.getElementById('modalBadges').innerHTML = badgesHtml.join('');
 
-            // Summary
+            // Summary - with pending-specific messaging
             const summaryEl = document.getElementById('modalSummary');
             if (measure.summary_text && !isAiRefusal(measure.summary_text)) {{
-                summaryEl.textContent = measure.summary_text;
+                summaryEl.innerHTML = measure.summary_text;
                 summaryEl.classList.remove('no-summary-text');
             }} else if (measure.description) {{
-                summaryEl.textContent = measure.description;
+                summaryEl.innerHTML = measure.description;
+                summaryEl.classList.remove('no-summary-text');
+            }} else if (isPending) {{
+                // Helpful message for pending measures without content
+                summaryEl.innerHTML = `
+                    <div class="pending-info-text">
+                        <strong>📋 Coming Soon:</strong> Full measure details, including the official ballot language,
+                        fiscal impact analysis, and arguments for and against, will be available as we approach the election.
+                    </div>
+                `;
                 summaryEl.classList.remove('no-summary-text');
             }} else {{
                 summaryEl.textContent = 'No summary available for this measure.';
                 summaryEl.classList.add('no-summary-text');
             }}
 
-            // Results section
+            // Results section - hide for pending measures
             const resultsSection = document.getElementById('modalResultsSection');
-            if (measure.percent_yes != null && measure.yes_votes != null) {{
+            if (measure.percent_yes != null && measure.yes_votes != null && !isPending) {{
                 resultsSection.style.display = 'block';
                 document.getElementById('modalYesBar').style.width = measure.percent_yes + '%';
                 document.getElementById('modalYesLabel').textContent = `Yes: ${{measure.yes_votes?.toLocaleString() || 0}} (${{measure.percent_yes?.toFixed(1) || 0}}%)`;
@@ -4076,9 +4166,21 @@ class WebsiteGenerator:
             if (measure.pdf_url && measure.pdf_url !== '#') {{
                 links.push(`<a href="${{measure.pdf_url}}" target="_blank" rel="noopener noreferrer">📄 Full Ballot Text (PDF)</a>`);
             }}
-            if (links.length === 0) {{
+
+            // For pending measures, add helpful official source links
+            if (isPending && links.length === 0) {{
+                links.push(`<a href="https://www.sos.ca.gov/elections/ballot-measures" target="_blank" rel="noopener noreferrer" class="link-high-confidence">🏛️ CA Secretary of State - Ballot Measures</a>`);
+                links.push(`<a href="https://lao.ca.gov/BallotAnalysis" target="_blank" rel="noopener noreferrer" class="link-high-confidence">📊 LAO - Fiscal Analysis</a>`);
+                links.push(`<a href="https://leginfo.legislature.ca.gov/" target="_blank" rel="noopener noreferrer" class="link-medium-confidence">📜 CA Legislature - Bill Information</a>`);
+            }} else if (links.length === 0) {{
                 links.push('<span class="no-summary-text">No external links available</span>');
             }}
+
+            // Add pending disclaimer
+            if (isPending) {{
+                links.push(`<div class="pending-disclaimer"><strong>Note:</strong> This measure is pending and has not yet been voted on. Information may be updated as official details become available.</div>`);
+            }}
+
             linksContainer.innerHTML = links.join('');
 
             // Show modal

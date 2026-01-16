@@ -192,19 +192,127 @@ def generate_wikipedia_search_url(measure: Dict) -> Optional[Dict]:
     }
 
 
+def is_pending_measure(measure: Dict) -> bool:
+    """Check if measure is pending (2026 or future, no vote results)."""
+    year = measure.get('year')
+    if not year:
+        return False
+    return year >= 2026 or (measure.get('passed') is None and measure.get('percent_yes') is None)
+
+
+def generate_sos_pending_measures_url(measure: Dict) -> Optional[Dict]:
+    """
+    Generate CA Secretary of State pending ballot measures page URL.
+
+    This is the official source for tracking measures that have qualified
+    or may qualify for upcoming elections.
+    """
+    if not is_statewide(measure):
+        return None
+
+    year = measure.get('year')
+    if not year or year < 2024:
+        return None
+
+    # SOS ballot measures tracking page
+    url = "https://www.sos.ca.gov/elections/ballot-measures/qualified-ballot-measures"
+
+    return {
+        'source': 'CA SOS - Qualified Measures',
+        'url': url,
+        'confidence': 'high',
+        'icon': 'government'
+    }
+
+
+def generate_legislature_url(measure: Dict) -> Optional[Dict]:
+    """
+    Generate CA Legislature bill search URL for constitutional amendments.
+
+    ACAs (Assembly Constitutional Amendments) and SCAs (Senate Constitutional
+    Amendments) can be looked up on the legislature website.
+    """
+    if not is_statewide(measure):
+        return None
+
+    measure_id = measure.get('measure_id', '') or ''
+
+    # Check if this is a constitutional amendment from the legislature
+    aca_match = re.search(r'ACA[_\s]*(\d+)', measure_id, re.IGNORECASE)
+    sca_match = re.search(r'SCA[_\s]*(\d+)', measure_id, re.IGNORECASE)
+
+    if aca_match:
+        bill_num = aca_match.group(1)
+        url = f"https://leginfo.legislature.ca.gov/faces/billSearchClient.xhtml?session_year=2025&house=Both&lawCode=All&keyword=ACA+{bill_num}"
+        return {
+            'source': 'CA Legislature (ACA)',
+            'url': url,
+            'confidence': 'medium',
+            'icon': 'government'
+        }
+    elif sca_match:
+        bill_num = sca_match.group(1)
+        url = f"https://leginfo.legislature.ca.gov/faces/billSearchClient.xhtml?session_year=2025&house=Both&lawCode=All&keyword=SCA+{bill_num}"
+        return {
+            'source': 'CA Legislature (SCA)',
+            'url': url,
+            'confidence': 'medium',
+            'icon': 'government'
+        }
+
+    return None
+
+
+def generate_lao_pending_url(measure: Dict) -> Optional[Dict]:
+    """
+    Generate LAO ballot analysis page for pending measures.
+
+    LAO publishes fiscal analyses as measures qualify.
+    """
+    if not is_statewide(measure):
+        return None
+
+    year = measure.get('year')
+    if not year or year < 2024:
+        return None
+
+    # LAO ballot analysis overview page
+    url = "https://lao.ca.gov/BallotAnalysis"
+
+    return {
+        'source': 'LAO Ballot Analysis',
+        'url': url,
+        'confidence': 'high',
+        'icon': 'analysis'
+    }
+
+
 def generate_external_links(measure: Dict) -> List[Dict]:
     """
     Generate all applicable external links for a measure.
 
     Returns a list of link objects, sorted by confidence.
+    Uses different generators for pending vs historical measures.
     """
-    generators = [
-        generate_ballotpedia_url,
-        generate_sos_voter_guide_url,
-        generate_lao_url,
-        generate_uc_hastings_url,
-        generate_wikipedia_search_url,
-    ]
+    is_pending = is_pending_measure(measure)
+
+    if is_pending:
+        # Pending measures get special sources
+        generators = [
+            generate_sos_pending_measures_url,
+            generate_lao_pending_url,
+            generate_legislature_url,
+            generate_ballotpedia_url,
+        ]
+    else:
+        # Historical measures get archival sources
+        generators = [
+            generate_ballotpedia_url,
+            generate_sos_voter_guide_url,
+            generate_lao_url,
+            generate_uc_hastings_url,
+            generate_wikipedia_search_url,
+        ]
 
     links = []
     for generator in generators:
