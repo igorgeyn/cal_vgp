@@ -600,6 +600,7 @@ class WebsiteGenerator:
         :root {
             --primary: #1a73e8;
             --primary-dark: #1557b0;
+            --accent: #1a73e8;
             --success: #1e8e3e;
             --danger: #d93025;
             --warning: #f9ab00;
