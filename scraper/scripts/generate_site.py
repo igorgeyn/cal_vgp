@@ -145,12 +145,17 @@ def main():
         
         # Prepare data for website
         # Convert measures to format needed by generator
+        from src.utils.topic_mapping import get_display_topic
+
         measures_for_website = []
         for m in measures:
             m_dict = m.to_dict()
             # Add display fields
             m_dict['measure_text'] = m_dict.get('title') or m_dict.get('ballot_question', 'Unknown Measure')
             m_dict['source'] = m_dict.get('data_source', 'Historical')
+            # Add consolidated display topic (maps detailed topics to ~12 categories)
+            raw_topic = m_dict.get('topic_primary') or m_dict.get('category_topic')
+            m_dict['display_topic'] = get_display_topic(raw_topic)
             measures_for_website.append(m_dict)
         
         # Extract topics
