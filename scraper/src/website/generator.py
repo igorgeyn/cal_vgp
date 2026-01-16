@@ -2034,22 +2034,6 @@ class WebsiteGenerator:
         .measure-card.pending-measure {
             border-left: 4px solid #8b5cf6;
             background: linear-gradient(135deg, var(--bg-primary) 0%, rgba(139, 92, 246, 0.05) 100%);
-            position: relative;
-        }
-
-        .measure-card.pending-measure::before {
-            content: '📋 Pending';
-            position: absolute;
-            top: 0.5rem;
-            right: 0.5rem;
-            font-size: 0.65rem;
-            padding: 0.2rem 0.5rem;
-            background: linear-gradient(135deg, #8b5cf6, #7c3aed);
-            color: white;
-            border-radius: 4px;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.03em;
         }
 
         .measure-card.pending-measure .card-summary {
