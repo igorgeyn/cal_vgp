@@ -169,25 +169,9 @@ def main():
         # Load recommendations for related measures
         recommendations = generator._load_recommendations()
 
-        # Load historical topic statistics (if available)
-        historical_topics = []
-        try:
-            from src.database.historical_operations import HistoricalDatabase
-            hist_db = HistoricalDatabase(DB_PATH)
-            historical_topics = hist_db.get_all_topic_stats()
-            hist_db.close()
-            if historical_topics:
-                logger.info(f"Loaded historical data for {len(historical_topics)} topics")
-            else:
-                logger.info("No historical topic data available")
-        except ImportError:
-            logger.info("Historical database module not available, skipping historical topics")
-        except Exception as e:
-            logger.warning(f"Could not load historical topics: {e}")
-
         # Generate website
         logger.info(f"Generating website...")
-        html_content = generator._generate_html(measures_for_website, stats, topics, recommendations, historical_topics)
+        html_content = generator._generate_html(measures_for_website, stats, topics, recommendations)
         
         # Save website
         output_path = Path(args.output)
@@ -230,8 +214,6 @@ def main():
         print(f"📝 With Summaries: {stats['with_summaries']}")
         print(f"🗳️ With Vote Data: {stats['with_votes']}")
         print(f"📅 Year Range: {stats.get('year_min', 'N/A')}-{stats.get('year_max', 'N/A')}")
-        if historical_topics:
-            print(f"📈 Historical Topics: {len(historical_topics)} categories")
         print(f"🌐 Output: {output_path}")
         
         return 0

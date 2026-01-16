@@ -156,11 +156,9 @@ class WebsiteGenerator:
             return {}
 
     def _generate_html(self, measures: List[Dict], stats: Dict,
-                      topics: List[Dict], recommendations: Dict = None,
-                      historical_topics: List[Dict] = None) -> str:
+                      topics: List[Dict], recommendations: Dict = None) -> str:
         """Generate the complete HTML with type safety"""
         recommendations = recommendations or {}
-        historical_topics = historical_topics or []
 
         # Ensure all stats are proper types
         stats = self._sanitize_stats(stats)
@@ -169,7 +167,6 @@ class WebsiteGenerator:
         measures_json = json.dumps(measures, default=str)
         topics_json = json.dumps(topics, default=str)
         recommendations_json = json.dumps(recommendations, default=str)
-        historical_topics_json = json.dumps(historical_topics, default=str)
         
         # Calculate additional stats with type safety (unused variables removed)
         
@@ -352,17 +349,6 @@ class WebsiteGenerator:
                             </div>
                         </div>
                     </div>
-                </div>
-            </div>
-
-            <!-- Historical Topics Section -->
-            <div class="historical-topic-section" id="historicalTopicsSection">
-                <div class="historical-topic-header">
-                    <span class="historical-topic-header-icon">📊</span>
-                    Explore by Historical Topic (CA Statewide 1970+)
-                </div>
-                <div class="topic-filter-chips" id="historicalTopicChips">
-                    <!-- Will be populated by JavaScript -->
                 </div>
             </div>
 
@@ -588,7 +574,7 @@ class WebsiteGenerator:
     </div>
 
     <script>
-        {self._get_javascript(measures_json, topics_json, recommendations_json, stats, historical_topics_json)}
+        {self._get_javascript(measures_json, topics_json, recommendations_json, stats)}
         {self._get_chat_javascript()}
     </script>
 </body>
@@ -2811,323 +2797,16 @@ class WebsiteGenerator:
         .topic-tag.elections { background: #e0e7ff; color: #3730a3; border-color: #c7d2fe; }
         .topic-tag.criminal { background: #f1f5f9; color: #475569; border-color: #e2e8f0; }
         .topic-tag.environment { background: #ccfbf1; color: #115e59; border-color: #99f6e4; }
-
-        /* Historical Context Panel */
-        .historical-panel {
-            background: var(--bg-primary);
-            border: 1px solid var(--border);
-            border-radius: var(--radius);
-            overflow: hidden;
-            margin: 1rem 0;
-            box-shadow: var(--shadow-sm);
-        }
-
-        .historical-panel-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 1rem 1.25rem;
-            background: var(--bg-secondary);
-            cursor: pointer;
-            user-select: none;
-            transition: background 0.2s ease;
-        }
-
-        .historical-panel-header:hover {
-            background: var(--bg-tertiary);
-        }
-
-        .historical-panel-title {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            font-weight: 600;
-            color: var(--text-primary);
-        }
-
-        .historical-panel-title-icon {
-            font-size: 1.25rem;
-        }
-
-        .historical-panel-chevron {
-            transition: transform 0.3s ease;
-            color: var(--text-secondary);
-        }
-
-        .historical-panel.collapsed .historical-panel-chevron {
-            transform: rotate(-90deg);
-        }
-
-        .historical-panel-content {
-            padding: 1.25rem;
-            display: block;
-        }
-
-        .historical-panel.collapsed .historical-panel-content {
-            display: none;
-        }
-
-        /* Context Summary */
-        .context-summary {
-            font-size: 1rem;
-            color: var(--text-primary);
-            margin-bottom: 1rem;
-            line-height: 1.5;
-        }
-
-        .context-summary strong {
-            color: var(--primary);
-        }
-
-        /* Pass Rate Visualization */
-        .pass-rate-container {
-            margin: 1rem 0;
-        }
-
-        .pass-rate-label {
-            font-size: 0.875rem;
-            color: var(--text-secondary);
-            margin-bottom: 0.5rem;
-        }
-
-        .pass-rate-bar {
-            display: flex;
-            height: 8px;
-            border-radius: 4px;
-            overflow: hidden;
-            background: var(--bg-tertiary);
-        }
-
-        .pass-rate-passed {
-            background: var(--success);
-            transition: width 0.5s ease;
-        }
-
-        .pass-rate-failed {
-            background: var(--danger);
-        }
-
-        .pass-rate-stats {
-            display: flex;
-            justify-content: space-between;
-            margin-top: 0.5rem;
-            font-size: 0.8rem;
-        }
-
-        .pass-rate-stats .passed {
-            color: var(--success);
-            font-weight: 500;
-        }
-
-        .pass-rate-stats .failed {
-            color: var(--danger);
-            font-weight: 500;
-        }
-
-        /* Most Recent Measure Card */
-        .recent-measure {
-            background: var(--bg-secondary);
-            border-radius: var(--radius-sm);
-            padding: 1rem;
-            margin-top: 1rem;
-        }
-
-        .recent-measure-header {
-            font-size: 0.75rem;
-            color: var(--text-tertiary);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 0.5rem;
-        }
-
-        .recent-measure-title {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            font-weight: 600;
-            color: var(--text-primary);
-            flex-wrap: wrap;
-        }
-
-        .recent-measure-year {
-            font-size: 0.875rem;
-            color: var(--text-secondary);
-            font-weight: normal;
-        }
-
-        .recent-measure-result {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.25rem;
-            padding: 0.25rem 0.5rem;
-            border-radius: 4px;
-            font-size: 0.75rem;
-            font-weight: 500;
-        }
-
-        .recent-measure-result.passed {
-            background: #dcfce7;
-            color: #166534;
-        }
-
-        .recent-measure-result.failed {
-            background: #fee2e2;
-            color: #991b1b;
-        }
-
-        .recent-measure-description {
-            font-size: 0.875rem;
-            color: var(--text-secondary);
-            margin-top: 0.5rem;
-            line-height: 1.4;
-        }
-
-        .recent-measure-margin {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            margin-top: 0.75rem;
-            font-size: 0.8rem;
-        }
-
-        .margin-label {
-            padding: 0.125rem 0.5rem;
-            border-radius: 4px;
-            font-weight: 500;
-        }
-
-        .margin-label.landslide { background: #dcfce7; color: #166534; }
-        .margin-label.comfortable { background: #dbeafe; color: #1e40af; }
-        .margin-label.close { background: #fef9c3; color: #854d0e; }
-        .margin-label.very-close { background: #fee2e2; color: #991b1b; }
-
-        /* Caveat/Disclaimer */
-        .historical-caveat {
-            font-size: 0.75rem;
-            color: var(--text-tertiary);
-            font-style: italic;
-            margin-top: 1rem;
-            padding-top: 0.75rem;
-            border-top: 1px solid var(--border);
-        }
-
-        /* Topic Filter Chips (Historical) */
-        .historical-topic-section {
-            background: var(--bg-primary);
-            border: 1px solid var(--border);
-            border-radius: var(--radius);
-            padding: 1.25rem;
-            margin-bottom: 1.5rem;
-        }
-
-        .historical-topic-header {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            margin-bottom: 1rem;
-            font-weight: 600;
-            color: var(--text-primary);
-        }
-
-        .historical-topic-header-icon {
-            font-size: 1.25rem;
-        }
-
-        .topic-filter-chips {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 0.5rem;
-        }
-
-        .topic-filter-chip {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.375rem;
-            padding: 0.5rem 0.875rem;
-            background: var(--bg-primary);
-            border: 1px solid var(--border);
-            border-radius: 100px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            font-size: 0.85rem;
-            color: var(--text-primary);
-            user-select: none;
-        }
-
-        .topic-filter-chip:hover {
-            border-color: var(--primary);
-            background: rgba(26, 115, 232, 0.05);
-        }
-
-        .topic-filter-chip.selected {
-            background: var(--primary);
-            border-color: var(--primary);
-            color: white;
-        }
-
-        .topic-filter-chip.disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-
-        .topic-filter-chip-count {
-            font-size: 0.75rem;
-            opacity: 0.7;
-            margin-left: 0.25rem;
-        }
-
-        .topic-filter-chip-stats {
-            font-size: 0.7rem;
-            opacity: 0.6;
-            margin-left: 0.25rem;
-        }
-
-        /* Loading skeleton */
-        .historical-skeleton {
-            animation: skeleton-pulse 1.5s ease-in-out infinite;
-        }
-
-        @keyframes skeleton-pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-        }
-
-        .skeleton-line {
-            height: 1rem;
-            background: var(--bg-tertiary);
-            border-radius: 4px;
-            margin-bottom: 0.5rem;
-        }
-
-        .skeleton-line.short { width: 60%; }
-        .skeleton-line.medium { width: 80%; }
-        .skeleton-line.long { width: 100%; }
         """
 
     def _get_javascript(self, measures_json: str, topics_json: str,
-                       recommendations_json: str, stats: Dict,
-                       historical_topics_json: str = "[]") -> str:
+                       recommendations_json: str, stats: Dict) -> str:
         """Get JavaScript code for the website"""
         return f"""
         // Data
         const allMeasures = {measures_json};
         const topics = {topics_json};
         const recommendations = {recommendations_json};
-        const historicalTopics = {historical_topics_json};
-
-        // Historical Topic Configuration
-        const HISTORICAL_TOPIC_CONFIG = {{
-            marijuana: {{ label: 'Marijuana/Cannabis', color: '#22c55e', icon: '🌿', priority: 1 }},
-            gambling: {{ label: 'Gambling', color: '#eab308', icon: '🎰', priority: 2 }},
-            abortion: {{ label: 'Abortion', color: '#ec4899', icon: '⚕️', priority: 3 }},
-            marriage: {{ label: 'Marriage Equality', color: '#8b5cf6', icon: '💒', priority: 4 }},
-            tax: {{ label: 'Tax/Fiscal', color: '#f97316', icon: '💰', priority: 5 }},
-            education: {{ label: 'Education', color: '#3b82f6', icon: '📚', priority: 6 }},
-            health: {{ label: 'Healthcare', color: '#ef4444', icon: '🏥', priority: 7 }},
-            elections: {{ label: 'Election Reform', color: '#6366f1', icon: '🗳️', priority: 8 }},
-            criminal: {{ label: 'Criminal Justice', color: '#64748b', icon: '⚖️', priority: 9 }},
-            environment: {{ label: 'Environment', color: '#14b8a6', icon: '🌍', priority: 10 }},
-        }};
 
         // Utility function to detect AI refusal patterns in summaries
         function isAiRefusal(text) {{
@@ -3195,168 +2874,6 @@ class WebsiteGenerator:
             }}
         }};
 
-        // Render historical topic chips
-        function renderHistoricalTopicChips() {{
-            const container = document.getElementById('historicalTopicChips');
-            if (!container || !historicalTopics || historicalTopics.length === 0) {{
-                const section = document.getElementById('historicalTopicsSection');
-                if (section) section.style.display = 'none';
-                return;
-            }}
-
-            // Sort by priority
-            const sortedTopics = [...historicalTopics].sort((a, b) => {{
-                const configA = HISTORICAL_TOPIC_CONFIG[a.topic];
-                const configB = HISTORICAL_TOPIC_CONFIG[b.topic];
-                return (configA?.priority || 99) - (configB?.priority || 99);
-            }});
-
-            container.innerHTML = sortedTopics.map(stat => {{
-                const config = HISTORICAL_TOPIC_CONFIG[stat.topic] || {{ icon: '📌', label: stat.label }};
-                const isDisabled = stat.total_measures < 3;
-                return `
-                    <span class="topic-filter-chip ${{isDisabled ? 'disabled' : ''}}"
-                          data-historical-topic="${{stat.topic}}"
-                          onclick="${{!isDisabled ? `showHistoricalTopicPanel('${{stat.topic}}')` : ''}}"
-                          title="${{stat.label}}: ${{stat.total_measures}} measures, ${{stat.pass_rate}}% pass rate">
-                        <span>${{config.icon || stat.icon}}</span>
-                        ${{config.label || stat.label}}
-                        <span class="topic-filter-chip-count">(${{stat.total_measures}})</span>
-                        <span class="topic-filter-chip-stats">${{stat.pass_rate}}% pass</span>
-                    </span>
-                `;
-            }}).join('');
-        }}
-
-        // Show historical topic panel in modal or section
-        let selectedHistoricalTopic = null;
-
-        function showHistoricalTopicPanel(topic) {{
-            // Toggle selection
-            if (selectedHistoricalTopic === topic) {{
-                selectedHistoricalTopic = null;
-                // Remove selection styling
-                document.querySelectorAll('.topic-filter-chip[data-historical-topic]').forEach(el => {{
-                    el.classList.remove('selected');
-                }});
-                // Hide the panel if shown
-                const existingPanel = document.getElementById('historical-context-display');
-                if (existingPanel) existingPanel.remove();
-                return;
-            }}
-
-            selectedHistoricalTopic = topic;
-
-            // Update selection styling
-            document.querySelectorAll('.topic-filter-chip[data-historical-topic]').forEach(el => {{
-                el.classList.toggle('selected', el.dataset.historicalTopic === topic);
-            }});
-
-            // Find the topic data
-            const topicData = historicalTopics.find(t => t.topic === topic);
-            if (!topicData) return;
-
-            const config = HISTORICAL_TOPIC_CONFIG[topic] || {{ icon: '📊', label: topicData.label }};
-
-            // Create and show the panel
-            const panelHtml = renderHistoricalContextPanel(topicData, config);
-
-            // Insert after the historical topic section
-            const section = document.getElementById('historicalTopicsSection');
-            let panelContainer = document.getElementById('historical-context-display');
-            if (!panelContainer) {{
-                panelContainer = document.createElement('div');
-                panelContainer.id = 'historical-context-display';
-                section.insertAdjacentElement('afterend', panelContainer);
-            }}
-            panelContainer.innerHTML = panelHtml;
-        }}
-
-        function renderHistoricalContextPanel(data, config) {{
-            const passRate = data.pass_rate || 0;
-            const passedPct = passRate;
-            const failedPct = 100 - passRate;
-
-            return `
-                <div class="historical-panel" id="historical-panel-${{data.topic}}">
-                    <div class="historical-panel-header" onclick="toggleHistoricalPanel('${{data.topic}}')">
-                        <div class="historical-panel-title">
-                            <span class="historical-panel-title-icon">${{config.icon}}</span>
-                            Historical Context: ${{config.label}}
-                        </div>
-                        <svg class="historical-panel-chevron" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <polyline points="6 9 12 15 18 9"></polyline>
-                        </svg>
-                    </div>
-                    <div class="historical-panel-content">
-                        <p class="context-summary">
-                            California has voted on <strong>${{data.total_measures}}</strong> ${{config.label.toLowerCase()}} measures
-                            since <strong>${{data.first_year || 1970}}</strong>.
-                        </p>
-
-                        <div class="pass-rate-container">
-                            <div class="pass-rate-label">Pass Rate</div>
-                            <div class="pass-rate-bar">
-                                <div class="pass-rate-passed" style="width: ${{passedPct}}%"></div>
-                                <div class="pass-rate-failed" style="width: ${{failedPct}}%"></div>
-                            </div>
-                            <div class="pass-rate-stats">
-                                <span class="passed">${{data.passed_count || Math.round(data.total_measures * passRate / 100)}} passed (${{passRate.toFixed(0)}}%)</span>
-                                <span class="failed">${{data.failed_count || data.total_measures - Math.round(data.total_measures * passRate / 100)}} failed</span>
-                            </div>
-                        </div>
-
-                        ${{data.most_recent ? renderMostRecentMeasure(data.most_recent) : ''}}
-
-                        <p class="historical-caveat">
-                            Note: Historical pass rates describe past outcomes only and do not predict future results.
-                            Each measure is unique and depends on current context, wording, and campaign dynamics.
-                        </p>
-                    </div>
-                </div>
-            `;
-        }}
-
-        function renderMostRecentMeasure(recent) {{
-            if (!recent) return '';
-
-            const resultClass = recent.passed ? 'passed' : 'failed';
-            const resultText = recent.passed ? '✓ Passed' : '✗ Failed';
-            const pctYes = recent.pct_yes;
-            const margin = recent.margin || (pctYes ? pctYes - 50 : 0);
-
-            let marginClass = 'comfortable';
-            let marginLabel = 'Comfortable';
-            if (Math.abs(margin) < 5) {{ marginClass = 'very-close'; marginLabel = 'Very Close'; }}
-            else if (Math.abs(margin) < 10) {{ marginClass = 'close'; marginLabel = 'Close'; }}
-            else if (Math.abs(margin) >= 20) {{ marginClass = 'landslide'; marginLabel = 'Landslide'; }}
-
-            return `
-                <div class="recent-measure">
-                    <div class="recent-measure-header">Most Recent</div>
-                    <div class="recent-measure-title">
-                        ${{recent.ballot_name || 'Unknown'}}
-                        <span class="recent-measure-year">(${{recent.year || ''}})</span>
-                        <span class="recent-measure-result ${{resultClass}}">${{resultText}}</span>
-                    </div>
-                    ${{recent.description ? `<p class="recent-measure-description">${{recent.description}}</p>` : ''}}
-                    ${{pctYes ? `
-                        <div class="recent-measure-margin">
-                            <span>${{pctYes.toFixed(1)}}% Yes</span>
-                            <span class="margin-label ${{marginClass}}">${{marginLabel}}</span>
-                        </div>
-                    ` : ''}}
-                </div>
-            `;
-        }}
-
-        function toggleHistoricalPanel(topic) {{
-            const panel = document.getElementById(`historical-panel-${{topic}}`);
-            if (panel) {{
-                panel.classList.toggle('collapsed');
-            }}
-        }}
-
         // State
         let currentView = 'grid';
         let currentFilters = {{
@@ -3391,7 +2908,6 @@ class WebsiteGenerator:
             populateRegionalNavigation();
             populateTopicNavigation();
             populateYearNavigation();
-            renderHistoricalTopicChips();
             setupEventListeners();
             loadPageFromURL();
             applyFilters();

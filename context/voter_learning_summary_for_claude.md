@@ -273,4 +273,6 @@ Your VGP app scrapes California ballot measures. Key overlap areas:
 
 ---
 
+
+
 *Last updated: January 2026*
