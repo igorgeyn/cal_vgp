@@ -17,6 +17,7 @@ ENV/
 # Project specific
 .env
 data/*.db
+!data/backups/*.db
 data/raw/*
 data/exports/*
 data/embeddings.npz

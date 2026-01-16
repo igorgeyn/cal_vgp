@@ -1,7 +1,7 @@
 # California Ballot Measures - Fixed Makefile
 # For use with the reorganized project structure
 
-.PHONY: help install setup update scrape check website api clean test backup migrate historical-init historical-import historical-stats
+.PHONY: help install setup update scrape check website api clean test backup restore migrate historical-init historical-import historical-stats
 
 # Default - show help
 help:
@@ -27,6 +27,7 @@ help:
 	@echo ""
 	@echo "Data Management:"
 	@echo "  make backup       - Backup database"
+	@echo "  make restore      - Restore database from backup"
 	@echo "  make export-csv   - Export data to CSV"
 	@echo "  make stats        - Show database statistics"
 	@echo ""
@@ -122,6 +123,16 @@ backup:
 	           db = Database(DB_PATH); \
 	           backup_path = db.backup(); \
 	           print(f'Backup saved to: {backup_path}')"
+
+restore:
+	@echo "🔄 Restoring database from backup..."
+	@if [ -f data/backups/ballot_measures_backup_20250730_180629.db ]; then \
+		cp data/backups/ballot_measures_backup_20250730_180629.db data/ballot_measures.db; \
+		echo "✅ Database restored from backup (10,871 measures)"; \
+	else \
+		echo "❌ Backup file not found. Run 'git pull' to get the backup."; \
+		exit 1; \
+	fi
 
 export-csv:
 	@echo "📤 Exporting data to CSV..."
