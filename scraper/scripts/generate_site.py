@@ -156,6 +156,19 @@ def main():
             # Add consolidated display topic (maps detailed topics to ~12 categories)
             raw_topic = m_dict.get('topic_primary') or m_dict.get('category_topic')
             m_dict['display_topic'] = get_display_topic(raw_topic)
+
+            # Normalize percent_yes/percent_no to 0-100 scale
+            # CEDA/NCSL store as decimals (0-1), ICPSR stores as percentages (0-100)
+            pct_yes = m_dict.get('percent_yes')
+            if pct_yes is not None and pct_yes <= 1:
+                m_dict['percent_yes'] = pct_yes * 100
+
+            pct_no = m_dict.get('percent_no')
+            if pct_no is not None and pct_no <= 1:
+                m_dict['percent_no'] = pct_no * 100
+            elif pct_no is None and m_dict.get('percent_yes') is not None:
+                m_dict['percent_no'] = 100 - m_dict['percent_yes']
+
             measures_for_website.append(m_dict)
         
         # Extract topics
