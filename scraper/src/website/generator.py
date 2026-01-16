@@ -2015,7 +2015,16 @@ class WebsiteGenerator:
         .measure-card.featured .card-title {
             font-size: 1.05rem;
         }
-        
+
+        .measure-card.landmark {
+            border-left: 4px solid #f59e0b;
+            background: linear-gradient(135deg, var(--bg-primary) 0%, rgba(245, 158, 11, 0.05) 100%);
+        }
+
+        .measure-card.landmark .card-meta {
+            color: #b45309;
+        }
+
         /* Responsive */
         @media (max-width: 1024px) {
             .main-container {
@@ -2638,6 +2647,25 @@ class WebsiteGenerator:
 
         .measure-detail-links a:hover {
             background: var(--bg-secondary);
+        }
+
+        .measure-detail-links a.link-high-confidence {
+            font-weight: 500;
+        }
+
+        .measure-detail-links a.link-medium-confidence {
+            opacity: 0.9;
+        }
+
+        .measure-detail-links a.link-low-confidence {
+            opacity: 0.75;
+            font-size: 0.9rem;
+        }
+
+        .measure-detail-links a.link-low-confidence::after {
+            content: ' (search)';
+            font-size: 0.8rem;
+            color: var(--text-tertiary);
         }
 
         .no-summary-text {
@@ -3858,10 +3886,12 @@ class WebsiteGenerator:
             const source = measure.data_source || measure.source || '';
 
             // Determine card class
-            const cardClass = isHero ? 'hero' : (featured ? 'featured' : '');
+            let cardClass = isHero ? 'hero' : (featured ? 'featured' : '');
+            if (measure.is_landmark) cardClass += ' landmark';
 
             // Build meta items - only show what's available, cleaner format
             const metaItems = [];
+            if (measure.is_landmark) metaItems.push('⭐ Historic');
             if (percentYes != null) metaItems.push(`${{Math.round(percentYes)}}% Yes`);
             if (topic) metaItems.push(topic);
             if (source) metaItems.push(source);
@@ -4021,8 +4051,27 @@ class WebsiteGenerator:
             // Links section
             const linksContainer = document.getElementById('modalLinks');
             const links = [];
+
+            // Add generated external links first (higher quality)
+            if (measure.external_links && measure.external_links.length > 0) {{
+                const linkIcons = {{
+                    'ballot': '🗳️',
+                    'government': '🏛️',
+                    'academic': '🎓',
+                    'analysis': '📊',
+                    'wikipedia': '📚'
+                }};
+                measure.external_links.forEach(link => {{
+                    const icon = linkIcons[link.icon] || '🔗';
+                    const confidenceClass = link.confidence === 'high' ? 'link-high-confidence' :
+                                           link.confidence === 'medium' ? 'link-medium-confidence' : 'link-low-confidence';
+                    links.push(`<a href="${{link.url}}" target="_blank" rel="noopener noreferrer" class="${{confidenceClass}}">${{icon}} ${{link.source}}</a>`);
+                }});
+            }}
+
+            // Add original source links
             if (measure.source_url) {{
-                links.push(`<a href="${{measure.source_url}}" target="_blank" rel="noopener noreferrer">🔗 View on ${{measure.data_source || 'Source'}}</a>`);
+                links.push(`<a href="${{measure.source_url}}" target="_blank" rel="noopener noreferrer">🔗 Data Source (${{measure.data_source || 'Original'}})</a>`);
             }}
             if (measure.pdf_url && measure.pdf_url !== '#') {{
                 links.push(`<a href="${{measure.pdf_url}}" target="_blank" rel="noopener noreferrer">📄 Full Ballot Text (PDF)</a>`);

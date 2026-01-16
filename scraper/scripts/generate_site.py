@@ -146,8 +146,11 @@ def main():
         # Prepare data for website
         # Convert measures to format needed by generator
         from src.utils.topic_mapping import get_display_topic
+        from src.utils.external_links import generate_external_links, is_landmark_measure
 
         measures_for_website = []
+        links_generated = 0
+        landmark_count = 0
         for m in measures:
             m_dict = m.to_dict()
             # Add display fields
@@ -168,6 +171,17 @@ def main():
                 m_dict['percent_no'] = pct_no * 100
             elif pct_no is None and m_dict.get('percent_yes') is not None:
                 m_dict['percent_no'] = 100 - m_dict['percent_yes']
+
+            # Generate external links for the measure
+            external_links = generate_external_links(m_dict)
+            if external_links:
+                m_dict['external_links'] = external_links
+                links_generated += 1
+
+            # Flag landmark measures
+            if is_landmark_measure(m_dict):
+                m_dict['is_landmark'] = True
+                landmark_count += 1
 
             measures_for_website.append(m_dict)
         
@@ -232,6 +246,8 @@ def main():
         print(f"📝 With Summaries: {stats['with_summaries']}")
         print(f"🗳️ With Vote Data: {stats['with_votes']}")
         print(f"📅 Year Range: {stats.get('year_min', 'N/A')}-{stats.get('year_max', 'N/A')}")
+        print(f"🔗 With External Links: {links_generated}")
+        print(f"⭐ Landmark Measures: {landmark_count}")
         print(f"🌐 Output: {output_path}")
         
         return 0
