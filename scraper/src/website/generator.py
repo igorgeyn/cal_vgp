@@ -1404,24 +1404,29 @@ class WebsiteGenerator:
         .hero-carousel {
             display: flex;
             align-items: center;
-            gap: 1rem;
+            gap: 0.75rem;
             position: relative;
         }
 
         .carousel-track-container {
             flex: 1;
             overflow: hidden;
+            min-width: 0;
         }
 
         .carousel-track {
             display: flex;
-            gap: 1.25rem;
             transition: transform 0.4s ease;
         }
 
         .carousel-track .card {
-            flex: 0 0 calc(33.333% - 0.85rem);
-            min-width: calc(33.333% - 0.85rem);
+            flex: 0 0 calc((100% - 40px) / 3);
+            margin-right: 20px;
+            box-sizing: border-box;
+        }
+
+        .carousel-track .card:last-child {
+            margin-right: 0;
         }
 
         .carousel-btn {
@@ -1438,9 +1443,10 @@ class WebsiteGenerator:
             color: var(--text-secondary);
             transition: var(--transition);
             box-shadow: var(--shadow-sm);
+            z-index: 10;
         }
 
-        .carousel-btn:hover {
+        .carousel-btn:hover:not(:disabled) {
             background: var(--bg-secondary);
             color: var(--primary);
             border-color: var(--primary);
@@ -1466,6 +1472,7 @@ class WebsiteGenerator:
             border: none;
             cursor: pointer;
             transition: var(--transition);
+            padding: 0;
         }
 
         .carousel-dot:hover {
@@ -1481,20 +1488,23 @@ class WebsiteGenerator:
         /* Responsive carousel */
         @media (max-width: 1024px) {
             .carousel-track .card {
-                flex: 0 0 calc(50% - 0.625rem);
-                min-width: calc(50% - 0.625rem);
+                flex: 0 0 calc((100% - 20px) / 2);
             }
         }
 
         @media (max-width: 640px) {
             .carousel-track .card {
                 flex: 0 0 100%;
-                min-width: 100%;
+                margin-right: 20px;
             }
 
             .carousel-btn {
                 width: 36px;
                 height: 36px;
+            }
+
+            .hero-carousel {
+                gap: 0.5rem;
             }
         }
 
@@ -4382,16 +4392,21 @@ class WebsiteGenerator:
         // Display hero measures (2026 upcoming measures) as carousel
         function displayHero() {{
             const track = document.getElementById('heroGrid');
+            if (!track || heroMeasures.length === 0) return;
+
             track.innerHTML = heroMeasures.map(measure => createCard(measure, false, null, true)).join('');
 
             // Update items per view based on screen size
             updateHeroCarouselItemsPerView();
 
-            // Create dots
-            updateHeroCarouselDots();
+            // Reset index
+            heroCarouselIndex = 0;
 
-            // Set initial position
-            updateHeroCarouselPosition();
+            // Small delay to let DOM render before calculating positions
+            setTimeout(() => {{
+                updateHeroCarouselDots();
+                updateHeroCarouselPosition();
+            }}, 50);
         }}
 
         function updateHeroCarouselItemsPerView() {{
@@ -4410,15 +4425,19 @@ class WebsiteGenerator:
         }}
 
         function heroCarouselPrev() {{
-            heroCarouselIndex = Math.max(0, heroCarouselIndex - 1);
-            updateHeroCarouselPosition();
-            updateHeroCarouselDots();
+            if (heroCarouselIndex > 0) {{
+                heroCarouselIndex--;
+                updateHeroCarouselPosition();
+                updateHeroCarouselDots();
+            }}
         }}
 
         function heroCarouselNext() {{
-            heroCarouselIndex = Math.min(getHeroCarouselMaxIndex(), heroCarouselIndex + 1);
-            updateHeroCarouselPosition();
-            updateHeroCarouselDots();
+            if (heroCarouselIndex < getHeroCarouselMaxIndex()) {{
+                heroCarouselIndex++;
+                updateHeroCarouselPosition();
+                updateHeroCarouselDots();
+            }}
         }}
 
         function heroCarouselGoTo(index) {{
@@ -4429,44 +4448,57 @@ class WebsiteGenerator:
 
         function updateHeroCarouselPosition() {{
             const track = document.getElementById('heroGrid');
+            if (!track) return;
+
             const cards = track.querySelectorAll('.card');
             if (cards.length === 0) return;
 
-            const cardWidth = cards[0].offsetWidth;
-            const gap = 20; // 1.25rem gap
-            const offset = heroCarouselIndex * (cardWidth + gap);
+            // Get computed style for the card to get actual width including margin
+            const card = cards[0];
+            const cardStyle = window.getComputedStyle(card);
+            const cardWidth = card.offsetWidth;
+            const marginRight = parseInt(cardStyle.marginRight) || 20;
+
+            const offset = heroCarouselIndex * (cardWidth + marginRight);
             track.style.transform = `translateX(-${{offset}}px)`;
 
             // Update button states
-            document.querySelector('.carousel-prev').disabled = heroCarouselIndex === 0;
-            document.querySelector('.carousel-next').disabled = heroCarouselIndex >= getHeroCarouselMaxIndex();
+            const prevBtn = document.querySelector('.carousel-prev');
+            const nextBtn = document.querySelector('.carousel-next');
+            if (prevBtn) prevBtn.disabled = heroCarouselIndex === 0;
+            if (nextBtn) nextBtn.disabled = heroCarouselIndex >= getHeroCarouselMaxIndex();
         }}
 
         function updateHeroCarouselDots() {{
             const dotsContainer = document.getElementById('heroCarouselDots');
-            const totalDots = getHeroCarouselMaxIndex() + 1;
+            if (!dotsContainer) return;
 
-            if (totalDots <= 1) {{
+            const maxIndex = getHeroCarouselMaxIndex();
+
+            // Don't show dots if everything fits
+            if (maxIndex <= 0) {{
                 dotsContainer.innerHTML = '';
                 return;
             }}
 
             let dotsHTML = '';
-            for (let i = 0; i < totalDots; i++) {{
+            for (let i = 0; i <= maxIndex; i++) {{
                 dotsHTML += `<button class="carousel-dot ${{i === heroCarouselIndex ? 'active' : ''}}" onclick="heroCarouselGoTo(${{i}})" aria-label="Go to slide ${{i + 1}}"></button>`;
             }}
             dotsContainer.innerHTML = dotsHTML;
         }}
 
         // Update carousel on window resize
+        let resizeTimeout;
         window.addEventListener('resize', () => {{
-            const prevItemsPerView = heroCarouselItemsPerView;
-            updateHeroCarouselItemsPerView();
-            if (prevItemsPerView !== heroCarouselItemsPerView) {{
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(() => {{
+                const prevItemsPerView = heroCarouselItemsPerView;
+                updateHeroCarouselItemsPerView();
                 heroCarouselIndex = Math.min(heroCarouselIndex, getHeroCarouselMaxIndex());
                 updateHeroCarouselPosition();
                 updateHeroCarouselDots();
-            }}
+            }}, 100);
         }});
 
         // Display featured measures (curated selection)
