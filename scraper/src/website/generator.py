@@ -250,20 +250,11 @@ class WebsiteGenerator:
                 'category': 'Geography'
             })
 
-        # 8. Number of counties - normalize case and fix typos to get accurate count
-        raw_counties = set(m.get('county') for m in measures if m.get('county'))
-        normalized_counties = set()
-        for c in raw_counties:
-            upper = c.upper().strip()
-            if upper == 'SAN BERNADINO':
-                upper = 'SAN BERNARDINO'
-            if upper == 'TOULUMNE':
-                upper = 'TUOLUMNE'
-            if upper != 'STATEWIDE':  # Exclude statewide measures
-                normalized_counties.add(upper)
+        # 8. Number of counties (data is now normalized, just exclude Statewide)
+        counties = set(m.get('county') for m in measures if m.get('county') and m.get('county') != 'Statewide')
         questions.append({
             'question': 'How many of California\'s 58 counties are represented in the database?',
-            'answer': f'All {len(normalized_counties)} counties! The database includes ballot measures from every county in California, from Alpine (population ~1,200) to Los Angeles (population ~10 million).',
+            'answer': f'All {len(counties)} counties! The database includes ballot measures from every county in California, from Alpine (population ~1,200) to Los Angeles (population ~10 million).',
             'category': 'Geography'
         })
 
