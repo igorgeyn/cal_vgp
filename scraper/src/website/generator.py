@@ -678,6 +678,27 @@ class WebsiteGenerator:
                 </ul>
             </div>
 
+            <div class="about-section">
+                <h3>Data Pipeline</h3>
+                <p>
+                    Building this database required substantial data engineering work:
+                </p>
+                <ul>
+                    <li><strong>Data collection:</strong> Aggregated records from multiple sources including the CA Secretary of State,
+                        NCSL, ICPSR, and CEDA research databases</li>
+                    <li><strong>Deduplication:</strong> Merged overlapping records using fingerprinting algorithms to identify
+                        the same measure across different sources</li>
+                    <li><strong>Standardization:</strong> Normalized county names, vote percentages, and date formats
+                        across inconsistent source data</li>
+                    <li><strong>Topic classification:</strong> Used K-means clustering on sentence embeddings to automatically
+                        categorize measures into ~20 topic clusters</li>
+                    <li><strong>AI summaries:</strong> Generated plain-language summaries using LLMs for measures
+                        with sufficient ballot text</li>
+                    <li><strong>Similarity matching:</strong> Computed semantic embeddings (all-MiniLM-L6-v2) to find
+                        related measures based on content similarity</li>
+                </ul>
+            </div>
+
             <div class="about-section about-author">
                 <h3>Author</h3>
                 <p>
