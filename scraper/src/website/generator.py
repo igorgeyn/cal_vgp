@@ -429,7 +429,7 @@ class WebsiteGenerator:
     </footer>
 
     <!-- About Modal -->
-    <div id="aboutModal" class="modal-overlay" style="display: none;" onclick="closeAboutModal(event)">
+    <div id="aboutModal" class="modal" style="display: none;" onclick="closeAboutModal(event)">
         <div class="modal-content about-modal" onclick="event.stopPropagation()">
             <button class="modal-close" onclick="closeAboutModal()">&times;</button>
             <h2 class="about-title">About This Project</h2>
