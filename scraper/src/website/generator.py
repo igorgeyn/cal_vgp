@@ -462,43 +462,73 @@ class WebsiteGenerator:
                 </div>
             </div>
 
-            <!-- Filter Accordion -->
-            <div class="filter-accordion">
-                <div class="accordion-tabs">
-                    <button class="accordion-tab" data-panel="region" onclick="toggleAccordion('region')">
-                        <span class="tab-icon">🗺️</span>
-                        <span class="tab-label">Region</span>
-                        <span class="tab-count" id="regionFilterCount"></span>
-                        <svg class="tab-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <polyline points="6 9 12 15 18 9"></polyline>
-                        </svg>
+            <!-- Stats Ribbon (moved above filters) -->
+            <div class="stats-ribbon" id="statsRibbon">
+                <div class="stats-ribbon-inner">
+                    <div class="stat-item">
+                        <span class="stat-value" id="statTotal">—</span>
+                        <span class="stat-label">Measures</span>
+                    </div>
+                    <div class="stat-divider"></div>
+                    <div class="stat-item">
+                        <span class="stat-value" id="statPassRate">—</span>
+                        <span class="stat-label">Pass Rate</span>
+                    </div>
+                    <div class="stat-divider"></div>
+                    <div class="stat-item">
+                        <span class="stat-value" id="statAvgMargin">—</span>
+                        <span class="stat-label">Avg. Win Margin</span>
+                    </div>
+                    <div class="stat-divider"></div>
+                    <div class="stat-item">
+                        <span class="stat-value" id="statAvgTurnout">—</span>
+                        <span class="stat-label">Avg. Turnout</span>
+                    </div>
+                    <div class="stat-divider"></div>
+                    <div class="stat-item">
+                        <span class="stat-value" id="statYearRange">—</span>
+                        <span class="stat-label">Year Range</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filter Section (redesigned) -->
+            <div class="filter-section-wrapper">
+                <div class="filter-header-row">
+                    <h3 class="filter-title">Filter & Explore</h3>
+                    <div class="filter-actions">
+                        <select class="sort-select" id="sortSelect" onchange="applySort()">
+                            <option value="year-desc">Newest First</option>
+                            <option value="year-asc">Oldest First</option>
+                            <option value="title">Title A-Z</option>
+                            <option value="votes">Most Votes</option>
+                        </select>
+                        <button class="clear-filters-btn" onclick="clearAllFilters()">
+                            Clear All
+                        </button>
+                    </div>
+                </div>
+
+                <div class="filter-buttons">
+                    <button class="filter-btn" data-panel="region" onclick="toggleAccordion('region')">
+                        <span class="filter-btn-icon">🗺️</span>
+                        <span class="filter-btn-label">Region</span>
+                        <span class="filter-btn-count" id="regionFilterCount"></span>
                     </button>
-                    <button class="accordion-tab" data-panel="topic" onclick="toggleAccordion('topic')">
-                        <span class="tab-icon">📑</span>
-                        <span class="tab-label">Topic</span>
-                        <span class="tab-count" id="topicFilterCount"></span>
-                        <svg class="tab-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <polyline points="6 9 12 15 18 9"></polyline>
-                        </svg>
+                    <button class="filter-btn" data-panel="topic" onclick="toggleAccordion('topic')">
+                        <span class="filter-btn-icon">📑</span>
+                        <span class="filter-btn-label">Topic</span>
+                        <span class="filter-btn-count" id="topicFilterCount"></span>
                     </button>
-                    <button class="accordion-tab" data-panel="year" onclick="toggleAccordion('year')">
-                        <span class="tab-icon">📅</span>
-                        <span class="tab-label">Year</span>
-                        <span class="tab-count" id="yearFilterCount"></span>
-                        <svg class="tab-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <polyline points="6 9 12 15 18 9"></polyline>
-                        </svg>
+                    <button class="filter-btn" data-panel="year" onclick="toggleAccordion('year')">
+                        <span class="filter-btn-icon">📅</span>
+                        <span class="filter-btn-label">Year</span>
+                        <span class="filter-btn-count" id="yearFilterCount"></span>
                     </button>
-                    <button class="accordion-tab" data-panel="status" onclick="toggleAccordion('status')">
-                        <span class="tab-icon">✓</span>
-                        <span class="tab-label">Status</span>
-                        <span class="tab-count" id="statusFilterCount"></span>
-                        <svg class="tab-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <polyline points="6 9 12 15 18 9"></polyline>
-                        </svg>
-                    </button>
-                    <button class="clear-filters-btn" onclick="clearAllFilters()">
-                        Clear All
+                    <button class="filter-btn" data-panel="status" onclick="toggleAccordion('status')">
+                        <span class="filter-btn-icon">✓</span>
+                        <span class="filter-btn-label">Status</span>
+                        <span class="filter-btn-count" id="statusFilterCount"></span>
                     </button>
                 </div>
 
@@ -570,50 +600,11 @@ class WebsiteGenerator:
                 </div>
             </div>
 
-            <!-- Stats Ribbon -->
-            <div class="stats-ribbon" id="statsRibbon">
-                <div class="stats-ribbon-inner">
-                    <div class="stat-item">
-                        <span class="stat-value" id="statTotal">—</span>
-                        <span class="stat-label">Measures</span>
-                    </div>
-                    <div class="stat-divider"></div>
-                    <div class="stat-item">
-                        <span class="stat-value" id="statPassRate">—</span>
-                        <span class="stat-label">Pass Rate</span>
-                    </div>
-                    <div class="stat-divider"></div>
-                    <div class="stat-item">
-                        <span class="stat-value" id="statAvgMargin">—</span>
-                        <span class="stat-label">Avg. Win Margin</span>
-                    </div>
-                    <div class="stat-divider"></div>
-                    <div class="stat-item">
-                        <span class="stat-value" id="statAvgTurnout">—</span>
-                        <span class="stat-label">Avg. Turnout</span>
-                    </div>
-                    <div class="stat-divider"></div>
-                    <div class="stat-item">
-                        <span class="stat-value" id="statYearRange">—</span>
-                        <span class="stat-label">Year Range</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Results Header -->
+            <!-- Results Count -->
             <div class="results-header">
                 <div class="results-info">
                     <span class="results-count" id="resultsCount">0</span>
                     <span class="results-description" id="resultsDescription">measures found</span>
-                </div>
-                <div class="sort-controls">
-                    <label for="sortSelect" class="sort-label">Sort:</label>
-                    <select class="sort-select" id="sortSelect" onchange="applySort()">
-                        <option value="year-desc">Newest First</option>
-                        <option value="year-asc">Oldest First</option>
-                        <option value="title">Title A-Z</option>
-                        <option value="votes">Most Votes</option>
-                    </select>
                 </div>
             </div>
 
@@ -1966,6 +1957,176 @@ class WebsiteGenerator:
 
             .stat-divider {
                 display: none;
+            }
+        }
+
+        /* Filter Section Styles */
+        .filter-section-wrapper {
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .filter-header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.25rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .filter-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin: 0;
+        }
+
+        .filter-actions {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .sort-select {
+            padding: 0.5rem 2rem 0.5rem 0.75rem;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            font-size: 0.875rem;
+            cursor: pointer;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 0.5rem center;
+        }
+
+        .sort-select:hover {
+            border-color: var(--primary);
+        }
+
+        .clear-filters-btn {
+            padding: 0.5rem 1rem;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            background: var(--bg-secondary);
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .clear-filters-btn:hover {
+            background: var(--error);
+            color: white;
+            border-color: var(--error);
+        }
+
+        .filter-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        .filter-btn {
+            display: flex;
+            align-items: center;
+            gap: 0.625rem;
+            padding: 0.875rem 1.5rem;
+            background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 0.95rem;
+            color: var(--text-primary);
+            font-weight: 500;
+            min-width: 120px;
+            justify-content: center;
+        }
+
+        .filter-btn:hover {
+            border-color: var(--primary);
+            background: linear-gradient(135deg, rgba(66, 133, 244, 0.08) 0%, rgba(66, 133, 244, 0.03) 100%);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(66, 133, 244, 0.15);
+        }
+
+        .filter-btn.active {
+            border-color: var(--primary);
+            background: var(--primary);
+            color: white;
+            box-shadow: 0 4px 12px rgba(66, 133, 244, 0.3);
+        }
+
+        .filter-btn.has-selection {
+            border-color: var(--accent);
+            background: linear-gradient(135deg, rgba(52, 168, 83, 0.12) 0%, rgba(52, 168, 83, 0.05) 100%);
+        }
+
+        .filter-btn.has-selection:not(.active) .filter-btn-count {
+            background: var(--accent);
+            color: white;
+        }
+
+        .filter-btn-icon {
+            font-size: 1.1rem;
+        }
+
+        .filter-btn-label {
+            font-weight: 500;
+        }
+
+        .filter-btn-count {
+            background: var(--bg-tertiary);
+            color: var(--text-secondary);
+            font-size: 0.75rem;
+            font-weight: 600;
+            padding: 0.2rem 0.5rem;
+            border-radius: 10px;
+            min-width: 20px;
+            text-align: center;
+        }
+
+        .filter-btn.active .filter-btn-count {
+            background: rgba(255, 255, 255, 0.25);
+            color: white;
+        }
+
+        @media (max-width: 768px) {
+            .filter-section-wrapper {
+                padding: 1rem;
+            }
+
+            .filter-header-row {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 0.75rem;
+            }
+
+            .filter-title {
+                text-align: center;
+            }
+
+            .filter-actions {
+                justify-content: center;
+            }
+
+            .filter-buttons {
+                gap: 0.5rem;
+            }
+
+            .filter-btn {
+                padding: 0.75rem 1rem;
+                min-width: auto;
+                flex: 1;
+                max-width: calc(50% - 0.25rem);
             }
         }
 
@@ -3807,9 +3968,9 @@ class WebsiteGenerator:
 
         function toggleAccordion(panelName) {{
             const panel = document.getElementById(panelName + 'Panel');
-            const tab = document.querySelector(`.accordion-tab[data-panel="${{panelName}}"]`);
+            const tab = document.querySelector(`.filter-btn[data-panel="${{panelName}}"]`);
             const allPanels = document.querySelectorAll('.accordion-panel');
-            const allTabs = document.querySelectorAll('.accordion-tab');
+            const allTabs = document.querySelectorAll('.filter-btn');
 
             // If clicking the already active panel, close it
             if (activeAccordionPanel === panelName) {{
@@ -3836,11 +3997,13 @@ class WebsiteGenerator:
             const regionBadge = document.getElementById('regionFilterCount');
             if (regionBadge) {{
                 regionBadge.textContent = regionCount > 0 ? regionCount : '';
-                const regionTab = document.querySelector('.accordion-tab[data-panel="region"]');
-                if (regionCount > 0) {{
-                    regionTab.classList.add('has-selection');
-                }} else {{
-                    regionTab.classList.remove('has-selection');
+                const regionTab = document.querySelector('.filter-btn[data-panel="region"]');
+                if (regionTab) {{
+                    if (regionCount > 0) {{
+                        regionTab.classList.add('has-selection');
+                    }} else {{
+                        regionTab.classList.remove('has-selection');
+                    }}
                 }}
             }}
 
@@ -3849,11 +4012,13 @@ class WebsiteGenerator:
             const topicBadge = document.getElementById('topicFilterCount');
             if (topicBadge) {{
                 topicBadge.textContent = topicCount > 0 ? topicCount : '';
-                const topicTab = document.querySelector('.accordion-tab[data-panel="topic"]');
-                if (topicCount > 0) {{
-                    topicTab.classList.add('has-selection');
-                }} else {{
-                    topicTab.classList.remove('has-selection');
+                const topicTab = document.querySelector('.filter-btn[data-panel="topic"]');
+                if (topicTab) {{
+                    if (topicCount > 0) {{
+                        topicTab.classList.add('has-selection');
+                    }} else {{
+                        topicTab.classList.remove('has-selection');
+                    }}
                 }}
             }}
 
@@ -3862,11 +4027,13 @@ class WebsiteGenerator:
             const yearBadge = document.getElementById('yearFilterCount');
             if (yearBadge) {{
                 yearBadge.textContent = yearCount > 0 ? yearCount : '';
-                const yearTab = document.querySelector('.accordion-tab[data-panel="year"]');
-                if (yearCount > 0) {{
-                    yearTab.classList.add('has-selection');
-                }} else {{
-                    yearTab.classList.remove('has-selection');
+                const yearTab = document.querySelector('.filter-btn[data-panel="year"]');
+                if (yearTab) {{
+                    if (yearCount > 0) {{
+                        yearTab.classList.add('has-selection');
+                    }} else {{
+                        yearTab.classList.remove('has-selection');
+                    }}
                 }}
             }}
 
@@ -3875,11 +4042,13 @@ class WebsiteGenerator:
             const statusBadge = document.getElementById('statusFilterCount');
             if (statusBadge) {{
                 statusBadge.textContent = statusCount > 0 ? statusCount : '';
-                const statusTab = document.querySelector('.accordion-tab[data-panel="status"]');
-                if (statusCount > 0) {{
-                    statusTab.classList.add('has-selection');
-                }} else {{
-                    statusTab.classList.remove('has-selection');
+                const statusTab = document.querySelector('.filter-btn[data-panel="status"]');
+                if (statusTab) {{
+                    if (statusCount > 0) {{
+                        statusTab.classList.add('has-selection');
+                    }} else {{
+                        statusTab.classList.remove('has-selection');
+                    }}
                 }}
             }}
         }}
@@ -4985,7 +5154,7 @@ class WebsiteGenerator:
             document.querySelectorAll('.accordion-panel').forEach(panel => {{
                 panel.style.display = 'none';
             }});
-            document.querySelectorAll('.accordion-tab').forEach(tab => {{
+            document.querySelectorAll('.filter-btn').forEach(tab => {{
                 tab.classList.remove('active');
             }});
 
