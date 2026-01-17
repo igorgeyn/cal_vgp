@@ -429,7 +429,7 @@ class WebsiteGenerator:
                 </p>
             </div>
 
-            <!-- Hero Section for 2026 Upcoming Measures -->
+            <!-- Hero Section for 2026 Upcoming Measures (Carousel) -->
             <div class="hero-section" id="heroSection">
                 <div class="hero-header">
                     <h2 class="hero-title">🗳️ Upcoming 2026 Ballot Measures</h2>
@@ -440,7 +440,24 @@ class WebsiteGenerator:
                         </span>
                     </p>
                 </div>
-                <div class="hero-grid" id="heroGrid">
+                <div class="hero-carousel">
+                    <button class="carousel-btn carousel-prev" onclick="heroCarouselPrev()" aria-label="Previous">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="15 18 9 12 15 6"></polyline>
+                        </svg>
+                    </button>
+                    <div class="carousel-track-container">
+                        <div class="carousel-track" id="heroGrid">
+                            <!-- Will be populated by JavaScript -->
+                        </div>
+                    </div>
+                    <button class="carousel-btn carousel-next" onclick="heroCarouselNext()" aria-label="Next">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="9 18 15 12 9 6"></polyline>
+                        </svg>
+                    </button>
+                </div>
+                <div class="carousel-dots" id="heroCarouselDots">
                     <!-- Will be populated by JavaScript -->
                 </div>
             </div>
@@ -1383,10 +1400,102 @@ class WebsiteGenerator:
             margin: 0 auto;
         }
 
-        .hero-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        /* Hero Carousel */
+        .hero-carousel {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            position: relative;
+        }
+
+        .carousel-track-container {
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .carousel-track {
+            display: flex;
             gap: 1.25rem;
+            transition: transform 0.4s ease;
+        }
+
+        .carousel-track .card {
+            flex: 0 0 calc(33.333% - 0.85rem);
+            min-width: calc(33.333% - 0.85rem);
+        }
+
+        .carousel-btn {
+            flex-shrink: 0;
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-secondary);
+            transition: var(--transition);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .carousel-btn:hover {
+            background: var(--bg-secondary);
+            color: var(--primary);
+            border-color: var(--primary);
+        }
+
+        .carousel-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        .carousel-dots {
+            display: flex;
+            justify-content: center;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+
+        .carousel-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--border);
+            border: none;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .carousel-dot:hover {
+            background: var(--text-tertiary);
+        }
+
+        .carousel-dot.active {
+            background: var(--primary);
+            width: 24px;
+            border-radius: 4px;
+        }
+
+        /* Responsive carousel */
+        @media (max-width: 1024px) {
+            .carousel-track .card {
+                flex: 0 0 calc(50% - 0.625rem);
+                min-width: calc(50% - 0.625rem);
+            }
+        }
+
+        @media (max-width: 640px) {
+            .carousel-track .card {
+                flex: 0 0 100%;
+                min-width: 100%;
+            }
+
+            .carousel-btn {
+                width: 36px;
+                height: 36px;
+            }
         }
 
         /* Featured Section */
@@ -4266,11 +4375,99 @@ class WebsiteGenerator:
             displayResults();
         }}
 
-        // Display hero measures (2026 upcoming measures)
+        // Hero Carousel state
+        let heroCarouselIndex = 0;
+        let heroCarouselItemsPerView = 3;
+
+        // Display hero measures (2026 upcoming measures) as carousel
         function displayHero() {{
-            const grid = document.getElementById('heroGrid');
-            grid.innerHTML = heroMeasures.map(measure => createCard(measure, false, null, true)).join('');
+            const track = document.getElementById('heroGrid');
+            track.innerHTML = heroMeasures.map(measure => createCard(measure, false, null, true)).join('');
+
+            // Update items per view based on screen size
+            updateHeroCarouselItemsPerView();
+
+            // Create dots
+            updateHeroCarouselDots();
+
+            // Set initial position
+            updateHeroCarouselPosition();
         }}
+
+        function updateHeroCarouselItemsPerView() {{
+            const width = window.innerWidth;
+            if (width <= 640) {{
+                heroCarouselItemsPerView = 1;
+            }} else if (width <= 1024) {{
+                heroCarouselItemsPerView = 2;
+            }} else {{
+                heroCarouselItemsPerView = 3;
+            }}
+        }}
+
+        function getHeroCarouselMaxIndex() {{
+            return Math.max(0, heroMeasures.length - heroCarouselItemsPerView);
+        }}
+
+        function heroCarouselPrev() {{
+            heroCarouselIndex = Math.max(0, heroCarouselIndex - 1);
+            updateHeroCarouselPosition();
+            updateHeroCarouselDots();
+        }}
+
+        function heroCarouselNext() {{
+            heroCarouselIndex = Math.min(getHeroCarouselMaxIndex(), heroCarouselIndex + 1);
+            updateHeroCarouselPosition();
+            updateHeroCarouselDots();
+        }}
+
+        function heroCarouselGoTo(index) {{
+            heroCarouselIndex = Math.min(getHeroCarouselMaxIndex(), Math.max(0, index));
+            updateHeroCarouselPosition();
+            updateHeroCarouselDots();
+        }}
+
+        function updateHeroCarouselPosition() {{
+            const track = document.getElementById('heroGrid');
+            const cards = track.querySelectorAll('.card');
+            if (cards.length === 0) return;
+
+            const cardWidth = cards[0].offsetWidth;
+            const gap = 20; // 1.25rem gap
+            const offset = heroCarouselIndex * (cardWidth + gap);
+            track.style.transform = `translateX(-${{offset}}px)`;
+
+            // Update button states
+            document.querySelector('.carousel-prev').disabled = heroCarouselIndex === 0;
+            document.querySelector('.carousel-next').disabled = heroCarouselIndex >= getHeroCarouselMaxIndex();
+        }}
+
+        function updateHeroCarouselDots() {{
+            const dotsContainer = document.getElementById('heroCarouselDots');
+            const totalDots = getHeroCarouselMaxIndex() + 1;
+
+            if (totalDots <= 1) {{
+                dotsContainer.innerHTML = '';
+                return;
+            }}
+
+            let dotsHTML = '';
+            for (let i = 0; i < totalDots; i++) {{
+                dotsHTML += `<button class="carousel-dot ${{i === heroCarouselIndex ? 'active' : ''}}" onclick="heroCarouselGoTo(${{i}})" aria-label="Go to slide ${{i + 1}}"></button>`;
+            }}
+            dotsContainer.innerHTML = dotsHTML;
+        }}
+
+        // Update carousel on window resize
+        window.addEventListener('resize', () => {{
+            const prevItemsPerView = heroCarouselItemsPerView;
+            updateHeroCarouselItemsPerView();
+            if (prevItemsPerView !== heroCarouselItemsPerView) {{
+                heroCarouselIndex = Math.min(heroCarouselIndex, getHeroCarouselMaxIndex());
+                updateHeroCarouselPosition();
+                updateHeroCarouselDots();
+            }}
+        }});
 
         // Display featured measures (curated selection)
         function displayFeatured() {{
