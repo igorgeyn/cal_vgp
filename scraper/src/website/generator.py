@@ -422,7 +422,59 @@ class WebsiteGenerator:
     <footer class="footer">
         <p>California Ballot Measures Database • Updated {datetime.now().strftime('%B %d, %Y')}</p>
         <p>Data sources: CA Secretary of State, NCSL, ICPSR, CEDA</p>
+        <p class="footer-links">
+            <a href="#" onclick="openAboutModal(); return false;">About</a> •
+            <a href="https://github.com/igorgeyn/cal_vgp" target="_blank">GitHub</a>
+        </p>
     </footer>
+
+    <!-- About Modal -->
+    <div id="aboutModal" class="modal-overlay" style="display: none;" onclick="closeAboutModal(event)">
+        <div class="modal-content about-modal" onclick="event.stopPropagation()">
+            <button class="modal-close" onclick="closeAboutModal()">&times;</button>
+            <h2 class="about-title">About This Project</h2>
+
+            <div class="about-section">
+                <p>
+                    The California Ballot Measures Database is a tool for exploring over 12,000 ballot measures
+                    from across California, spanning local school bonds to statewide propositions.
+                </p>
+            </div>
+
+            <div class="about-section">
+                <h3>Background</h3>
+                <p>
+                    This project grew out of the <a href="https://sites.google.com/view/ucla-vgp" target="_blank">UCLA Voter Guide Project</a>,
+                    a volunteer-driven initiative I started to research and publish ballot measure summaries for California voters
+                    in areas with limited local news coverage. While that project focused on writing new summaries with student volunteers,
+                    I wanted to build something that could make historical ballot measure data more accessible and explorable.
+                </p>
+            </div>
+
+            <div class="about-section">
+                <h3>Features</h3>
+                <ul>
+                    <li>Filter by region, topic, year, and outcome</li>
+                    <li>AI-generated plain-language summaries</li>
+                    <li>Related measures recommendations using semantic similarity</li>
+                    <li>Vote results and historical trends</li>
+                </ul>
+            </div>
+
+            <div class="about-section about-author">
+                <h3>Author</h3>
+                <p>
+                    Built by <a href="https://igorgeyn.com" target="_blank">Igor Geyn</a>, a data scientist and researcher
+                    based in the Bay Area. My background is in political economy and causal inference, with a PhD from UCLA.
+                </p>
+                <p class="about-links">
+                    <a href="https://www.linkedin.com/in/igorgeyn/" target="_blank">LinkedIn</a> •
+                    <a href="https://github.com/igorgeyn" target="_blank">GitHub</a> •
+                    <a href="mailto:igorgeyn@gmail.com">Contact</a>
+                </p>
+            </div>
+        </div>
+    </div>
 
     <!-- AI Chat Interface -->
     <div id="chatWidget" class="chat-widget">
@@ -1915,9 +1967,89 @@ class WebsiteGenerator:
             color: var(--text-secondary);
             font-size: 0.875rem;
         }
-        
+
         .footer p {
             margin: 0.25rem 0;
+        }
+
+        .footer-links {
+            margin-top: 0.75rem !important;
+        }
+
+        .footer-links a {
+            color: var(--primary);
+            text-decoration: none;
+        }
+
+        .footer-links a:hover {
+            text-decoration: underline;
+        }
+
+        /* About Modal */
+        .about-modal {
+            max-width: 600px;
+            padding: 2rem;
+        }
+
+        .about-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 1.5rem;
+        }
+
+        .about-section {
+            margin-bottom: 1.5rem;
+        }
+
+        .about-section h3 {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .about-section p {
+            color: var(--text-secondary);
+            line-height: 1.6;
+            margin-bottom: 0.5rem;
+        }
+
+        .about-section ul {
+            color: var(--text-secondary);
+            margin: 0;
+            padding-left: 1.25rem;
+        }
+
+        .about-section li {
+            margin-bottom: 0.25rem;
+        }
+
+        .about-section a {
+            color: var(--primary);
+            text-decoration: none;
+        }
+
+        .about-section a:hover {
+            text-decoration: underline;
+        }
+
+        .about-author {
+            padding-top: 1rem;
+            border-top: 1px solid var(--border);
+        }
+
+        .about-links {
+            margin-top: 0.75rem;
+        }
+
+        .about-links a {
+            color: var(--primary);
+            text-decoration: none;
+        }
+
+        .about-links a:hover {
+            text-decoration: underline;
         }
         
         /* Pagination */
@@ -4760,7 +4892,21 @@ Please provide a helpful, accurate response based on the data provided. If you r
                 if (e.key === 'Escape') {
                     closeMeasureDetail();
                     closeChatSettings();
+                    closeAboutModal();
                 }
             });
         });
+
+        // About modal functions
+        function openAboutModal() {
+            document.getElementById('aboutModal').style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeAboutModal(event) {
+            if (!event || event.target.id === 'aboutModal') {
+                document.getElementById('aboutModal').style.display = 'none';
+                document.body.style.overflow = '';
+            }
+        }
         """
