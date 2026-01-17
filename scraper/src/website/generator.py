@@ -1397,27 +1397,27 @@ class WebsiteGenerator:
             align-items: center;
             gap: 0.75rem;
             position: relative;
+            padding: 0 0.5rem;
         }
 
         .carousel-track-container {
             flex: 1;
             overflow: hidden;
             min-width: 0;
+            position: relative;
         }
 
         .carousel-track {
             display: flex;
             transition: transform 0.4s ease;
+            gap: 20px;
         }
 
         .carousel-track .card {
-            flex: 0 0 calc((100% - 40px) / 3);
-            margin-right: 20px;
+            flex: 0 0 calc(33.333% - 14px);
+            min-width: calc(33.333% - 14px);
+            max-width: calc(33.333% - 14px);
             box-sizing: border-box;
-        }
-
-        .carousel-track .card:last-child {
-            margin-right: 0;
         }
 
         .carousel-btn {
@@ -1479,14 +1479,17 @@ class WebsiteGenerator:
         /* Responsive carousel */
         @media (max-width: 1024px) {
             .carousel-track .card {
-                flex: 0 0 calc((100% - 20px) / 2);
+                flex: 0 0 calc(50% - 10px);
+                min-width: calc(50% - 10px);
+                max-width: calc(50% - 10px);
             }
         }
 
         @media (max-width: 640px) {
             .carousel-track .card {
                 flex: 0 0 100%;
-                margin-right: 20px;
+                min-width: 100%;
+                max-width: 100%;
             }
 
             .carousel-btn {
@@ -4622,13 +4625,13 @@ class WebsiteGenerator:
             const cards = track.querySelectorAll('.card');
             if (cards.length === 0) return;
 
-            // Get computed style for the card to get actual width including margin
+            // Get card width and gap
             const card = cards[0];
-            const cardStyle = window.getComputedStyle(card);
             const cardWidth = card.offsetWidth;
-            const marginRight = parseInt(cardStyle.marginRight) || 20;
+            const trackStyle = window.getComputedStyle(track);
+            const gap = parseInt(trackStyle.gap) || 20;
 
-            const offset = heroCarouselIndex * (cardWidth + marginRight);
+            const offset = heroCarouselIndex * (cardWidth + gap);
             track.style.transform = `translateX(-${{offset}}px)`;
 
             // Update button states
