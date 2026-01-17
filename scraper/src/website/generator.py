@@ -143,192 +143,189 @@ class WebsiteGenerator:
         return sanitized
 
     def _generate_quiz_questions(self, measures: List[Dict], stats: Dict) -> List[Dict]:
-        """Generate trivia questions from the ballot measures data"""
+        """Generate educational trivia questions from the ballot measures data"""
         questions = []
 
         # Filter measures with valid data
         measures_with_votes = [m for m in measures if m.get('total_votes') and m.get('total_votes') > 0]
         measures_with_pct = [m for m in measures if m.get('percent_yes') is not None]
         measures_with_year = [m for m in measures if m.get('year')]
+        measures_with_numeric_year = [m for m in measures if m.get('year') and str(m.get('year')).isdigit()]
 
-        # 1. Year with most measures
-        year_counts = Counter(str(m.get('year')) for m in measures_with_year if m.get('year'))
-        if year_counts:
-            top_year, top_count = year_counts.most_common(1)[0]
-            questions.append({
-                'question': 'Which year had the most ballot measures in California?',
-                'answer': f'{top_year} with {top_count:,} measures',
-                'category': 'Year'
-            })
+        # Build topic statistics
+        topic_pass_rates = {}
+        topic_counts = Counter()
+        for m in measures:
+            topic = m.get('display_topic') or m.get('topic_primary')
+            if topic:
+                topic_counts[topic] += 1
+                if m.get('passed') is not None:
+                    if topic not in topic_pass_rates:
+                        topic_pass_rates[topic] = {'passed': 0, 'total': 0}
+                    topic_pass_rates[topic]['total'] += 1
+                    if m.get('passed'):
+                        topic_pass_rates[topic]['passed'] += 1
 
-        # 2. County with most measures
+        qualifying_topics = {t: d for t, d in topic_pass_rates.items() if d['total'] >= 20}
+
+        # Build county statistics
         county_counts = Counter(m.get('county') for m in measures if m.get('county'))
-        if county_counts:
-            top_county, top_count = county_counts.most_common(1)[0]
-            questions.append({
-                'question': 'Which county has the most ballot measures in the database?',
-                'answer': f'{top_county} County with {top_count:,} measures',
-                'category': 'Region'
-            })
 
-        # 3. Closest vote (near 50%)
-        if measures_with_pct:
-            closest = min(measures_with_pct, key=lambda m: abs((m.get('percent_yes') or 50) - 50))
-            pct = closest.get('percent_yes', 50)
-            title = closest.get('title', 'Unknown')[:60]
-            year = closest.get('year', '?')
-            county = closest.get('county', 'Unknown')
-            passed = 'Passed' if closest.get('passed') else 'Failed'
-            questions.append({
-                'question': 'What was one of the closest ballot measure votes in California history?',
-                'answer': f'"{title}..." ({year}, {county}) - {pct:.1f}% Yes ({passed})',
-                'category': 'Close Vote'
-            })
+        # Build year statistics
+        year_counts = Counter(str(m.get('year')) for m in measures_with_year if m.get('year'))
 
-        # 4. Highest turnout
-        if measures_with_votes:
-            highest_turnout = max(measures_with_votes, key=lambda m: m.get('total_votes', 0))
-            votes = highest_turnout.get('total_votes', 0)
-            title = highest_turnout.get('title', 'Unknown')[:50]
-            year = highest_turnout.get('year', '?')
-            questions.append({
-                'question': 'Which ballot measure had the highest voter turnout?',
-                'answer': f'"{title}..." ({year}) with {votes:,} votes',
-                'category': 'Turnout'
-            })
+        # Build decade statistics
+        decade_counts = Counter((int(m.get('year')) // 10) * 10 for m in measures_with_numeric_year)
 
-        # 5. Overall pass rate
+        # 1. Overall pass rate - fundamental insight
         passed_count = sum(1 for m in measures if m.get('passed'))
         total_decided = sum(1 for m in measures if m.get('passed') is not None)
         if total_decided > 0:
             pass_rate = (passed_count / total_decided) * 100
             questions.append({
                 'question': 'What percentage of California ballot measures pass?',
-                'answer': f'{pass_rate:.1f}% ({passed_count:,} of {total_decided:,} measures)',
-                'category': 'Stats'
+                'answer': f'{pass_rate:.1f}% - roughly {int(round(pass_rate/10))} out of every 10 measures that go to voters end up passing. This is higher than many people expect!',
+                'category': 'Pass Rates'
             })
 
-        # 6. Most popular topic
-        topic_counts = Counter(m.get('display_topic') or m.get('topic_primary') for m in measures
-                              if m.get('display_topic') or m.get('topic_primary'))
+        # 2. Most common topic
         if topic_counts:
             top_topic, topic_count = topic_counts.most_common(1)[0]
+            pct_of_total = (topic_count / len(measures)) * 100
             questions.append({
                 'question': 'What is the most common ballot measure topic in California?',
-                'answer': f'{top_topic} with {topic_count:,} measures',
-                'category': 'Topic'
+                'answer': f'{top_topic} - accounting for {topic_count:,} measures ({pct_of_total:.1f}% of all measures). Local governments frequently ask voters to approve funding for schools, roads, and public services.',
+                'category': 'Topics'
             })
 
-        # 7. Oldest measure in database
-        measures_with_numeric_year = [m for m in measures if m.get('year') and str(m.get('year')).isdigit()]
-        if measures_with_numeric_year:
-            oldest = min(measures_with_numeric_year, key=lambda m: int(m.get('year')))
-            title = oldest.get('title', 'Unknown')[:50]
-            year = oldest.get('year')
-            county = oldest.get('county', 'Unknown')
+        # 3. Topic with highest pass rate
+        if qualifying_topics:
+            best_topic = max(qualifying_topics.items(),
+                           key=lambda x: x[1]['passed'] / x[1]['total'])
+            rate = (best_topic[1]['passed'] / best_topic[1]['total']) * 100
+            total = best_topic[1]['total']
             questions.append({
-                'question': 'What is the oldest ballot measure in the database?',
-                'answer': f'From {year}: "{title}..." ({county})',
-                'category': 'History'
+                'question': 'Which type of ballot measure is most likely to pass?',
+                'answer': f'{best_topic[0]} measures pass at {rate:.1f}% (based on {total} measures). Voters tend to support these measures more than other types.',
+                'category': 'Pass Rates'
             })
 
-        # 8. Measures by decade
-        decade_counts = Counter((int(m.get('year')) // 10) * 10 for m in measures_with_numeric_year
-                                if m.get('year') and str(m.get('year')).isdigit())
+        # 4. Topic with lowest pass rate
+        if qualifying_topics:
+            worst_topic = min(qualifying_topics.items(),
+                            key=lambda x: x[1]['passed'] / x[1]['total'])
+            rate = (worst_topic[1]['passed'] / worst_topic[1]['total']) * 100
+            total = worst_topic[1]['total']
+            questions.append({
+                'question': 'Which type of ballot measure is least likely to pass?',
+                'answer': f'{worst_topic[0]} measures pass at only {rate:.1f}% (based on {total} measures). These face more voter skepticism than other measure types.',
+                'category': 'Pass Rates'
+            })
+
+        # 5. Busiest year
+        if year_counts:
+            top_year, top_count = year_counts.most_common(1)[0]
+            questions.append({
+                'question': 'Which year had the most ballot measures in California?',
+                'answer': f'{top_year} with {top_count:,} measures. Election years with presidential races tend to have more measures on the ballot as turnout is higher.',
+                'category': 'Trends'
+            })
+
+        # 6. Busiest decade
         if decade_counts:
             top_decade, decade_count = decade_counts.most_common(1)[0]
             questions.append({
-                'question': 'Which decade had the most ballot measures?',
-                'answer': f'The {top_decade}s with {decade_count:,} measures',
-                'category': 'Decade'
+                'question': 'Which decade saw the most ballot measures?',
+                'answer': f'The {top_decade}s with {decade_count:,} measures. Direct democracy has become increasingly popular in California over time.',
+                'category': 'Trends'
             })
+
+        # 7. County with most measures
+        if county_counts:
+            top_county, top_count = county_counts.most_common(1)[0]
+            second_county, second_count = county_counts.most_common(2)[1] if len(county_counts) > 1 else ('N/A', 0)
+            questions.append({
+                'question': 'Which county has the most ballot measures?',
+                'answer': f'{top_county} County with {top_count:,} measures, followed by {second_county} County ({second_count:,}). Larger counties have more local jurisdictions putting measures on the ballot.',
+                'category': 'Geography'
+            })
+
+        # 8. Number of counties
+        counties = set(m.get('county') for m in measures if m.get('county'))
+        questions.append({
+            'question': 'How many of California\'s 58 counties are represented?',
+            'answer': f'{len(counties)} counties have ballot measures in the database. California\'s direct democracy system is used across the entire state, from rural to urban areas.',
+            'category': 'Geography'
+        })
 
         # 9. Average margin of victory
         margins = [abs((m.get('percent_yes') or 50) - 50) for m in measures_with_pct]
         if margins:
             avg_margin = sum(margins) / len(margins)
+            close_votes = sum(1 for m in margins if m < 5)
             questions.append({
-                'question': 'What is the average margin of victory for California ballot measures?',
-                'answer': f'{avg_margin:.1f} percentage points from 50%',
-                'category': 'Stats'
+                'question': 'How competitive are ballot measure elections?',
+                'answer': f'The average margin is {avg_margin:.1f} percentage points from 50%. About {close_votes:,} measures ({100*close_votes/len(margins):.1f}%) were decided by less than 5 points - truly competitive races.',
+                'category': 'Competitiveness'
             })
 
-        # 10. Most landslide victory
+        # 10. Close votes count
         if measures_with_pct:
-            # Find measure with highest % yes (that passed)
-            passed_measures = [m for m in measures_with_pct if m.get('passed')]
-            if passed_measures:
-                landslide = max(passed_measures, key=lambda m: m.get('percent_yes', 0))
-                pct = landslide.get('percent_yes', 0)
-                title = landslide.get('title', 'Unknown')[:50]
-                year = landslide.get('year', '?')
-                questions.append({
-                    'question': 'What was one of the biggest landslide victories for a ballot measure?',
-                    'answer': f'"{title}..." ({year}) passed with {pct:.1f}% Yes',
-                    'category': 'Landslide'
-                })
+            very_close = [m for m in measures_with_pct if abs((m.get('percent_yes') or 50) - 50) < 2]
+            questions.append({
+                'question': 'How many ballot measures were decided by less than 2 percentage points?',
+                'answer': f'{len(very_close):,} measures were decided by razor-thin margins (less than 2 points). In these cases, every vote truly mattered!',
+                'category': 'Competitiveness'
+            })
 
-        # 11. Most rejected measure
+        # 11. Landslide victories
         if measures_with_pct:
-            failed_measures = [m for m in measures_with_pct if m.get('passed') == False]
-            if failed_measures:
-                most_rejected = min(failed_measures, key=lambda m: m.get('percent_yes', 100))
-                pct = most_rejected.get('percent_yes', 0)
-                title = most_rejected.get('title', 'Unknown')[:50]
-                year = most_rejected.get('year', '?')
-                questions.append({
-                    'question': 'What was one of the most soundly rejected ballot measures?',
-                    'answer': f'"{title}..." ({year}) failed with only {pct:.1f}% Yes',
-                    'category': 'Rejected'
-                })
-
-        # 12. Number of counties represented
-        counties = set(m.get('county') for m in measures if m.get('county'))
-        questions.append({
-            'question': 'How many California counties are represented in the database?',
-            'answer': f'{len(counties)} counties',
-            'category': 'Coverage'
-        })
-
-        # 13. Topic with highest pass rate (minimum 20 measures)
-        topic_pass_rates = {}
-        for m in measures:
-            topic = m.get('display_topic') or m.get('topic_primary')
-            if topic and m.get('passed') is not None:
-                if topic not in topic_pass_rates:
-                    topic_pass_rates[topic] = {'passed': 0, 'total': 0}
-                topic_pass_rates[topic]['total'] += 1
-                if m.get('passed'):
-                    topic_pass_rates[topic]['passed'] += 1
-
-        qualifying_topics = {t: d for t, d in topic_pass_rates.items() if d['total'] >= 20}
-        if qualifying_topics:
-            best_topic = max(qualifying_topics.items(),
-                           key=lambda x: x[1]['passed'] / x[1]['total'])
-            rate = (best_topic[1]['passed'] / best_topic[1]['total']) * 100
+            landslides = [m for m in measures_with_pct if m.get('percent_yes', 0) > 80 or m.get('percent_yes', 100) < 20]
             questions.append({
-                'question': 'Which topic has the highest pass rate (min. 20 measures)?',
-                'answer': f'{best_topic[0]} at {rate:.1f}%',
-                'category': 'Topic'
+                'question': 'How many ballot measures passed or failed by a landslide (80%+ or 20%-)?',
+                'answer': f'{len(landslides):,} measures were decided by overwhelming margins. These tend to be local measures with broad community support or unpopular proposals.',
+                'category': 'Competitiveness'
             })
 
-        # 14. Topic with lowest pass rate
-        if qualifying_topics:
-            worst_topic = min(qualifying_topics.items(),
-                            key=lambda x: x[1]['passed'] / x[1]['total'])
-            rate = (worst_topic[1]['passed'] / worst_topic[1]['total']) * 100
-            questions.append({
-                'question': 'Which topic has the lowest pass rate (min. 20 measures)?',
-                'answer': f'{worst_topic[0]} at {rate:.1f}%',
-                'category': 'Topic'
-            })
-
-        # 15. Database size trivia
+        # 12. Database scope
+        year_min = stats.get('year_min', 1998)
+        year_max = stats.get('year_max', 2026)
+        years_span = int(year_max) - int(year_min) + 1
         questions.append({
-            'question': 'How many ballot measures are in this database?',
-            'answer': f'{len(measures):,} measures spanning {stats.get("year_min", "1902")}-{stats.get("year_max", "2026")}',
+            'question': 'How much California ballot measure history is in this database?',
+            'answer': f'{len(measures):,} measures spanning {years_span} years ({year_min}-{year_max}). This represents one of the most comprehensive collections of California ballot measure data available.',
             'category': 'Database'
         })
+
+        # 13. Measures with summaries
+        with_summaries = sum(1 for m in measures if m.get('summary_text') or m.get('has_summary'))
+        pct_summaries = (with_summaries / len(measures)) * 100 if measures else 0
+        questions.append({
+            'question': 'How many measures have AI-generated summaries?',
+            'answer': f'{with_summaries:,} measures ({pct_summaries:.1f}%) have plain-language summaries to help voters understand what they\'re voting on.',
+            'category': 'Database'
+        })
+
+        # 14. Voter turnout insights
+        if measures_with_votes:
+            total_votes = sum(m.get('total_votes', 0) for m in measures_with_votes)
+            avg_votes = total_votes / len(measures_with_votes)
+            questions.append({
+                'question': 'How many votes have been cast on California ballot measures?',
+                'answer': f'Over {total_votes:,} total votes across {len(measures_with_votes):,} measures with vote data. That\'s an average of {avg_votes:,.0f} votes per measure.',
+                'category': 'Turnout'
+            })
+
+        # 15. Tax measures insight
+        tax_measures = [m for m in measures if 'tax' in (m.get('display_topic') or '').lower() or 'tax' in (m.get('topic_primary') or '').lower()]
+        if tax_measures:
+            tax_passed = sum(1 for m in tax_measures if m.get('passed'))
+            tax_rate = (tax_passed / len(tax_measures)) * 100 if tax_measures else 0
+            questions.append({
+                'question': 'How do tax-related measures perform at the ballot?',
+                'answer': f'Tax measures pass at {tax_rate:.1f}% ({tax_passed:,} of {len(tax_measures):,}). Many require a 2/3 supermajority to pass, making approval more difficult.',
+                'category': 'Topics'
+            })
 
         return questions
 
