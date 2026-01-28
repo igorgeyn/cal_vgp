@@ -8,6 +8,9 @@ from dotenv import load_dotenv
 # Load environment variables
 load_dotenv()
 
+# Version
+VERSION = "2.0.0"
+
 # Paths
 BASE_DIR = Path(__file__).parent.parent
 DATA_DIR = BASE_DIR / "data"

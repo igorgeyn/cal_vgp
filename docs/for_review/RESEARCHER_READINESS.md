@@ -44,17 +44,17 @@ This document assesses how well the California Ballot Measures Database serves a
 #### CSV Export
 - **File:** `scraper/data/exports/ballot_measures_YYYYMMDD.csv`
 - **Size:** ~4.5 MB
-- **Fields:** 26 selected columns (see `scraper/scripts/export_data.py:21-46`)
+- **Fields:** 25 columns (24 DB fields + 1 computed `summary_length`; see `scraper/scripts/export_data.py:21-46`)
 - **Encoding:** UTF-8
 - **Delimiter:** Comma
 
 **Sample columns:**
 ```
-id,fingerprint,measure_id,year,state,county,jurisdiction,title,
-description,ballot_question,yes_votes,no_votes,total_votes,
-percent_yes,percent_no,passed,pass_fail,topic_primary,
-topic_secondary,measure_type,election_type,election_date,
-data_source,source_url,...
+measure_id,year,county,jurisdiction,title,summary_title,summary_text,
+summary_length,passed,pass_fail,yes_votes,no_votes,total_votes,
+percent_yes,percent_no,topic_primary,topic_secondary,measure_type,
+data_source,has_summary,election_date,election_type,source_url,
+ballot_question,description
 ```
 
 #### JSON Export

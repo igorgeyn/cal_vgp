@@ -30,7 +30,7 @@ This document assesses how well the California Ballot Measures Database serves p
 
 **Data Export:**
 - Download CSV from `/scraper/data/exports/`
-- Contains 26 selected fields (see `scraper/scripts/export_data.py:21-46`)
+- Contains 25 fields (24 DB fields + 1 computed `summary_length`; see `scraper/scripts/export_data.py:21-46`)
 - Open in Excel, R, Python, Stata
 
 ### For Civic Organizations
@@ -108,7 +108,7 @@ make api
 
 **Best For:** Integration with other systems
 
-> **Caveat:** `src/api/server.py` currently imports modules (`HistoricalDatabase`, `TOPIC_CONFIG`) and a `VERSION` constant that do not exist, so the API server may not start without fixes. Evidence: `scraper/src/api/server.py:18-23`.
+> **Note:** Historical context endpoints (`/api/historical/*`) return HTTP 501 because the underlying modules are not yet implemented. Core endpoints work normally.
 
 ---
 

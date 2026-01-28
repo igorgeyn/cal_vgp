@@ -205,7 +205,7 @@ make db-init
 - **With AI Summaries**: 3,457 (28.4%)
 - **Years Covered**: 1998–2026 (active database)
 - **Counties**: All 58 California counties + statewide
-- **Database Schema**: 48 columns per measure, 26 exported fields
+- **Database Schema**: 48 columns per measure, 25 exported fields (CSV)
 
 ---
 

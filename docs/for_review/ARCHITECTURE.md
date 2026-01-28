@@ -209,7 +209,7 @@ class BallotMeasure:
 
 | Script | Output | Format |
 |--------|--------|--------|
-| `export_data.py` | `exports/*.csv` | CSV with 26 selected fields |
+| `export_data.py` | `exports/*.csv` | CSV with 25 fields (24 DB + 1 computed) |
 | `export_data.py` | `exports/*.json` | JSON array |
 | `generate_embeddings.py` | `embeddings.npz` | NumPy compressed |
 
@@ -442,6 +442,12 @@ make api
 # or
 cd scraper && uvicorn src.api.server:app --reload --port 8000
 ```
+
+**Known Limitations:**
+- Historical context endpoints (`/api/historical/*`) require `historical_operations.py` and `historical_schema.py` modules which are not yet implemented. These endpoints return HTTP 501 when the modules are absent.
+- Core endpoints (`/api/measures`, `/api/search`, `/api/stats`, `/api/years`, `/api/topics`, `/api/export`) work without the historical modules.
+
+> _Evidence: `server.py:18-28` — historical imports are optional with graceful fallback._
 
 ---
 

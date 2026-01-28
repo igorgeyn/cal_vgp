@@ -81,7 +81,11 @@ class BallotMeasure:
     duplicate_type: Optional[str] = None
     master_id: Optional[int] = None  # References another measure's id
     merged_from: Optional[List[int]] = None
-    
+
+    # Related measures (populated by embedding similarity)
+    related_measures: Optional[str] = None  # JSON list of related measure IDs
+    relationship_type: Optional[str] = None  # Type of relationship (e.g., "embedding_similarity")
+
     def __post_init__(self):
         """Post-initialization processing"""
         # Ensure year is an integer
@@ -293,7 +297,11 @@ CREATE TABLE IF NOT EXISTS measures (
     duplicate_type TEXT,
     master_id INTEGER,
     merged_from TEXT,
-    
+
+    -- Related measures (populated by embedding similarity)
+    related_measures TEXT,
+    relationship_type TEXT,
+
     FOREIGN KEY(master_id) REFERENCES measures(id)
 );
 

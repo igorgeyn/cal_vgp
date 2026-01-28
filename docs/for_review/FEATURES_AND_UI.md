@@ -222,11 +222,13 @@ Support for 3 AI providers:
 
 > _Caveat: Chat context logic references fields (`result`, `votes_for`, `votes_against`) that do not match the embedded dataset field names (`passed`, `yes_votes`, `no_votes`), so some context calculations may not work as intended. Evidence: `generator.py:5481-5513`._
 
-### Example Questions
-- "What ballot measures are on the ballot in 2026?"
-- "What is the pass rate for school bond measures?"
-- "Which county has the most ballot measures?"
-- "What was Proposition 8 about?"
+### Example Questions (from UI buttons)
+- "What were the 10 closest ballot measures in the last 5 years?"
+- "Show me all housing-related measures in San Francisco"
+- "What topics have the lowest pass rates?"
+- "Tell me about education measures from 2020-2024"
+
+> _Evidence: `generator.py:760-763`._
 
 ---
 
@@ -235,20 +237,17 @@ Support for 3 AI providers:
 ### Quiz Section
 Purple gradient background with educational content
 
-### 16 Pre-loaded Questions
-Example questions and answers:
-- "What percentage of California ballot measures pass?" → 66.1%
-- "Which type passes most often?" → Public Safety (78.4%)
-- "Which type passes least often?" → Housing & Land Use (52.6%)
-- "Which year had the most measures?" → 2024 (1,118)
-- "How many measures decided by <5%?" → 1,871
+### Dynamically Generated Questions
+Questions are generated at website build time from the embedded dataset. The count varies depending on available data (typically 15–20 questions). Examples include pass-rate stats, topic comparisons, and year-over-year trends.
+
+> _Evidence: `generator.py:145-220` (dynamic generation), `generator.py:640-641` (default "Question 1 of N" text), `generator.py:5186-5226` (uses `quizQuestions.length`)._
 
 ### Quiz Flow
 1. Question displayed with category tag
 2. "Reveal Answer" button
 3. Answer shows in green box
 4. "Next Question" shuffles to next
-5. Progress indicator (e.g., "5 of 16")
+5. Progress indicator (e.g., "5 of N")
 
 ---
 

@@ -110,6 +110,15 @@
 | `master_id` | INTEGER | FK to master record |
 | `merged_from` | TEXT | JSON list of merged IDs |
 
+### Related Measures
+
+| Column | Type | Description |
+|--------|------|-------------|
+| `related_measures` | TEXT | JSON list of related measure IDs (populated by embedding similarity) |
+| `relationship_type` | TEXT | Type of relationship (e.g., `embedding_similarity`) |
+
+> _Evidence: `scraper/data/ballot_measures.db` `PRAGMA table_info(measures)` indices 46-47. Added to `models.py` SCHEMA for consistency._
+
 ---
 
 ## Supporting Tables
@@ -244,7 +253,8 @@ Examples: MEASURE_A_OAKLAND, MEASURE_B_LASD
 MD5 hash of concatenated fields:
 ```python
 content = f"{title or ''}|{ballot_question or ''}|{description or ''}"
-content_hash = hashlib.md5(content.encode()).hexdigest()
+content_str = content.lower().strip()
+content_hash = hashlib.md5(content_str.encode()).hexdigest()[:16]
 ```
 
 ---
@@ -254,14 +264,15 @@ content_hash = hashlib.md5(content.encode()).hexdigest()
 | Source ID | Description | Coverage |
 |-----------|-------------|----------|
 | `CA_SOS` | CA Secretary of State | Current measures |
-| `Ballotpedia` | Ballotpedia website | 2002-2026 |
+| `Ballotpedia` | Ballotpedia website | 2006-2025 |
 | `NCSL` | National Conference of State Legislatures | 2014-present |
 | `ICPSR` | Historical archive | 1902-2016 |
 | `CEDA` | CA Elections Data Archive | 1998-2024 |
 | `LA_County_Registrar` | LA County ROV | 2013-2025 |
-| `San_Diego_County_ROV` | SD County ROV | 2022-2024 |
-| `Orange_County_ROV` | OC County ROV | 2012-2025 |
+| `SD_County_Registrar` | SD County ROV | 2022-2024 |
+| `OC_County_Registrar` | OC County ROV | 2012-2025 |
 | `San_Bernardino_County_ROV` | SB County ROV | 2020-2024 |
+| `UC_Law_SF` | UC Law SF Repository | Statewide propositions |
 
 ---
 
