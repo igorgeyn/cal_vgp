@@ -18,8 +18,18 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 from src.config import DB_PATH, VERSION, API_PORT
 from src.database.operations import Database
 from src.database.models import BallotMeasure
-from src.database.historical_operations import HistoricalDatabase
-from src.database.historical_schema import TOPIC_CONFIG, MIN_MEASURES_FOR_FILTER
+
+# Historical context modules are optional — they were planned but not yet implemented.
+# The core API endpoints work without them; historical endpoints will return 501.
+try:
+    from src.database.historical_operations import HistoricalDatabase
+    from src.database.historical_schema import TOPIC_CONFIG, MIN_MEASURES_FOR_FILTER
+    HISTORICAL_AVAILABLE = True
+except ImportError:
+    HistoricalDatabase = None
+    TOPIC_CONFIG = {}
+    MIN_MEASURES_FOR_FILTER = 3
+    HISTORICAL_AVAILABLE = False
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -54,7 +64,11 @@ async def startup_event():
         logger.error(f"Database not found at {DB_PATH}")
         raise RuntimeError("Database not initialized")
     db_ops = Database(DB_PATH)
-    historical_db = HistoricalDatabase(DB_PATH)
+    if HISTORICAL_AVAILABLE:
+        historical_db = HistoricalDatabase(DB_PATH)
+        logger.info("API server started with historical context support")
+    else:
+        logger.warning("Historical context modules not available — historical endpoints disabled")
     logger.info("API server started successfully")
 
 @app.on_event("shutdown")
@@ -427,6 +441,9 @@ async def get_topic_context(
     Available topics: marijuana, gambling, abortion, marriage, tax, education,
     health, elections, criminal, environment
     """
+    if not HISTORICAL_AVAILABLE:
+        raise HTTPException(status_code=501, detail="Historical context modules not installed")
+
     if topic not in TOPIC_CONFIG:
         raise HTTPException(
             status_code=404,
@@ -487,6 +504,8 @@ async def get_all_topic_stats(
     Returns topics sorted by priority order, filtered to only include topics
     with at least 3 historical measures in California.
     """
+    if not HISTORICAL_AVAILABLE:
+        raise HTTPException(status_code=501, detail="Historical context modules not installed")
     try:
         stats = historical_db.get_all_topic_stats(min_year)
         return [TopicStatsResponse(**s) for s in stats]
@@ -509,6 +528,8 @@ async def get_historical_measures(
     Each measure includes all applicable topic tags, with the primary
     (highest priority) topic indicated.
     """
+    if not HISTORICAL_AVAILABLE:
+        raise HTTPException(status_code=501, detail="Historical context modules not installed")
     try:
         if topic and topic not in TOPIC_CONFIG:
             raise HTTPException(
@@ -573,6 +594,8 @@ async def get_historical_measure(
     measure_id: int = PathParam(..., description="Historical measure ID")
 ):
     """Get a single historical measure by ID with full topic tags."""
+    if not HISTORICAL_AVAILABLE:
+        raise HTTPException(status_code=501, detail="Historical context modules not installed")
     try:
         m = historical_db.get_measure_by_id(measure_id)
         if m is None:
@@ -624,6 +647,8 @@ async def get_similar_measures(
 
     Useful for showing "Related measures" in the UI.
     """
+    if not HISTORICAL_AVAILABLE:
+        raise HTTPException(status_code=501, detail="Historical context modules not installed")
     try:
         measures = historical_db.get_similar_measures(measure_id, limit)
 
@@ -678,6 +703,8 @@ async def search_historical_measures(
     Searches ballot names and descriptions. Optionally filter by topic
     and pass/fail status.
     """
+    if not HISTORICAL_AVAILABLE:
+        raise HTTPException(status_code=501, detail="Historical context modules not installed")
     try:
         measures = historical_db.search_measures(
             query=query,
