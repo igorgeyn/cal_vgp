@@ -1,8 +1,10 @@
 # California Ballot Measures Database
 
-**Explore 120+ years of California direct democracy**
+**Explore California direct democracy from 1998 to present**
 
-A comprehensive, searchable database of over 12,600 ballot measures from across California—spanning statewide propositions to local county measures from 1902 to present. Built to make civic data accessible and understandable for researchers, journalists, voters, and anyone interested in California politics.
+A comprehensive, searchable database of 12,156 active ballot measures from across California—spanning statewide propositions to local county measures from 1998 to 2026. Built to make civic data accessible and understandable for researchers, journalists, voters, and anyone interested in California politics.
+
+> *Archival note: A raw ICPSR file covering 1902–2016 is available but not loaded into the active database.*
 
 🌐 **Live Website**: [cal-vgp.igorgeyn.com](https://cal-vgp.igorgeyn.com)
 
@@ -20,8 +22,8 @@ The California Ballot Measures Database (Cal VGP) helps you:
 
 ### Key Features
 
-- 📊 **12,600+ ballot measures** from all 58 counties plus statewide propositions
-- 🗳️ **Vote results** for 10,900+ measures
+- 📊 **12,156 ballot measures** from all 58 counties plus statewide propositions
+- 🗳️ **Vote results** for 10,908 measures (89.7%)
 - 📝 **AI summaries** for easier understanding of complex measures
 - 🗺️ **Regional browsing** organized by geographic areas
 - 🔍 **Advanced filtering** by year, status, topic, and location
@@ -96,11 +98,11 @@ make export-csv
 # Generate AI summaries (requires Ollama)
 make summaries-ai
 
-# Scrape new data from Ballotpedia
-make summaries-web
+# Scrape new data
+make scrape
 
-# View all available commands
-make help
+# Update (dedup + enrich) and regenerate
+make quick
 ```
 
 ### Export Data
@@ -198,12 +200,12 @@ make db-init
 
 ## 📈 Database Statistics
 
-- **Total Measures**: 12,600+
-- **With Vote Results**: 10,900+
-- **With AI Summaries**: 2,700+
-- **Years Covered**: 1902 - 2026
-- **Counties**: All 58 California counties
-- **Historical Coverage**: 124 years of direct democracy
+- **Total Active Measures**: 12,156
+- **With Vote Results**: 10,908 (89.7%)
+- **With AI Summaries**: 3,457 (28.4%)
+- **Years Covered**: 1998–2026 (active database)
+- **Counties**: All 58 California counties + statewide
+- **Database Schema**: 48 columns per measure, 26 exported fields
 
 ---
 
