@@ -4486,15 +4486,98 @@ class WebsiteGenerator:
             const lower = text.toLowerCase();
             return lower.includes("can't provide") ||
                    lower.includes("cannot provide") ||
+                   lower.includes("cannot summarize") ||
+                   lower.includes("i cannot summarize") ||
+                   lower.includes("i cannot provide a summary") ||
                    lower.includes("can't help with that") ||
                    lower.includes("cannot help with that") ||
                    lower.includes("don't have any information") ||
                    lower.includes("do not have any information") ||
                    lower.includes("i don't have information") ||
+                   lower.includes("no details about its content") ||
+                   lower.includes("ballot text appears to be incomplete") ||
+                   lower.includes("no substantive information") ||
+                   lower.includes("only showing") ||
                    lower.includes("i'd be happy to provide") ||
                    lower.includes("if you could provide") ||
                    lower.includes("please share the details") ||
                    lower.includes("no information available");
+        }}
+
+        function normalizeText(text) {{
+            return text ? text.replace(/\s+/g, ' ').trim() : '';
+        }}
+
+        function isBadTitle(title) {{
+            const cleaned = normalizeText(title);
+            if (!cleaned) return true;
+            const lower = cleaned.toLowerCase();
+            if (lower === 'unknown' || lower === 'untitled measure') return true;
+            if (lower.startsWith('please note') ||
+                lower.startsWith('summary date') ||
+                lower.startsWith('circulation deadline') ||
+                lower.startsWith('signatures required')) {{
+                return true;
+            }}
+            if (/^[()\[\]0-9\s|:\/\.-]+$/.test(cleaned)) return true;
+            return cleaned.length < 6;
+        }}
+
+        function isMetadataSummary(text) {{
+            const cleaned = normalizeText(text).toLowerCase();
+            if (!cleaned) return false;
+            return cleaned.startsWith('summary date') ||
+                   cleaned.startsWith('circulation deadline') ||
+                   cleaned.startsWith('signatures required') ||
+                   cleaned.startsWith('please note') ||
+                   cleaned.includes('counties have') ||
+                   cleaned.includes('petition to determine');
+        }}
+
+        function getInitiativeLabel(measureId) {{
+            if (!measureId) return null;
+            const match = measureId.match(/^INIT_(\d+)$/);
+            return match ? `Initiative ${{match[1]}}` : null;
+        }}
+
+        function extractTitleFromSummary(summaryText) {{
+            const cleaned = normalizeText(summaryText);
+            if (!cleaned) return null;
+            const match = cleaned.match(/^[^.!?]+[.!?]/);
+            const sentence = match ? match[0].trim() : cleaned;
+            if (sentence.length > 90) return sentence.slice(0, 87) + '...';
+            return sentence;
+        }}
+
+        function getCleanTitle(measure, displayMeasureId) {{
+            const rawTitle = measure.generated_title || measure.title || measure.measure_text || '';
+            let title = normalizeText(rawTitle);
+
+            if (isBadTitle(title)) {{
+                if (measure.summary_title && !isAiRefusal(measure.summary_title)) {{
+                    title = normalizeText(measure.summary_title);
+                }} else if (measure.summary_text && !isAiRefusal(measure.summary_text)) {{
+                    const summaryTitle = extractTitleFromSummary(measure.summary_text);
+                    if (summaryTitle) title = summaryTitle;
+                }}
+
+                if (isBadTitle(title)) {{
+                    const initLabel = getInitiativeLabel(measure.measure_id);
+                    title = initLabel || displayMeasureId || 'Pending ballot measure';
+                }}
+            }}
+
+            return title || 'Untitled Measure';
+        }}
+
+        function buildDisplayTitle(title, displayMeasureId) {{
+            const cleanedTitle = normalizeText(title);
+            if (!displayMeasureId) return cleanedTitle || 'Untitled Measure';
+            if (!cleanedTitle) return displayMeasureId;
+            if (cleanedTitle.toLowerCase().startsWith(displayMeasureId.toLowerCase())) {{
+                return cleanedTitle;
+            }}
+            return `${{displayMeasureId}}: ${{cleanedTitle}}`;
         }}
 
         function formatDollars(n) {{
@@ -6280,9 +6363,9 @@ class WebsiteGenerator:
         // Create card HTML - simplified, cleaner design
         function createCard(measure, featured = false, featuredReason = null, isHero = false) {{
             // Use generated title if available, otherwise fall back to original
-            const title = measure.generated_title || measure.title || measure.measure_text || 'Untitled Measure';
             const displayMeasureId = getDisplayMeasureId(measure);
-            const displayTitle = displayMeasureId ? `${{displayMeasureId}}: ${{title}}` : title;
+            const title = getCleanTitle(measure, displayMeasureId);
+            const displayTitle = buildDisplayTitle(title, displayMeasureId);
             const year = measure.year || 'Unknown';
             const passed = measure.passed;
             const isPending = isPendingMeasure(measure);
@@ -6296,11 +6379,12 @@ class WebsiteGenerator:
 
             // Priority order: summary_text > ballot_question > description > original_title
             // Skip AI refusals (using global isAiRefusal function)
-            if (measure.summary_text && measure.summary_text.length > 50 && !isAiRefusal(measure.summary_text)) {{
+            if (measure.summary_text && measure.summary_text.length > 50 && !isAiRefusal(measure.summary_text) &&
+                !(isPending && isMetadataSummary(measure.summary_text))) {{
                 summary = measure.summary_text;
             }} else if (measure.ballot_question && measure.ballot_question.length > 50) {{
                 summary = measure.ballot_question;
-            }} else if (measure.description) {{
+            }} else if (measure.description && !(isPending && isMetadataSummary(measure.description))) {{
                 summary = measure.description;
             }} else if (measure.generated_title && measure.original_title) {{
                 summary = measure.original_title;
@@ -6359,9 +6443,9 @@ class WebsiteGenerator:
         
         // Create list item HTML
         function createListItem(measure) {{
-            const title = measure.title || measure.measure_text || 'Untitled Measure';
             const displayMeasureId = getDisplayMeasureId(measure);
-            const displayTitle = displayMeasureId ? `${{displayMeasureId}}: ${{title}}` : title;
+            const title = getCleanTitle(measure, displayMeasureId);
+            const displayTitle = buildDisplayTitle(title, displayMeasureId);
             const year = measure.year || 'Unknown';
             const passed = measure.passed;
             const passedClass = passed === 1 ? 'passed' : passed === 0 ? 'failed' : 'pending';
@@ -6396,7 +6480,7 @@ class WebsiteGenerator:
             document.getElementById('modalYear').textContent = measure.year || '';
 
             // Title
-            const title = measure.generated_title || measure.title || measure.measure_text || 'Untitled Measure';
+            const title = getCleanTitle(measure, getDisplayMeasureId(measure));
             document.getElementById('modalTitle').textContent = title;
 
             // Jurisdiction
@@ -6443,10 +6527,11 @@ class WebsiteGenerator:
             const summaryToggle = document.getElementById('summaryToggle');
             let summaryText = '';
 
-            if (measure.summary_text && !isAiRefusal(measure.summary_text)) {{
+            if (measure.summary_text && !isAiRefusal(measure.summary_text) &&
+                !(isPending && isMetadataSummary(measure.summary_text))) {{
                 summaryText = measure.summary_text;
                 summaryEl.classList.remove('no-summary-text');
-            }} else if (measure.description) {{
+            }} else if (measure.description && !(isPending && isMetadataSummary(measure.description))) {{
                 summaryText = measure.description;
                 summaryEl.classList.remove('no-summary-text');
             }} else if (isPending) {{

@@ -194,6 +194,12 @@ class CASOSScraper(BaseScraper):
                 # Last resort: use the whole cleaned text as title
                 title = cleaned_text
                 logger.debug(f"Could not parse measure format: {cleaned_text}")
+
+        # If title was stripped out by chapter/statutes cleanup, fall back to a readable label
+        if title is not None:
+            title = re.sub(r'\s+', ' ', title).strip()
+        if not title:
+            title = measure_id or cleaned_text
         
         # Normalize measure_id format
         if measure_id:
@@ -319,23 +325,25 @@ class CASOSScraper(BaseScraper):
         soup = BeautifulSoup(html, "html.parser")
         measures = []
 
+        # Prefer table parsing when available (more structured than free text)
+        for table in soup.find_all('table'):
+            table_measures = self._parse_initiative_table(table, status, url)
+            measures.extend(table_measures)
+
+        if measures:
+            return measures
+
         # Look for initiative listings
         # CA SOS typically lists initiatives with their number and title
         for elem in soup.find_all(['div', 'p', 'li']):
-            text = elem.get_text(strip=True)
+            text = elem.get_text(" ", strip=True)
 
             # Look for initiative numbers (e.g., "1234", "Initiative #1234")
-            initiative_match = re.search(r'(?:Initiative\s+#?)?(\d{4})', text, re.IGNORECASE)
-            if initiative_match:
-                initiative_num = initiative_match.group(1)
-
-                # Extract title (text after the number)
-                title_match = re.search(r'\d{4}[:\s.-]+(.+?)(?:\.|$)', text)
-                title = title_match.group(1) if title_match else text[:100]
-
+            initiative_num, title = self._extract_initiative_from_text(text)
+            if initiative_num:
                 measures.append({
                     'measure_id': f"INIT_{initiative_num}",
-                    'title': title,
+                    'title': title or f"Initiative {initiative_num}",
                     'measure_text': text,
                     'year': 2026,
                     'status': status,
@@ -344,6 +352,117 @@ class CASOSScraper(BaseScraper):
                 })
 
         return measures
+
+    def _parse_initiative_table(self, table: BeautifulSoup, status: str, url: str) -> List[Dict]:
+        """Parse initiatives from a structured status table."""
+        measures = []
+        rows = table.find_all('tr')
+        if not rows:
+            return measures
+
+        header_cells = rows[0].find_all(['th', 'td'])
+        headers = [cell.get_text(" ", strip=True).lower() for cell in header_cells]
+        if not headers:
+            return measures
+
+        if not any('initiative' in h or 'title' in h or 'number' in h for h in headers):
+            return measures
+
+        id_idx = next((i for i, h in enumerate(headers) if 'initiative' in h or 'number' in h), None)
+        title_idx = next((i for i, h in enumerate(headers) if 'title' in h or 'subject' in h), None)
+
+        for row in rows[1:]:
+            cells = [cell.get_text(" ", strip=True) for cell in row.find_all('td')]
+            if not cells:
+                continue
+
+            initiative_num = None
+            title = None
+
+            if id_idx is not None and id_idx < len(cells):
+                id_match = re.search(r'(\d{4})', cells[id_idx])
+                if id_match:
+                    initiative_num = id_match.group(1)
+
+            if title_idx is not None and title_idx < len(cells):
+                title = self._clean_initiative_title(cells[title_idx])
+
+            if not initiative_num:
+                initiative_num, title = self._extract_initiative_from_text(" ".join(cells))
+
+            if not initiative_num:
+                continue
+
+            if not self._is_valid_initiative_title(title):
+                title = f"Initiative {initiative_num}"
+
+            measures.append({
+                'measure_id': f"INIT_{initiative_num}",
+                'title': title,
+                'measure_text': " | ".join(cells),
+                'year': 2026,
+                'status': status,
+                'in_progress': True,
+                'source_url': url
+            })
+
+        return measures
+
+    def _extract_initiative_from_text(self, text: str) -> Tuple[Optional[str], Optional[str]]:
+        """Extract initiative number and title from free text."""
+        if not text:
+            return None, None
+
+        cleaned = re.sub(r'\s+', ' ', text).strip()
+        if not cleaned:
+            return None, None
+
+        lower = cleaned.lower()
+        if lower.startswith('please note'):
+            return None, None
+
+        match = re.search(r'(?:Initiative\s+#?\s*)?(\d{4})\s*[-–—:]\s*(.+)$', cleaned, re.IGNORECASE)
+        if not match:
+            match = re.search(r'(?:Initiative\s+#?\s*)?(\d{4})\s+(.+)$', cleaned, re.IGNORECASE)
+
+        if not match:
+            return None, None
+
+        initiative_num = match.group(1)
+        raw_title = match.group(2)
+        title = self._clean_initiative_title(raw_title)
+
+        if not self._is_valid_initiative_title(title):
+            return initiative_num, None
+
+        return initiative_num, title
+
+    def _clean_initiative_title(self, title: Optional[str]) -> Optional[str]:
+        """Remove status metadata from initiative titles."""
+        if not title:
+            return None
+
+        cleaned = re.sub(r'\s+', ' ', title).strip()
+        cleaned = re.split(r'\bSummary Date\b', cleaned, flags=re.IGNORECASE)[0].strip()
+        cleaned = re.split(r'\bCirculation Deadline\b', cleaned, flags=re.IGNORECASE)[0].strip()
+        cleaned = re.split(r'\bSignatures Required\b', cleaned, flags=re.IGNORECASE)[0].strip()
+        cleaned = re.split(r'\bFailed\b', cleaned, flags=re.IGNORECASE)[0].strip()
+        cleaned = cleaned.strip(' -|:;')
+        return cleaned or None
+
+    def _is_valid_initiative_title(self, title: Optional[str]) -> bool:
+        """Heuristic filter for placeholder/non-title text."""
+        if not title:
+            return False
+        cleaned = re.sub(r'\s+', ' ', title).strip()
+        if len(cleaned) < 6:
+            return False
+        lower = cleaned.lower()
+        if lower.startswith(('please note', 'summary date', 'circulation deadline', 'signatures required')):
+            return False
+        if re.fullmatch(r'[\(\)\[\]\d\s|:/\.-]+', cleaned):
+            return False
+        return True
 
     def _scrape_past_elections(self) -> List[Dict]:
         """Scrape past election results from CA SOS archives"""
