@@ -384,6 +384,11 @@ class Database:
         stats['passed'] = int(row['passed'] or 0)
         stats['failed'] = int(row['failed'] or 0)
         
+        # Statewide vs local counts
+        cursor = conn.execute("SELECT COUNT(*) as count FROM active_measures WHERE county = 'Statewide'")
+        stats['statewide_count'] = int(cursor.fetchone()['count'] or 0)
+        stats['local_count'] = stats['total_measures'] - stats['statewide_count']
+
         # Additional stats for completeness
         stats['counties'] = 1  # Placeholder
         stats['topics'] = 0  # Placeholder

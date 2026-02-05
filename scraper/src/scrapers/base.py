@@ -4,6 +4,7 @@ Base scraper class with common functionality
 import requests
 import time
 import logging
+import re
 from abc import ABC, abstractmethod
 from typing import Dict, List, Optional
 from datetime import datetime
@@ -107,12 +108,37 @@ class BaseScraper(ABC):
                 return format_str.format(*groups).upper()
         
         return None
+
+    def _normalize_measure_id(self, measure_id: str) -> Optional[str]:
+        """Normalize a provided measure ID to the standard format."""
+        if not measure_id:
+            return None
+
+        normalized = measure_id.strip().upper()
+        normalized = normalized.replace('PROPOSITION', 'PROP')
+        normalized = re.sub(r'\s+', ' ', normalized)
+
+        # Convert known patterns to underscore format (PROP 16 -> PROP_16)
+        match = re.match(r'^(PROP|ACA|SCA|AB|SB)\s+(\d+[A-Z]?)$', normalized)
+        if match:
+            return f"{match.group(1)}_{match.group(2)}"
+
+        match = re.match(r'^MEASURE\s+([A-Z]+)$', normalized)
+        if match:
+            return f"MEASURE_{match.group(1)}"
+
+        if ' ' in normalized:
+            return normalized.replace(' ', '_')
+
+        return normalized
     
     def _standardize_measure(self, raw_measure: Dict) -> Dict:
         """Standardize measure data to common format"""
-        # Extract measure ID
+        # Extract/normalize measure ID
         measure_text = raw_measure.get('measure_text', '')
-        measure_id = self._extract_measure_id(measure_text)
+        measure_id = self._normalize_measure_id(raw_measure.get('measure_id'))
+        if not measure_id:
+            measure_id = self._extract_measure_id(measure_text)
         
         # Standard format
         return {

@@ -1,0 +1,41 @@
+prop_id,year,committee_name,committee_id,filer_type,stance,date,amount,txn_type,donor_name,donor_type,donor_sector
+202400038,2024,Californians for Safer Communities,C-2024-001,primarily formed,support,2024-03-15,2500000.00,monetary,Walmart Inc.,corporation,Retail
+202400038,2024,Californians for Safer Communities,C-2024-001,primarily formed,support,2024-04-10,1000000.00,monetary,Home Depot Inc.,corporation,Retail
+202400038,2024,Californians for Safer Communities,C-2024-001,primarily formed,support,2024-05-20,500000.00,monetary,Target Corporation,corporation,Retail
+202400038,2024,Californians for Safer Communities,C-2024-001,primarily formed,support,2024-06-01,750000.00,monetary,California Grocers Association,trade_association,Retail
+202400038,2024,Californians for Safer Communities,C-2024-001,primarily formed,support,2024-07-15,300000.00,monetary,CA District Attorneys Association,trade_association,Law Enforcement
+202400038,2024,Californians for Safer Communities,C-2024-001,primarily formed,support,2024-08-01,200000.00,monetary,National Association of Chain Drug Stores,trade_association,Retail
+202400038,2024,Californians for Safer Communities,C-2024-001,primarily formed,support,2024-09-10,1500000.00,monetary,Walmart Inc.,corporation,Retail
+202400038,2024,Californians for Safer Communities,C-2024-001,primarily formed,support,2024-09-25,400000.00,monetary,California Business Roundtable,trade_association,Business
+202400038,2024,Crime Victims United - Yes on 36,C-2024-002,primarily formed,support,2024-04-20,250000.00,monetary,CA Peace Officers Association,trade_association,Law Enforcement
+202400038,2024,Crime Victims United - Yes on 36,C-2024-002,primarily formed,support,2024-06-15,100000.00,monetary,Individual Donor A,individual,Other
+202400038,2024,Crime Victims United - Yes on 36,C-2024-002,primarily formed,support,2024-08-20,175000.00,monetary,CA Correctional Peace Officers Assn,trade_association,Law Enforcement
+202400038,2024,Taxpayers Against 36,C-2024-003,primarily formed,oppose,2024-05-01,500000.00,monetary,ACLU of California,nonprofit,Civil Rights
+202400038,2024,Taxpayers Against 36,C-2024-003,primarily formed,oppose,2024-06-10,350000.00,monetary,Californians for Safety and Justice,nonprofit,Criminal Justice Reform
+202400038,2024,Taxpayers Against 36,C-2024-003,primarily formed,oppose,2024-07-20,250000.00,monetary,Ella Baker Center for Human Rights,nonprofit,Civil Rights
+202400038,2024,Taxpayers Against 36,C-2024-003,primarily formed,oppose,2024-08-15,100000.00,monetary,Individual Donor B,individual,Other
+202400038,2024,Taxpayers Against 36,C-2024-003,primarily formed,oppose,2024-09-05,200000.00,monetary,SEIU California,labor_union,Labor
+202400038,2024,Taxpayers Against 36,C-2024-003,primarily formed,oppose,2024-09-20,150000.00,monetary,Drug Policy Alliance,nonprofit,Criminal Justice Reform
+202400038,2024,No on 36 - Communities Not Cages,C-2024-004,primarily formed,oppose,2024-07-01,300000.00,monetary,California Teachers Association,labor_union,Education
+202400038,2024,No on 36 - Communities Not Cages,C-2024-004,primarily formed,oppose,2024-08-10,175000.00,monetary,AFSCME California,labor_union,Labor
+202400038,2024,No on 36 - Communities Not Cages,C-2024-004,primarily formed,oppose,2024-09-15,125000.00,monetary,National Nurses United,labor_union,Healthcare
+202000026,2014,Californians for Safe Neighborhoods,C-2014-001,primarily formed,support,2014-03-01,1000000.00,monetary,George Soros / Open Society Policy Center,individual,Philanthropy
+202000026,2014,Californians for Safe Neighborhoods,C-2014-001,primarily formed,support,2014-04-15,500000.00,monetary,B. Wayne Hughes Jr.,individual,Real Estate
+202000026,2014,Californians for Safe Neighborhoods,C-2014-001,primarily formed,support,2014-05-20,750000.00,monetary,California Healthcare Foundation,nonprofit,Healthcare
+202000026,2014,Californians for Safe Neighborhoods,C-2014-001,primarily formed,support,2014-06-10,350000.00,monetary,Jay Pritzker,individual,Business
+202000026,2014,Californians for Safe Neighborhoods,C-2014-001,primarily formed,support,2014-07-15,200000.00,monetary,Mark Zuckerberg / FWD.us,individual,Technology
+202000026,2014,Californians for Safe Neighborhoods,C-2014-001,primarily formed,support,2014-08-01,400000.00,monetary,ACLU of California,nonprofit,Civil Rights
+202000026,2014,Californians for Safe Neighborhoods,C-2014-001,primarily formed,support,2014-09-10,300000.00,monetary,California Nurses Association,labor_union,Healthcare
+202000026,2014,Californians for Safe Neighborhoods,C-2014-001,primarily formed,support,2014-09-25,150000.00,monetary,Drug Policy Alliance,nonprofit,Criminal Justice Reform
+202000026,2014,Yes on 47 - Schools Not Prisons,C-2014-002,primarily formed,support,2014-05-01,200000.00,monetary,SEIU California,labor_union,Labor
+202000026,2014,Yes on 47 - Schools Not Prisons,C-2014-002,primarily formed,support,2014-07-20,100000.00,monetary,Individual Donor C,individual,Other
+202000026,2014,Yes on 47 - Schools Not Prisons,C-2014-002,primarily formed,support,2014-09-01,175000.00,monetary,California Teachers Association,labor_union,Education
+202000026,2014,Stop the Release of Violent Criminals,C-2014-003,primarily formed,oppose,2014-04-01,500000.00,monetary,CA District Attorneys Association,trade_association,Law Enforcement
+202000026,2014,Stop the Release of Violent Criminals,C-2014-003,primarily formed,oppose,2014-05-15,350000.00,monetary,CA State Sheriffs Association,trade_association,Law Enforcement
+202000026,2014,Stop the Release of Violent Criminals,C-2014-003,primarily formed,oppose,2014-06-20,200000.00,monetary,CA Police Chiefs Association,trade_association,Law Enforcement
+202000026,2014,Stop the Release of Violent Criminals,C-2014-003,primarily formed,oppose,2014-07-10,150000.00,monetary,California Retailers Association,trade_association,Retail
+202000026,2014,Stop the Release of Violent Criminals,C-2014-003,primarily formed,oppose,2014-08-15,100000.00,monetary,Individual Donor D,individual,Other
+202000026,2014,Stop the Release of Violent Criminals,C-2014-003,primarily formed,oppose,2014-09-05,250000.00,monetary,CA Correctional Peace Officers Assn,trade_association,Law Enforcement
+202000026,2014,No on 47 Coalition,C-2014-004,primarily formed,oppose,2014-06-01,175000.00,monetary,CA Narcotic Officers Association,trade_association,Law Enforcement
+202000026,2014,No on 47 Coalition,C-2014-004,primarily formed,oppose,2014-08-01,125000.00,monetary,Crime Victims United of CA,nonprofit,Law Enforcement
+202000026,2014,No on 47 Coalition,C-2014-004,primarily formed,oppose,2014-09-20,100000.00,monetary,Individual Donor E,individual,Other

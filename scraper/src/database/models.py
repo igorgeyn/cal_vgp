@@ -45,6 +45,7 @@ class BallotMeasure:
     percent_no: Optional[float] = None
     passed: Optional[bool] = None
     pass_fail: Optional[str] = None
+    vote_threshold: Optional[str] = None  # 50%, 55%, or 66.67%
     
     # Classification
     measure_type: Optional[str] = None

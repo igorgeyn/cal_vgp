@@ -245,7 +245,7 @@ class BallotpediaStatewideScraper:
                 measure_letter=None,
                 year=year,
                 state="CA",
-                county=None,  # Statewide
+                county="Statewide",
                 jurisdiction=None,
                 title=title,
                 description=None,

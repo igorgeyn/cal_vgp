@@ -3,7 +3,7 @@ California Secretary of State ballot measures scraper
 """
 import re
 import logging
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 from urllib.parse import urljoin
 from bs4 import BeautifulSoup
 
@@ -411,86 +411,161 @@ class CASOSScraper(BaseScraper):
 class UCLawSFScraper(BaseScraper):
     """Scraper for UC Law SF historical ballot measures"""
     
-    def __init__(self, max_items: int = None):
+    def __init__(self, max_items: int = None, max_pages: int = None):
         super().__init__("UC_Law_SF")
         self.config = SOURCES["uc_law_sf"]
         self.base_url = self.config["base_url"]
         self.max_items = max_items or self.config.get("max_items", 50)
+        self.max_pages = max_pages or self.config.get("max_pages", 20)
         
     def scrape(self) -> List[Dict]:
         """Scrape historical measures from UC Law SF"""
         url = self.base_url + self.config["endpoint"]
-        html = self._fetch_page(url)
-        
-        if not html:
-            return []
-            
-        return self._parse_repository_page(html)
-    
-    def _parse_repository_page(self, html: str) -> List[Dict]:
-        """Parse measures from repository page"""
-        soup = BeautifulSoup(html, "html.parser")
         measures = []
-        
-        # Find all proposition links
-        links_found = 0
-        for link in soup.find_all('a', href=True):
-            if links_found >= self.max_items:
+        seen_ids = set()
+        pages = 0
+
+        while url:
+            html = self._fetch_page(url)
+            if not html:
                 break
-                
-            href = link.get('href', '')
-            
-            # Look for ballot proposition links
-            if '/ca_ballot_props/' in href and href.count('/') >= 4:
-                title = link.get_text(strip=True)
-                if not title:
+
+            page_measures, next_url = self._parse_repository_page(html, url)
+            for measure in page_measures:
+                unique_id = measure.get('pdf_url') or measure.get('source_url') or measure.get('measure_id')
+                if unique_id in seen_ids:
                     continue
-                    
-                # Parse the measure
-                measure = self._parse_historical_measure(link, href)
-                if measure:
-                    measures.append(measure)
-                    links_found += 1
-                    
-                    if links_found % 10 == 0:
-                        logger.debug(f"Processed {links_found} historical measures...")
-        
-        logger.info(f"Found {len(measures)} historical measures")
+                seen_ids.add(unique_id)
+                measures.append(measure)
+                if self.max_items and len(measures) >= self.max_items:
+                    return measures
+
+            pages += 1
+            if not next_url or (self.max_pages and pages >= self.max_pages):
+                break
+
+            url = next_url
+
         return measures
     
-    def _parse_historical_measure(self, link_element, href: str) -> Dict:
-        """Parse a historical measure from repository"""
-        title = link_element.get_text(strip=True)
-        
-        # Try to get more context from parent element
-        parent = link_element.parent
-        full_text = parent.get_text(strip=True) if parent else title
-        
-        # Extract year and proposition number
-        year = None
-        prop_num = None
-        measure_id = None
-        
-        year_match = re.search(r'\((\d{4})\)', full_text)
-        if year_match:
-            year = int(year_match.group(1))  # Convert to int immediately
-        
-        prop_match = re.search(r'Proposition\s+(\d+[A-Z]?)', full_text, re.IGNORECASE)
-        if prop_match:
-            prop_num = prop_match.group(1)
-            measure_id = f"PROP {prop_num}"  # Standardize to uppercase PROP
-        
-        # Build measure text
-        if prop_num:
-            measure_text = f"Proposition {prop_num}: {title}"
-        else:
-            measure_text = title
-            
-        return {
-            'measure_id': measure_id,
-            'measure_text': measure_text,
-            'year': year if year else 0,  # Return integer, 0 if unknown
-            'title': title,
-            'pdf_url': urljoin(self.base_url, href),
-            'source_url': self.base_url + self.config["endpoint"]
-        }
+    def _parse_repository_page(self, html: str, source_url: str) -> Tuple[List[Dict], Optional[str]]:
+        """Parse measures from repository page, returning measures and next page URL.
+
+        Each measure is a <p class="article-listing"> containing:
+          - <a href="/ca_ballot_props/NNN">TITLE TEXT</a>
+          - <span class="index_pubinfo"><em>California Proposition N (YYYY)</em></span>
+        """
+        soup = BeautifulSoup(html, "html.parser")
+        measures = []
+
+        for listing in soup.find_all('p', class_='article-listing'):
+            if len(measures) >= self.max_items:
+                break
+
+            # Find the main link (skip viewcontent/PDF links)
+            link = None
+            for a in listing.find_all('a', href=True):
+                href = a.get('href', '')
+                if '/ca_ballot_props/' in href and 'viewcontent' not in href:
+                    link = a
+                    break
+
+            if not link:
+                continue
+
+            href = link.get('href', '')
+            title = link.get_text(strip=True)
+            if not title:
+                continue
+            lower_title = title.lower()
+            if any(term in lower_title for term in [
+                'voter information guide',
+                'voter information pamphlet',
+                'ballot pamphlet'
+            ]):
+                continue
+            repo_id = self._extract_repository_id(href)
+
+            # Extract prop number and year from the <span class="index_pubinfo"> sibling
+            # Note: smallcaps spans break get_text(), so we collapse whitespace
+            year = None
+            prop_num = None
+            measure_id = None
+
+            pubinfo = listing.find('span', class_='index_pubinfo')
+            if pubinfo:
+                # Collapse all whitespace from the smallcaps markup
+                info_text = re.sub(r'\s+', ' ', pubinfo.get_text(' ', strip=True))
+                year_match = re.search(r'\((\d{4})\)', info_text)
+                if year_match:
+                    year = int(year_match.group(1))
+                prop_match = re.search(r'P\s*r\s*o\s*p\s*o\s*s\s*i\s*t\s*i\s*o\s*n\s+(\d+[A-Z]?)', info_text, re.IGNORECASE)
+                if prop_match:
+                    prop_num = prop_match.group(1)
+                    measure_id = f"PROP_{prop_num}"
+
+            if not year:
+                year = self._extract_year_from_detail_page(href)
+
+            if prop_num:
+                measure_text = f"Proposition {prop_num}: {title}"
+            else:
+                measure_text = title
+                if not measure_id and repo_id:
+                    measure_id = f"UCLAW_{repo_id}"
+
+            measures.append({
+                'measure_id': measure_id,
+                'measure_text': measure_text,
+                'year': year if year else 0,
+                'title': title,
+                'pdf_url': urljoin(self.base_url, href),
+                'source_url': source_url
+            })
+
+            if len(measures) % 10 == 0:
+                logger.debug(f"Processed {len(measures)} historical measures...")
+
+        next_url = self._find_next_page(soup, source_url)
+        logger.info(f"Found {len(measures)} historical measures")
+        return measures, next_url
+
+    def _extract_year_from_detail_page(self, href: str) -> Optional[int]:
+        """Fetch a measure detail page to extract year when list metadata is missing."""
+        detail_url = urljoin(self.base_url, href)
+        html = self._fetch_page(detail_url)
+        if not html:
+            return None
+
+        soup = BeautifulSoup(html, "html.parser")
+        year_block = soup.find('div', id='year')
+        if year_block:
+            text = year_block.get_text(' ', strip=True)
+            match = re.search(r'\b(19\d{2}|20\d{2})\b', text)
+            if match:
+                return int(match.group(1))
+
+        match = re.search(r'\b(19\d{2}|20\d{2})\b', soup.get_text(' ', strip=True))
+        return int(match.group(1)) if match else None
+
+    def _extract_repository_id(self, href: str) -> Optional[str]:
+        """Extract the repository item ID from a listing link."""
+        match = re.search(r'/ca_ballot_props/(\d+)', href or '')
+        return match.group(1) if match else None
+
+    def _find_next_page(self, soup: BeautifulSoup, current_url: str) -> Optional[str]:
+        """Find the next page URL from pagination controls."""
+        next_link = soup.select_one('a[rel="next"]')
+        if not next_link:
+            next_link = soup.find('a', class_=re.compile(r'next', re.IGNORECASE))
+        if not next_link:
+            next_link = soup.find('a', string=re.compile(r'\bnext\b|\bolder\b|›|»', re.IGNORECASE))
+
+        if not next_link:
+            return None
+
+        href = next_link.get('href')
+        if not href:
+            return None
+
+        return urljoin(current_url, href)

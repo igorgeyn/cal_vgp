@@ -1,0 +1,59 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+venv/
+.venv/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Large data files - CalAccess raw data (3+ GB)
+scraper/data/finance/calaccess_raw/
+scraper/data/finance/*.zip
+scraper/data/finance/*.db
+
+# Sample data files (large)
+scraper/data/san_diego_samples/
+scraper/data/orange_county_samples/
+
+# Checkpoint files (can be regenerated)
+scraper/data/summary_checkpoint.json
+scraper/data/summary_generation.log
+
+# Local database backups
+scraper/data/*.db.bak
+scraper/data/ballot_measures_*.db
+
+# Environment
+.env
+.env.local
+
+# Logs
+*.log
+logs/

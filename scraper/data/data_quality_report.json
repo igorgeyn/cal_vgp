@@ -1,0 +1,556 @@
+{
+  "timestamp": "2026-02-05T00:05:22.300557",
+  "overall_score": 86.71,
+  "grade": "A-",
+  "scores": [
+    {
+      "dimension": "completeness",
+      "score": 90.93,
+      "weight": 0.2,
+      "issues_count": 0,
+      "critical_issues": 0,
+      "warnings": 0,
+      "details": {
+        "measure_id": {
+          "missing": 0,
+          "complete": 11486,
+          "pct_complete": 100.0
+        },
+        "year": {
+          "missing": 0,
+          "complete": 11486,
+          "pct_complete": 100.0
+        },
+        "title": {
+          "missing": 0,
+          "complete": 11486,
+          "pct_complete": 100.0
+        },
+        "county": {
+          "missing": 0,
+          "complete": 11486,
+          "pct_complete": 100.0
+        },
+        "passed": {
+          "missing": 298,
+          "complete": 11188,
+          "pct_complete": 97.41
+        },
+        "percent_yes": {
+          "missing": 314,
+          "complete": 11172,
+          "pct_complete": 97.27
+        },
+        "summary_text": {
+          "missing": 0,
+          "complete": 11486,
+          "pct_complete": 100.0
+        },
+        "topic_primary": {
+          "missing": 271,
+          "complete": 11215,
+          "pct_complete": 97.64
+        },
+        "description": {
+          "missing": 11163,
+          "complete": 323,
+          "pct_complete": 2.81
+        },
+        "ballot_question": {
+          "missing": 11159,
+          "complete": 327,
+          "pct_complete": 2.85
+        },
+        "pdf_url": {
+          "missing": 11282,
+          "complete": 204,
+          "pct_complete": 1.78
+        },
+        "vote_threshold": {
+          "missing": 626,
+          "complete": 10860,
+          "pct_complete": 94.55
+        },
+        "yes_votes": {
+          "missing": 314,
+          "complete": 11172,
+          "pct_complete": 97.27
+        },
+        "no_votes": {
+          "missing": 314,
+          "complete": 11172,
+          "pct_complete": 97.27
+        },
+        "source_url": {
+          "missing": 10861,
+          "complete": 625,
+          "pct_complete": 5.44
+        }
+      }
+    },
+    {
+      "dimension": "consistency",
+      "score": 83.33,
+      "weight": 0.15,
+      "issues_count": 1,
+      "critical_issues": 0,
+      "warnings": 1,
+      "details": {
+        "valid_years": {
+          "valid": 11486,
+          "invalid": 0,
+          "range": "1998-2026"
+        },
+        "valid_percentages": {
+          "invalid": 0
+        },
+        "threshold_logic": {
+          "mismatches": 23
+        },
+        "valid_counties": {
+          "valid": 59,
+          "invalid": 0,
+          "invalid_values": []
+        },
+        "valid_sources": {
+          "known": 4,
+          "unknown": 0,
+          "unknown_values": []
+        },
+        "fingerprint_format": {
+          "invalid": 0
+        }
+      }
+    },
+    {
+      "dimension": "accuracy",
+      "score": 96.39,
+      "weight": 0.2,
+      "issues_count": 2,
+      "critical_issues": 0,
+      "warnings": 2,
+      "details": {
+        "vote_math": {
+          "checked": 11172,
+          "errors": 0
+        },
+        "percentage_calculation": {
+          "checked": 11171,
+          "errors": 0
+        },
+        "outcome_logic": {
+          "checked": 6336,
+          "errors": 70
+        },
+        "content_hash": {
+          "checked": 1000,
+          "errors": 1000
+        }
+      }
+    },
+    {
+      "dimension": "uniqueness",
+      "score": 80.0,
+      "weight": 0.1,
+      "issues_count": 1,
+      "critical_issues": 0,
+      "warnings": 1,
+      "details": {
+        "fingerprint_duplicates": {
+          "duplicate_groups": 0,
+          "total_duplicates": 0
+        },
+        "cross_source_duplicates": {
+          "groups": 1,
+          "total_records": 36
+        },
+        "content_duplicates": {
+          "groups": 259,
+          "total_records": 807
+        },
+        "title_year_county_duplicates": {
+          "groups": 0,
+          "total_records": 0
+        },
+        "duplicate_handling": {
+          "marked_duplicates": 55,
+          "total_inactive": 949
+        }
+      }
+    },
+    {
+      "dimension": "timeliness",
+      "score": 89.93,
+      "weight": 0.1,
+      "issues_count": 1,
+      "critical_issues": 0,
+      "warnings": 1,
+      "details": {
+        "year_coverage": {
+          "min_year": 1998,
+          "max_year": 2026,
+          "total_years": 28,
+          "missing_years": [
+            2025
+          ],
+          "year_distribution": {
+            "1998": 565,
+            "1999": 283,
+            "2000": 578,
+            "2001": 233,
+            "2002": 665,
+            "2003": 179,
+            "2004": 731,
+            "2005": 302,
+            "2006": 569,
+            "2007": 180,
+            "2008": 615,
+            "2009": 201,
+            "2010": 497,
+            "2011": 173,
+            "2012": 544,
+            "2013": 138,
+            "2014": 583,
+            "2015": 4,
+            "2016": 890,
+            "2017": 116,
+            "2018": 723,
+            "2019": 69,
+            "2020": 1042,
+            "2021": 44,
+            "2022": 587,
+            "2023": 33,
+            "2024": 877,
+            "2026": 65
+          }
+        },
+        "recent_coverage": {
+          "2022": 587,
+          "2023": 33,
+          "2024": 877,
+          "2025": 0,
+          "2026": 65
+        },
+        "freshness": {
+          "most_recent_update": "2026-02-04T11:41:38.914288",
+          "oldest_update": "2026-01-09 11:11:27.347697",
+          "updated_last_30_days": 11486
+        },
+        "source_freshness": {}
+      }
+    },
+    {
+      "dimension": "validity",
+      "score": 52.16,
+      "weight": 0.1,
+      "issues_count": 1,
+      "critical_issues": 0,
+      "warnings": 1,
+      "details": {
+        "measure_id_format": {
+          "checked": 11486,
+          "invalid": 299
+        },
+        "url_format": {
+          "checked": 625,
+          "invalid": 0
+        },
+        "vote_threshold_values": {
+          "values": {
+            "50%": 6032,
+            "55%": 2347,
+            "66.67%": 2481
+          },
+          "invalid": []
+        },
+        "passed_values": {
+          "values": [
+            null,
+            0,
+            1
+          ],
+          "invalid": []
+        },
+        "data_sources": {
+          "values": [
+            "Ballotpedia",
+            "CA_SOS",
+            "CEDA",
+            "UC_Law_SF"
+          ]
+        }
+      }
+    },
+    {
+      "dimension": "summary_quality",
+      "score": 96.09,
+      "weight": 0.1,
+      "issues_count": 6,
+      "critical_issues": 0,
+      "warnings": 6,
+      "details": {
+        "coverage": {
+          "with_summary": 11486,
+          "without_summary": 0,
+          "coverage_pct": 100.0
+        },
+        "quality_issues": {
+          "too_short": 1,
+          "too_long": 679,
+          "has_preamble": 0,
+          "ends_badly": 225,
+          "has_bullets": 1,
+          "mentions_vote": 13,
+          "too_many_sentences": 203,
+          "duplicates_title": 0
+        },
+        "length_stats": {
+          "min": 47,
+          "max": 3692,
+          "avg": 357.0,
+          "median": 330
+        },
+        "word_count_stats": {
+          "min": 9,
+          "max": 566,
+          "avg": 53.6
+        }
+      }
+    },
+    {
+      "dimension": "finance_quality",
+      "score": 89.98,
+      "weight": 0.05,
+      "issues_count": 1,
+      "critical_issues": 0,
+      "warnings": 1,
+      "details": {
+        "coverage": {
+          "measures_with_finance": 98,
+          "statewide_since_2016": 131,
+          "coverage_pct": 74.8
+        },
+        "transactions": {
+          "total": 641423,
+          "zero_amounts": 211,
+          "missing_dates": 0
+        },
+        "committees": {
+          "total": 737,
+          "missing_names": 0
+        },
+        "data_integrity": {
+          "negative_totals": 1
+        }
+      }
+    },
+    {
+      "dimension": "recommendations",
+      "score": 95.26,
+      "weight": 0.05,
+      "issues_count": 0,
+      "critical_issues": 0,
+      "warnings": 0,
+      "details": {
+        "coverage": {
+          "with_recommendations": 10942,
+          "total_active": 11486,
+          "total_in_embeddings": 12156,
+          "coverage_pct": 95.26
+        },
+        "quality": {
+          "self_references": 0,
+          "invalid_references": 0,
+          "low_similarity_scores": 139
+        }
+      }
+    }
+  ],
+  "issues": [
+    {
+      "dimension": "consistency",
+      "severity": "warning",
+      "field": "passed/vote_threshold",
+      "description": "Pass/fail doesn't match vote threshold",
+      "affected_count": 23,
+      "sample_ids": [
+        620,
+        621,
+        1025,
+        1077,
+        1079
+      ]
+    },
+    {
+      "dimension": "accuracy",
+      "severity": "warning",
+      "field": "passed",
+      "description": "Pass/fail doesn't match percentage (50% threshold)",
+      "affected_count": 70,
+      "sample_ids": [
+        620,
+        621,
+        1025,
+        1077,
+        1079,
+        1265,
+        4513,
+        10994,
+        10995,
+        10997
+      ]
+    },
+    {
+      "dimension": "accuracy",
+      "severity": "info",
+      "field": "content_hash",
+      "description": "Content hash doesn't match content",
+      "affected_count": 1000,
+      "sample_ids": [
+        1,
+        2,
+        7,
+        10,
+        14,
+        15,
+        16,
+        17,
+        19,
+        21
+      ]
+    },
+    {
+      "dimension": "uniqueness",
+      "severity": "info",
+      "field": "measure_fingerprint",
+      "description": "Same measure from multiple sources",
+      "affected_count": 1,
+      "sample_ids": []
+    },
+    {
+      "dimension": "uniqueness",
+      "severity": "warning",
+      "field": "content_hash",
+      "description": "Identical content across records",
+      "affected_count": 259,
+      "sample_ids": []
+    },
+    {
+      "dimension": "timeliness",
+      "severity": "warning",
+      "field": "year",
+      "description": "Coverage gaps: [2025]",
+      "affected_count": 1,
+      "sample_ids": []
+    },
+    {
+      "dimension": "validity",
+      "severity": "info",
+      "field": "measure_id",
+      "description": "Non-standard measure ID format",
+      "affected_count": 299,
+      "sample_ids": [
+        1,
+        2,
+        7,
+        10,
+        14,
+        15,
+        16,
+        17,
+        19,
+        21
+      ]
+    },
+    {
+      "dimension": "summary_quality",
+      "severity": "info",
+      "field": "summary_text",
+      "description": "Summary issue: too_short",
+      "affected_count": 1,
+      "sample_ids": [
+        11434
+      ]
+    },
+    {
+      "dimension": "summary_quality",
+      "severity": "info",
+      "field": "summary_text",
+      "description": "Summary issue: too_long",
+      "affected_count": 679,
+      "sample_ids": [
+        10,
+        19,
+        29,
+        34,
+        37
+      ]
+    },
+    {
+      "dimension": "summary_quality",
+      "severity": "info",
+      "field": "summary_text",
+      "description": "Summary issue: ends_badly",
+      "affected_count": 225,
+      "sample_ids": [
+        5879,
+        10988,
+        10990,
+        10991,
+        10992
+      ]
+    },
+    {
+      "dimension": "summary_quality",
+      "severity": "info",
+      "field": "summary_text",
+      "description": "Summary issue: has_bullets",
+      "affected_count": 1,
+      "sample_ids": [
+        11401
+      ]
+    },
+    {
+      "dimension": "summary_quality",
+      "severity": "warning",
+      "field": "summary_text",
+      "description": "Summary issue: mentions_vote",
+      "affected_count": 13,
+      "sample_ids": [
+        11275,
+        11276,
+        11277,
+        11278,
+        11279
+      ]
+    },
+    {
+      "dimension": "summary_quality",
+      "severity": "info",
+      "field": "summary_text",
+      "description": "Summary issue: too_many_sentences",
+      "affected_count": 203,
+      "sample_ids": [
+        10988,
+        10990,
+        10991,
+        10992,
+        10993
+      ]
+    },
+    {
+      "dimension": "finance_quality",
+      "severity": "warning",
+      "field": "total_receipts",
+      "description": "Negative total receipts",
+      "affected_count": 1,
+      "sample_ids": []
+    }
+  ],
+  "summary": {
+    "total_issues": 14,
+    "critical_issues": 0,
+    "warnings": 6,
+    "info": 8
+  }
+}

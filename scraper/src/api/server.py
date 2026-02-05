@@ -31,6 +31,16 @@ except ImportError:
     MIN_MEASURES_FOR_FILTER = 3
     HISTORICAL_AVAILABLE = False
 
+# Finance modules are optional — finance endpoints return 501 if unavailable.
+try:
+    from src.finance.operations import FinanceDatabase
+    from src.finance.schema import FINANCE_DB_PATH
+    FINANCE_AVAILABLE = True
+except ImportError:
+    FinanceDatabase = None
+    FINANCE_DB_PATH = None
+    FINANCE_AVAILABLE = False
+
 # Set up logging
 logger = logging.getLogger(__name__)
 
@@ -55,11 +65,12 @@ app.add_middleware(
 # Global database connections
 db_ops = None
 historical_db = None
+finance_db = None
 
 @app.on_event("startup")
 async def startup_event():
     """Initialize database connection on startup"""
-    global db_ops, historical_db
+    global db_ops, historical_db, finance_db
     if not DB_PATH.exists():
         logger.error(f"Database not found at {DB_PATH}")
         raise RuntimeError("Database not initialized")
@@ -69,14 +80,21 @@ async def startup_event():
         logger.info("API server started with historical context support")
     else:
         logger.warning("Historical context modules not available — historical endpoints disabled")
+    if FINANCE_AVAILABLE and FINANCE_DB_PATH and FINANCE_DB_PATH.exists():
+        finance_db = FinanceDatabase(FINANCE_DB_PATH)
+        logger.info("Finance database loaded")
+    else:
+        logger.warning("Finance database not available — finance endpoints disabled")
     logger.info("API server started successfully")
 
 @app.on_event("shutdown")
 async def shutdown_event():
     """Clean up on shutdown"""
-    global historical_db
+    global historical_db, finance_db
     if historical_db:
         historical_db.close()
+    if finance_db:
+        finance_db.close()
     logger.info("API server shutting down")
 
 # Response models
@@ -745,6 +763,80 @@ async def search_historical_measures(
     except Exception as e:
         logger.error(f"Error searching historical measures: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# =============================================================================
+# Finance Endpoints
+# =============================================================================
+
+class FinanceSideResponse(BaseModel):
+    stance: str
+    total_receipts: float
+    n_committees: int
+    top5_share: Optional[float]
+    hhi: Optional[float]
+
+class FinanceSummaryResponse(BaseModel):
+    measure_id: str
+    sides: List[FinanceSideResponse]
+
+class FinanceTimelineEntry(BaseModel):
+    week_start: str
+    weekly_receipts: float
+    cumulative_receipts: float
+
+class FinanceTimelineResponse(BaseModel):
+    measure_id: str
+    support: List[FinanceTimelineEntry]
+    oppose: List[FinanceTimelineEntry]
+
+class FinanceDonorEntry(BaseModel):
+    donor_name: str
+    donor_type: Optional[str]
+    donor_sector: Optional[str]
+    total_amount: float
+
+class FinanceTopDonorsResponse(BaseModel):
+    measure_id: str
+    support: List[FinanceDonorEntry]
+    oppose: List[FinanceDonorEntry]
+
+
+@app.get("/api/measure/{measure_id}/finance_summary", response_model=FinanceSummaryResponse, tags=["Finance"])
+async def get_finance_summary(measure_id: str = PathParam(..., description="Measure ID (e.g., PROP_36)")):
+    """Get campaign finance summary for a statewide proposition."""
+    if not FINANCE_AVAILABLE or not finance_db:
+        raise HTTPException(status_code=501, detail="Finance data not available")
+    rows = finance_db.get_finance_summary(measure_id)
+    if not rows:
+        raise HTTPException(status_code=404, detail=f"No finance data for {measure_id}")
+    return FinanceSummaryResponse(measure_id=measure_id, sides=[FinanceSideResponse(**r) for r in rows])
+
+
+@app.get("/api/measure/{measure_id}/finance_timeline", response_model=FinanceTimelineResponse, tags=["Finance"])
+async def get_finance_timeline(measure_id: str = PathParam(..., description="Measure ID (e.g., PROP_36)")):
+    """Get weekly fundraising timeline for a statewide proposition."""
+    if not FINANCE_AVAILABLE or not finance_db:
+        raise HTTPException(status_code=501, detail="Finance data not available")
+    rows = finance_db.get_finance_timeline(measure_id)
+    if not rows:
+        raise HTTPException(status_code=404, detail=f"No finance data for {measure_id}")
+    support = [FinanceTimelineEntry(**r) for r in rows if r["stance"] == "support"]
+    oppose = [FinanceTimelineEntry(**r) for r in rows if r["stance"] == "oppose"]
+    return FinanceTimelineResponse(measure_id=measure_id, support=support, oppose=oppose)
+
+
+@app.get("/api/measure/{measure_id}/finance_top_donors", response_model=FinanceTopDonorsResponse, tags=["Finance"])
+async def get_finance_top_donors(measure_id: str = PathParam(..., description="Measure ID (e.g., PROP_36)")):
+    """Get top donors for a statewide proposition."""
+    if not FINANCE_AVAILABLE or not finance_db:
+        raise HTTPException(status_code=501, detail="Finance data not available")
+    rows = finance_db.get_top_donors(measure_id)
+    if not rows:
+        raise HTTPException(status_code=404, detail=f"No finance data for {measure_id}")
+    support = [FinanceDonorEntry(donor_name=r["donor_name_canon"], donor_type=r["donor_type"], donor_sector=r["donor_sector"], total_amount=r["total_amount"]) for r in rows if r["stance"] == "support"]
+    oppose = [FinanceDonorEntry(donor_name=r["donor_name_canon"], donor_type=r["donor_type"], donor_sector=r["donor_sector"], total_amount=r["total_amount"]) for r in rows if r["stance"] == "oppose"]
+    return FinanceTopDonorsResponse(measure_id=measure_id, support=support, oppose=oppose)
 
 
 # Run the API server

@@ -53,7 +53,8 @@ SOURCES = {
         "name": "UC Law SF Repository",
         "base_url": "https://repository.uclawsf.edu",
         "endpoint": "/ca_ballot_props/",
-        "max_items": 200  # Increased from 50 to get more historical data
+        "max_items": 200,  # Increased from 50 to get more historical data
+        "max_pages": 20
     }
 }
 

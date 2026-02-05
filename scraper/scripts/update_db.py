@@ -7,6 +7,7 @@ import logging
 import argparse
 from pathlib import Path
 from datetime import datetime
+from typing import Optional
 
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -14,7 +15,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from src.database.operations import Database
 from src.database.deduplication import Deduplicator
 from src.database.utils import normalize_measure_data
-from src.scrapers.ca_sos import CASOSScraper
+from src.scrapers.ca_sos import CASOSScraper, UCLawSFScraper
 from src.enrichment.summaries import SummaryGenerator
 from src.config import LOG_LEVEL
 
@@ -26,18 +27,26 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-def check_for_updates(db: Database) -> dict:
+def check_for_updates(db: Database, include_uc_law_sf: bool, uc_law_max_items: Optional[int]) -> dict:
     """Check for new measures without updating"""
     logger.info("Checking for new measures...")
     
-    # Run scraper
-    scraper = CASOSScraper()
-    result = scraper.run(save_raw=False)
+    # Run scrapers
+    scrapers = [CASOSScraper()]
+    if include_uc_law_sf:
+        scrapers.append(UCLawSFScraper(max_items=uc_law_max_items))
+
+    measures = []
+    total_scraped = 0
+    for scraper in scrapers:
+        result = scraper.run(save_raw=False)
+        total_scraped += result.get('total_measures', 0)
+        measures.extend(result.get('measures', []))
     
     new_count = 0
     update_count = 0
     
-    for measure_data in result.get('measures', []):
+    for measure_data in measures:
         # Normalize the data before creating BallotMeasure
         normalized_data = normalize_measure_data(measure_data)
         
@@ -61,10 +70,10 @@ def check_for_updates(db: Database) -> dict:
                 update_count += 1
     
     return {
-        'total_scraped': len(result.get('measures', [])),
+        'total_scraped': total_scraped,
         'new': new_count,
         'updates': update_count,
-        'measures': result.get('measures', [])
+        'measures': measures
     }
 
 
@@ -144,6 +153,17 @@ def main():
         help='Only check for new measures, do not update'
     )
     parser.add_argument(
+        '--include-uc-law-sf',
+        action='store_true',
+        help='Include UC Law SF historical statewide measures'
+    )
+    parser.add_argument(
+        '--uc-law-max-items',
+        type=int,
+        default=None,
+        help='Maximum UC Law SF items to scrape (defaults to config)'
+    )
+    parser.add_argument(
         '--dedupe',
         action='store_true',
         help='Run cross-source deduplication after update'
@@ -183,7 +203,11 @@ def main():
             return 0
         
         # Check for updates
-        check_result = check_for_updates(db)
+        check_result = check_for_updates(
+            db,
+            include_uc_law_sf=args.include_uc_law_sf,
+            uc_law_max_items=args.uc_law_max_items
+        )
         
         logger.info(f"\nCheck Results:")
         logger.info(f"  Scraped: {check_result['total_scraped']} measures")

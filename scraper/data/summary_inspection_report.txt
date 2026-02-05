@@ -1,0 +1,319 @@
+================================================================================
+BALLOT MEASURE SUMMARY INSPECTION REPORT
+Generated: 2026-02-04 23:20:28
+================================================================================
+
+1. COVERAGE STATISTICS
+----------------------------------------
+Total active measures:     12,435
+With summaries:            12,187 (98.0%)
+Without summaries:         248 (2.0%)
+
+2. SUMMARY LENGTH DISTRIBUTION
+----------------------------------------
+Total summaries analyzed:  12,187
+
+Character length:
+  Min:        47
+  25th pctl:  245
+  Median:     339
+  75th pctl:  412
+  Max:        3,692
+  Average:    455
+
+Word count:
+  Min:        9
+  Median:     50
+  Max:        566
+  Average:    69.7
+
+Length distribution (characters):
+     0-100:   143 (  1.2%) 
+   100-200:  1766 ( 14.5%) ███████
+   200-300:  2779 ( 22.8%) ███████████
+   300-400:  3970 ( 32.6%) ████████████████
+   400-500:  2205 ( 18.1%) █████████
+      500+:  1324 ( 10.9%) █████
+
+3. QUALITY ISSUES DETECTED
+----------------------------------------
+Total issues found: 3094 across 12,187 summaries
+
+  Too long (>500 chars): 1319 (10.82%)
+  Doesn't end with punctuation: 796 (6.53%)
+  Too many sentences (>4): 764 (6.27%)
+  Has preamble (e.g., "Here is..."): 154 (1.26%)
+  Contains "vote yes/no" (biased): 59 (0.48%)
+  Contains bullet points: 1 (0.01%)
+  Too short (<50 chars): 1 (0.01%)
+
+4. EXAMPLES OF FLAGGED SUMMARIES
+----------------------------------------
+
+TOO LONG (>500 CHARS):
+  ID 10 (Statewide, 2026):
+    "This ballot measure, the California Fair Elections Act of 2026, aims to establish a public campaign financing system for state and local elections in California. The main change it would bring about i..."
+  ID 19 (Statewide, 2026):
+    "This California ballot measure requires proponents of a proposed initiative measure to certify under penalty of perjury once they have gathered 25% of the required signatures for an initiative statute..."
+  ID 29 (Alameda, 2024):
+    "This ballot measure proposes to amend the County of Alameda Charter by replacing its existing language governing the recall of elective and appointive officers with new language that states California..."
+
+HAS PREAMBLE (E.G., "HERE IS..."):
+  ID 65 (Alameda, 2024):
+    "Here is a concise 2-3 sentence summary:
+
+This ballot measure authorizes the San Leandro Unified School District to issue $174 million in bonds to fund various school renovation and construction projec..."
+  ID 143 (Fresno, 2024):
+    "Here is a concise 2-3 sentence summary of the California ballot measure:
+
+This measure establishes a countywide ¼¢ sales tax to fund various initiatives, including expanding access to education and jo..."
+  ID 144 (Fresno, 2024):
+    "Here is a clear and neutral summary:
+
+Measure O would continue to generate approximately $263,965 annually for police and fire services in the City of Orange Cove. If adopted, this measure would impos..."
+
+DOESN'T END WITH PUNCTUATION:
+  ID 5879 (Sonoma, 2010):
+    "The measure extended Petaluma's Urban Growth Boundary from its original expiration date of December 31, 2018 to December 31, 2025. This延长了城市发展边界的有效期七年。"
+  ID 10937 (Alameda, 2025):
+    "“ The Emeryville City Council placed Measure F on the March 2020 ballot. If adopted by two-thirds of the voters, Measure F would add Article 3.5, "Transactions and Use Tax," to Chapter 3 of Title 3 of..."
+  ID 10939 (Alameda, 2025):
+    "“ This measure would approve an ordinance, "The 2020 Oakland Parks and Recreation Preservation, Litter Reduction, and Homelessness Support Act," and authorize a twenty-year annual special parcel tax. ..."
+
+TOO MANY SENTENCES (>4):
+  ID 10937 (Alameda, 2025):
+    "“ The Emeryville City Council placed Measure F on the March 2020 ballot. If adopted by two-thirds of the voters, Measure F would add Article 3.5, "Transactions and Use Tax," to Chapter 3 of Title 3 of..."
+  ID 10939 (Alameda, 2025):
+    "“ This measure would approve an ordinance, "The 2020 Oakland Parks and Recreation Preservation, Litter Reduction, and Homelessness Support Act," and authorize a twenty-year annual special parcel tax. ..."
+  ID 10940 (Alameda, 2025):
+    "“ Oakland City Charter, Article XII, section 1205 requires that the City Council annually designate a newspaper as the official newspaper of the City for the purpose of publishing notice of pending or..."
+
+CONTAINS "VOTE YES/NO" (BIASED):
+  ID 11260 (Humboldt, 2024):
+    "“ California Government Code section 53724 authorizes fire districts to adopt, by resolution or ordinance, a special tax upon the approval of two-thirds of the voters of the district. Pursuant to this..."
+  ID 11261 (Humboldt, 2024):
+    "“ The California Constitution provides a school district may issue general obligation bonds for construction, reconstruction, rehabilitation or replacement of school facilities, including furnishing a..."
+  ID 11262 (Humboldt, 2024):
+    "“ The California Constitution provides a school district may issue general obligation bonds for construction, reconstruction, rehabilitation or replacement of school facilities, including furnishing a..."
+
+CONTAINS BULLET POINTS:
+  ID 11401 (Los Angeles, 2020):
+    "“ The Cerritos City Council has placed Measure C on the ballot for the March 3, 2020, general election to ask the City’s voters to approve a three-quarters percent (0.75%) transactions and use tax to ..."
+
+TOO SHORT (<50 CHARS):
+  ID 11434 (Los Angeles, 2020):
+    "The full text of the measure is available here."
+
+5. SAMPLE SUMMARIES BY CATEGORY
+----------------------------------------
+
+Charter Amendment:
+  [Santa Barbara, 2009]
+  Title: Shall the City Charter be revised by amending Charter Section 814 to reduce the number of Members on...
+  Summary: This measure reduced the Santa Barbara Architectural Board of Review from nine to seven members and allowed the City Council to appoint up to three members from anywhere in Santa Barbara County rather than requiring all members to be city residents.
+
+  [Alameda, 2002]
+  Title: Shall the City Charter be amended to specify the qualifications, terms, and powers of the office of ...
+  Summary: This measure amended Alameda's city charter to establish specific qualifications, terms, and powers for the elected city attorney position and create procedures for filling vacancies in that office. It also included a provision ensuring that if voters later rejected related changes from Measure X, the city attorney elected in 2004 would still serve a complete four-year term.
+
+
+Recall:
+  [Orange, 2008]
+  Title: Shall Marlene Draper be recalled (removed) from the office of Governing Board Member-Trustee Area 2?...
+  Summary: This measure recalled Marlene Draper from her position as a Governing Board Member representing Trustee Area 2 in Orange, California.
+
+  [Monterey, 2009]
+  Title: Shall Rocio Gonzalez-Hunt be recalled (removed) from the office of Governing Board Member; Chualar U...
+  Summary: This measure sought to recall Rocio Gonzalez-Hunt from her position as a school board member representing Trustee Area 3 on the Chualar Union Elementary School District Governing Board. The recall was successful, removing her from office.
+
+
+Gann Limit:
+  [Santa Cruz, 2004]
+  Title: Shall the Loma Prieta Joint Union Elementary School District continue for four years (July 1, 2004 t...
+  Summary: This measure allowed the Loma Prieta Joint Union Elementary School District to continue collecting an existing $150 per parcel tax for four more years by extending a previously approved increase to the district's spending limit. The measure enabled the district to keep using revenue from the special tax that voters had already authorized in 2000.
+
+  [Riverside, 2012]
+  Title: Shall the permanent annual appropriations limit of the City of Jurupa Valley be set at $28,967,355?...
+  Summary: This measure set the permanent annual appropriations limit for the City of Jurupa Valley at $28,967,355, establishing a cap on the city's spending under California's Gann Limit requirements.
+
+
+Property Tax:
+  [El Dorado, 2014]
+  Title: Shall the Cameron Estates Community Services District levy a special tax for the purpose of providin...
+  Summary: The measure would have authorized the Cameron Estates Community Services District to levy a special tax of up to $350 per parcel annually (an increase of up to $100 from the current rate) to fund road improvements, upgrades, and maintenance. The measure failed to reach the required two-thirds majority threshold despite receiving 63.7% approval.
+
+  [Alameda, 2011]
+  Title: To protect local schools from State budget cuts, provide local funding that cannot be taken away by ...
+  Summary: This measure would have authorized the Pleasanton Unified School District to levy a $98 annual parcel tax for four years to fund core academic instruction, teacher retention, specialized programs, and school libraries. The tax included a senior citizen exemption and prohibited using funds for administrator salaries.
+
+
+Business Tax:
+  [Santa Clara, 2014]
+  Title: Shall one licensed gambling establishment in which any controlled games permitted by law, such as dr...
+  Summary: This measure would have allowed one licensed cardroom establishment to operate in Milpitas, offering controlled games like poker and tile games, with the establishment paying a 10.5% tax on gaming revenues to the city.
+
+  [San Joaquin, 2016]
+  Title: Shall Ordinance 2016-06-28-1503 be adopted to amend provisions of the City of Stockton Municipal Cod...
+  Summary: This measure amended Stockton's municipal code to increase the business license tax rate on medical cannabis businesses to between $35-50 per $1,000 of annual gross receipts. The tax increase was estimated to generate $672,000 to $1 million annually for general city services.
+
+
+Ordinance:
+  [Monterey, 2024]
+  Title: Shall Chapter 23.45 of the Pacific Grove Municipal Code be amended, in the form included in the vote...
+  Summary: This ballot measure proposes to amend the Pacific Grove Municipal Code by adding a definition of a timeshare project and expanding the city's prohibition on such projects. If approved, the measure would prohibit the advertising and sale of any timeshare project within the city limits, making it a prohibited activity. This change would effectively restrict the development and promotion of timeshare projects in Pacific Grove.
+
+  [Orange, 2012]
+  Title: Shall ordinances be adopted amending the Yorba Linda General Plan and zoning requirements to allow t...
+  Summary: The measure amended Yorba Linda's General Plan and zoning to allow more housing units and taller buildings in commercial areas of the Savi Ranch Planned Development to help comply with state affordable housing requirements.
+
+
+Utility Tax:
+  [Los Angeles, 2004]
+  Title: Because the California Legislature has seized millions of dollars belonging to local government caus...
+  Summary: This measure would have imposed a 6.5% tax on utility usage in the City of Montebello to fund city services and prevent staff layoffs, with an oversight committee to monitor the use of revenues. The measure was presented as a response to state government taking local funds, creating budget deficits for the city.
+
+  [Sacramento, 2010]
+  Title: Shall an ordinance be adopted to reduce the existing Utility User Tax from 2.5% to 2.25%; modernize ...
+  Summary: This measure would reduce Sacramento's Utility User Tax rate from 2.5% to 2.25% and update the tax code to apply equally to all telecommunications and video services regardless of the technology used.
+
+
+Miscellaneous Tax:
+  [San Mateo, 1999]
+  Title: Shall an initiative ordinance be adopted amending the San Bruno Municipal Code to add a provision im...
+  Summary: This measure would impose a tax on airport parking facilities in San Bruno by amending the municipal code. The tax was approved by voters and became part of the city's ordinances.
+
+  [Alameda, 2012]
+  Title: Shall Chapter 20F be added to the Piedmont City Code providing for a new 10-year Special Municipal S...
+  Summary: This ballot measure would have added a new 10-year special municipal sewer surtax to the Piedmont City Code. The measure failed because it received 50.6% approval but required a two-thirds majority to pass.
+
+
+Sales Tax:
+  [Los Angeles, 2016]
+  Title: If a future Carson City Council or if voters of Carson through another ballot measure permit cannabi...
+  Summary: This measure established a cannabis tax structure in Carson that would take effect if the city council or voters later allow cannabis businesses, setting rates at $25 per square foot for cultivation space and 18% of gross proceeds (adjusted annually for inflation). The tax was projected to generate between $500,000 to $3.5 million annually for the city with no expiration date.
+
+  [Merced, 2004]
+  Title: To improve 9-1-1 police/fire response time, maintain affordable fire insurance rates, purchase prote...
+  Summary: This measure enacted a half-cent sales tax in Los Banos to fund police and fire services, including hiring additional officers and firefighters, purchasing equipment, upgrading emergency dispatch systems, and constructing or repairing public safety facilities. The tax includes provisions for citizen oversight and annual independent audits.
+
+
+Transient Occupancy Tax:
+  [Los Angeles, 2020]
+  Title: To provide additional funding for general city services such as maintaining streets, roads, sidewalk...
+  Summary: This ballot measure proposes to increase the Transit Occupancy Tax rate for hotel guests, motels, and short-term rentals from 10% to 15%. If approved, this measure would provide additional funding for general city services such as public safety, road maintenance, and pedestrian safety. The increased tax rate would generate more revenue for these purposes.
+
+  [Los Angeles, 2004]
+  Title: Shall the Transient Occupancy Tax (TOT) applied to hotel bills and paid by hotel guests only, be inc...
+  Summary: This measure increased Los Angeles's transient occupancy tax on hotel bills from 12 percent to 14 percent, generating an estimated additional $3.5 million annually for the city's general fund. The revenue would support various city services including police, fire, libraries, parks, environmental protection, after school programs, and community-use payments to the school district.
+
+6. RANDOM SAMPLES FOR MANUAL REVIEW
+----------------------------------------
+
+Sample 1: ID 6077
+  Location: San Mateo, 2009
+  Type: Transient Occupancy Tax (Hotel & Tourism Taxes)
+  Outcome: Passed (74.6% yes)
+  Title: To maintain and protect City services and facilities, such as street and sidewalk maintenance and repair, fire protection and emergency medical servic...
+  Summary: This measure authorized San Mateo to increase its hotel transient occupancy tax by 2 percentage points, with proceeds going to the city's general fund to support various municipal services including public safety, infrastructure maintenance, libraries, and parks.
+
+Sample 2: ID 2994
+  Location: Sutter, 2018
+  Type: Recall (Recalls & Appointments)
+  Outcome: Passed (51.8% yes)
+  Title: Shall Travis Barker be recalled (removed) from the office of Governing Board Member?
+  Summary: This measure would recall Travis Barker from his position as a member of the Governing Board in Sutter, California. The measure passed, resulting in Barker's removal from office.
+
+Sample 3: ID 490
+  Location: Riverside, 2024
+  Type: GO Bond (Housing & School Bonds)
+  Outcome: Passed (64.4% yes)
+  Title: With funds that cannot be taken by the State and spent elsewhere, shall Banning Unified School District's measure to repair/replace aging roofs, elect...
+  Summary: This ballot measure authorizes $74 million in bonds to fund repairs and upgrades at Banning Unified School District facilities, including roof replacements, electrical and plumbing systems, classroom renovations, and security system upgrades. The measure would increase property taxes by an average of $51 per $100,000 of assessed valuation, resulting in approximately $4.4 million in annual revenue.
+
+Sample 4: ID 4185
+  Location: Los Angeles, 2014
+  Type: GO Bond (Infrastructure & Safety)
+  Outcome: Passed (62.4% yes)
+  Title: To improve school facilities with funding that cannot be taken by the State, replace leaky roofs, improve student access to computer / modern technolo...
+  Summary: This measure authorized the Bassett Unified School District to issue $30 million in bonds to fund facility improvements including roof repairs, technology upgrades, HVAC and electrical system replacements, and classroom and restroom modernization. The measure included provisions for independent citizen oversight and prohibited use of funds for salaries.
+
+Sample 5: ID 1857
+  Location: Monterey, 2020
+  Type: GO Bond (Housing & School Bonds)
+  Outcome: Passed (55.8% yes)
+  Title: To improve student safety and campus security, upgrade emergency notification systems, replace aging portable classrooms and repair restrooms and play...
+  Summary: This ballot measure proposes to issue $19,325,000 in bonds to fund upgrades and repairs at five schools in the King City Union School District. The primary purpose of the measure is to improve student safety and campus security by upgrading emergency notification systems. The measure would also replace aging portable classrooms, repair restrooms and playgrounds, and generate approximately $960,000 per year for 34 years.
+
+Sample 6: ID 9447
+  Location: San Mateo, 2001
+  Type: Property Tax (School Parcel Taxes)
+  Outcome: Failed (58.9% yes)
+  Title: To improve academic performance, attract qualified teachers, improve/maintain instructional programs/technology/classrooms, shall Belmont-Redwood Shor...
+  Summary: This measure would have imposed a special property tax of $184 per year per taxable parcel in the Belmont-Redwood Shores School District for ten years, with exemptions for seniors, to fund academic programs, teacher recruitment, and facility improvements. The tax would have started at $92 in 2001, increased to $184 in 2002, and been adjusted annually for inflation.
+
+Sample 7: ID 7777
+  Location: Alameda, 2004
+  Type: Property Tax (Utility Taxes)
+  Outcome: Passed (79.9% yes)
+  Title: To maintain essential police, fire and paramedic services, to prevent the reduction in maintenance of City parks, greenspace and other public areas, a...
+  Summary: This measure authorized Piedmont to continue collecting a parcel tax to fund municipal services including police, fire, paramedic services, park maintenance, and recreational programs, replacing an existing Municipal Services Tax.
+
+Sample 8: ID 3714
+  Location: San Diego, 2016
+  Type: Charter Amendment (City Charter Amendments)
+  Outcome: Passed (77.1% yes)
+  Title: Shall the City Charter be amended to: require contracts for public works, goods, services, and consultants to be awarded through a competitive process...
+  Summary: This measure amended San Diego's city charter to require competitive bidding for city contracts, eliminate the Purchasing Agent position, remove requirements to publish certain notices in printed newspapers, and update various provisions to align with state law.
+
+Sample 9: ID 10349
+  Location: Tulare, 1999
+  Type: Recall (Recalls & Appointments)
+  Outcome: Failed (44.1% yes)
+  Title: Shall Alan Vanderlice be recalled (removed) from the office of Governing Board Member?
+  Summary: This measure would have recalled Alan Vanderlice from his position as a Governing Board Member in Tulare, California. The recall failed to achieve the majority support needed to remove him from office.
+
+Sample 10: ID 7717
+  Location: Stanislaus, 2005
+  Type: GO Bond (Infrastructure & Safety)
+  Outcome: Passed (73.7% yes)
+  Title: To improve the quality of education shall Keyes Union School District acquire, construct and improve facilites including completing Sprating Middle Sc...
+  Summary: This measure authorized the Keyes Union School District to issue $5 million in bonds to complete construction at Sprating Middle School, modernize Keyes Elementary School's facilities and infrastructure, and make various health, safety, and technology improvements. The bond funding would also make the district eligible to receive over $1 million in additional state grants.
+
+7. MEASURES WITHOUT SUMMARIES (sample)
+----------------------------------------
+Showing 15 of 248 measures without summaries:
+
+  ID 2471: Imperial, 2018 (Ordinance)
+    Title (49 chars): Shall the office of the City Clerk be appointive?...
+  ID 2835: San Mateo, 2018 (Ordinance)
+    Title (49 chars): Shall the office of City Treasurer be appointive?...
+  ID 2900: Santa Clara, 2018 (Ordinance)
+    Title (49 chars): Shall the office of the City Clerk be appointive?...
+  ID 3072: Los Angeles, 2017 (Ordinance)
+    Title (49 chars): Shall the office of City Treasurer be appointive?...
+  ID 3783: San Luis Obispo, 2016 (Ordinance)
+    Title (49 chars): Shall the office of City Treasurer be appointive?...
+  ID 4087: Del Norte, 2014 (Ordinance)
+    Title (49 chars): Shall the office of the City Clerk be appointive?...
+  ID 4227: Mendocino, 2014 (Ordinance)
+    Title (49 chars): Shall the office of City Treasurer be appointive?...
+  ID 4363: San Benito, 2014 (Policy/Position)
+    Title (49 chars): Shall the office of City Treasurer be appointive?...
+  ID 4520: Solano, 2014 (Ordinance)
+    Title (49 chars): Shall the office of City Treasurer be appointive?...
+  ID 4801: Contra Costa, 2012 (Ordinance)
+    Title (49 chars): Shall the office of City Treasurer by appointive?...
+  ID 4847: Imperial, 2012 (Ordinance)
+    Title (49 chars): Shall the office of City Treasurer be appointive?...
+  ID 4943: Mendocino, 2012 (Ordinance)
+    Title (49 chars): Shall the office of City Treasurer be appointive?...
+  ID 5050: San Benito, 2012 (Ordinance)
+    Title (49 chars): Shall the office of City Treasurer be appointive?...
+  ID 5241: Tulare, 2012 (Ordinance)
+    Title (49 chars): Shall the office of City Treasurer be appointive?...
+  ID 5506: Fresno, 2010 (Ordinance)
+    Title (49 chars): Shall the office of City Treasurer be appointive?...
+
+================================================================================
+END OF REPORT
+================================================================================
