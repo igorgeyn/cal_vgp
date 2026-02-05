@@ -4480,6 +4480,14 @@ class WebsiteGenerator:
         const quizQuestions = {quiz_json};
         const financeData = {finance_json};
 
+        // Utility function to escape HTML special characters (prevents XSS)
+        function escapeHtml(text) {{
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }}
+
         // Utility function to detect AI refusal patterns in summaries
         function isAiRefusal(text) {{
             if (!text) return false;
@@ -4892,10 +4900,29 @@ class WebsiteGenerator:
             return "'" + String(val).replace(/'/g, "''") + "'";
         }}
 
+        // Validate SQL query for safety (block dangerous operations)
+        function validateSQL(sql) {{
+            const upperSQL = sql.toUpperCase();
+            const dangerous = ['DROP', 'DELETE', 'INSERT', 'UPDATE', 'ALTER', 'CREATE', 'TRUNCATE', 'EXEC', 'EXECUTE', 'GRANT', 'REVOKE'];
+            for (const keyword of dangerous) {{
+                // Check for keyword as whole word (not part of column name)
+                const pattern = new RegExp('\\\\b' + keyword + '\\\\b');
+                if (pattern.test(upperSQL)) {{
+                    throw new Error(`Query contains disallowed keyword: ${{keyword}}`);
+                }}
+            }}
+            // Block multiple statements
+            if ((sql.match(/;/g) || []).length > 1) {{
+                throw new Error('Multiple statements not allowed');
+            }}
+            return true;
+        }}
+
         // Execute SQL query and return results
         async function executeDuckDBQuery(sql) {{
             if (!duckDBReady) throw new Error('Database not ready');
             try {{
+                validateSQL(sql);  // Security check
                 const result = await duckDBConn.query(sql);
                 // Convert BigInt to Number to avoid JSON serialization issues
                 return result.toArray().map(row => {{
@@ -6809,7 +6836,7 @@ class WebsiteGenerator:
             document.getElementById('quizCategory').textContent = q.category;
             document.getElementById('quizQuestion').textContent = q.question;
             document.getElementById('quizAnswer').style.display = 'none';
-            document.getElementById('quizAnswer').innerHTML = '<p>' + q.answer + '</p>';
+            document.getElementById('quizAnswer').innerHTML = '<p>' + escapeHtml(q.answer) + '</p>';
             document.getElementById('quizRevealBtn').style.display = 'inline-block';
             document.getElementById('quizNextBtn').style.display = 'none';
             document.getElementById('quizProgress').textContent =
@@ -7281,9 +7308,12 @@ Provide a clear, insightful answer based on these results. Include specific exam
 
         // Format bot message (support markdown-like syntax)
         function formatBotMessage(text) {
+            // First escape HTML to prevent XSS, then apply markdown formatting
+            let safeText = escapeHtml(text);
+
             // Handle code blocks first (```...```)
-            let html = text.replace(/```(sql|\\w*)?\\n([\\s\\S]*?)```/g, (match, lang, code) => {
-                return `<pre class="chat-code-block"><code>${escapeHtml(code.trim())}</code></pre>`;
+            let html = safeText.replace(/```(sql|\\w*)?\\n([\\s\\S]*?)```/g, (match, lang, code) => {
+                return `<pre class="chat-code-block"><code>${code.trim()}</code></pre>`;
             });
 
             // Handle inline code (`...`)
@@ -7305,13 +7335,6 @@ Provide a clear, insightful answer based on these results. Include specific exam
             html = html.replace(/<p>---<\\/p>/g, '<hr class="chat-divider">');
 
             return html;
-        }
-
-        // Escape HTML
-        function escapeHtml(text) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
         }
 
         // Show typing indicator

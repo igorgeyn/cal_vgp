@@ -9714,5 +9714,8 @@
   "PROP_26_School Facilities. Local Majority Vote. Bonds, Taxes.": "School Facility Bond Measure Requiring Local Voter Approval",
   "PROP_38_SCHOOL VOUCHERS. STATE-FUNDED PRIVATE AND RELIGIOUS EDUCATION. PUBLIC SCHOOL FUNDING.": "State-Funded Private School Voucher Program",
   "PROP_7_Air Quality Improvement. Tax Credits.": "California Air Quality Improvement Act",
-  "PROP_219_Ballot Measures. Application.": "California Ballot Measure Application Process"
+  "PROP_219_Ballot Measures. Application.": "California Ballot Measure Application Process",
+  "INIT_2012_voter-approved tax rates for high-income Californians, currently set to expire in 2031. Rates apply ": "California High-Income Tax Rate Increase for Education",
+  "INIT_1974_public campaign financing: California Fair Elections Act of 2026. (Ch. 245, 2025) (PDF)": "California Fair Elections Act of 2026: Public Campaign Financing Measure",
+  "INIT_1911_(0.11%). Overturns all existing voter-approved property-related taxes that do not comply with these ": "Repeal Non-Compliant Property Taxes"
 }
