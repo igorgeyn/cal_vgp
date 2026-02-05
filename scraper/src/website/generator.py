@@ -522,7 +522,7 @@ class WebsiteGenerator:
             <div class="site-intro">
                 <h1 class="intro-title">CalBallot</h1>
                 <p class="intro-text">
-                    Explore <strong>{stats['total_measures']:,}+</strong> ballot measures from {stats.get('year_min', 1998)}-{stats.get('year_max', 2026)}.
+                    Explore California ballot measures from {stats.get('year_min', 1998)} to the present.
                     Filter by region, topic, year, or status. Click any measure for details, AI-generated summaries, and related measures.
                 </p>
             </div>
@@ -5549,8 +5549,10 @@ class WebsiteGenerator:
 
                 // Exclude upcoming/pending measures from search results
                 // (they're featured in the dedicated hero section)
-                // Only exclude if user hasn't explicitly filtered for pending status
-                if (!currentFilters.status.includes('pending')) {{
+                // Only exclude if:
+                // 1. User hasn't explicitly filtered for pending status, AND
+                // 2. User hasn't explicitly selected years (if they select 2026, show pending measures)
+                if (!currentFilters.status.includes('pending') && currentFilters.selectedYears.length === 0) {{
                     if (measure.passed !== 1 && measure.passed !== 0) {{
                         return false;
                     }}
@@ -6240,12 +6242,47 @@ class WebsiteGenerator:
             return html;
         }}
 
+        // Get human-readable measure designation (e.g., "Measure A", "Prop 36")
+        function getDisplayMeasureId(measure) {{
+            const mid = measure.measure_id || '';
+            const letter = measure.measure_letter || '';
+            const county = measure.county || '';
+
+            // For statewide measures, parse the measure_id
+            if (county === 'Statewide' || !county) {{
+                // Already readable formats: PROP_36 -> "Prop 36", ACA_13 -> "ACA 13"
+                if (mid.startsWith('PROP_')) return 'Prop ' + mid.replace('PROP_', '');
+                if (mid.startsWith('ACA_')) return 'ACA ' + mid.replace('ACA_', '');
+                if (mid.startsWith('SCA_')) return 'SCA ' + mid.replace('SCA_', '');
+                if (mid.startsWith('SB_')) return 'SB ' + mid.replace('SB_', '');
+                if (mid.startsWith('AB_')) return 'AB ' + mid.replace('AB_', '');
+                if (mid.startsWith('INIT_')) return null; // Don't show INIT_ prefix, just use title
+                // If measure_id is already clean (like "Prop 36" or a number), return null
+                return null;
+            }}
+
+            // For county measures, use measure_letter if available
+            if (letter) {{
+                // Handle recall measures (letter is a number like "1", "2")
+                if (/^\d+$/.test(letter)) return null; // Don't prefix recall numbers
+                // Regular letters: "A", "B", "AA", etc.
+                return 'Measure ' + letter;
+            }}
+
+            // If measure_id is not a CEDA numeric ID, it might be usable
+            if (mid && !/^\d{{9,}}$/.test(mid)) {{
+                return mid;
+            }}
+
+            return null; // No displayable ID
+        }}
+
         // Create card HTML - simplified, cleaner design
         function createCard(measure, featured = false, featuredReason = null, isHero = false) {{
             // Use generated title if available, otherwise fall back to original
             const title = measure.generated_title || measure.title || measure.measure_text || 'Untitled Measure';
-            const measureId = measure.measure_id || '';
-            const displayTitle = measureId ? `${{measureId}}: ${{title}}` : title;
+            const displayMeasureId = getDisplayMeasureId(measure);
+            const displayTitle = displayMeasureId ? `${{displayMeasureId}}: ${{title}}` : title;
             const year = measure.year || 'Unknown';
             const passed = measure.passed;
             const isPending = isPendingMeasure(measure);
@@ -6323,8 +6360,8 @@ class WebsiteGenerator:
         // Create list item HTML
         function createListItem(measure) {{
             const title = measure.title || measure.measure_text || 'Untitled Measure';
-            const measureId = measure.measure_id || '';
-            const displayTitle = measureId ? `${{measureId}}: ${{title}}` : title;
+            const displayMeasureId = getDisplayMeasureId(measure);
+            const displayTitle = displayMeasureId ? `${{displayMeasureId}}: ${{title}}` : title;
             const year = measure.year || 'Unknown';
             const passed = measure.passed;
             const passedClass = passed === 1 ? 'passed' : passed === 0 ? 'failed' : 'pending';
@@ -6354,8 +6391,8 @@ class WebsiteGenerator:
             const modal = document.getElementById('measureDetailModal');
             const isPending = isPendingMeasure(measure);
 
-            // Populate header
-            document.getElementById('modalMeasureId').textContent = measure.measure_id || '';
+            // Populate header - use human-readable measure ID
+            document.getElementById('modalMeasureId').textContent = getDisplayMeasureId(measure) || '';
             document.getElementById('modalYear').textContent = measure.year || '';
 
             // Title
@@ -6438,10 +6475,11 @@ class WebsiteGenerator:
             // Results section - hide for pending measures
             const resultsSection = document.getElementById('modalResultsSection');
             if (measure.percent_yes != null && measure.yes_votes != null && !isPending) {{
+                const percentNo = 100 - measure.percent_yes;
                 resultsSection.style.display = 'block';
                 document.getElementById('modalYesBar').style.width = measure.percent_yes + '%';
                 document.getElementById('modalYesLabel').textContent = `Yes: ${{measure.yes_votes?.toLocaleString() || 0}} (${{measure.percent_yes?.toFixed(1) || 0}}%)`;
-                document.getElementById('modalNoLabel').textContent = `No: ${{measure.no_votes?.toLocaleString() || 0}} (${{measure.percent_no?.toFixed(1) || 0}}%)`;
+                document.getElementById('modalNoLabel').textContent = `No: ${{measure.no_votes?.toLocaleString() || 0}} (${{percentNo.toFixed(1)}}%)`;
                 document.getElementById('modalTotalVotes').textContent = `Total votes: ${{measure.total_votes?.toLocaleString() || 0}}`;
             }} else {{
                 resultsSection.style.display = 'none';
@@ -6473,10 +6511,11 @@ class WebsiteGenerator:
                     const passedClass = relatedMeasure.passed === 1 ? 'passed' : relatedMeasure.passed === 0 ? 'failed' : 'pending';
                     const passedIcon = relatedMeasure.passed === 1 ? '✓' : relatedMeasure.passed === 0 ? '✗' : '•';
 
+                    const relatedDisplayId = getDisplayMeasureId(relatedMeasure);
                     return `
                         <div class="related-card" onclick="viewMeasure(allMeasures.find(m => m.measure_id === '${{rec.measure_id}}'))">
                             <div class="related-header">
-                                <span class="related-id">${{relatedMeasure.measure_id}}</span>
+                                <span class="related-id">${{relatedDisplayId || relatedMeasure.county || ''}}</span>
                                 <span class="related-year">${{relatedMeasure.year}}</span>
                             </div>
                             <div class="related-title">${{shortTitle}}</div>
