@@ -72,6 +72,17 @@ class WebsiteGenerator:
             data['measure_text'] = data.get('title') or data.get('ballot_question', 'Unknown Measure')
             data['source'] = data.get('data_source', 'Historical')
 
+            # Normalize county names to Title Case with spelling corrections
+            county = data.get('county')
+            if county:
+                county = county.strip().title()
+                # Fix known misspellings from CEDA data
+                county = {
+                    'San Bernadino': 'San Bernardino',
+                    'Toulumne': 'Tuolumne',
+                }.get(county, county)
+                data['county'] = county
+
             # Ensure year is string for consistency in JSON
             if data.get('year'):
                 data['year'] = str(data['year'])
