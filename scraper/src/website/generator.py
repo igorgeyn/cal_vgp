@@ -1400,6 +1400,12 @@ class WebsiteGenerator:
         }
         .matrix-totals td .cell-rate {
             color: var(--primary);
+            display: block;
+        }
+        .matrix-totals td .cell-count {
+            display: block;
+            font-size: 0.65rem;
+            color: rgba(255,255,255,0.75);
         }
         .matrix-totals td:first-child {
             background: transparent !important;
