@@ -1305,7 +1305,7 @@ class WebsiteGenerator:
             white-space: nowrap;
         }
         .matrix-table thead th {
-            background: transparent;
+            background: #FDFCFA;
             color: #666;
             position: sticky;
             top: 0;
