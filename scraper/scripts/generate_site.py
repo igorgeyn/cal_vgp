@@ -167,6 +167,9 @@ def main():
                     'Toulumne': 'Tuolumne',
                 }.get(county, county)
                 m_dict['county'] = county
+            else:
+                # Statewide measures (ICPSR, NCSL, CA SOS) have no county
+                m_dict['county'] = 'Statewide'
 
             # Add consolidated display topic (maps detailed topics to ~12 categories)
             raw_topic = m_dict.get('topic_primary') or m_dict.get('category_topic')

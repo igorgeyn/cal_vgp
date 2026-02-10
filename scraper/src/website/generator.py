@@ -82,6 +82,9 @@ class WebsiteGenerator:
                     'Toulumne': 'Tuolumne',
                 }.get(county, county)
                 data['county'] = county
+            else:
+                # Statewide measures (ICPSR, NCSL, CA SOS) have no county
+                data['county'] = 'Statewide'
 
             # Ensure year is string for consistency in JSON
             if data.get('year'):
