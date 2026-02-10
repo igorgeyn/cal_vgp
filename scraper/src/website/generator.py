@@ -5838,13 +5838,12 @@ class WebsiteGenerator:
                     }}
                 }}
 
-                // Exclude upcoming/pending measures from search results
+                // Exclude upcoming/pending measures (2026+) from default view
                 // (they're featured in the dedicated hero section)
-                // Only exclude if:
-                // 1. User hasn't explicitly filtered for pending status, AND
-                // 2. User hasn't explicitly selected years (if they select 2026, show pending measures)
+                // Historical measures with null passed status are NOT excluded
                 if (!currentFilters.status.includes('pending') && currentFilters.selectedYears.length === 0) {{
-                    if (measure.passed !== 1 && measure.passed !== 0) {{
+                    const measureYear = parseInt(measure.year);
+                    if (measure.passed !== 1 && measure.passed !== 0 && measureYear >= 2026) {{
                         return false;
                     }}
                 }}
