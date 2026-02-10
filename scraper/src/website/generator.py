@@ -14,6 +14,7 @@ from ..database.models import BallotMeasure
 from ..config import WEBSITE_CONFIG, BASE_DIR
 from ..utils import TitleGenerator
 from ..utils.topic_mapping import get_display_topic, get_all_display_categories
+from ..utils.category_type_mapping import get_display_category_type
 
 logger = logging.getLogger(__name__)
 
@@ -78,6 +79,9 @@ class WebsiteGenerator:
             # Add consolidated display topic (maps detailed topics to ~12 categories)
             raw_topic = data.get('topic_primary') or data.get('category_topic')
             data['display_topic'] = get_display_topic(raw_topic)
+
+            # Add consolidated display category type (maps ~23 raw types to ~13 clean types)
+            data['display_category_type'] = get_display_category_type(data.get('category_type'))
 
             # Generate concise title if needed
             data = self.title_generator.process_measure(data)
@@ -513,7 +517,7 @@ class WebsiteGenerator:
                     </div>
                     <div class="view-card-text">
                         <span class="view-card-title">Explore</span>
-                        <span class="view-card-desc">Topic × jurisdiction pass-rate matrix</span>
+                        <span class="view-card-desc">Pass-rate matrix by topic or measure type</span>
                     </div>
                 </button>
             </div>
@@ -599,6 +603,11 @@ class WebsiteGenerator:
                         <span class="filter-btn-icon">✓</span>
                         <span class="filter-btn-label">Status</span>
                         <span class="filter-btn-count" id="statusFilterCount"></span>
+                    </button>
+                    <button class="filter-btn" data-panel="measureType" onclick="toggleAccordion('measureType')">
+                        <span class="filter-btn-icon">📊</span>
+                        <span class="filter-btn-label">Measure Type</span>
+                        <span class="filter-btn-count" id="measureTypeFilterCount"></span>
                     </button>
                 </div>
 
@@ -698,6 +707,14 @@ class WebsiteGenerator:
                                 <span class="status-chip-count">({stats['total_measures'] - stats['passed'] - stats['failed']:,})</span>
                             </div>
                         </div>
+                    </div>
+                </div>
+
+                <!-- Measure Type Panel -->
+                <div class="accordion-panel" id="measureTypePanel" style="display: none;">
+                    <div class="panel-content">
+                        <p class="panel-hint">Filter by measure type (GO Bond, Property Tax, Sales Tax, etc.)</p>
+                        <div class="measure-type-cards" id="measureTypeCards"></div>
                     </div>
                 </div>
             </div>
@@ -4466,6 +4483,63 @@ class WebsiteGenerator:
             font-size: 0.75rem;
             color: var(--text-tertiary);
         }
+
+        /* Measure Type chips (mirrors topic-chip pattern) */
+        .measure-type-cards {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .measure-type-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 14px;
+            border-radius: 20px;
+            border: 1.5px solid var(--border);
+            background: white;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            font-size: 0.82rem;
+        }
+        .measure-type-chip:hover { border-color: #7c4dff; background: #f3edff; }
+        .measure-type-chip.selected {
+            background: #7c4dff;
+            color: white;
+            border-color: #7c4dff;
+        }
+        .measure-type-chip.selected .measure-type-chip-count { opacity: 0.85; }
+        .measure-type-chip-icon { font-size: 1rem; }
+        .measure-type-chip-name { font-weight: 500; }
+        .measure-type-chip-count { font-size: 0.75rem; opacity: 0.6; }
+
+        /* Matrix column toggle */
+        .matrix-col-toggle {
+            display: inline-flex;
+            border: 1.5px solid var(--border);
+            border-radius: 6px;
+            overflow: hidden;
+            margin-left: 12px;
+        }
+        .matrix-col-toggle button {
+            padding: 3px 12px;
+            font-size: 0.78rem;
+            border: none;
+            background: white;
+            cursor: pointer;
+            color: var(--text-secondary);
+            transition: all 0.15s ease;
+        }
+        .matrix-col-toggle button:not(:last-child) {
+            border-right: 1.5px solid var(--border);
+        }
+        .matrix-col-toggle button.active {
+            background: var(--accent, #7c4dff);
+            color: white;
+        }
+        .matrix-col-toggle button:hover:not(.active) {
+            background: #f5f5f5;
+        }
         """
 
     def _get_javascript(self, measures_json: str, topics_json: str,
@@ -4801,7 +4875,8 @@ class WebsiteGenerator:
             regions: [],
             county: null,
             level: null,
-            levelCounty: null
+            levelCounty: null,
+            measureTypes: []
         }};
         let currentSort = 'year-desc';
         let filteredMeasures = [];
@@ -4824,6 +4899,7 @@ class WebsiteGenerator:
             populateRegionalNavigation();
             populateTopicNavigation();
             populateYearNavigation();
+            populateMeasureTypeNavigation();
             setupEventListeners();
             loadPageFromURL();
             applyFilters();
@@ -5217,6 +5293,21 @@ class WebsiteGenerator:
                     }}
                 }}
             }}
+
+            // Measure type count
+            const mtCount = currentFilters.measureTypes?.length || 0;
+            const mtBadge = document.getElementById('measureTypeFilterCount');
+            if (mtBadge) {{
+                mtBadge.textContent = mtCount > 0 ? mtCount : '';
+                const mtTab = document.querySelector('.filter-btn[data-panel="measureType"]');
+                if (mtTab) {{
+                    if (mtCount > 0) {{
+                        mtTab.classList.add('has-selection');
+                    }} else {{
+                        mtTab.classList.remove('has-selection');
+                    }}
+                }}
+            }}
         }}
 
         // Level filter (statewide vs local)
@@ -5340,6 +5431,68 @@ class WebsiteGenerator:
             document.querySelectorAll('.topic-chip').forEach(chip => {{
                 const topic = chip.dataset.topic;
                 if (currentFilters.topics.includes(topic)) {{
+                    chip.classList.add('selected');
+                }} else {{
+                    chip.classList.remove('selected');
+                }}
+            }});
+        }}
+
+        // Measure Type icons
+        const MEASURE_TYPE_ICONS = {{
+            "GO Bond": "🏗️",
+            "Property Tax": "🏠",
+            "Sales Tax": "🛒",
+            "Parcel Tax": "📐",
+            "Charter Amendment": "📜",
+            "Ordinance": "📋",
+            "Advisory Vote": "💬",
+            "Initiative": "✍️",
+            "Referendum": "🗳️",
+            "Recall": "🔄",
+            "Bond": "💰"
+        }};
+
+        function populateMeasureTypeNavigation() {{
+            const container = document.getElementById('measureTypeCards');
+            const typeCounts = {{}};
+            allMeasures.forEach(m => {{
+                const mt = m.display_category_type || m.category_type;
+                if (mt) {{
+                    typeCounts[mt] = (typeCounts[mt] || 0) + 1;
+                }}
+            }});
+            const sorted = Object.entries(typeCounts).sort((a, b) => b[1] - a[1]);
+            container.innerHTML = sorted.map(([mtype, count]) => {{
+                const icon = MEASURE_TYPE_ICONS[mtype] || "📌";
+                const escapedType = mtype.replace(/'/g, "\\\\'");
+                return `
+                    <div class="measure-type-chip" data-measure-type="${{escapedType}}" onclick="toggleMeasureTypeFilter('${{escapedType}}')">
+                        <span class="measure-type-chip-icon">${{icon}}</span>
+                        <span class="measure-type-chip-name">${{mtype}}</span>
+                        <span class="measure-type-chip-count">(${{count}})</span>
+                    </div>
+                `;
+            }}).join('');
+        }}
+
+        function toggleMeasureTypeFilter(mtype) {{
+            const index = currentFilters.measureTypes.indexOf(mtype);
+            if (index === -1) {{
+                currentFilters.measureTypes.push(mtype);
+            }} else {{
+                currentFilters.measureTypes.splice(index, 1);
+            }}
+            updateMeasureTypeChipUI();
+            updateFilterCountBadges();
+            pagination.currentPage = 1;
+            applyFilters();
+        }}
+
+        function updateMeasureTypeChipUI() {{
+            document.querySelectorAll('.measure-type-chip').forEach(chip => {{
+                const mtype = chip.dataset.measureType;
+                if (currentFilters.measureTypes.includes(mtype)) {{
                     chip.classList.add('selected');
                 }} else {{
                     chip.classList.remove('selected');
@@ -5615,7 +5768,15 @@ class WebsiteGenerator:
                         return false;
                     }}
                 }}
-                
+
+                // Measure type filter
+                if (currentFilters.measureTypes.length > 0) {{
+                    const measureType = measure.display_category_type || measure.category_type || '';
+                    if (!currentFilters.measureTypes.includes(measureType)) {{
+                        return false;
+                    }}
+                }}
+
                 // Search filter
                 if (currentFilters.search) {{
                     const searchText = [
@@ -5786,6 +5947,7 @@ class WebsiteGenerator:
                 currentFilters.topics.length === 0 &&
                 currentFilters.selectedYears.length === 0 &&
                 (!currentFilters.regions || currentFilters.regions.length === 0) &&
+                (!currentFilters.measureTypes || currentFilters.measureTypes.length === 0) &&
                 !currentFilters.county &&
                 pagination.currentPage === 1;
 
@@ -5947,10 +6109,15 @@ class WebsiteGenerator:
         }}
 
         let matrixRowMode = 'count'; // 'count' | 'alpha' | 'rate'
+        let matrixColField = 'topic'; // 'topic' | 'measureType'
 
         function renderMatrix() {{
+            // Determine which field to use for columns based on toggle
+            const colFieldKey = matrixColField === 'measureType' ? 'display_category_type' : 'display_topic';
+            const colLabel = matrixColField === 'measureType' ? 'measure types' : 'topics';
+
             const valid = filteredMeasures.filter(m =>
-                m.display_topic && (m.passed === 1 || m.passed === 0)
+                m[colFieldKey] && (m.passed === 1 || m.passed === 0)
             );
 
             if (valid.length === 0) {{
@@ -5965,14 +6132,14 @@ class WebsiteGenerator:
             const topicSet = new Set();
             const countySet = new Set();
             valid.forEach(m => {{
-                topicSet.add(m.display_topic);
+                topicSet.add(m[colFieldKey]);
                 countySet.add(m.county || 'Unknown');
             }});
 
-            // Sort topics by total count descending
+            // Sort columns by total count descending
             const topicCounts = {{}};
             valid.forEach(m => {{
-                const t = m.display_topic;
+                const t = m[colFieldKey];
                 topicCounts[t] = (topicCounts[t] || 0) + 1;
             }});
             const topics = [...topicSet].sort((a, b) => (topicCounts[b] || 0) - (topicCounts[a] || 0));
@@ -5985,7 +6152,7 @@ class WebsiteGenerator:
 
             valid.forEach(m => {{
                 const c = m.county || 'Unknown';
-                const t = m.display_topic;
+                const t = m[colFieldKey];
                 if (!matrix[c]) matrix[c] = {{}};
                 if (!matrix[c][t]) matrix[c][t] = {{passed: 0, total: 0}};
                 matrix[c][t].total++;
@@ -6022,9 +6189,13 @@ class WebsiteGenerator:
             // Build HTML
             let html = '<div class="matrix-wrapper">';
 
-            // Toolbar with info, row sort, and legend
+            // Toolbar with info, column toggle, row sort, and legend
             html += `<div class="matrix-toolbar">
-                <span>${{valid.length.toLocaleString()}} measures with outcomes · ${{counties.length}} jurisdictions × ${{topics.length}} topics</span>
+                <span>${{valid.length.toLocaleString()}} measures with outcomes · ${{counties.length}} jurisdictions × ${{topics.length}} ${{colLabel}}</span>
+                <div class="matrix-col-toggle">
+                    <button class="${{matrixColField === 'topic' ? 'active' : ''}}" onclick="setMatrixColField('topic')">Topic</button>
+                    <button class="${{matrixColField === 'measureType' ? 'active' : ''}}" onclick="setMatrixColField('measureType')">Measure Type</button>
+                </div>
                 <label>Sort rows:
                     <select onchange="setMatrixRowSort(this.value)">
                         <option value="count" ${{matrixRowMode==='count'?'selected':''}}>By count</option>
@@ -6137,8 +6308,21 @@ class WebsiteGenerator:
             displayResults();
         }}
 
-        function matrixCellClick(county, topic) {{
-            currentFilters.topics = [topic];
+        function setMatrixColField(field) {{
+            matrixColField = field;
+            matrixSortCol = null;
+            displayResults();
+        }}
+
+        function matrixCellClick(county, colValue) {{
+            // Set the appropriate filter based on which column mode is active
+            if (matrixColField === 'measureType') {{
+                currentFilters.measureTypes = [colValue];
+                updateMeasureTypeChipUI();
+            }} else {{
+                currentFilters.topics = [colValue];
+                updateTopicChipUI();
+            }}
             if (county !== 'Statewide') {{
                 currentFilters.level = 'local';
                 currentFilters.levelCounty = county;
@@ -6147,7 +6331,6 @@ class WebsiteGenerator:
                 currentFilters.levelCounty = null;
             }}
             setView('grid');
-            updateTopicChipUI();
             updateLevelChipUI();
             updateFilterCountBadges();
             applyFilters();
@@ -6532,8 +6715,8 @@ class WebsiteGenerator:
             if (measure.percent_yes != null && !isPending) {{
                 badgesHtml.push(`<span class="badge badge-neutral">📊 ${{Math.round(measure.percent_yes)}}% Yes</span>`);
             }}
-            if (measure.category_type) {{
-                badgesHtml.push(`<span class="badge badge-neutral">${{measure.category_type}}</span>`);
+            if (measure.display_category_type || measure.category_type) {{
+                badgesHtml.push(`<span class="badge badge-neutral">${{measure.display_category_type || measure.category_type}}</span>`);
             }}
             if (measure.category_topic) {{
                 badgesHtml.push(`<span class="badge badge-neutral">${{measure.category_topic}}</span>`);
@@ -6753,7 +6936,8 @@ class WebsiteGenerator:
                 regions: [],
                 county: null,
                 level: null,
-                levelCounty: null
+                levelCounty: null,
+                measureTypes: []
             }};
 
             // Reset pagination
@@ -6770,6 +6954,7 @@ class WebsiteGenerator:
             updateStatusChipUI();
             updateRegionChipUI();
             updateLevelChipUI();
+            updateMeasureTypeChipUI();
             updateFilterCountBadges();
 
             applyFilters();

@@ -146,6 +146,7 @@ def main():
         # Prepare data for website
         # Convert measures to format needed by generator
         from src.utils.topic_mapping import get_display_topic
+        from src.utils.category_type_mapping import get_display_category_type
         from src.utils.external_links import generate_external_links, is_landmark_measure
 
         measures_for_website = []
@@ -159,6 +160,9 @@ def main():
             # Add consolidated display topic (maps detailed topics to ~12 categories)
             raw_topic = m_dict.get('topic_primary') or m_dict.get('category_topic')
             m_dict['display_topic'] = get_display_topic(raw_topic)
+
+            # Add consolidated display category type (maps ~23 raw types to ~13 clean types)
+            m_dict['display_category_type'] = get_display_category_type(m_dict.get('category_type'))
 
             # Normalize percent_yes/percent_no to 0-100 scale
             # CEDA/NCSL store as decimals (0-1), ICPSR stores as percentages (0-100)
