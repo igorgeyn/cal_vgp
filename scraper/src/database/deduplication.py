@@ -4,6 +4,7 @@ Database deduplication logic
 import logging
 from typing import Dict, List, Tuple, Optional
 from collections import defaultdict
+from datetime import datetime
 import json
 
 from .models import BallotMeasure
@@ -89,17 +90,19 @@ class Deduplicator:
         logger.info(f"Found {len(duplicates)} cross-source duplicate groups")
         return duplicates
     
-    def deduplicate_cross_source(self):
+    def deduplicate_cross_source(self) -> Dict:
         """Handle cross-source deduplication"""
         logger.info("Starting cross-source deduplication...")
-        
+
         duplicate_groups = self.find_cross_source_duplicates()
-        
+
         for group in duplicate_groups:
             self._process_duplicate_group(group)
-            
+
         self.db.conn.commit()
         logger.info(f"Processed {len(duplicate_groups)} duplicate groups")
+
+        return {"groups_processed": len(duplicate_groups)}
     
     def _process_duplicate_group(self, group: Dict):
         """Process a group of cross-source duplicates"""

@@ -116,10 +116,10 @@ class MeasureResponse(BaseModel):
     yes_votes: Optional[int]
     no_votes: Optional[int]
     total_votes: Optional[int]
-    source: str
+    data_source: str
     pdf_url: Optional[str]
-    created_at: datetime
-    updated_at: datetime
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
 
 class SearchRequest(BaseModel):
     """Request model for search endpoint"""
@@ -142,10 +142,11 @@ class StatsResponse(BaseModel):
     with_votes: int
     passed: int
     failed: int
-    unknown: int
+    unknown: int = 0
     year_min: Optional[int]
     year_max: Optional[int]
-    sources: Dict[str, int]
+    sources: List[str]
+    by_source: Optional[Dict[str, int]] = None
     counties: int
     topics: int
 
@@ -263,9 +264,9 @@ async def get_measures(
             filters['passed'] = 1 if passed else 0
         
         measures = db_ops.search_measures(
-            filters=filters,
             limit=limit,
-            offset=offset
+            offset=offset,
+            **filters
         )
         
         return measures
@@ -277,7 +278,7 @@ async def get_measures(
 async def get_measure(measure_id: int = PathParam(..., description="Measure database ID")):
     """Get a specific measure by ID"""
     try:
-        measure = db_ops.get_measure_by_id(measure_id)
+        measure = db_ops.get_measure(measure_id)
         if not measure:
             raise HTTPException(status_code=404, detail="Measure not found")
         return measure
@@ -311,9 +312,9 @@ async def search_measures(request: SearchRequest):
         # Perform search
         results = db_ops.search_measures(
             query=request.query,
-            filters=filters,
             limit=request.limit,
-            offset=request.offset
+            offset=request.offset,
+            **filters
         )
         
         return {
@@ -383,7 +384,7 @@ async def export_data(
         if county:
             filters['county'] = county
         
-        measures = db_ops.search_measures(filters=filters, limit=10000)
+        measures = db_ops.search_measures(limit=10000, **filters)
         
         if format == "csv":
             # Generate CSV file

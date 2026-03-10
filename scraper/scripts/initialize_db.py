@@ -15,6 +15,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from src.config import DB_PATH, DATA_DIR
 from src.database.operations import Database
+from src.database.models import BallotMeasure
 from src.parsers.ceda import CEDAParser
 from src.parsers.ncsl import NCSLParser
 from src.parsers.icpsr import ICPSRParser
@@ -61,45 +62,56 @@ def load_historical_data(db_ops):
     loaded_sources = []
     total_loaded = 0
     
-    # Try NCSL data
+    # Try NCSL data (parse() returns List[Dict])
     try:
         ncsl_parser = NCSLParser(DATA_DIR)
-        ncsl_measures = ncsl_parser.parse()
-        if ncsl_measures:
+        ncsl_records = ncsl_parser.parse()
+        if ncsl_records:
             count = 0
-            for measure in ncsl_measures:
-                if db_ops.insert_or_update_measure(measure):
+            for record in ncsl_records:
+                try:
+                    measure = BallotMeasure.from_dict(record)
+                    db_ops.insert_measure(measure)
                     count += 1
+                except Exception as e:
+                    logger.debug(f"Skipping NCSL record: {e}")
             logger.info(f"Loaded {count} measures from NCSL")
             loaded_sources.append(f"NCSL ({count})")
             total_loaded += count
     except Exception as e:
         logger.warning(f"Could not load NCSL data: {e}")
-    
-    # Try ICPSR data
+
+    # Try ICPSR data (parse() returns List[Dict])
     try:
         icpsr_parser = ICPSRParser(DATA_DIR)
-        icpsr_measures = icpsr_parser.parse()
-        if icpsr_measures:
+        icpsr_records = icpsr_parser.parse()
+        if icpsr_records:
             count = 0
-            for measure in icpsr_measures:
-                if db_ops.insert_or_update_measure(measure):
+            for record in icpsr_records:
+                try:
+                    measure = BallotMeasure.from_dict(record)
+                    db_ops.insert_measure(measure)
                     count += 1
+                except Exception as e:
+                    logger.debug(f"Skipping ICPSR record: {e}")
             logger.info(f"Loaded {count} measures from ICPSR")
             loaded_sources.append(f"ICPSR ({count})")
             total_loaded += count
     except Exception as e:
         logger.warning(f"Could not load ICPSR data: {e}")
-    
-    # Try CEDA data
+
+    # Try CEDA data (parse_all_files() returns List[BallotMeasure])
     try:
         ceda_parser = CEDAParser(DATA_DIR)
-        ceda_measures = ceda_parser.parse()
+        ceda_measures = ceda_parser.parse_all_files()
         if ceda_measures:
             count = 0
             for measure in ceda_measures:
-                if db_ops.insert_or_update_measure(measure):
+                try:
+                    db_ops.insert_measure(measure)
                     count += 1
+                except Exception as e:
+                    logger.debug(f"Skipping CEDA measure: {e}")
             logger.info(f"Loaded {count} measures from CEDA")
             loaded_sources.append(f"CEDA ({count})")
             total_loaded += count
@@ -115,13 +127,10 @@ def run_deduplication(db_ops):
     from src.database.deduplication import Deduplicator
     
     deduplicator = Deduplicator(db_ops)
-    stats = deduplicator.deduplicate_all()
-    
-    logger.info(f"Deduplication complete:")
-    logger.info(f"  - Within-source duplicates: {stats['within_source']}")
-    logger.info(f"  - Cross-source duplicates: {stats['cross_source']}")
-    logger.info(f"  - Content duplicates: {stats['content']}")
-    
+    stats = deduplicator.deduplicate_cross_source()
+
+    logger.info(f"Deduplication complete: {stats}")
+
     return stats
 
 def main():
@@ -185,7 +194,10 @@ def main():
         
         if dedup_stats:
             print(f"\n🔍 Deduplication Results:")
-            print(f"  - Total duplicates found: {sum(dedup_stats.values())}")
+            if isinstance(dedup_stats, dict):
+                print(f"  - Results: {dedup_stats}")
+            else:
+                print(f"  - Deduplication completed")
         
         print(f"\n💾 Database location: {DB_PATH}")
         print("\nNext steps:")

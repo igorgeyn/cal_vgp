@@ -101,6 +101,7 @@ class Database:
                 'measure_id', 'measure_letter', 'year', 'state', 'county',
                 'jurisdiction', 'title', 'description', 'ballot_question',
                 'generated_title', 'original_title',
+                'vote_threshold',
                 'is_active', 'is_duplicate', 'duplicate_type', 'master_id',
                 'merged_from', 'update_count', 'last_seen_at'
             }
@@ -255,39 +256,47 @@ class Database:
             measures.append(BallotMeasure.from_dict(dict(row)))
         return measures
     
-    def search_measures(self, query: str = None, limit: int = 100, **filters) -> List[BallotMeasure]:
+    def search_measures(self, query: str = None, limit: int = 100, offset: int = 0, **filters) -> List[BallotMeasure]:
         """Full-text search for measures with filters"""
         conn = self.connect()
-        
+
         # Build query
         where_clauses = ["is_active = 1", "is_duplicate = 0"]
         params = []
-        
+
         # Add filters
         if filters.get('year'):
             where_clauses.append("year = ?")
             params.append(int(filters['year']))
-        
+
         if filters.get('year_min'):
             where_clauses.append("year >= ?")
             params.append(int(filters['year_min']))
-            
+
         if filters.get('year_max'):
             where_clauses.append("year <= ?")
             params.append(int(filters['year_max']))
-        
+
         if filters.get('county'):
             where_clauses.append("county = ?")
             params.append(filters['county'])
-        
+
         if filters.get('passed') is not None:
             where_clauses.append("passed = ?")
             params.append(filters['passed'])
-        
+
         if filters.get('has_summary') is not None:
             where_clauses.append("has_summary = ?")
             params.append(filters['has_summary'])
-        
+
+        if filters.get('topic_primary'):
+            where_clauses.append("topic_primary = ?")
+            params.append(filters['topic_primary'])
+
+        if filters.get('source'):
+            where_clauses.append("data_source = ?")
+            params.append(filters['source'])
+
         # Add text search if query provided
         if query:
             where_clauses.append("""
@@ -295,15 +304,16 @@ class Database:
             """)
             search_pattern = f"%{query}%"
             params.extend([search_pattern, search_pattern, search_pattern])
-        
+
         # Build final query
         sql = f"""
             SELECT * FROM measures
             WHERE {' AND '.join(where_clauses)}
             ORDER BY year DESC, county, measure_letter
-            LIMIT ?
+            LIMIT ? OFFSET ?
         """
         params.append(limit)
+        params.append(offset)
         
         cursor = conn.execute(sql, params)
         
@@ -383,7 +393,8 @@ class Database:
         row = cursor.fetchone()
         stats['passed'] = int(row['passed'] or 0)
         stats['failed'] = int(row['failed'] or 0)
-        
+        stats['unknown'] = stats['total_measures'] - stats['passed'] - stats['failed']
+
         # Statewide vs local counts
         cursor = conn.execute("SELECT COUNT(*) as count FROM active_measures WHERE county = 'Statewide'")
         stats['statewide_count'] = int(cursor.fetchone()['count'] or 0)

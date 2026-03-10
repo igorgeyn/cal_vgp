@@ -206,7 +206,17 @@ class BallotMeasure:
                 data['merged_from'] = json.loads(data['merged_from'])
             except:
                 data['merged_from'] = None
-                
+
+        # Map common parser aliases to model field names
+        if 'source' in data and 'data_source' not in data:
+            data['data_source'] = data.pop('source')
+        else:
+            data.pop('source', None)
+
+        # Strip keys that aren't dataclass fields
+        valid_fields = {f.name for f in cls.__dataclass_fields__.values()}
+        data = {k: v for k, v in data.items() if k in valid_fields}
+
         return cls(**data)
     
     @property
@@ -262,7 +272,8 @@ CREATE TABLE IF NOT EXISTS measures (
     percent_no REAL,
     passed INTEGER,
     pass_fail TEXT,
-    
+    vote_threshold TEXT,
+
     -- Classification
     measure_type TEXT,
     topic_primary TEXT,
