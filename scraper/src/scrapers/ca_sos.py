@@ -214,44 +214,45 @@ class CASOSScraper(BaseScraper):
             # Uppercase the measure ID
             measure_id = measure_id.upper()
         
-        # Extract year (AS INTEGER)
+        # Extract year (integer or None if unknown)
         year = self._extract_year(election_info, cleaned_text)
-        
+
         return {
             'measure_id': measure_id,
             'measure_text': cleaned_text,  # Keep cleaned text for reference
             'title': title or "Unknown",
-            'year': year,  # This is now guaranteed to be an integer
+            'year': year,
             'pdf_url': pdf_url,
             'election_date': election_info.get('date') if election_info else None,
             'election_type': election_info.get('type') if election_info else None,
         }
     
-    def _extract_year(self, election_info: Dict = None, text: str = "") -> int:
-        """Extract year from various sources - ALWAYS RETURNS INTEGER"""
+    def _extract_year(self, election_info: Dict = None, text: str = "") -> Optional[int]:
+        """Extract year from various sources. Returns None if no year found."""
         year = None
-        
+
         # Try to extract from election info first
         if election_info and election_info.get('date'):
             year_match = re.search(r'(\d{4})', election_info['date'])
             if year_match:
                 year = year_match.group(1)
-        
+
         # If no year found, check if it's in the text
         if not year and text:
             year_match = re.search(r'\b(20\d{2})\b', text)
             if year_match:
                 year = year_match.group(1)
-        
-        # Convert to integer and return with default
+
+        # Convert to integer
         if year:
             try:
                 return int(year)
             except (ValueError, TypeError):
                 pass
-        
-        # Default to 2026 as integer
-        return 2026
+
+        # Return None instead of defaulting to 2026 — avoids misclassifying
+        # historical/undated records as pending upcoming measures
+        return None
 
     def _scrape_initiative_status(self) -> List[Dict]:
         """Scrape in-progress initiatives from the initiative status page"""

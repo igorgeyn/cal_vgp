@@ -166,7 +166,7 @@ class CEDAParser:
                         total_votes=int(row.get('total_votes')) if pd.notna(row.get('total_votes')) else None,
                         percent_yes=float(row.get('percent_yes')) * 100 if pd.notna(row.get('percent_yes')) else None,
                         pass_fail=str(row.get('pass_fail', '')) if pd.notna(row.get('pass_fail')) else None,
-                        passed=1 if str(row.get('pass_fail', '')).lower() == 'pass' else 0 if str(row.get('pass_fail', '')).lower() == 'fail' else None,
+                        passed=1 if str(row.get('pass_fail', '')).lower().startswith('pass') else 0 if str(row.get('pass_fail', '')).lower().startswith('fail') else None,
                         category_type=str(row.get('rec_type_name', '')) if pd.notna(row.get('rec_type_name')) else None,
                         category_topic=str(row.get('rec_topic_name', '')) if pd.notna(row.get('rec_topic_name')) else None,
                         data_source='CEDA',
@@ -332,7 +332,7 @@ class CEDAParser:
                 percent_yes=float(row.get('percent_yes')) if pd.notna(row.get('percent_yes')) else None,
                 
                 pass_fail=row.get('pass_fail'),
-                passed=1 if str(row.get('pass_fail')).lower() == 'pass' else 0 if str(row.get('pass_fail')).lower() == 'fail' else None,
+                passed=1 if str(row.get('pass_fail', '')).lower().startswith('pass') else 0 if str(row.get('pass_fail', '')).lower().startswith('fail') else None,
                 
                 measure_type=row.get('measure_type'),
                 category_type=row.get('rec_type_name'),

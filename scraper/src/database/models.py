@@ -197,14 +197,14 @@ class BallotMeasure:
             if field in data and isinstance(data[field], str):
                 try:
                     data[field] = datetime.fromisoformat(data[field])
-                except:
+                except (ValueError, TypeError):
                     data[field] = None
         
         # Convert JSON strings back to lists
         if 'merged_from' in data and isinstance(data['merged_from'], str):
             try:
                 data['merged_from'] = json.loads(data['merged_from'])
-            except:
+            except (json.JSONDecodeError, ValueError, TypeError):
                 data['merged_from'] = None
 
         # Map common parser aliases to model field names

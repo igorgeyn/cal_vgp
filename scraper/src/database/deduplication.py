@@ -232,6 +232,12 @@ class Deduplicator:
                     })
             
             if values:
+                # Log conflicts (multiple distinct non-null values for same field)
+                distinct_values = set(str(v['value']) for v in values)
+                if len(distinct_values) > 1:
+                    sources = [f"{v['source']}={v['value']!r}" for v in values]
+                    logger.debug(f"Merge conflict on '{field}' for master {master_id}: {', '.join(sources)}")
+
                 # For most fields, prefer value from master if available
                 master_value = next((v for v in values if v['id'] == master_id), None)
                 if master_value:
