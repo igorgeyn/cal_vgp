@@ -4578,8 +4578,22 @@ class WebsiteGenerator:
         function escapeHtml(text) {{
             if (!text) return '';
             const div = document.createElement('div');
-            div.textContent = text;
+            div.textContent = String(text);
             return div.innerHTML;
+        }}
+
+        // Sanitize URLs — only allow http(s) and relative paths
+        function sanitizeUrl(url) {{
+            if (!url) return '#';
+            const s = String(url).trim();
+            if (s.startsWith('http://') || s.startsWith('https://') || s.startsWith('/')) return s;
+            return '#';
+        }}
+
+        // Escape text for use inside HTML attributes (double-quote safe)
+        function escapeAttr(text) {{
+            if (!text) return '';
+            return String(text).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
         }}
 
         // Utility function to detect AI refusal patterns in summaries
@@ -4706,9 +4720,9 @@ class WebsiteGenerator:
                     html += '<div class="finance-donors-list"><h4>Top Donors</h4>';
                     donors.slice(0, 5).forEach(d => {{
                         html += '<div class="finance-donor-row">' +
-                            '<span class="finance-donor-name">' + d.donor_name_canon + '</span>' +
+                            '<span class="finance-donor-name">' + escapeHtml(d.donor_name_canon) + '</span>' +
                             '<span class="finance-donor-amount">' + formatDollars(d.total_amount) + '</span>' +
-                            '<span class="finance-donor-type">' + (d.donor_type || '') + '</span>' +
+                            '<span class="finance-donor-type">' + escapeHtml(d.donor_type || '') + '</span>' +
                         '</div>';
                     }});
                     html += '</div>';
@@ -5138,7 +5152,7 @@ class WebsiteGenerator:
             const sortedCounties = Array.from(allCounties).sort();
             countySelect.innerHTML = '<option value="">All Counties</option>' +
                 sortedCounties.map(county => `
-                    <option value="${{county}}">${{county}}</option>
+                    <option value="${{escapeAttr(county)}}">${{escapeHtml(county)}}</option>
                 `).join('');
 
             // Also populate level county dropdown
@@ -5423,9 +5437,9 @@ class WebsiteGenerator:
                 const icon = TOPIC_ICONS[topic] || "📌";
                 const escapedTopic = topic.replace(/'/g, "\\\\'");
                 return `
-                    <div class="topic-chip" data-topic="${{escapedTopic}}" onclick="toggleTopicFilter('${{escapedTopic}}')">
+                    <div class="topic-chip" data-topic="${{escapeAttr(escapedTopic)}}" onclick="toggleTopicFilter('${{escapedTopic}}')">
                         <span class="topic-chip-icon">${{icon}}</span>
-                        <span class="topic-chip-name">${{topic}}</span>
+                        <span class="topic-chip-name">${{escapeHtml(topic)}}</span>
                         <span class="topic-chip-count">(${{count}})</span>
                     </div>
                 `;
@@ -5487,9 +5501,9 @@ class WebsiteGenerator:
                 const icon = MEASURE_TYPE_ICONS[mtype] || "📌";
                 const escapedType = mtype.replace(/'/g, "\\\\'");
                 return `
-                    <div class="measure-type-chip" data-measure-type="${{escapedType}}" onclick="toggleMeasureTypeFilter('${{escapedType}}')">
+                    <div class="measure-type-chip" data-measure-type="${{escapeAttr(escapedType)}}" onclick="toggleMeasureTypeFilter('${{escapedType}}')">
                         <span class="measure-type-chip-icon">${{icon}}</span>
-                        <span class="measure-type-chip-name">${{mtype}}</span>
+                        <span class="measure-type-chip-name">${{escapeHtml(mtype)}}</span>
                         <span class="measure-type-chip-count">(${{count}})</span>
                     </div>
                 `;
@@ -6248,7 +6262,7 @@ class WebsiteGenerator:
                 html += `<th class="${{cls}}" role="button" tabindex="0"
                     onclick="sortMatrixByCol('${{escaped}}')"
                     onkeydown="if(event.key==='Enter')sortMatrixByCol('${{escaped}}')"
-                    title="${{t}}">${{t}}</th>`;
+                    title="${{escapeAttr(t)}}">${{escapeHtml(t)}}</th>`;
             }});
             html += '<th>All</th></tr></thead>';
 
@@ -6261,7 +6275,7 @@ class WebsiteGenerator:
                 html += `<tr><td role="button" tabindex="0"
                     onclick="exploreFilterToCounty('${{cEsc}}')"
                     onkeydown="if(event.key==='Enter')exploreFilterToCounty('${{cEsc}}')"
-                    >${{county}} <span class="cell-count">(${{rt.total}})</span></td>`;
+                    >${{escapeHtml(county)}} <span class="cell-count">(${{rt.total}})</span></td>`;
                 topics.forEach(t => {{
                     const cell = (matrix[county] && matrix[county][t]) || {{passed:0, total:0}};
                     if (cell.total === 0) {{
@@ -6271,7 +6285,7 @@ class WebsiteGenerator:
                         const bg = matrixCellColor(cell.passed, cell.total);
                         const low = cell.total < 3;
                         const tEsc = t.replace(/'/g, "\\\\'");
-                        const label = `${{county}}, ${{t}}: ${{rate}}% passed (${{cell.passed}} of ${{cell.total}})${{low ? ' — small sample' : ''}}`;
+                        const label = `${{escapeAttr(county)}}, ${{escapeAttr(t)}}: ${{rate}}% passed (${{cell.passed}} of ${{cell.total}})${{low ? ' — small sample' : ''}}`;
                         html += `<td class="matrix-cell ${{low ? 'low-conf' : ''}}" style="background:${{bg}}"
                             role="button" tabindex="0"
                             onclick="matrixCellClick('${{cEsc}}','${{tEsc}}')"
@@ -6629,7 +6643,7 @@ class WebsiteGenerator:
             const truncatedSummary = summary.length > maxLength ? summary.substring(0, maxLength) + '...' : summary;
 
             const descriptionHtml = truncatedSummary ? `
-                <div class="card-summary">${{truncatedSummary}}</div>
+                <div class="card-summary">${{escapeHtml(truncatedSummary)}}</div>
             ` : '';
 
             // Hide vote bar for pending measures (no vote data yet)
@@ -6652,17 +6666,20 @@ class WebsiteGenerator:
             const metaItems = [];
             if (measure.is_landmark) metaItems.push('⭐ Historic');
             if (percentYes != null && !isPending) metaItems.push(`${{Math.round(percentYes)}}% Yes`);
-            if (topic) metaItems.push(topic);
-            if (source) metaItems.push(source);
+            if (topic) metaItems.push(escapeHtml(topic));
+            if (source) metaItems.push(escapeHtml(source));
             if (isPending && !metaItems.length) metaItems.push('Election pending');
 
+            // Use data attribute + index lookup instead of serializing entire object into onclick
+            const mIdx = allMeasures.indexOf(measure);
+
             return `
-                <div class="measure-card ${{cardClass}}" onclick="viewMeasure(${{JSON.stringify(measure).replace(/"/g, '&quot;')}})">
+                <div class="measure-card ${{cardClass}}" data-midx="${{mIdx}}" onclick="viewMeasure(allMeasures[this.dataset.midx])">
                     <div class="card-header">
                         <span class="card-year">${{year}}</span>
                         <span class="badge badge-${{passedClass}}">${{passedText}}</span>
                     </div>
-                    <h3 class="card-title">${{displayTitle}}</h3>
+                    <h3 class="card-title">${{escapeHtml(displayTitle)}}</h3>
                     ${{descriptionHtml}}
                     ${{voteBar}}
                     <div class="card-meta">${{metaItems.join(' · ')}}</div>
@@ -6680,19 +6697,20 @@ class WebsiteGenerator:
             const passedClass = passed === 1 ? 'passed' : passed === 0 ? 'failed' : 'pending';
             const passedText = passed === 1 ? '✓' : passed === 0 ? '✗' : '?';
             
+            const mIdx = allMeasures.indexOf(measure);
             return `
-                <div class="measure-list-item" onclick="viewMeasure(${{JSON.stringify(measure).replace(/"/g, '&quot;')}})">
+                <div class="measure-list-item" data-midx="${{mIdx}}" onclick="viewMeasure(allMeasures[this.dataset.midx])">
                     <div class="badge badge-${{passedClass}}">${{passedText}}</div>
                     <div>
-                        <div style="font-weight: 500;">${{displayTitle}}</div>
+                        <div style="font-weight: 500;">${{escapeHtml(displayTitle)}}</div>
                         <div style="font-size: 0.875rem; color: var(--text-secondary);">
-                            ${{year}} • ${{measure.topic_primary || measure.category_topic || 'General'}}
+                            ${{year}} • ${{escapeHtml(measure.topic_primary || measure.category_topic || 'General')}}
                         </div>
                     </div>
                     <div style="text-align: right;">
                         ${{measure.percent_yes != null ? `<div style="font-weight: 500;">${{Math.round(measure.percent_yes)}}% Yes</div>` : ''}}
                         <div style="font-size: 0.75rem; color: var(--text-tertiary);">
-                            ${{measure.data_source || measure.source || ''}}
+                            ${{escapeHtml(measure.data_source || measure.source || '')}}
                         </div>
                     </div>
                 </div>
@@ -6735,10 +6753,10 @@ class WebsiteGenerator:
                 badgesHtml.push(`<span class="badge badge-neutral">📊 ${{Math.round(measure.percent_yes)}}% Yes</span>`);
             }}
             if (measure.display_category_type || measure.category_type) {{
-                badgesHtml.push(`<span class="badge badge-neutral">${{measure.display_category_type || measure.category_type}}</span>`);
+                badgesHtml.push(`<span class="badge badge-neutral">${{escapeHtml(measure.display_category_type || measure.category_type)}}</span>`);
             }}
             if (measure.category_topic) {{
-                badgesHtml.push(`<span class="badge badge-neutral">${{measure.category_topic}}</span>`);
+                badgesHtml.push(`<span class="badge badge-neutral">${{escapeHtml(measure.category_topic)}}</span>`);
             }}
             document.getElementById('modalBadges').innerHTML = badgesHtml.join('');
 
@@ -6756,6 +6774,7 @@ class WebsiteGenerator:
             const summaryToggle = document.getElementById('summaryToggle');
             let summaryText = '';
 
+            let summaryIsHtml = false;
             if (measure.summary_text && !isAiRefusal(measure.summary_text) &&
                 !(isPending && isMetadataSummary(measure.summary_text))) {{
                 summaryText = measure.summary_text;
@@ -6768,13 +6787,19 @@ class WebsiteGenerator:
                     <strong>📋 Coming Soon:</strong> Full measure details, including the official ballot language,
                     fiscal impact analysis, and arguments for and against, will be available as we approach the election.
                 </div>`;
+                summaryIsHtml = true;
                 summaryEl.classList.remove('no-summary-text');
             }} else {{
                 summaryText = 'No summary available for this measure.';
                 summaryEl.classList.add('no-summary-text');
             }}
 
-            summaryEl.innerHTML = summaryText;
+            // Use textContent for DB content, innerHTML only for our own trusted HTML
+            if (summaryIsHtml) {{
+                summaryEl.innerHTML = summaryText;
+            }} else {{
+                summaryEl.textContent = summaryText;
+            }}
 
             // Show "Show more" toggle for long summaries (>400 chars)
             if (summaryText.length > 400) {{
@@ -6826,13 +6851,14 @@ class WebsiteGenerator:
                     const passedIcon = relatedMeasure.passed === 1 ? '✓' : relatedMeasure.passed === 0 ? '✗' : '•';
 
                     const relatedDisplayId = getDisplayMeasureId(relatedMeasure);
+                    const relIdx = allMeasures.indexOf(relatedMeasure);
                     return `
-                        <div class="related-card" onclick="viewMeasure(allMeasures.find(m => m.measure_id === '${{rec.measure_id}}'))">
+                        <div class="related-card" data-midx="${{relIdx}}" onclick="viewMeasure(allMeasures[this.dataset.midx])">
                             <div class="related-header">
-                                <span class="related-id">${{relatedDisplayId || relatedMeasure.county || ''}}</span>
+                                <span class="related-id">${{escapeHtml(relatedDisplayId || relatedMeasure.county || '')}}</span>
                                 <span class="related-year">${{relatedMeasure.year}}</span>
                             </div>
-                            <div class="related-title">${{shortTitle}}</div>
+                            <div class="related-title">${{escapeHtml(shortTitle)}}</div>
                             <div class="related-meta">
                                 <span class="badge badge-${{passedClass}} badge-small">${{passedIcon}}</span>
                                 <span class="similarity-score">${{similarity}}% similar</span>
@@ -6864,16 +6890,16 @@ class WebsiteGenerator:
                     const icon = linkIcons[link.icon] || '🔗';
                     const confidenceClass = link.confidence === 'high' ? 'link-high-confidence' :
                                            link.confidence === 'medium' ? 'link-medium-confidence' : 'link-low-confidence';
-                    links.push(`<a href="${{link.url}}" target="_blank" rel="noopener noreferrer" class="${{confidenceClass}}">${{icon}} ${{link.source}}</a>`);
+                    links.push(`<a href="${{escapeAttr(sanitizeUrl(link.url))}}" target="_blank" rel="noopener noreferrer" class="${{confidenceClass}}">${{icon}} ${{escapeHtml(link.source)}}</a>`);
                 }});
             }}
 
             // Add original source links
             if (measure.source_url) {{
-                links.push(`<a href="${{measure.source_url}}" target="_blank" rel="noopener noreferrer">🔗 Data Source (${{measure.data_source || 'Original'}})</a>`);
+                links.push(`<a href="${{escapeAttr(sanitizeUrl(measure.source_url))}}" target="_blank" rel="noopener noreferrer">🔗 Data Source (${{escapeHtml(measure.data_source || 'Original')}})</a>`);
             }}
             if (measure.pdf_url && measure.pdf_url !== '#') {{
-                links.push(`<a href="${{measure.pdf_url}}" target="_blank" rel="noopener noreferrer">📄 Full Ballot Text (PDF)</a>`);
+                links.push(`<a href="${{escapeAttr(sanitizeUrl(measure.pdf_url))}}" target="_blank" rel="noopener noreferrer">📄 Full Ballot Text (PDF)</a>`);
             }}
 
             // For pending measures, add helpful official source links

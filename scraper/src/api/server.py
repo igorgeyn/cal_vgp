@@ -56,9 +56,9 @@ app = FastAPI(
 # Configure CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, specify actual origins
-    allow_credentials=True,
-    allow_methods=["*"],
+    allow_origins=["*"],
+    allow_credentials=False,
+    allow_methods=["GET", "POST"],
     allow_headers=["*"],
 )
 
@@ -272,7 +272,7 @@ async def get_measures(
         return measures
     except Exception as e:
         logger.error(f"Error fetching measures: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @app.get("/api/measures/{measure_id}", response_model=MeasureResponse, tags=["Measures"])
 async def get_measure(measure_id: int = PathParam(..., description="Measure database ID")):
@@ -286,7 +286,7 @@ async def get_measure(measure_id: int = PathParam(..., description="Measure data
         raise
     except Exception as e:
         logger.error(f"Error fetching measure {measure_id}: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @app.post("/api/search", tags=["Search"])
 async def search_measures(request: SearchRequest):
@@ -325,7 +325,7 @@ async def search_measures(request: SearchRequest):
         }
     except Exception as e:
         logger.error(f"Error searching measures: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @app.get("/api/stats", response_model=StatsResponse, tags=["Statistics"])
 async def get_statistics():
@@ -335,7 +335,7 @@ async def get_statistics():
         return StatsResponse(**stats)
     except Exception as e:
         logger.error(f"Error fetching statistics: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @app.get("/api/years", tags=["Metadata"])
 async def get_years():
@@ -345,7 +345,7 @@ async def get_years():
         return years
     except Exception as e:
         logger.error(f"Error fetching years: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @app.get("/api/topics", tags=["Metadata"])
 async def get_topics():
@@ -355,7 +355,7 @@ async def get_topics():
         return topics
     except Exception as e:
         logger.error(f"Error fetching topics: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @app.get("/api/counties", tags=["Metadata"])
 async def get_counties():
@@ -365,7 +365,7 @@ async def get_counties():
         return counties
     except Exception as e:
         logger.error(f"Error fetching counties: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @app.get("/api/export", tags=["Export"])
 async def export_data(
@@ -415,7 +415,7 @@ async def export_data(
             )
     except Exception as e:
         logger.error(f"Error exporting data: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @app.get("/api/health", tags=["System"])
 async def health_check():
@@ -434,7 +434,7 @@ async def health_check():
             status_code=503,
             content={
                 "status": "unhealthy",
-                "error": str(e)
+                "error": "Database connection failed"
             }
         )
 
@@ -510,7 +510,7 @@ async def get_topic_context(
         raise
     except Exception as e:
         logger.error(f"Error fetching topic context for {topic}: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @app.get("/api/historical/topics", response_model=List[TopicStatsResponse], tags=["Historical"])
@@ -530,7 +530,7 @@ async def get_all_topic_stats(
         return [TopicStatsResponse(**s) for s in stats]
     except Exception as e:
         logger.error(f"Error fetching topic stats: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @app.get("/api/historical/measures", response_model=List[HistoricalMeasureResponse], tags=["Historical"])
@@ -605,7 +605,7 @@ async def get_historical_measures(
         raise
     except Exception as e:
         logger.error(f"Error fetching historical measures: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @app.get("/api/historical/measures/{measure_id}", response_model=HistoricalMeasureResponse, tags=["Historical"])
@@ -653,7 +653,7 @@ async def get_historical_measure(
         raise
     except Exception as e:
         logger.error(f"Error fetching historical measure {measure_id}: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @app.get("/api/historical/measures/{measure_id}/similar", response_model=List[HistoricalMeasureResponse], tags=["Historical"])
@@ -705,7 +705,7 @@ async def get_similar_measures(
         return results
     except Exception as e:
         logger.error(f"Error fetching similar measures for {measure_id}: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @app.get("/api/historical/search", tags=["Historical"])
@@ -763,7 +763,7 @@ async def search_historical_measures(
         }
     except Exception as e:
         logger.error(f"Error searching historical measures: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 # =============================================================================
