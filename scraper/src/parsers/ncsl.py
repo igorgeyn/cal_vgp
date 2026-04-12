@@ -42,9 +42,18 @@ class NCSLParser:
             logger.info(f"Parsing NCSL data from {file_path}")
             df = pd.read_excel(file_path)
             
-            # Filter for California
-            ca_df = df[df['StateName'] == 'California'].copy()
-            logger.info(f"Found {len(ca_df)} California measures in NCSL data")
+            # Filter for California — try multiple possible column names
+            state_col = None
+            for col_name in ['StateName', 'State', 'state', 'state_name']:
+                if col_name in df.columns:
+                    state_col = col_name
+                    break
+            if state_col is None:
+                logger.error(f"NCSL: No state column found. Columns: {list(df.columns)}")
+                return []
+
+            ca_df = df[df[state_col] == 'California'].copy()
+            logger.info(f"Found {len(ca_df)} California measures in NCSL data (state col: {state_col})")
             
             measures = []
             for _, row in ca_df.iterrows():
@@ -67,18 +76,25 @@ class NCSLParser:
             if not year:
                 return None
             
-            # Build standardized record
+            # Build standardized record — use get() with fallbacks for column name variants
+            def _get(row, *keys):
+                for k in keys:
+                    v = row.get(k)
+                    if v is not None and not (isinstance(v, float) and pd.isna(v)):
+                        return str(v)
+                return ''
+
             measure = {
                 'year': year,
                 'state': 'CA',
                 'source': 'NCSL',
-                'measure_id': str(row.get('ID', '')),
-                'title': str(row.get('Title', '')),
-                'description': str(row.get('Summary', '')),
-                'measure_type': str(row.get('IRTypeDefinition', '')),
-                'topic_primary': str(row.get('TOPICDESCRIPTION', '')),
-                'status': str(row.get('IRStatusDefinition', '')),
-                'election_type': str(row.get('ElectionType', ''))
+                'measure_id': _get(row, 'ID', 'id', 'MeasureID'),
+                'title': _get(row, 'Title', 'title', 'MeasureTitle'),
+                'description': _get(row, 'Summary', 'summary', 'Description'),
+                'measure_type': _get(row, 'IRTypeDefinition', 'Type', 'type', 'MeasureType'),
+                'topic_primary': _get(row, 'TOPICDESCRIPTION', 'Topic', 'topic', 'TopicDescription'),
+                'status': _get(row, 'IRStatusDefinition', 'Status', 'status'),
+                'election_type': _get(row, 'ElectionType', 'election_type', 'Election')
             }
             
             # Parse vote data

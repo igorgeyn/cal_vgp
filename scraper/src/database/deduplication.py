@@ -33,14 +33,17 @@ class Deduplicator:
             }
         
         # Check content hash for near-duplicates
-        content_matches = self.db.find_by_content_hash(measure.content_hash)
-        if content_matches:
-            return {
-                'type': 'content',
-                'id': content_matches[0].id,
-                'fingerprint': content_matches[0].fingerprint,
-                'matches': len(content_matches)
-            }
+        # Skip if content hash is from empty/null fields (would match everything)
+        EMPTY_CONTENT_HASH = "7d010443693eec25"  # MD5 of "||"
+        if measure.content_hash and measure.content_hash != EMPTY_CONTENT_HASH:
+            content_matches = self.db.find_by_content_hash(measure.content_hash)
+            if content_matches:
+                return {
+                    'type': 'content',
+                    'id': content_matches[0].id,
+                    'fingerprint': content_matches[0].fingerprint,
+                    'matches': len(content_matches)
+                }
         
         # Check cross-source duplicates by measure_fingerprint
         cursor = conn.execute(

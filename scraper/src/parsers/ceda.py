@@ -60,7 +60,7 @@ class CEDAParser:
             'rec_type': ['RECTYPE', 'typerec'],
             'rec_type_name': ['RECTYPENAME', 'type_name'],
             'rec_topic': ['RECTOPIC', 'toprec'],  
-            'rec_topic_name': ['RECTOPICNAME', 'topic_name']
+            'rec_topic_name': ['RECTOPICNAME', 'RECTOPNAME', 'topic_name']
         }
         
         # Sheet name patterns across years

@@ -56,7 +56,23 @@ class BallotpediaCountyScraper:
         logger.info(f"Scraping {county} County from {url}")
 
         try:
+            import time
+
             response = self.session.get(url, timeout=30)
+
+            # Handle rate limiting (HTTP 202 with empty content)
+            if response.status_code == 202 or len(response.content) == 0:
+                for attempt in range(3):
+                    wait_time = 10 * (2 ** attempt)
+                    logger.warning(f"Rate limited on county page, waiting {wait_time}s (attempt {attempt + 1}/3)")
+                    time.sleep(wait_time)
+                    response = self.session.get(url, timeout=30)
+                    if response.status_code == 200 and len(response.content) > 0:
+                        break
+                else:
+                    logger.error(f"Rate limited after 3 retries for {county} County")
+                    return []
+
             response.raise_for_status()
         except Exception as e:
             logger.error(f"Failed to fetch {county} County page: {e}")
@@ -64,6 +80,7 @@ class BallotpediaCountyScraper:
 
         soup = BeautifulSoup(response.content, 'html.parser')
         measures = []
+        seen_urls = set()  # Deduplicate by source URL
 
         # Get main content
         content = soup.find('div', class_='mw-parser-output')
@@ -82,7 +99,7 @@ class BallotpediaCountyScraper:
             if not year_match:
                 continue
 
-            year = int(year_match.group(1))
+            section_year = int(year_match.group(1))
 
             # Get content between this year and the next year heading
             current = year_header.find_next_sibling()
@@ -92,13 +109,39 @@ class BallotpediaCountyScraper:
                 if current.name == 'h3':
                     election_date = current.get_text().strip()
 
+                    # Try to extract the real year from the election date header
+                    # e.g. "November 3, 2020 election" or "June 7, 2022"
+                    date_year_match = re.search(r'(\d{4})', election_date)
+                    real_year = int(date_year_match.group(1)) if date_year_match else section_year
+
                     # Find the list of measures under this election
                     measures_list = current.find_next_sibling('ul')
 
                     if measures_list:
                         for li in measures_list.find_all('li', recursive=False):
-                            measure = self._parse_measure_item(li, year, election_date, county)
+                            measure = self._parse_measure_item(li, real_year, election_date, county)
                             if measure:
+                                # Skip navigation/info links
+                                if measure.title and any(skip in measure.title for skip in [
+                                    "Local ballot measures, California",
+                                    "Ballot measure information on California",
+                                    "ballot measures in",
+                                ]):
+                                    continue
+
+                                # Try to extract actual year from title if it contains a date
+                                title_year_match = re.search(r'\((?:January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{4}\)', measure.title or '')
+                                if title_year_match:
+                                    ty = re.search(r'(\d{4})', title_year_match.group(0))
+                                    if ty:
+                                        measure.year = int(ty.group(1))
+
+                                # Deduplicate by URL
+                                if measure.source_url and measure.source_url in seen_urls:
+                                    continue
+                                if measure.source_url:
+                                    seen_urls.add(measure.source_url)
+
                                 measures.append(measure)
 
                 current = current.find_next_sibling()

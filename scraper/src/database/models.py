@@ -136,7 +136,7 @@ class BallotMeasure:
         """Extract standardized measure identifier"""
         # Use measure_id if available
         if self.measure_id:
-            return self.measure_id.upper().replace('PROPOSITION', 'PROP')
+            return str(self.measure_id).upper().replace('PROPOSITION', 'PROP')
             
         # Otherwise try to extract from text
         text = self.title or self.ballot_question or ''

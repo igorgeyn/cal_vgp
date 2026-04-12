@@ -51,18 +51,18 @@ setup: install
 	@python scripts/initialize_db.py
 	@echo "✅ Setup complete!"
 
-# Main operations - FIXED COMMANDS
+# Main operations — all route through unified pipeline
 update:
-	@echo "🔄 Updating ballot measures database..."
-	@python scripts/update_db.py
+	@echo "🔄 Updating ballot measures database (incremental)..."
+	@python scripts/pipeline.py incremental
 
 scrape:
-	@echo "🕷️ Scraping latest measures..."
-	@python scripts/scrape.py --source all
+	@echo "🕷️ Scraping all sources (incremental)..."
+	@python scripts/pipeline.py incremental
 
 check:
-	@echo "🔍 Checking for new measures..."
-	@python scripts/check_updates.py --sources all
+	@echo "🔍 Checking for new measures (dry run)..."
+	@python scripts/pipeline.py check
 
 website:
 	@echo "🌐 Generating website..."
@@ -97,6 +97,10 @@ api-test:
 db-init:
 	@echo "📊 Initializing database..."
 	@python scripts/initialize_db.py --fresh
+
+db-init-historical:
+	@echo "📊 Loading historical sources into database..."
+	@python scripts/pipeline.py historical
 
 db-stats:
 	@echo "📊 Database statistics..."
@@ -189,7 +193,7 @@ quick: update website
 daily: check
 	@$(MAKE) -s db-stats
 
-weekly: update backup website-deploy
+weekly: update backup website
 	@echo "✅ Weekly update complete!"
 
 # Installation check
@@ -233,7 +237,9 @@ summaries-ai:
 	@python scripts/generate_ai_summaries.py
 
 # Complete pipeline
-full-run: db-init scrape update website
-	@echo "✅ Full pipeline complete!"
+full-run:
+	@echo "🔄 Running full pipeline (historical + incremental + dedupe + website)..."
+	@python scripts/pipeline.py full
+	@$(MAKE) -s website
 	@$(MAKE) -s status
 

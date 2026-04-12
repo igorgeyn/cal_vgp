@@ -190,35 +190,63 @@ class Database:
                 raise
     
     def update_measure(self, measure_id: int, updates: Dict) -> bool:
-        """Update an existing measure"""
+        """Update an existing measure, recomputing derived keys if needed."""
         conn = self.connect()
-        
-        # Remove fields that shouldn't be updated
+
+        # Remove fields that shouldn't be directly set
         updates.pop('id', None)
-        updates.pop('fingerprint', None)
         updates.pop('created_at', None)
-        
+
         # Ensure year is integer if present
         if 'year' in updates and updates['year'] is not None:
             updates['year'] = int(updates['year'])
-        
+
+        # If any fingerprint-affecting field changed, recompute derived keys
+        fingerprint_fields = {'year', 'measure_id', 'county', 'data_source',
+                              'title', 'ballot_question', 'description', 'measure_letter'}
+        if fingerprint_fields & set(updates.keys()):
+            # Get current record to merge with updates
+            row = conn.execute("SELECT * FROM measures WHERE id = ?", (measure_id,)).fetchone()
+            if row:
+                current = dict(row)
+                merged = {**current, **updates}
+                # Build a temporary BallotMeasure to regenerate fingerprints
+                temp = BallotMeasure(
+                    year=merged.get('year'),
+                    measure_id=merged.get('measure_id'),
+                    measure_letter=merged.get('measure_letter'),
+                    county=merged.get('county', 'Statewide'),
+                    data_source=merged.get('data_source', 'Unknown'),
+                    title=merged.get('title'),
+                    ballot_question=merged.get('ballot_question'),
+                    description=merged.get('description'),
+                )
+                updates['fingerprint'] = temp.fingerprint
+                updates['measure_fingerprint'] = temp.measure_fingerprint
+                updates['content_hash'] = temp.content_hash
+        else:
+            # Don't overwrite fingerprint with stale values from caller
+            updates.pop('fingerprint', None)
+            updates.pop('measure_fingerprint', None)
+            updates.pop('content_hash', None)
+
         # Add update metadata
         updates['updated_at'] = datetime.now()
         updates['update_count'] = conn.execute(
             "SELECT update_count FROM measures WHERE id = ?", (measure_id,)
         ).fetchone()['update_count'] + 1
-        
+
         # Build update query
         set_clauses = [f"{field} = ?" for field in updates.keys()]
         sql = f"""
-        UPDATE measures 
+        UPDATE measures
         SET {', '.join(set_clauses)}
         WHERE id = ?
         """
-        
+
         values = list(updates.values()) + [measure_id]
         cursor = conn.execute(sql, values)
-        
+
         return cursor.rowcount > 0
     
     def get_measure(self, measure_id: int) -> Optional[BallotMeasure]:
@@ -396,13 +424,24 @@ class Database:
         stats['unknown'] = stats['total_measures'] - stats['passed'] - stats['failed']
 
         # Statewide vs local counts
-        cursor = conn.execute("SELECT COUNT(*) as count FROM active_measures WHERE county = 'Statewide'")
+        cursor = conn.execute(
+            "SELECT COUNT(*) as count FROM active_measures "
+            "WHERE county = 'Statewide' OR county IS NULL OR county = ''"
+        )
         stats['statewide_count'] = int(cursor.fetchone()['count'] or 0)
         stats['local_count'] = stats['total_measures'] - stats['statewide_count']
 
-        # Additional stats for completeness
-        stats['counties'] = 1  # Placeholder
-        stats['topics'] = 0  # Placeholder
+        # County and topic counts
+        cursor = conn.execute(
+            "SELECT COUNT(DISTINCT county) as count FROM active_measures "
+            "WHERE county IS NOT NULL AND county != '' AND county != 'Statewide'"
+        )
+        stats['counties'] = int(cursor.fetchone()['count'] or 0)
+        cursor = conn.execute(
+            "SELECT COUNT(DISTINCT topic_primary) as count FROM active_measures "
+            "WHERE topic_primary IS NOT NULL AND topic_primary != ''"
+        )
+        stats['topics'] = int(cursor.fetchone()['count'] or 0)
         
         return stats
     
