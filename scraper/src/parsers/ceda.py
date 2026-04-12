@@ -152,9 +152,23 @@ class CEDAParser:
             measures = []
             for _, row in df.iterrows():
                 try:
+                    # Read category_type: try both CSV column name and raw CEDA name
+                    cat_type = row.get('category_type') or row.get('rec_type_name')
+                    cat_topic = row.get('category_topic') or row.get('rec_topic_name')
+
+                    # Read percent_yes — CSV stores as 0-1 decimal
+                    pct_yes_raw = row.get('percent_yes')
+                    if pd.notna(pct_yes_raw):
+                        pct_yes = float(pct_yes_raw)
+                        if pct_yes <= 1.0:
+                            pct_yes = pct_yes * 100  # Convert 0-1 → 0-100
+                        # If already 0-100, leave as-is; if >100 (basis points), fix later
+                    else:
+                        pct_yes = None
+
                     measure = BallotMeasure(
                         measure_id=str(row.get('measure_id', '')),
-                        title=str(row.get('measure_text', '')),
+                        title=str(row.get('measure_text', '') or row.get('title', '')),
                         measure_letter=str(row.get('measure_letter', '')) if pd.notna(row.get('measure_letter')) else None,
                         measure_type=str(row.get('measure_type', '')) if pd.notna(row.get('measure_type')) else None,
                         year=int(row.get('year')) if pd.notna(row.get('year')) else None,
@@ -164,11 +178,11 @@ class CEDAParser:
                         yes_votes=int(row.get('yes_votes')) if pd.notna(row.get('yes_votes')) else None,
                         no_votes=int(row.get('no_votes')) if pd.notna(row.get('no_votes')) else None,
                         total_votes=int(row.get('total_votes')) if pd.notna(row.get('total_votes')) else None,
-                        percent_yes=float(row.get('percent_yes')) * 100 if pd.notna(row.get('percent_yes')) else None,
+                        percent_yes=pct_yes,
                         pass_fail=str(row.get('pass_fail', '')) if pd.notna(row.get('pass_fail')) else None,
                         passed=1 if str(row.get('pass_fail', '')).lower().startswith('pass') else 0 if str(row.get('pass_fail', '')).lower().startswith('fail') else None,
-                        category_type=str(row.get('rec_type_name', '')) if pd.notna(row.get('rec_type_name')) else None,
-                        category_topic=str(row.get('rec_topic_name', '')) if pd.notna(row.get('rec_topic_name')) else None,
+                        category_type=str(cat_type) if pd.notna(cat_type) else None,
+                        category_topic=str(cat_topic) if pd.notna(cat_topic) else None,
                         data_source='CEDA',
                         election_date=str(row.get('election_date', '')) if pd.notna(row.get('election_date')) else None
                     )
