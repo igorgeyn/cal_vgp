@@ -287,6 +287,108 @@ def generate_lao_pending_url(measure: Dict) -> Optional[Dict]:
     }
 
 
+def generate_ballotpedia_county_url(measure: Dict) -> Optional[Dict]:
+    """
+    Generate Ballotpedia county ballot measures page URL.
+
+    Pattern: https://ballotpedia.org/Los_Angeles_County,_California_ballot_measures
+    Works for all 58 California counties.
+    """
+    if is_statewide(measure):
+        return None
+
+    county = (measure.get('county', '') or '').strip()
+    if not county:
+        return None
+
+    # Format county name for URL (Title Case, underscores)
+    county_title = county.title().replace(' ', '_')
+    url = f"https://ballotpedia.org/{county_title}_County,_California_ballot_measures"
+
+    return {
+        'source': 'Ballotpedia',
+        'url': url,
+        'confidence': 'high',
+        'icon': 'ballot'
+    }
+
+
+# County registrar of voters websites
+COUNTY_REGISTRAR_URLS = {
+    'ALAMEDA': 'https://www.acvote.org',
+    'CONTRA COSTA': 'https://www.cocovote.us',
+    'EL DORADO': 'https://www.edcgov.us/Government/Elections',
+    'FRESNO': 'https://www.co.fresno.ca.us/departments/county-clerk-registrar-of-voters',
+    'KERN': 'https://elections.kerncounty.com',
+    'LOS ANGELES': 'https://lavote.gov',
+    'MARIN': 'https://www.marinvotes.org',
+    'MERCED': 'https://www.co.merced.ca.us/elections',
+    'MONTEREY': 'https://www.montereycountyelections.us',
+    'NAPA': 'https://www.countyofnapa.org/152/Elections',
+    'ORANGE': 'https://www.ocvote.gov',
+    'PLACER': 'https://www.placerelections.com',
+    'RIVERSIDE': 'https://www.voteinfo.net',
+    'SACRAMENTO': 'https://elections.saccounty.gov',
+    'SAN BERNARDINO': 'https://www.sbcountyelections.com',
+    'SAN DIEGO': 'https://www.sdvote.com',
+    'SAN FRANCISCO': 'https://sfelections.sfgov.org',
+    'SAN JOAQUIN': 'https://www.sjcrov.org',
+    'SAN LUIS OBISPO': 'https://www.slocounty.ca.gov/Departments/Clerk-Recorder/Elections.htm',
+    'SAN MATEO': 'https://www.smcacre.org/elections',
+    'SANTA BARBARA': 'https://countyofsb.org/care/elections',
+    'SANTA CLARA': 'https://www.sccgov.org/sites/rov',
+    'SANTA CRUZ': 'https://www.votescount.us',
+    'SHASTA': 'https://www.elections.co.shasta.ca.us',
+    'SOLANO': 'https://www.solanocounty.com/depts/rov',
+    'SONOMA': 'https://sonomacounty.ca.gov/administrative-support-and-fiscal-services/clerk-recorder-assessor-registrar-of-voters/registrar-of-voters',
+    'STANISLAUS': 'https://www.stanvote.com',
+    'TULARE': 'https://tularecoelections.org',
+    'VENTURA': 'https://recorder.countyofventura.org/elections',
+    'YOLO': 'https://www.yoloelections.org',
+}
+
+
+def generate_county_registrar_url(measure: Dict) -> Optional[Dict]:
+    """
+    Generate county registrar of voters website URL.
+
+    Links to the county election authority where measure details may be found.
+    """
+    if is_statewide(measure):
+        return None
+
+    county = (measure.get('county', '') or '').strip().upper()
+    url = COUNTY_REGISTRAR_URLS.get(county)
+
+    if not url:
+        return None
+
+    return {
+        'source': f'{county.title()} County Elections',
+        'url': url,
+        'confidence': 'medium',
+        'icon': 'government'
+    }
+
+
+def generate_ceda_archive_url(measure: Dict) -> Optional[Dict]:
+    """
+    Generate CEDA (California Elections Data Archive) URL.
+
+    Links to the CSUS data archive where the source data can be found.
+    """
+    source = measure.get('data_source', '') or measure.get('source', '')
+    if source != 'CEDA':
+        return None
+
+    return {
+        'source': 'CEDA Data Archive',
+        'url': 'https://scholars.csus.edu/esploro/outputs/dataset/California-Elections-Data-Archive-CEDA/99257830890201671',
+        'confidence': 'high',
+        'icon': 'academic'
+    }
+
+
 def generate_external_links(measure: Dict) -> List[Dict]:
     """
     Generate all applicable external links for a measure.
@@ -303,15 +405,24 @@ def generate_external_links(measure: Dict) -> List[Dict]:
             generate_lao_pending_url,
             generate_legislature_url,
             generate_ballotpedia_url,
+            generate_ballotpedia_county_url,
+            generate_county_registrar_url,
         ]
-    else:
-        # Historical measures get archival sources
+    elif is_statewide(measure):
+        # Statewide historical measures get archival sources
         generators = [
             generate_ballotpedia_url,
             generate_sos_voter_guide_url,
             generate_lao_url,
             generate_uc_hastings_url,
             generate_wikipedia_search_url,
+        ]
+    else:
+        # Local/county measures
+        generators = [
+            generate_ballotpedia_county_url,
+            generate_county_registrar_url,
+            generate_ceda_archive_url,
         ]
 
     links = []

@@ -994,6 +994,18 @@ class WebsiteGenerator:
         </div>
     </div>
 
+    <!-- Matrix Cell Detail Modal -->
+    <div id="matrixCellModal" class="modal" style="display: none;" onclick="closeMatrixCellModal()">
+        <div class="modal-content matrix-cell-modal" onclick="event.stopPropagation()" style="max-width:480px;">
+            <div class="modal-header">
+                <h3 id="matrixCellTitle" style="margin:0;font-size:1.1rem;"></h3>
+                <button class="modal-close" onclick="closeMatrixCellModal()">&times;</button>
+            </div>
+            <div class="modal-body" id="matrixCellBody" style="padding:1rem;">
+            </div>
+        </div>
+    </div>
+
     <!-- Measure Detail Modal -->
     <div id="measureDetailModal" class="modal" style="display: none;">
         <div class="modal-content measure-detail-modal">
@@ -6141,13 +6153,36 @@ class WebsiteGenerator:
             return `rgb(${{r}}, ${{g}}, ${{b}})`;
         }}
 
-        let matrixRowMode = 'count'; // 'count' | 'alpha' | 'rate'
-        let matrixColField = 'topic'; // 'topic' | 'measureType'
+        // ── Matrix State ──────────────────────────────
+        const matrixState = {{
+            rowGrouping: 'jurisdiction',  // 'jurisdiction' | 'region'
+            rowSort: 'count',             // 'count' | 'alpha' | 'rate'
+            colField: 'topic',            // 'topic' | 'measureType'
+            sortCol: null,
+            sortDir: 'desc',
+            minN: 0,                      // minimum measures per cell to display (0 = show all)
+            metric: 'passRate',           // 'passRate' | 'trap'
+        }};
+        // Keep legacy aliases for existing code that references them
+        let matrixRowMode = matrixState.rowSort;
+        let matrixColField = matrixState.colField;
+
+        // Canonical column orderings (stable across filter changes)
+        const CANONICAL_TOPIC_ORDER = ["Education", "Public Safety & Crime", "Taxes & Finance", "Government & Elections", "Healthcare & Welfare", "Environment & Natural Resources", "Transportation", "Housing & Land Use", "Business & Labor", "Utilities & Energy", "Civil Rights", "Other"];
+        const CANONICAL_TYPE_ORDER = ["Ordinance", "Charter Amendment", "Sales Tax", "Transient Occupancy Tax", "Business Tax", "Advisory", "Utility Tax", "Recall", "Initiative", "Miscellaneous Tax", "Property Tax", "Gann Limit", "Bond"];
+
+        // Build reverse region lookup from CA_REGIONS
+        const countyToRegion = {{}};
+        Object.keys(CA_REGIONS).forEach(regionName => {{
+            CA_REGIONS[regionName].counties.forEach(c => {{
+                countyToRegion[c.toUpperCase()] = regionName;
+            }});
+        }});
 
         function renderMatrix() {{
             // Determine which field to use for columns based on toggle
-            const colFieldKey = matrixColField === 'measureType' ? 'display_category_type' : 'display_topic';
-            const colLabel = matrixColField === 'measureType' ? 'measure types' : 'topics';
+            const colFieldKey = matrixState.colField === 'measureType' ? 'display_category_type' : 'display_topic';
+            const colLabel = matrixState.colField === 'measureType' ? 'measure types' : 'topics';
 
             const valid = filteredMeasures.filter(m =>
                 m[colFieldKey] && (m.passed === 1 || m.passed === 0)
@@ -6169,47 +6204,61 @@ class WebsiteGenerator:
                 countySet.add(m.county || 'Unknown');
             }});
 
-            // Sort columns by total count descending
-            const topicCounts = {{}};
-            valid.forEach(m => {{
-                const t = m[colFieldKey];
-                topicCounts[t] = (topicCounts[t] || 0) + 1;
-            }});
-            const topics = [...topicSet].sort((a, b) => (topicCounts[b] || 0) - (topicCounts[a] || 0));
+            // Use canonical column ordering (stable across filter changes)
+            const canonicalOrder = matrixState.colField === 'measureType' ? CANONICAL_TYPE_ORDER : CANONICAL_TOPIC_ORDER;
+            const topics = canonicalOrder.filter(t => topicSet.has(t));
+            // Append any columns not in canonical order (future-proofing)
+            topicSet.forEach(t => {{ if (!topics.includes(t)) topics.push(t); }});
 
-            // Build matrix
+            // Build matrix — aggregate by row key (county or region)
             const matrix = {{}};
             const colTotals = {{}};
             const rowTotals = {{}};
-            topics.forEach(t => colTotals[t] = {{passed: 0, total: 0}});
+            topics.forEach(t => colTotals[t] = {{passed: 0, total: 0, trapped: 0}});
+            const useRegions = matrixState.rowGrouping === 'region';
+            const isTrapMode = matrixState.metric === 'trap';
 
             valid.forEach(m => {{
-                const c = m.county || 'Unknown';
+                let rowKey;
+                if (useRegions) {{
+                    const cnty = (m.county || '').toUpperCase();
+                    rowKey = cnty === 'STATEWIDE' ? 'Statewide' : (countyToRegion[cnty] || 'Other');
+                }} else {{
+                    rowKey = m.county || 'Unknown';
+                }}
                 const t = m[colFieldKey];
-                if (!matrix[c]) matrix[c] = {{}};
-                if (!matrix[c][t]) matrix[c][t] = {{passed: 0, total: 0}};
-                matrix[c][t].total++;
-                matrix[c][t].passed += m.passed;
-                if (!rowTotals[c]) rowTotals[c] = {{passed: 0, total: 0}};
-                rowTotals[c].total++;
-                rowTotals[c].passed += m.passed;
+                if (!matrix[rowKey]) matrix[rowKey] = {{}};
+                if (!matrix[rowKey][t]) matrix[rowKey][t] = {{passed: 0, total: 0, trapped: 0}};
+                matrix[rowKey][t].total++;
+                matrix[rowKey][t].passed += m.passed;
+                if (!rowTotals[rowKey]) rowTotals[rowKey] = {{passed: 0, total: 0, trapped: 0}};
+                rowTotals[rowKey].total++;
+                rowTotals[rowKey].passed += m.passed;
                 colTotals[t].total++;
                 colTotals[t].passed += m.passed;
+                // Threshold trap: majority yes (>50%) but failed
+                // Covers 50%, 55% (Prop 39 school bonds), and 66.67% (2/3 supermajority)
+                const pct = m.percent_yes;
+                if (m.passed === 0 && pct != null && pct >= 0 && pct <= 100 && pct > 50) {{
+                    matrix[rowKey][t].trapped++;
+                    rowTotals[rowKey].trapped++;
+                    colTotals[t].trapped++;
+                }}
             }});
 
-            // Sort counties
-            let counties = [...countySet];
-            if (matrixSortCol && colTotals[matrixSortCol]) {{
+            // Collect and sort row keys
+            let counties = Object.keys(rowTotals);
+            if (matrixState.sortCol && colTotals[matrixState.sortCol]) {{
                 counties.sort((a, b) => {{
-                    const ac = (matrix[a] && matrix[a][matrixSortCol]) || {{passed:0, total:0}};
-                    const bc = (matrix[b] && matrix[b][matrixSortCol]) || {{passed:0, total:0}};
+                    const ac = (matrix[a] && matrix[a][matrixState.sortCol]) || {{passed:0, total:0}};
+                    const bc = (matrix[b] && matrix[b][matrixState.sortCol]) || {{passed:0, total:0}};
                     const ar = ac.total > 0 ? ac.passed / ac.total : -1;
                     const br = bc.total > 0 ? bc.passed / bc.total : -1;
-                    return matrixSortDir === 'desc' ? br - ar : ar - br;
+                    return matrixState.sortDir === 'desc' ? br - ar : ar - br;
                 }});
-            }} else if (matrixRowMode === 'alpha') {{
+            }} else if (matrixState.rowSort === 'alpha') {{
                 counties.sort((a, b) => a.localeCompare(b));
-            }} else if (matrixRowMode === 'rate') {{
+            }} else if (matrixState.rowSort === 'rate') {{
                 counties.sort((a, b) => {{
                     const ar = rowTotals[a]?.total > 0 ? rowTotals[a].passed / rowTotals[a].total : -1;
                     const br = rowTotals[b]?.total > 0 ? rowTotals[b].passed / rowTotals[b].total : -1;
@@ -6222,20 +6271,39 @@ class WebsiteGenerator:
             // Build HTML
             let html = '<div class="matrix-wrapper">';
 
-            // Toolbar with info, column toggle, row sort, and legend
+            // Toolbar with info, controls, and legend
+            const rowLabel = useRegions ? 'regions' : 'jurisdictions';
             html += `<div class="matrix-toolbar">
-                <span>${{valid.length.toLocaleString()}} measures with outcomes · ${{counties.length}} jurisdictions × ${{topics.length}} ${{colLabel}}</span>
+                <span>${{valid.length.toLocaleString()}} measures with outcomes · ${{counties.length}} ${{rowLabel}} × ${{topics.length}} ${{colLabel}}</span>
                 <div class="matrix-col-toggle">
-                    <button class="${{matrixColField === 'topic' ? 'active' : ''}}" onclick="setMatrixColField('topic')">Topic</button>
-                    <button class="${{matrixColField === 'measureType' ? 'active' : ''}}" onclick="setMatrixColField('measureType')">Measure Type</button>
+                    <button class="${{matrixState.colField === 'topic' ? 'active' : ''}}" onclick="setMatrixColField('topic')">Topic</button>
+                    <button class="${{matrixState.colField === 'measureType' ? 'active' : ''}}" onclick="setMatrixColField('measureType')">Measure Type</button>
                 </div>
-                <label>Sort rows:
-                    <select onchange="setMatrixRowSort(this.value)">
-                        <option value="count" ${{matrixRowMode==='count'?'selected':''}}>By count</option>
-                        <option value="alpha" ${{matrixRowMode==='alpha'?'selected':''}}>A–Z</option>
-                        <option value="rate" ${{matrixRowMode==='rate'?'selected':''}}>By pass rate</option>
+                <label>Rows:
+                    <select onchange="setMatrixRowGrouping(this.value)">
+                        <option value="jurisdiction" ${{matrixState.rowGrouping==='jurisdiction'?'selected':''}}>Jurisdictions</option>
+                        <option value="region" ${{matrixState.rowGrouping==='region'?'selected':''}}>Regions</option>
                     </select>
                 </label>
+                <label>Sort:
+                    <select onchange="setMatrixRowSort(this.value)">
+                        <option value="count" ${{matrixState.rowSort==='count'?'selected':''}}>By count</option>
+                        <option value="alpha" ${{matrixState.rowSort==='alpha'?'selected':''}}>A–Z</option>
+                        <option value="rate" ${{matrixState.rowSort==='rate'?'selected':''}}>By pass rate</option>
+                    </select>
+                </label>
+                <label>Min n:
+                    <select onchange="setMatrixMinN(parseInt(this.value))">
+                        <option value="0" ${{matrixState.minN===0?'selected':''}}>All</option>
+                        <option value="3" ${{matrixState.minN===3?'selected':''}}>3+</option>
+                        <option value="5" ${{matrixState.minN===5?'selected':''}}>5+</option>
+                        <option value="10" ${{matrixState.minN===10?'selected':''}}>10+</option>
+                    </select>
+                </label>
+                <div class="matrix-col-toggle">
+                    <button class="${{matrixState.metric === 'passRate' ? 'active' : ''}}" onclick="setMatrixMetric('passRate')">Pass Rate</button>
+                    <button class="${{matrixState.metric === 'trap' ? 'active' : ''}}" onclick="setMatrixMetric('trap')" title="Measures that won majority support but failed due to supermajority threshold">Threshold Trap</button>
+                </div>
                 <div class="matrix-legend">
                     <span class="matrix-legend-label">Low</span>
                     <div class="matrix-legend-bar">
@@ -6246,18 +6314,19 @@ class WebsiteGenerator:
                         <span style="background:#2D9D78"></span>
                     </div>
                     <span class="matrix-legend-label">High</span>
-                    <span style="opacity:0.5; margin-left:8px; color:#666;">●</span><span style="color:#888;font-size:0.7rem;margin-left:2px;">n&lt;3</span>
+                    <span style="opacity:0.5; margin-left:8px; color:#666;">●</span><span style="color:#888;font-size:0.7rem;margin-left:2px;">sparse</span>
                 </div>
             </div>`;
             html += '<div class="matrix-scroll"><table class="matrix-table" role="grid">';
 
             // Header
             html += '<thead><tr>';
-            const jSortCls = !matrixSortCol ? 'sorted-desc' : '';
+            const jSortCls = !matrixState.sortCol ? 'sorted-desc' : '';
+            const rowHeader = useRegions ? 'Region' : 'Jurisdiction';
             html += `<th class="${{jSortCls}}" role="button" tabindex="0"
-                onclick="sortMatrixByRow()" onkeydown="if(event.key==='Enter')sortMatrixByRow()">Jurisdiction</th>`;
+                onclick="sortMatrixByRow()" onkeydown="if(event.key==='Enter')sortMatrixByRow()">${{rowHeader}}</th>`;
             topics.forEach(t => {{
-                const cls = matrixSortCol === t ? (matrixSortDir === 'asc' ? 'sorted-asc' : 'sorted-desc') : '';
+                const cls = matrixState.sortCol === t ? (matrixState.sortDir === 'asc' ? 'sorted-asc' : 'sorted-desc') : '';
                 const escaped = t.replace(/'/g, "\\\\'");
                 html += `<th class="${{cls}}" role="button" tabindex="0"
                     onclick="sortMatrixByCol('${{escaped}}')"
@@ -6277,9 +6346,25 @@ class WebsiteGenerator:
                     onkeydown="if(event.key==='Enter')exploreFilterToCounty('${{cEsc}}')"
                     >${{escapeHtml(county)}} <span class="cell-count">(${{rt.total}})</span></td>`;
                 topics.forEach(t => {{
-                    const cell = (matrix[county] && matrix[county][t]) || {{passed:0, total:0}};
-                    if (cell.total === 0) {{
+                    const cell = (matrix[county] && matrix[county][t]) || {{passed:0, total:0, trapped:0}};
+                    if (cell.total === 0 || cell.total < matrixState.minN) {{
                         html += '<td class="matrix-cell empty-cell">—</td>';
+                    }} else if (isTrapMode) {{
+                        // Threshold trap mode: show trapped count
+                        const trapRate = cell.total > 0 ? Math.round(100 * cell.trapped / cell.total) : 0;
+                        const bg = trapCellColor(cell.trapped, cell.total);
+                        const tEsc = t.replace(/'/g, "\\\\'");
+                        const label = `${{escapeAttr(county)}}, ${{escapeAttr(t)}}: ${{cell.trapped}} of ${{cell.total}} measures won majority but failed (${{trapRate}}%)`;
+                        html += `<td class="matrix-cell" style="background:${{bg}}"
+                            role="button" tabindex="0"
+                            onclick="matrixCellClick('${{cEsc}}','${{tEsc}}')"
+                            onkeydown="if(event.key==='Enter')matrixCellClick('${{cEsc}}','${{tEsc}}')"
+                            title="${{label}}" aria-label="${{label}}">
+                            ${{cell.trapped > 0
+                                ? `<span class="cell-rate">${{cell.trapped}}</span><span class="cell-count">${{trapRate}}%</span>`
+                                : `<span class="cell-rate" style="opacity:0.3;">0</span>`
+                            }}
+                        </td>`;
                     }} else {{
                         const rate = Math.round(100 * cell.passed / cell.total);
                         const bg = matrixCellColor(cell.passed, cell.total);
@@ -6299,66 +6384,218 @@ class WebsiteGenerator:
                     }}
                 }});
                 // Row total
-                html += `<td class="matrix-cell" style="background:${{matrixCellColor(rt.passed, rt.total)}}">
-                    <span class="cell-rate">${{rowRate}}%</span><span class="cell-count">${{rt.total}}</span></td>`;
+                if (isTrapMode) {{
+                    const rowTrapRate = rt.total > 0 ? Math.round(100 * rt.trapped / rt.total) : 0;
+                    html += `<td class="matrix-cell" style="background:${{trapCellColor(rt.trapped, rt.total)}}">
+                        <span class="cell-rate">${{rt.trapped}}</span><span class="cell-count">${{rowTrapRate}}%</span></td>`;
+                }} else {{
+                    html += `<td class="matrix-cell" style="background:${{matrixCellColor(rt.passed, rt.total)}}">
+                        <span class="cell-rate">${{rowRate}}%</span><span class="cell-count">${{rt.total}}</span></td>`;
+                }}
                 html += '</tr>';
             }});
 
             // Totals row
-            const gt = {{passed:0, total:0}};
+            const gt = {{passed:0, total:0, trapped:0}};
             html += '<tr class="matrix-totals"><td>All</td>';
             topics.forEach(t => {{
                 const ct = colTotals[t];
                 gt.passed += ct.passed;
                 gt.total += ct.total;
-                const rate = ct.total > 0 ? Math.round(100 * ct.passed / ct.total) : 0;
-                html += `<td><span class="cell-rate">${{rate}}%</span><span class="cell-count">${{ct.total}}</span></td>`;
+                gt.trapped += ct.trapped;
+                if (isTrapMode) {{
+                    const trapRate = ct.total > 0 ? Math.round(100 * ct.trapped / ct.total) : 0;
+                    html += `<td><span class="cell-rate">${{ct.trapped}}</span><span class="cell-count">${{trapRate}}%</span></td>`;
+                }} else {{
+                    const rate = ct.total > 0 ? Math.round(100 * ct.passed / ct.total) : 0;
+                    html += `<td><span class="cell-rate">${{rate}}%</span><span class="cell-count">${{ct.total}}</span></td>`;
+                }}
             }});
-            html += `<td><span class="cell-rate">${{gt.total > 0 ? Math.round(100*gt.passed/gt.total) : 0}}%</span><span class="cell-count">${{gt.total}}</span></td>`;
+            if (isTrapMode) {{
+                const gtTrapRate = gt.total > 0 ? Math.round(100 * gt.trapped / gt.total) : 0;
+                html += `<td><span class="cell-rate">${{gt.trapped}}</span><span class="cell-count">${{gtTrapRate}}%</span></td>`;
+            }} else {{
+                html += `<td><span class="cell-rate">${{gt.total > 0 ? Math.round(100*gt.passed/gt.total) : 0}}%</span><span class="cell-count">${{gt.total}}</span></td>`;
+            }}
             html += '</tr></tbody></table></div></div>';
 
             return html;
         }}
 
         function sortMatrixByCol(topic) {{
-            if (matrixSortCol === topic) {{
-                matrixSortDir = matrixSortDir === 'desc' ? 'asc' : 'desc';
+            if (matrixState.sortCol === topic) {{
+                matrixState.sortDir = matrixState.sortDir === 'desc' ? 'asc' : 'desc';
             }} else {{
-                matrixSortCol = topic;
-                matrixSortDir = 'desc';
+                matrixState.sortCol = topic;
+                matrixState.sortDir = 'desc';
             }}
             displayResults();
         }}
 
         function sortMatrixByRow() {{
-            matrixSortCol = null;
+            matrixState.sortCol = null;
             displayResults();
         }}
 
         function setMatrixRowSort(mode) {{
-            matrixRowMode = mode;
-            matrixSortCol = null;
+            matrixState.rowSort = mode;
+            matrixRowMode = mode; // keep legacy alias
+            matrixState.sortCol = null;
             displayResults();
         }}
 
         function setMatrixColField(field) {{
-            matrixColField = field;
-            matrixSortCol = null;
+            matrixState.colField = field;
+            matrixColField = field; // keep legacy alias
+            matrixState.sortCol = null;
             displayResults();
         }}
 
-        function matrixCellClick(county, colValue) {{
-            // Set the appropriate filter based on which column mode is active
-            if (matrixColField === 'measureType') {{
+        function setMatrixRowGrouping(grouping) {{
+            matrixState.rowGrouping = grouping;
+            matrixState.sortCol = null;
+            displayResults();
+        }}
+
+        function setMatrixMinN(n) {{
+            matrixState.minN = n;
+            displayResults();
+        }}
+
+        function setMatrixMetric(metric) {{
+            matrixState.metric = metric;
+            displayResults();
+        }}
+
+        // Threshold trap color: purple scale
+        function trapCellColor(trapCount, total) {{
+            if (total < 1 || trapCount === 0) return '#f0eee8';
+            const rate = trapCount / total;
+            // Light lavender (0%) → Deep purple (100% trapped)
+            const r = Math.round(240 - 120 * rate);
+            const g = Math.round(238 - 158 * rate);
+            const b = Math.round(232 + 23 * rate);
+            return `rgb(${{r}}, ${{g}}, ${{b}})`;
+        }}
+
+        function matrixCellClick(rowKey, colValue) {{
+            // Show cell detail modal instead of drilling down
+            const colFieldKey = matrixState.colField === 'measureType' ? 'display_category_type' : 'display_topic';
+
+            // Filter measures for this cell
+            const cellMeasures = filteredMeasures.filter(m => {{
+                const mCol = m[colFieldKey];
+                if (mCol !== colValue) return false;
+                if (m.passed !== 1 && m.passed !== 0) return false;
+                if (matrixState.rowGrouping === 'region') {{
+                    const cnty = (m.county || '').toUpperCase();
+                    const region = cnty === 'STATEWIDE' ? 'Statewide' : (countyToRegion[cnty] || 'Other');
+                    return region === rowKey;
+                }} else {{
+                    return (m.county || 'Unknown') === rowKey;
+                }}
+            }});
+
+            if (cellMeasures.length === 0) return;
+
+            // Compute stats
+            const passed = cellMeasures.filter(m => m.passed === 1).length;
+            const total = cellMeasures.length;
+            const passRate = Math.round(100 * passed / total);
+            const validPct = cellMeasures.filter(m => m.percent_yes != null && m.percent_yes >= 0 && m.percent_yes <= 100);
+            const avgYes = validPct.length > 0 ? (validPct.reduce((s, m) => s + m.percent_yes, 0) / validPct.length).toFixed(1) : null;
+
+            // Decade breakdown
+            const decades = {{}};
+            cellMeasures.forEach(m => {{
+                const d = m.decade || (m.year ? Math.floor(m.year / 10) * 10 : null);
+                if (d) {{
+                    if (!decades[d]) decades[d] = {{passed: 0, total: 0}};
+                    decades[d].total++;
+                    decades[d].passed += m.passed;
+                }}
+            }});
+            const decadeKeys = Object.keys(decades).sort();
+
+            // Notable measures: tightest race + biggest win
+            const withPct = cellMeasures.filter(m => m.percent_yes != null && m.percent_yes >= 0 && m.percent_yes <= 100);
+            const tightest = [...withPct].sort((a, b) => Math.abs(a.percent_yes - 50) - Math.abs(b.percent_yes - 50)).slice(0, 2);
+            const biggest = [...withPct].sort((a, b) => b.percent_yes - a.percent_yes).slice(0, 1);
+            const notable = [...new Map([...tightest, ...biggest].map(m => [m.id, m])).values()].slice(0, 3);
+
+            // Build modal content
+            const modal = document.getElementById('matrixCellModal');
+            document.getElementById('matrixCellTitle').textContent = `${{rowKey}} — ${{colValue}}`;
+
+            let body = `
+                <div style="display:flex;gap:1.5rem;margin-bottom:1rem;align-items:center;">
+                    <div style="text-align:center;">
+                        <div style="font-size:2rem;font-weight:700;color:${{matrixCellColor(passed, total)}}">${{passRate}}%</div>
+                        <div style="font-size:0.75rem;color:#888;">pass rate (${{passed}}/${{total}})</div>
+                    </div>
+                    ${{avgYes ? `<div style="text-align:center;">
+                        <div style="font-size:1.5rem;font-weight:600;color:#555;">${{avgYes}}%</div>
+                        <div style="font-size:0.75rem;color:#888;">avg YES vote</div>
+                    </div>` : ''}}
+                </div>`;
+
+            // Decade chart
+            if (decadeKeys.length >= 2) {{
+                const maxTotal = Math.max(...decadeKeys.map(d => decades[d].total));
+                body += `<div style="margin-bottom:1rem;"><div style="font-size:0.8rem;font-weight:600;margin-bottom:0.5rem;">Pass rate by decade</div>`;
+                body += `<div style="display:flex;align-items:flex-end;gap:4px;height:60px;">`;
+                decadeKeys.forEach(d => {{
+                    const rate = decades[d].total > 0 ? decades[d].passed / decades[d].total : 0;
+                    const h = Math.max(4, Math.round(rate * 50));
+                    const bg = matrixCellColor(decades[d].passed, decades[d].total);
+                    body += `<div style="display:flex;flex-direction:column;align-items:center;flex:1;" title="${{d}}s: ${{Math.round(rate*100)}}% (${{decades[d].passed}}/${{decades[d].total}})">
+                        <div style="width:100%;max-width:32px;height:${{h}}px;background:${{bg}};border-radius:3px 3px 0 0;"></div>
+                        <div style="font-size:0.6rem;color:#888;margin-top:2px;">${{d}}s</div>
+                    </div>`;
+                }});
+                body += `</div></div>`;
+            }}
+
+            // Notable measures
+            if (notable.length > 0) {{
+                body += `<div style="margin-bottom:1rem;"><div style="font-size:0.8rem;font-weight:600;margin-bottom:0.5rem;">Notable measures</div>`;
+                notable.forEach(m => {{
+                    const pct = m.percent_yes != null && m.percent_yes <= 100 ? m.percent_yes.toFixed(1) + '% yes' : '';
+                    const status = m.passed === 1 ? '<span style="color:#2D9D78;">Passed</span>' : '<span style="color:#E54D4D;">Failed</span>';
+                    const title = escapeHtml(m.generated_title || m.summary_title || m.title || `Measure ${{m.measure_letter || '?'}}`);
+                    body += `<div style="padding:0.4rem 0;border-bottom:1px solid #eee;font-size:0.8rem;">
+                        <div><strong>${{m.year}}</strong> ${{status}} ${{pct ? '· ' + pct : ''}}</div>
+                        <div style="color:#555;margin-top:2px;">${{title.substring(0, 120)}}${{title.length > 120 ? '...' : ''}}</div>
+                    </div>`;
+                }});
+                body += `</div>`;
+            }}
+
+            // View all button
+            const rEsc = rowKey.replace(/'/g, "\\\\'");
+            const cEsc = colValue.replace(/'/g, "\\\\'");
+            body += `<button onclick="closeMatrixCellModal(); matrixDrillDown('${{rEsc}}','${{cEsc}}')" style="width:100%;padding:0.6rem;background:var(--primary);color:white;border:none;border-radius:6px;cursor:pointer;font-size:0.85rem;font-weight:600;">View all ${{total}} measures &rarr;</button>`;
+
+            document.getElementById('matrixCellBody').innerHTML = body;
+            modal.style.display = 'flex';
+        }}
+
+        function matrixDrillDown(rowKey, colValue) {{
+            // The old drill-down behavior — sets filters and switches to grid
+            if (matrixState.colField === 'measureType') {{
                 currentFilters.measureTypes = [colValue];
                 updateMeasureTypeChipUI();
             }} else {{
                 currentFilters.topics = [colValue];
                 updateTopicChipUI();
             }}
-            if (county !== 'Statewide') {{
+            if (matrixState.rowGrouping === 'region' && CA_REGIONS[rowKey]) {{
+                currentFilters.regions = [rowKey];
+                currentFilters.level = null;
+                currentFilters.levelCounty = null;
+            }} else if (rowKey !== 'Statewide') {{
                 currentFilters.level = 'local';
-                currentFilters.levelCounty = county;
+                currentFilters.levelCounty = rowKey;
             }} else {{
                 currentFilters.level = 'statewide';
                 currentFilters.levelCounty = null;
@@ -6369,10 +6606,18 @@ class WebsiteGenerator:
             applyFilters();
         }}
 
-        function exploreFilterToCounty(county) {{
-            if (county !== 'Statewide') {{
+        function closeMatrixCellModal() {{
+            document.getElementById('matrixCellModal').style.display = 'none';
+        }}
+
+        function exploreFilterToCounty(rowKey) {{
+            if (matrixState.rowGrouping === 'region' && CA_REGIONS[rowKey]) {{
+                currentFilters.regions = [rowKey];
+                currentFilters.level = null;
+                currentFilters.levelCounty = null;
+            }} else if (rowKey !== 'Statewide') {{
                 currentFilters.level = 'local';
-                currentFilters.levelCounty = county;
+                currentFilters.levelCounty = rowKey;
             }} else {{
                 currentFilters.level = 'statewide';
                 currentFilters.levelCounty = null;
