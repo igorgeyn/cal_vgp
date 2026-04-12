@@ -1,377 +1,153 @@
-# Testing Guide - California Ballot Measures
+# Testing & Validation Guide
 
-This guide provides commands to test all functionality after the cleanup.
-
-## 🚀 Quick Test - Run Automated Script
-
-```bash
-./test_pipeline.sh
-```
-
-This comprehensive test script validates:
-- ✅ All imports work
-- ✅ Parsers find their data files
-- ✅ Scrapers are functional
-- ✅ Database operations work
-- ✅ Code refactoring succeeded
-- ✅ Cleanup was complete
+This document defines the testing and validation practices for Cal VGP.
+**All contributors (human and AI) must follow these practices when making changes.**
 
 ---
 
-## 📋 Manual Testing Commands
+## Principles
 
-### 1. Test CEDA Parser (Now Fixed!)
+1. **Fix data bugs, don't threshold around them.** If a check reveals corrupted data, fix it. Do not set thresholds to the current broken count and call it passing.
+2. **Validation runs after every change.** Before committing, run `make validate`. If it fails, fix the issue.
+3. **Reuse existing tools.** Do not rewrite validation logic that already exists in `check_export_contract.py` or `inspect_summaries.py`. Call them.
+4. **Validation code is read-only.** Validation must never mutate the database. Use raw `sqlite3.connect()` with read-only mode, not the `Database` class (which may alter schema on init).
+5. **Debt budgets, not free passes.** Known issues use `must_not_increase` policies — the count must not go up. Ideally it goes down.
 
-The CEDA parser now works with the CSV file at `data/raw/ceda_combined.csv`:
+---
 
-```bash
-# Parse CEDA data (dry run - no database save)
-python scripts/scrape.py --source ceda --no-save
-
-# Expected: Parses 10,909 measures from CSV
-```
-
-### 2. Test CA Secretary of State Scraper
+## Commands
 
 ```bash
-# Scrape current qualified ballot measures
-python scripts/scrape.py --source ca-sos --no-save
+# Run unit tests (models, parsers, utils — uses temp databases)
+make test
 
-# Expected: Finds 4+ current measures
-```
+# Run full validation against live database (audit mode — reports everything, never fails)
+python scripts/validate.py audit
 
-### 3. Test UC Law SF Scraper
+# Run validation gate (fails on invariant violations or debt budget increases)
+python scripts/validate.py gate
 
-```bash
-# Scrape historical UC Law SF data
-python scripts/scrape.py --source uc-law-sf --no-save
-
-# Expected: Finds 50 historical measures (default limit)
-```
-
-### 4. Test All Scrapers
-
-```bash
-# Run all scrapers (dry run)
-python scripts/scrape.py --source all --no-save
-```
-
-### 5. Test ICPSR Parser (Now Fixed!)
-
-The ICPSR parser now looks in `data/raw/` first:
-
-```bash
-python -c "
-from src.parsers.icpsr import ICPSRParser
-from pathlib import Path
-
-parser = ICPSRParser(Path('data'))
-file = parser.find_file()
-print(f'✅ ICPSR file found: {file}')
-
-if file:
-    measures = parser.parse()
-    print(f'✅ Parsed {len(measures)} CA measures')
-"
-```
-
-### 6. Test Refactored normalize_measure_data()
-
-Verify all scripts use the shared function:
-
-```bash
-python -c "
-from scripts.scrape import normalize_measure_data as nm1
-from scripts.update_db import normalize_measure_data as nm2
-from scripts.check_updates import normalize_measure_data as nm3
-from src.database.utils import normalize_measure_data as nm4
-
-assert nm1 is nm2 is nm3 is nm4
-print('✅ All scripts using shared normalize_measure_data()')
-print(f'   Location: {nm1.__module__}')
-"
-```
-
-### 7. Test Database Operations
-
-```bash
-# Check database status
-python scripts/update_db.py --stats
-
-# Check for new measures (non-destructive)
-python scripts/check_updates.py --sources ca_sos
-
-# Update database (check only, no writes)
-python scripts/update_db.py --check-only
-
-# Full update with deduplication
-python scripts/update_db.py --dedupe
-```
-
-### 8. Test Website Generation
-
-```bash
-# Generate static website
-python scripts/generate_site.py
-
-# Verify file created
-ls -lh index.html
-
-# Open in browser (macOS)
-open index.html
-```
-
-### 9. Test API Server
-
-```bash
-# Start server
-python src/api/server.py &
-API_PID=$!
-
-# Wait for startup
-sleep 2
-
-# Test endpoints
-curl http://localhost:8000/
-curl http://localhost:8000/statistics
-curl "http://localhost:8000/search?q=education"
-
-# Stop server
-kill $API_PID
-```
-
-### 10. Run Test Suite
-
-```bash
-# Run all tests
-pytest
-
-# Run with verbose output
-pytest -v
-
-# Run specific test file
-pytest tests/test_models.py -v
-
-# Run with coverage
-pytest --cov=src --cov-report=html
-open htmlcov/index.html
+# Run both
+make validate
 ```
 
 ---
 
-## 🔍 Verification Commands
+## Validation Architecture
 
-### Verify Cleanup Success
+Three components:
 
-```bash
-# Check cruft files are gone
-ls cleanup_post_reorg.py 2>/dev/null && echo "❌ Still exists" || echo "✅ Removed"
-ls ca_ballot_measures.csv 2>/dev/null && echo "❌ Still exists" || echo "✅ Removed"
-ls -d config/ 2>/dev/null && echo "❌ Still exists" || echo "✅ Removed"
+### 1. Core validation library (`src/validation/`)
 
-# Check new files exist
-ls src/database/utils.py && echo "✅ Created"
-ls tests/test_models.py && echo "✅ Created"
-ls pytest.ini && echo "✅ Created"
+- `checks.py` — 10-15 pure check functions, each accepting a `ValidationContext` and returning `ValidationResult`
+- `policy.py` — Typed policy file defining invariants (max=0), coverage floors (min>=N), and debt budgets (must_not_increase)
+- `report.py` — Console formatting
 
-# Check archives created
-ls -lh data/archives/
-```
+Check categories:
 
-### Verify Parser Paths Fixed
+| Category | Type | Behavior |
+|----------|------|----------|
+| **Invariants** | `max=0` | Hard fail. percent_yes in 0-100, fingerprint uniqueness, duplicate flag consistency, canonical sources, derived key consistency |
+| **Coverage floors** | `min>=N` | Hard fail. Source record counts, statewide election year coverage, title completeness |
+| **Debt budgets** | `must_not_increase` | Soft fail. Curly quotes, passed/percent disagreements, empty content hashes |
+| **Info** | report only | Never fails. Summary coverage, URL coverage |
 
-```bash
-# ICPSR should find file in data/raw/
-python -c "
-from src.parsers.icpsr import ICPSRParser
-from pathlib import Path
-p = ICPSRParser(Path('data'))
-assert p.file_paths[0].parts[-2] == 'raw'
-print('✅ ICPSR checks raw/ directory first')
-"
+### 2. CLI entry point (`scripts/validate.py`)
 
-# CEDA should use data/raw/ by default
-python -c "
-from src.parsers.ceda import CEDAParser
-p = CEDAParser()
-print(f'✅ CEDA using directory: {p.data_dir}')
-assert 'raw' in str(p.data_dir)
-"
-```
+Two modes:
+- `audit` — runs all checks, prints full report, always exits 0
+- `gate` — runs all checks, exits 1 if any invariant or coverage floor fails, or any debt budget increased
 
-### Verify No Duplicate Code
+Also calls `check_export_contract.py` as subprocess (reuse, don't rewrite).
 
-```bash
-# Should only find one definition
-grep -rn "^def normalize_measure_data" scripts/ src/
+### 3. Pytest module (`tests/test_validation.py`)
 
-# Expected output:
-# src/database/utils.py:7:def normalize_measure_data(data: dict) -> dict:
-```
+One file with parametrized tests over invariant checks. Uses a `live_db_conn` fixture that opens the real DB read-only via `sqlite3.connect(..., uri=True)`. Does NOT use the `Database` class.
+
+Marked with `@pytest.mark.validation` so it can be run separately from unit tests.
 
 ---
 
-## 🎯 Integration Test - Full Workflow
+## What to Run When
 
-Test the complete pipeline:
-
-```bash
-# 1. Check database status
-echo "=== Database Status ==="
-python scripts/update_db.py --stats
-
-# 2. Scrape CEDA data (10,909 measures)
-echo -e "\n=== Scraping CEDA ==="
-python scripts/scrape.py --source ceda --no-save | tail -5
-
-# 3. Scrape CA SOS (4+ measures)
-echo -e "\n=== Scraping CA SOS ==="
-python scripts/scrape.py --source ca-sos --no-save | tail -5
-
-# 4. Check for updates
-echo -e "\n=== Checking Updates ==="
-python scripts/check_updates.py --sources ca_sos
-
-# 5. Generate website
-echo -e "\n=== Generating Website ==="
-python scripts/generate_site.py
-
-echo -e "\n✅ Full pipeline test complete!"
-```
+| Scenario | Command | What it checks |
+|----------|---------|----------------|
+| Changed any source code | `make test` | Unit tests pass |
+| Changed data pipeline or DB | `make validate` | Data integrity intact |
+| Before any commit | `make test && make validate` | Everything |
+| Weekly pipeline run | `python scripts/validate.py gate` | Automated check |
 
 ---
 
-## 🧪 Component-Specific Tests
+## Data Quality Checks (reference)
 
-### Test BallotMeasure Model
+These are the specific checks implemented in `src/validation/checks.py`:
 
-```bash
-python -c "
-from src.database.models import BallotMeasure
+**Invariants (must be 0):**
+1. `check_percent_range` — all percent_yes values in 0-100
+2. `check_year_range` — all years in 1902-2030
+3. `check_fingerprint_uniqueness` — no duplicate fingerprints among active records
+4. `check_duplicate_invariants` — is_duplicate=1 implies is_active=0, master_id NOT NULL, no self-references
+5. `check_canonical_sources` — all data_source values in {CA_SOS, CEDA, ICPSR, NCSL, Ballotpedia, UC_Law_SF}
+6. `check_derived_key_consistency` — sample records, recompute fingerprint/content_hash, verify match
 
-measure = BallotMeasure(
-    year=2024,
-    measure_id='Prop 1',
-    title='Test Measure',
-    state='CA',
-    data_source='TEST'
-)
+**Coverage floors (min >= N):**
+7. `check_source_record_counts` — per-source minimums (CEDA >= 8000, etc.)
+8. `check_statewide_election_years` — each even year 2000-2024 has >= 5 statewide props
+9. `check_title_coverage` — >= 90% of records have non-empty, non-generic title
 
-print(f'✅ Created measure: {measure.title}')
-print(f'✅ Fingerprint: {measure.fingerprint[:20]}...')
-print(f'✅ to_dict works: {bool(measure.to_dict())}')
-"
-```
+**Debt budgets (must_not_increase):**
+10. `check_curly_quotes` — smart/curly quotes in enum fields (measure_type, etc.)
+11. `check_passed_percent_agreement` — passed field agrees with percent_yes
+12. `check_empty_content_hashes` — records with the empty-content hash value
 
-### Test Database Context Manager
-
-```bash
-python -c "
-from src.database import Database, BallotMeasure
-from pathlib import Path
-import tempfile
-
-with tempfile.NamedTemporaryFile(suffix='.db', delete=False) as f:
-    db_path = f.name
-
-try:
-    with Database(db_path) as db:
-        measure = BallotMeasure(
-            year=2024,
-            measure_id='Test',
-            title='Test Measure',
-            state='CA',
-            data_source='TEST'
-        )
-        measure_id = db.insert_measure(measure)
-        print(f'✅ Database context manager works')
-        print(f'✅ Inserted measure with ID: {measure_id}')
-finally:
-    Path(db_path).unlink(missing_ok=True)
-"
-```
+**Info (report only):**
+13. `check_summary_coverage` — % with summaries by source
+14. `check_url_coverage` — % with source_url/pdf_url
 
 ---
 
-## 📊 Performance Tests
+## Fixing Data Bugs
 
-### Measure Parsing Performance
+When a validation check reveals a data bug:
+
+1. Write a fix script in `scripts/` (like `fix_data_bugs.py` or `migrate_canonicalize.py`)
+2. Always include `--dry-run` mode
+3. Back up the database before running: `cp data/ballot_measures.db data/ballot_measures_backup.db`
+4. Run the fix
+5. Run `python scripts/validate.py audit` to verify the fix worked
+6. Update the debt budget baseline in `src/validation/policy.py` if applicable
+7. Regenerate the site: `make website`
+
+---
+
+## Unit Tests (`tests/`)
+
+Existing unit test files (run with `make test` or `pytest tests/ -v`):
+
+| File | Covers |
+|------|--------|
+| `test_models.py` | BallotMeasure dataclass, fingerprints, serialization |
+| `test_database.py` | Database CRUD, search, statistics |
+| `test_deduplication.py` | Duplicate detection, marking, reporting |
+| `test_parsers.py` | Parser initialization, file discovery |
+| `test_utils.py` | normalize_measure_data() |
+
+Unit tests use temp databases and do not touch live data.
+
+---
+
+## Querying the Database
+
+For ad-hoc data exploration:
 
 ```bash
-# Time CEDA parsing
-time python scripts/scrape.py --source ceda --no-save
+# Interactive DuckDB REPL
+python scripts/query.py
 
-# Expected: ~2-3 seconds for 10,909 measures
+# One-off query
+python scripts/query.py "SELECT year, COUNT(*) FROM measures GROUP BY year"
+
+# Export to CSV
+python scripts/query.py --csv "SELECT * FROM measures WHERE year=2024" > output.csv
 ```
-
-### Database Query Performance
-
-```bash
-python -c "
-import time
-from src.database import Database
-
-db = Database()
-
-# Test query performance
-start = time.time()
-measures = db.get_all_measures(limit=1000)
-elapsed = time.time() - start
-
-print(f'✅ Retrieved {len(measures)} measures in {elapsed:.3f} seconds')
-"
-```
-
----
-
-## 🐛 Troubleshooting
-
-### If tests fail:
-
-1. **Import errors**: Run `pip install -r requirements.txt`
-2. **Parser not finding files**: Check `data/raw/` directory exists
-3. **Database errors**: Run `python scripts/initialize_db.py --fresh`
-4. **Website generation fails**: Ensure database has data
-
-### Common Issues:
-
-```bash
-# Reinitialize database
-python scripts/initialize_db.py --fresh
-
-# Rebuild with CEDA data
-python scripts/scrape.py --source ceda
-python scripts/update_db.py --dedupe
-
-# Clean generated files
-make clean
-```
-
----
-
-## ✨ Success Indicators
-
-After running tests, you should see:
-
-- ✅ CEDA parser finds 10,909 measures
-- ✅ CA SOS scraper finds 4+ current measures
-- ✅ ICPSR parser finds CSV file in data/raw/
-- ✅ All imports work without errors
-- ✅ normalize_measure_data() shared across scripts
-- ✅ 48 pytest tests pass
-- ✅ Database statistics show proper data
-
----
-
-## 📞 Next Steps
-
-After successful testing:
-
-1. Run full scrape: `make update`
-2. Generate website: `make website`
-3. Commit changes: `git add . && git commit -m "Cleanup and refactor complete"`
-4. Push to remote: `git push`
-
----
-
-**Happy Testing! 🚀**
