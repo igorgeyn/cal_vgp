@@ -202,7 +202,139 @@ def main():
                 landmark_count += 1
 
             measures_for_website.append(m_dict)
-        
+
+        # Compute historical context for pending measures using semantic similarity
+        # Embed pending measure text, compare against historical embeddings
+        pending_context_count = 0
+        try:
+            import numpy as np
+            from pathlib import Path as _Path
+
+            emb_path = _Path(__file__).parent.parent / 'data' / 'embeddings.npz'
+            meta_path = _Path(__file__).parent.parent / 'data' / 'embedding_metadata.json'
+
+            if emb_path.exists() and meta_path.exists():
+                import json as _json
+                embeddings = np.load(str(emb_path))['embeddings']
+                with open(meta_path) as _f:
+                    emb_meta = _json.load(_f)
+                emb_ids = emb_meta.get('measure_ids', [])
+
+                # Build id → index mapping and id → measure mapping
+                id_to_emb_idx = {str(mid): i for i, mid in enumerate(emb_ids)}
+                id_to_measure = {}
+                for m in measures_for_website:
+                    mid = str(m.get('measure_id', '')) or str(m.get('id', ''))
+                    id_to_measure[mid] = m
+
+                # Historical measures: have outcome + embedding
+                hist_indices = []
+                hist_measures = []
+                for mid, idx in id_to_emb_idx.items():
+                    m = id_to_measure.get(mid)
+                    if m and m.get('passed') in (0, 1) and m.get('percent_yes') is not None:
+                        hist_indices.append(idx)
+                        hist_measures.append(m)
+                hist_embeddings = embeddings[hist_indices] if hist_indices else np.array([])
+
+                logger.info(f"  Embedding similarity: {len(hist_indices)} historical measures with embeddings")
+
+                # Load model for pending measures
+                from sentence_transformers import SentenceTransformer
+                model = SentenceTransformer('all-MiniLM-L6-v2')
+
+                for m in measures_for_website:
+                    year = int(m.get('year', 0))
+                    is_pending = year >= 2025 or (m.get('passed') is None and m.get('percent_yes') is None)
+                    if not is_pending:
+                        continue
+
+                    # Build text for embedding
+                    text = ' '.join(filter(None, [
+                        str(m.get('title', '')),
+                        str(m.get('summary_text', '')),
+                        str(m.get('ballot_question', '')),
+                        str(m.get('description', '')),
+                    ])).strip()
+
+                    if len(text) < 10:
+                        continue
+
+                    # Embed and find similar
+                    query_emb = model.encode([text])[0]
+                    if len(hist_embeddings) == 0:
+                        continue
+
+                    # Cosine similarity
+                    norms = np.linalg.norm(hist_embeddings, axis=1) * np.linalg.norm(query_emb)
+                    norms[norms == 0] = 1e-10
+                    sims = hist_embeddings @ query_emb / norms
+                    top_k = min(50, len(sims))
+                    top_indices = np.argsort(sims)[-top_k:][::-1]
+
+                    similar = [hist_measures[i] for i in top_indices if sims[i] > 0.3]
+                    if len(similar) < 3:
+                        continue
+
+                    # Determine the dominant topic among similar measures
+                    from collections import Counter as _Counter
+                    topic_counts = _Counter(s.get('display_topic') for s in similar if s.get('display_topic'))
+                    matched_topic = topic_counts.most_common(1)[0][0] if topic_counts else 'Similar measures'
+
+                    # Compute stats from semantically similar measures
+                    total = len(similar)
+                    passed_count = sum(1 for s in similar if s.get('passed') == 1)
+                    pass_rate = round(100 * passed_count / total, 1)
+                    pcts = [s['percent_yes'] for s in similar if s.get('percent_yes') is not None and 0 <= s['percent_yes'] <= 100]
+                    avg_yes = round(sum(pcts) / len(pcts), 1) if pcts else None
+                    median_yes = round(sorted(pcts)[len(pcts) // 2], 1) if pcts else None
+
+                    years = [int(s.get('year', 0)) for s in similar if s.get('year')]
+                    year_range = f"{min(years)}-{max(years)}" if years else ""
+
+                    # Top 3 most similar with outcome details
+                    top_similar = []
+                    for s in similar[:3]:
+                        top_similar.append({
+                            'year': s.get('year'),
+                            'county': s.get('county'),
+                            'title': s.get('generated_title') or s.get('summary_title') or s.get('title', '')[:60],
+                            'percent_yes': round(s['percent_yes'], 1) if s.get('percent_yes') else None,
+                            'passed': s.get('passed'),
+                            'similarity': round(float(sims[top_indices[similar.index(s)]]) * 100, 0) if similar.index(s) < len(top_indices) else None,
+                        })
+
+                    # Closest races among similar
+                    with_pct = [(s, abs(s['percent_yes'] - 50)) for s in similar if s.get('percent_yes') and 0 <= s['percent_yes'] <= 100]
+                    closest = sorted(with_pct, key=lambda x: x[1])[:3]
+                    closest_measures = [{
+                        'year': s.get('year'),
+                        'county': s.get('county'),
+                        'title': s.get('generated_title') or s.get('title', '')[:60],
+                        'percent_yes': round(s['percent_yes'], 1),
+                        'passed': s.get('passed'),
+                    } for s, _ in closest]
+
+                    m['historical_context'] = {
+                        'matched_topic': matched_topic,
+                        'total_similar': total,
+                        'pass_rate': pass_rate,
+                        'avg_yes': avg_yes,
+                        'median_yes': median_yes,
+                        'year_range': year_range,
+                        'top_similar': top_similar,
+                        'closest_races': closest_measures,
+                    }
+                    pending_context_count += 1
+
+        except ImportError as e:
+            logger.warning(f"  Could not compute embedding similarity (missing dependency: {e}). Falling back to no context.")
+        except Exception as e:
+            logger.warning(f"  Error computing historical context: {e}")
+
+        if pending_context_count:
+            logger.info(f"  Added semantic historical context to {pending_context_count} pending measures")
+
         # Extract topics
         from collections import Counter
         topic_counts = Counter()

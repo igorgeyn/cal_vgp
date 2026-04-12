@@ -6887,8 +6887,13 @@ class WebsiteGenerator:
                 summary = measure.original_title;
             }}
 
-            // For pending measures without content, show helpful placeholder
-            if (isPending && !summary) {{
+            // For pending measures, show historical context if available
+            if (isPending && measure.historical_context) {{
+                const ctx = measure.historical_context;
+                if (!summary) {{
+                    summary = `California has voted on ${{ctx.total_similar.toLocaleString()}} similar ${{ctx.matched_topic.toLowerCase()}} measures since ${{ctx.year_range.split('-')[0]}}. They passed ${{ctx.pass_rate}}% of the time with a median YES vote of ${{ctx.median_yes}}%.`;
+                }}
+            }} else if (isPending && !summary) {{
                 summary = 'Full measure details will be available closer to the election. Check back for official language, fiscal analysis, and voter guide information.';
             }}
 
@@ -7163,6 +7168,47 @@ class WebsiteGenerator:
                 links.push(`<a href="https://leginfo.legislature.ca.gov/" target="_blank" rel="noopener noreferrer" class="link-medium-confidence">📜 CA Legislature - Bill Information</a>`);
             }} else if (links.length === 0) {{
                 links.push('<span class="no-summary-text">No external links available</span>');
+            }}
+
+            // Add historical context for pending measures
+            if (isPending && measure.historical_context) {{
+                const ctx = measure.historical_context;
+                let ctxHtml = `<div class="pending-context" style="background:#f8f6f0;border:1px solid #e0dac8;border-radius:8px;padding:1rem;margin-top:0.75rem;">`;
+                ctxHtml += `<div style="font-weight:600;font-size:0.95rem;margin-bottom:0.5rem;">📊 Measures Like This</div>`;
+                ctxHtml += `<div style="font-size:0.85rem;color:#555;line-height:1.5;">`;
+                ctxHtml += `We found <strong>${{ctx.total_similar}}</strong> semantically similar past measures (mostly <strong>${{ctx.matched_topic}}</strong>). `;
+                ctxHtml += `They passed <strong>${{ctx.pass_rate}}%</strong> of the time `;
+                ctxHtml += `with a median YES vote of <strong>${{ctx.median_yes}}%</strong>.`;
+                ctxHtml += `</div>`;
+
+                // Most similar measures
+                if (ctx.top_similar && ctx.top_similar.length > 0) {{
+                    ctxHtml += `<div style="font-size:0.8rem;font-weight:600;margin-top:0.75rem;margin-bottom:0.25rem;">Most similar past measures:</div>`;
+                    ctx.top_similar.forEach(ts => {{
+                        const status = ts.passed === 1 ? '<span style="color:#2D9D78;">Passed</span>' : '<span style="color:#E54D4D;">Failed</span>';
+                        const title = ts.title ? ts.title.substring(0, 80) : 'Untitled';
+                        const pct = ts.percent_yes ? ` (${{ts.percent_yes}}% YES)` : '';
+                        ctxHtml += `<div style="font-size:0.8rem;padding:0.3rem 0;border-bottom:1px solid #eee;">`;
+                        ctxHtml += `<strong>${{ts.year}}</strong> ${{ts.county}} — ${{status}}${{pct}}`;
+                        ctxHtml += `<div style="color:#777;margin-top:1px;">${{escapeHtml(title)}}</div>`;
+                        ctxHtml += `</div>`;
+                    }});
+                }}
+
+                // Closest races
+                if (ctx.closest_races && ctx.closest_races.length > 0) {{
+                    ctxHtml += `<div style="font-size:0.8rem;font-weight:600;margin-top:0.75rem;margin-bottom:0.25rem;">Closest races on similar measures:</div>`;
+                    ctx.closest_races.forEach(cr => {{
+                        const status = cr.passed === 1 ? '<span style="color:#2D9D78;">Passed</span>' : '<span style="color:#E54D4D;">Failed</span>';
+                        const title = cr.title ? cr.title.substring(0, 80) : 'Untitled';
+                        ctxHtml += `<div style="font-size:0.8rem;padding:0.25rem 0;border-bottom:1px solid #eee;">`;
+                        ctxHtml += `<strong>${{cr.year}}</strong> ${{cr.county}} — ${{status}} (${{cr.percent_yes}}% YES) — ${{escapeHtml(title)}}`;
+                        ctxHtml += `</div>`;
+                    }});
+                }}
+
+                ctxHtml += `</div>`;
+                links.push(ctxHtml);
             }}
 
             // Add pending disclaimer
