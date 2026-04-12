@@ -958,19 +958,28 @@ class WebsiteGenerator:
 
             <div class="modal-body">
                 <div class="settings-section">
-                    <label class="settings-label">AI Provider</label>
+                    <label class="settings-label">Provider</label>
                     <select id="aiProvider" class="settings-select" onchange="updateProviderFields()">
                         <option value="">Select provider...</option>
-                        <option value="openai">OpenAI (GPT-4)</option>
-                        <option value="anthropic">Anthropic (Claude)</option>
-                        <option value="ollama">Local Ollama</option>
+                        <option value="openrouter">OpenRouter (100+ models)</option>
+                        <option value="ollama">Local Ollama (free, offline)</option>
                     </select>
                 </div>
 
-                <div id="apiKeySection" class="settings-section" style="display: none;">
-                    <label class="settings-label" id="apiKeyLabel">API Key</label>
-                    <input type="password" id="apiKey" class="settings-input" placeholder="sk-...">
-                    <p class="settings-hint">Your API key is stored locally in your browser and never sent to our servers.</p>
+                <div id="openrouterSection" class="settings-section" style="display: none;">
+                    <label class="settings-label">OpenRouter API Key</label>
+                    <input type="password" id="apiKey" class="settings-input" placeholder="sk-or-...">
+                    <p class="settings-hint">Get a free key at <a href="https://openrouter.ai/keys" target="_blank">openrouter.ai/keys</a>. You pay model costs directly — no markup.</p>
+                    <label class="settings-label">Model</label>
+                    <select id="openrouterModel" class="settings-select">
+                        <option value="anthropic/claude-sonnet-4">Claude Sonnet 4 (~$0.003/query)</option>
+                        <option value="anthropic/claude-haiku-4">Claude Haiku 4 (~$0.001/query)</option>
+                        <option value="openai/gpt-4o">GPT-4o (~$0.005/query)</option>
+                        <option value="openai/gpt-4o-mini">GPT-4o Mini (~$0.001/query)</option>
+                        <option value="google/gemini-2.5-flash">Gemini 2.5 Flash (~$0.001/query)</option>
+                        <option value="deepseek/deepseek-chat-v3">DeepSeek V3 (~$0.001/query)</option>
+                        <option value="meta-llama/llama-4-scout">Llama 4 Scout (free)</option>
+                    </select>
                 </div>
 
                 <div id="ollamaSection" class="settings-section" style="display: none;">
@@ -7406,6 +7415,9 @@ class WebsiteGenerator:
                 if (aiConfig.apiKey) {
                     document.getElementById('apiKey').value = aiConfig.apiKey;
                 }
+                if (aiConfig.model) {
+                    document.getElementById('openrouterModel').value = aiConfig.model;
+                }
                 if (aiConfig.ollamaUrl) {
                     document.getElementById('ollamaUrl').value = aiConfig.ollamaUrl;
                 }
@@ -7425,23 +7437,16 @@ class WebsiteGenerator:
         // Update provider fields based on selection
         function updateProviderFields() {
             const provider = document.getElementById('aiProvider').value;
-            const apiKeySection = document.getElementById('apiKeySection');
+            const openrouterSection = document.getElementById('openrouterSection');
             const ollamaSection = document.getElementById('ollamaSection');
             const testBtn = document.getElementById('testConnection');
-            const apiKeyLabel = document.getElementById('apiKeyLabel');
 
-            apiKeySection.style.display = 'none';
+            openrouterSection.style.display = 'none';
             ollamaSection.style.display = 'none';
             testBtn.disabled = !provider;
 
-            if (provider === 'openai') {
-                apiKeySection.style.display = 'block';
-                apiKeyLabel.textContent = 'OpenAI API Key';
-                document.getElementById('apiKey').placeholder = 'sk-...';
-            } else if (provider === 'anthropic') {
-                apiKeySection.style.display = 'block';
-                apiKeyLabel.textContent = 'Anthropic API Key';
-                document.getElementById('apiKey').placeholder = 'sk-ant-...';
+            if (provider === 'openrouter') {
+                openrouterSection.style.display = 'block';
             } else if (provider === 'ollama') {
                 ollamaSection.style.display = 'block';
             }
@@ -7458,43 +7463,35 @@ class WebsiteGenerator:
             statusEl.className = 'connection-status';
 
             try {
-                if (provider === 'openai') {
+                if (provider === 'openrouter') {
                     const apiKey = document.getElementById('apiKey').value;
-                    const response = await fetch('https://cal-vgp-proxy.igorgeyn.workers.dev/openai', {
-                        headers: { 'Authorization': `Bearer ${apiKey}` }
-                    });
-                    if (response.ok) {
-                        statusEl.textContent = '✓ Connected';
-                        statusEl.className = 'connection-status success';
-                    } else {
-                        throw new Error('Invalid API key');
-                    }
-                } else if (provider === 'anthropic') {
-                    const apiKey = document.getElementById('apiKey').value;
-                    const response = await fetch('https://cal-vgp-proxy.igorgeyn.workers.dev/anthropic', {
+                    const model = document.getElementById('openrouterModel').value;
+                    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
                         method: 'POST',
                         headers: {
-                            'x-api-key': apiKey,
-                            'anthropic-version': '2023-06-01',
-                            'content-type': 'application/json'
+                            'Authorization': `Bearer ${apiKey}`,
+                            'Content-Type': 'application/json',
+                            'HTTP-Referer': 'https://cal-vgp.igorgeyn.com',
+                            'X-Title': 'CalBallot'
                         },
                         body: JSON.stringify({
-                            model: 'claude-sonnet-4-20250514',
-                            max_tokens: 1,
-                            messages: [{ role: 'user', content: 'test' }]
+                            model: model,
+                            max_tokens: 5,
+                            messages: [{ role: 'user', content: 'Say OK' }]
                         })
                     });
-                    if (response.ok || response.status === 400) {
-                        statusEl.textContent = '✓ Connected';
+                    if (response.ok) {
+                        statusEl.textContent = '✓ Connected to ' + model.split('/')[1];
                         statusEl.className = 'connection-status success';
                     } else {
-                        throw new Error('Invalid API key');
+                        const err = await response.json().catch(() => ({}));
+                        throw new Error(err.error?.message || 'Invalid API key or model');
                     }
                 } else if (provider === 'ollama') {
                     const url = document.getElementById('ollamaUrl').value;
                     const response = await fetch(`${url}/api/tags`);
                     if (response.ok) {
-                        statusEl.textContent = '✓ Connected';
+                        statusEl.textContent = '✓ Connected to Ollama';
                         statusEl.className = 'connection-status success';
                     } else {
                         throw new Error('Cannot connect to Ollama');
@@ -7519,13 +7516,14 @@ class WebsiteGenerator:
 
             const config = { provider };
 
-            if (provider === 'openai' || provider === 'anthropic') {
+            if (provider === 'openrouter') {
                 const apiKey = document.getElementById('apiKey').value;
                 if (!apiKey) {
-                    alert('Please enter an API key');
+                    alert('Please enter an OpenRouter API key');
                     return;
                 }
                 config.apiKey = apiKey;
+                config.model = document.getElementById('openrouterModel').value;
             } else if (provider === 'ollama') {
                 config.ollamaUrl = document.getElementById('ollamaUrl').value;
                 config.ollamaModel = document.getElementById('ollamaModel').value;
@@ -7534,8 +7532,7 @@ class WebsiteGenerator:
             saveAIConfig(config);
             closeChatSettings();
 
-            // Show success message in chat
-            addBotMessage('AI configured successfully! You can now ask questions about ballot measures.');
+            addBotMessage('AI configured! Using ' + (provider === 'openrouter' ? config.model.split('/')[1] : 'Ollama') + '. Ask me anything about ballot measures.');
         }
 
         // Send user message
@@ -7674,64 +7671,41 @@ Provide a clear, insightful answer based on these results. Include specific exam
 
         // Generic LLM call using configured provider
         async function callLLM(prompt) {
-            if (aiConfig.provider === 'openai') {
-                return await callOpenAI(prompt);
-            } else if (aiConfig.provider === 'anthropic') {
-                return await callAnthropic(prompt);
+            if (aiConfig.provider === 'openrouter') {
+                return await callOpenRouter(prompt);
             } else if (aiConfig.provider === 'ollama') {
                 return await callOllama(prompt);
             }
             throw new Error('No AI provider configured');
         }
 
-        // Call OpenAI API
-        async function callOpenAI(prompt) {
-            const response = await fetch('https://cal-vgp-proxy.igorgeyn.workers.dev/openai', {
+        // Call OpenRouter API (unified access to 100+ models, no CORS proxy needed)
+        async function callOpenRouter(prompt) {
+            const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${aiConfig.apiKey}`,
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'HTTP-Referer': 'https://cal-vgp.igorgeyn.com',
+                    'X-Title': 'CalBallot'
                 },
                 body: JSON.stringify({
-                    model: 'gpt-4o',
+                    model: aiConfig.model,
                     messages: [{ role: 'user', content: prompt }],
                     max_tokens: 1024
                 })
             });
 
             if (!response.ok) {
-                throw new Error('OpenAI API error');
+                const err = await response.json().catch(() => ({}));
+                throw new Error(err.error?.message || 'OpenRouter API error');
             }
 
             const data = await response.json();
             return data.choices[0].message.content;
         }
 
-        // Call Anthropic API
-        async function callAnthropic(prompt) {
-            const response = await fetch('https://cal-vgp-proxy.igorgeyn.workers.dev/anthropic', {
-                method: 'POST',
-                headers: {
-                    'x-api-key': aiConfig.apiKey,
-                    'anthropic-version': '2023-06-01',
-                    'content-type': 'application/json'
-                },
-                body: JSON.stringify({
-                    model: 'claude-sonnet-4-20250514',
-                    max_tokens: 1024,
-                    messages: [{ role: 'user', content: prompt }]
-                })
-            });
-
-            if (!response.ok) {
-                throw new Error('Anthropic API error');
-            }
-
-            const data = await response.json();
-            return data.content[0].text;
-        }
-
-        // Call Ollama API
+        // Call Ollama API (local, free, offline)
         async function callOllama(prompt) {
             const response = await fetch(`${aiConfig.ollamaUrl}/api/generate`, {
                 method: 'POST',
