@@ -115,15 +115,26 @@ These are the specific checks implemented in `src/validation/checks.py`:
 
 `update_measure()` in `operations.py` has two layers of protection against data loss:
 
-1. **Pipeline layer** (`pipeline.py`): `ingest_measures()` strips null/empty values from update dicts before calling `update_measure()`. This prevents source reloads (e.g., re-parsing a CSV that lacks summaries) from sending null values for fields that are already populated.
+**Layer 1 — Pipeline** (`pipeline.py`): `ingest_measures()` strips `None` and `''` values from update dicts before calling `update_measure()`. Note: `False` and `0` are NOT stripped — these are legitimate values (e.g., `passed=False` from Ballotpedia).
 
-2. **Database layer** (`operations.py`): `update_measure()` has a `PROTECTED_FIELDS` set including summaries, ballot_question, vote data, and category classifications. It will never overwrite a non-null value with null/empty for these fields, regardless of what the caller sends.
+**Layer 2 — Database** (`operations.py`): `update_measure()` has field-aware null protection:
+- **Text fields** (`summary_text`, `summary_title`, `ballot_question`, `description`, `category_type`, `category_topic`, `pass_fail`): existing non-empty value will not be overwritten with `None` or `''`
+- **Numeric fields** (`yes_votes`, `no_votes`, `total_votes`, `percent_yes`, `percent_no`, `passed`): existing non-null value will not be overwritten with `None`. Zero IS a valid value (e.g., `passed=0` means "failed") and CAN overwrite a non-null value.
+- **`has_summary`**: Derived automatically from `summary_text`. Never set directly by callers — `update_measure()` always recomputes it. If `summary_text` is non-empty, `has_summary=1`; otherwise `has_summary=0`.
 
-**Why this exists:** A CEDA CSV reload wiped 1,478 AI-generated summaries by sending `summary_text=None` for records where the CSV had no summary data. The protection ensures this cannot happen again.
+**What this does NOT protect:**
+- Direct SQL bypasses all protection. Migration scripts and fix scripts use raw SQL.
+- Fields not in the protected sets (`source_url`, `pdf_url`, `election_date`, `topic_primary`, `generated_title`, etc.) have no protection.
+- `passed=0` can be overwritten by a non-null value (e.g., `passed=1`) — this is intentional.
 
-**To intentionally clear a protected field**, use raw SQL:
+**Why this exists:** A CEDA CSV reload wiped 1,478 AI-generated summaries by sending `summary_text=None` for records where the CSV had no summary data.
+
+**To intentionally clear a protected field**, use raw SQL and clear all related fields together:
 ```python
-conn.execute("UPDATE measures SET summary_text = NULL WHERE id = ?", (measure_id,))
+conn.execute("""
+    UPDATE measures SET summary_text = NULL, summary_title = NULL, has_summary = 0
+    WHERE id = ?
+""", (measure_id,))
 ```
 
 ---

@@ -260,7 +260,7 @@ class Deduplicator:
                 merged['percent_yes'] = round((merged['yes_votes'] / total) * 100, 2)
                 merged['percent_no'] = round((merged['no_votes'] / total) * 100, 2)
                 merged['total_votes'] = total
-                
+
                 # Update pass/fail based on percentage
                 if merged['percent_yes'] > 50:
                     merged['passed'] = 1
@@ -268,7 +268,12 @@ class Deduplicator:
                 else:
                     merged['passed'] = 0
                     merged['pass_fail'] = 'Fail'
-        
+
+        # Derive has_summary from merged summary fields
+        if 'summary_text' in merged or 'summary_title' in merged:
+            has_text = merged.get('summary_text') and merged['summary_text'] != ''
+            merged['has_summary'] = 1 if has_text else 0
+
         return merged
     
     def _get_source_priority(self, source: str) -> int:
@@ -306,11 +311,12 @@ class Deduplicator:
             
         return content_groups
     
-    def mark_duplicate(self, duplicate_id: int, master_id: int, 
+    def mark_duplicate(self, duplicate_id: int, master_id: int,
                       duplicate_type: str = 'content'):
-        """Mark a measure as duplicate of another"""
+        """Mark a measure as duplicate of another and deactivate it."""
         self.db.update_measure(duplicate_id, {
             'is_duplicate': True,
+            'is_active': False,
             'duplicate_type': duplicate_type,
             'master_id': master_id
         })

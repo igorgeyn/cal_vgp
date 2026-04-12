@@ -328,10 +328,12 @@ def ingest_measures(db: Database, measures: List[BallotMeasure],
 
             if dup:
                 if dup["type"] == "exact":
-                    # Update existing record — only send non-null fields
-                    # to avoid overwriting populated data (e.g., summaries) with nulls
+                    # Update existing record — strip only None and empty string
+                    # to avoid overwriting populated data with nulls.
+                    # DO NOT strip False or 0 — those are legitimate values
+                    # (e.g., passed=False from Ballotpedia, has_summary=0)
                     update_data = {k: v for k, v in measure.to_dict().items()
-                                   if v is not None and v != '' and v is not False}
+                                   if v is not None and v != ''}
                     db.update_measure(dup["id"], update_data)
                     stats["updated"] += 1
                 else:

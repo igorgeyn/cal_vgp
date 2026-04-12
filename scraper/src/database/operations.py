@@ -199,24 +199,47 @@ class Database:
 
         # Never overwrite populated fields with null/empty values.
         # This prevents data loss when a source reload sends incomplete records.
-        PROTECTED_FIELDS = {
-            'summary_text', 'summary_title', 'has_summary',
+        #
+        # Text fields: protect non-null from being set to None or ''
+        # Numeric fields: protect non-null from being set to None
+        #   (0 is a valid value for numeric fields like passed=0, yes_votes=0)
+        # Boolean-like: has_summary is DERIVED, not directly settable here
+        TEXT_PROTECTED = {
+            'summary_text', 'summary_title',
             'ballot_question', 'description',
             'category_type', 'category_topic',
+            'pass_fail',
+        }
+        NUMERIC_PROTECTED = {
             'yes_votes', 'no_votes', 'total_votes',
-            'percent_yes', 'percent_no', 'passed', 'pass_fail',
+            'percent_yes', 'percent_no', 'passed',
         }
         row = conn.execute("SELECT * FROM measures WHERE id = ?", (measure_id,)).fetchone()
         if row:
             current = dict(row)
-            for field in PROTECTED_FIELDS:
+            for field in TEXT_PROTECTED:
                 if field in updates:
                     new_val = updates[field]
                     old_val = current.get(field)
-                    # Don't overwrite non-null with null/empty/False
-                    if old_val is not None and old_val != '' and old_val != 0:
-                        if new_val is None or new_val == '' or new_val is False:
+                    # Don't overwrite non-empty text with None or ''
+                    if old_val is not None and old_val != '':
+                        if new_val is None or new_val == '':
                             updates.pop(field)
+            for field in NUMERIC_PROTECTED:
+                if field in updates:
+                    new_val = updates[field]
+                    old_val = current.get(field)
+                    # Don't overwrite non-null numeric with None
+                    # (0 is valid — passed=0 means "failed", yes_votes=0 is real)
+                    if old_val is not None:
+                        if new_val is None:
+                            updates.pop(field)
+
+            # has_summary is derived: recompute from summary_text after all updates
+            # Remove caller-provided has_summary — we'll set it ourselves
+            updates.pop('has_summary', None)
+            final_summary = updates.get('summary_text', current.get('summary_text'))
+            updates['has_summary'] = 1 if (final_summary and final_summary != '') else 0
 
         # Ensure year is integer if present
         if 'year' in updates and updates['year'] is not None:
