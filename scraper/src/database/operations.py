@@ -197,6 +197,27 @@ class Database:
         updates.pop('id', None)
         updates.pop('created_at', None)
 
+        # Never overwrite populated fields with null/empty values.
+        # This prevents data loss when a source reload sends incomplete records.
+        PROTECTED_FIELDS = {
+            'summary_text', 'summary_title', 'has_summary',
+            'ballot_question', 'description',
+            'category_type', 'category_topic',
+            'yes_votes', 'no_votes', 'total_votes',
+            'percent_yes', 'percent_no', 'passed', 'pass_fail',
+        }
+        row = conn.execute("SELECT * FROM measures WHERE id = ?", (measure_id,)).fetchone()
+        if row:
+            current = dict(row)
+            for field in PROTECTED_FIELDS:
+                if field in updates:
+                    new_val = updates[field]
+                    old_val = current.get(field)
+                    # Don't overwrite non-null with null/empty/False
+                    if old_val is not None and old_val != '' and old_val != 0:
+                        if new_val is None or new_val == '' or new_val is False:
+                            updates.pop(field)
+
         # Ensure year is integer if present
         if 'year' in updates and updates['year'] is not None:
             updates['year'] = int(updates['year'])

@@ -328,8 +328,11 @@ def ingest_measures(db: Database, measures: List[BallotMeasure],
 
             if dup:
                 if dup["type"] == "exact":
-                    # Update existing record with any new data
-                    db.update_measure(dup["id"], measure.to_dict())
+                    # Update existing record — only send non-null fields
+                    # to avoid overwriting populated data (e.g., summaries) with nulls
+                    update_data = {k: v for k, v in measure.to_dict().items()
+                                   if v is not None and v != '' and v is not False}
+                    db.update_measure(dup["id"], update_data)
                     stats["updated"] += 1
                 else:
                     # Cross-source or content duplicate — insert and mark

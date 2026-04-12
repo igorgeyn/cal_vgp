@@ -101,9 +101,30 @@ These are the specific checks implemented in `src/validation/checks.py`:
 11. `check_passed_percent_agreement` — passed field agrees with percent_yes
 12. `check_empty_content_hashes` — records with the empty-content hash value
 
+**Monotonicity (must never decrease):**
+13. `check_summary_count` — total measures with has_summary=1 must not decrease between runs
+14. `check_ballot_question_count` — total measures with ballot_question must not decrease
+
 **Info (report only):**
-13. `check_summary_coverage` — % with summaries by source
-14. `check_url_coverage` — % with source_url/pdf_url
+15. `check_summary_coverage` — % with summaries by source
+16. `check_url_coverage` — % with source_url/pdf_url
+
+---
+
+## Data Protection: update_measure() Safeguards
+
+`update_measure()` in `operations.py` has two layers of protection against data loss:
+
+1. **Pipeline layer** (`pipeline.py`): `ingest_measures()` strips null/empty values from update dicts before calling `update_measure()`. This prevents source reloads (e.g., re-parsing a CSV that lacks summaries) from sending null values for fields that are already populated.
+
+2. **Database layer** (`operations.py`): `update_measure()` has a `PROTECTED_FIELDS` set including summaries, ballot_question, vote data, and category classifications. It will never overwrite a non-null value with null/empty for these fields, regardless of what the caller sends.
+
+**Why this exists:** A CEDA CSV reload wiped 1,478 AI-generated summaries by sending `summary_text=None` for records where the CSV had no summary data. The protection ensures this cannot happen again.
+
+**To intentionally clear a protected field**, use raw SQL:
+```python
+conn.execute("UPDATE measures SET summary_text = NULL WHERE id = ?", (measure_id,))
+```
 
 ---
 
