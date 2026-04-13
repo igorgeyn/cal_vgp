@@ -187,14 +187,15 @@ def build_db(csv_path: Path, db_path: Path, main_db_path: Path) -> None:
         except ValueError:
             continue
         date_iso = r["_date_iso"] or "1900-01-01"
-        donor_raw = r.get("donor_last", "").strip()
-        donor_first = r.get("donor_first", "").strip()
-        if donor_first:
-            donor_display = f"{donor_raw}, {donor_first}"
-        else:
-            donor_display = donor_raw
-        donor_canon = canonicalize_donor(donor_raw, donor_first)
-        entity_cd = r.get("entity_cd", "").strip()
+        # Support both old format (donor_last/donor_first) and new format (donor_name)
+        donor_name = r.get("donor_name", "").strip()
+        if not donor_name:
+            donor_raw = r.get("donor_last", "").strip()
+            donor_first = r.get("donor_first", "").strip()
+            donor_name = f"{donor_raw}, {donor_first}".strip(", ") if donor_first else donor_raw
+        donor_display = donor_name
+        donor_canon = canonicalize_donor(donor_name, "")
+        entity_cd = r.get("entity_cd", r.get("donor_type", "")).strip()
 
         txn_batch.append((
             r["filer_id"], date_iso, amt, "monetary",
@@ -241,7 +242,8 @@ def build_db(csv_path: Path, db_path: Path, main_db_path: Path) -> None:
         summary[key]["total"] += amt
         summary[key]["committees"].add(r["filer_id"])
 
-        donor_canon = canonicalize_donor(r.get("donor_last", ""), r.get("donor_first", ""))
+        dn = r.get("donor_name", "") or f"{r.get('donor_last', '')}, {r.get('donor_first', '')}".strip(", ")
+        donor_canon = canonicalize_donor(dn, "")
         if donor_canon:
             donor_totals_by_group[key][donor_canon] += amt
 
@@ -302,9 +304,10 @@ def build_db(csv_path: Path, db_path: Path, main_db_path: Path) -> None:
         if stance not in ("support", "oppose"):
             continue
         key = (r["_measure_id"], stance)
-        canon = canonicalize_donor(r.get("donor_last", ""), r.get("donor_first", ""))
+        dn = r.get("donor_name", "") or f"{r.get('donor_last', '')}, {r.get('donor_first', '')}".strip(", ")
+        canon = canonicalize_donor(dn, "")
         if canon:
-            entity_cd = r.get("entity_cd", "").strip()
+            entity_cd = r.get("entity_cd", r.get("donor_type", "")).strip()
             donor_meta[(key, canon)] = (entity_cd, None)
 
     donor_count = 0
