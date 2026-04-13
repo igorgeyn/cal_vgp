@@ -27,7 +27,7 @@ MAIN_DB_PATH = Path(__file__).parent.parent / "data" / "ballot_measures.db"
 
 
 def parse_calaccess_date(raw: str) -> Optional[str]:
-    """Parse CAL-ACCESS date 'M/D/YYYY 12:00:00 AM' → 'YYYY-MM-DD'."""
+    """Parse CAL-ACCESS date 'M/D/YYYY 12:00:00 AM' -> 'YYYY-MM-DD'."""
     if not raw or not raw.strip():
         return None
     s = raw.strip().split(" ")[0]
@@ -49,9 +49,9 @@ def iso_week_start(date_str: str) -> str:
 
 def build_prop_to_measure_id(main_db_path: Path) -> dict:
     """
-    Build crosswalk from (prop_num, election_year) → measure_id.
+    Build crosswalk from (prop_num, election_year) -> measure_id.
 
-    Also builds a simpler prop_num → [(measure_id, year)] lookup so we can
+    Also builds a simpler prop_num -> [(measure_id, year)] lookup so we can
     assign receipts to the right election cycle based on receipt date.
     """
     conn = sqlite3.connect(str(main_db_path))
@@ -64,10 +64,10 @@ def build_prop_to_measure_id(main_db_path: Path) -> dict:
     rows = cur.fetchall()
     conn.close()
 
-    # prop_num → sorted list of (year, measure_id)
+    # prop_num -> sorted list of (year, measure_id)
     prop_years = defaultdict(list)
     for mid, year in rows:
-        # PROP_36 → "36", PROP_1A → "1A"
+        # PROP_36 -> "36", PROP_1A -> "1A"
         pnum = mid.replace("PROP_", "")
         prop_years[pnum].append((year, mid))
 
@@ -101,7 +101,7 @@ def assign_measure_id(prop_num: str, receipt_date: Optional[str], prop_years: di
         receipt_year = None
 
     if receipt_year is None:
-        # No date → assign to latest cycle
+        # No date -> assign to latest cycle
         return candidates[-1][1]
 
     # Find the election cycle that this receipt most likely belongs to.
@@ -136,7 +136,7 @@ def canonicalize_donor(last: str, first: str) -> str:
 
 def build_db(csv_path: Path, db_path: Path, main_db_path: Path) -> None:
     # Build crosswalk
-    print(f"Building prop→measure_id crosswalk from {main_db_path}...")
+    print(f"Building prop->measure_id crosswalk from {main_db_path}...")
     prop_years = build_prop_to_measure_id(main_db_path)
     print(f"  {len(prop_years)} prop numbers with {sum(len(v) for v in prop_years.values())} measure_id mappings")
 
@@ -209,12 +209,15 @@ def build_db(csv_path: Path, db_path: Path, main_db_path: Path) -> None:
     )
     print(f"Inserted {len(txn_batch):,} transactions")
 
-    # 3. Insert measure_committee_link
+    # 3. Insert measure_committee_link (skip unknown stance)
     links = {}
     for r in rows:
+        stance = r.get("stance", "").strip().lower()
+        if stance not in ("support", "oppose"):
+            continue
         key = (r["_measure_id"], r["filer_id"])
         if key not in links:
-            links[key] = (r["_measure_id"], r["filer_id"], r["stance"], "calaccess_cvr", 1.0, "calaccess")
+            links[key] = (r["_measure_id"], r["filer_id"], stance, "calaccess_cvr", 1.0, "calaccess")
     conn.executemany(
         "INSERT INTO measure_committee_link (measure_id, committee_id, stance, link_method, confidence, source) VALUES (?, ?, ?, ?, ?, ?)",
         links.values(),
@@ -231,7 +234,9 @@ def build_db(csv_path: Path, db_path: Path, main_db_path: Path) -> None:
         except ValueError:
             continue
         mid = r["_measure_id"]
-        stance = r["stance"]
+        stance = r.get("stance", "").strip().lower()
+        if stance not in ("support", "oppose"):
+            continue
         key = (mid, stance)
         summary[key]["total"] += amt
         summary[key]["committees"].add(r["filer_id"])
@@ -263,12 +268,15 @@ def build_db(csv_path: Path, db_path: Path, main_db_path: Path) -> None:
         date_iso = r["_date_iso"]
         if not date_iso:
             continue
+        stance = r.get("stance", "").strip().lower()
+        if stance not in ("support", "oppose"):
+            continue
         try:
             amt = float(r.get("amount", "0") or "0")
         except ValueError:
             continue
         wk = iso_week_start(date_iso)
-        key = (r["_measure_id"], r["stance"], wk)
+        key = (r["_measure_id"], stance, wk)
         weekly[key] += amt
 
     timeline_groups = defaultdict(list)
@@ -290,7 +298,10 @@ def build_db(csv_path: Path, db_path: Path, main_db_path: Path) -> None:
     # 6. Compute top donors (top 10 per measure+stance)
     donor_meta = defaultdict(lambda: (None, None))
     for r in rows:
-        key = (r["_measure_id"], r["stance"])
+        stance = r.get("stance", "").strip().lower()
+        if stance not in ("support", "oppose"):
+            continue
+        key = (r["_measure_id"], stance)
         canon = canonicalize_donor(r.get("donor_last", ""), r.get("donor_first", ""))
         if canon:
             entity_cd = r.get("entity_cd", "").strip()
