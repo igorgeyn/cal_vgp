@@ -87,6 +87,20 @@ class BallotMeasure:
     related_measures: Optional[str] = None  # JSON list of related measure IDs
     relationship_type: Optional[str] = None  # Type of relationship (e.g., "embedding_similarity")
 
+    # Research agent output
+    briefing_text: Optional[str] = None
+    fiscal_impact: Optional[str] = None
+    pro_arguments: Optional[str] = None       # JSON array
+    con_arguments: Optional[str] = None       # JSON array
+    proponents: Optional[str] = None          # JSON array
+    opponents: Optional[str] = None           # JSON array
+    endorsements: Optional[str] = None        # JSON array
+    campaign_finance: Optional[str] = None    # JSON
+    research_status: Optional[str] = None     # 'pending', 'partial', 'complete', 'failed'
+    research_depth: Optional[str] = None      # 'minimal', 'standard', 'deep'
+    research_updated_at: Optional[datetime] = None
+    research_sources: Optional[str] = None    # JSON array
+
     def __post_init__(self):
         """Post-initialization processing"""
         # Ensure year is an integer
@@ -313,6 +327,20 @@ CREATE TABLE IF NOT EXISTS measures (
     -- Related measures (populated by embedding similarity)
     related_measures TEXT,
     relationship_type TEXT,
+
+    -- Research agent output
+    briefing_text TEXT,
+    fiscal_impact TEXT,
+    pro_arguments TEXT,
+    con_arguments TEXT,
+    proponents TEXT,
+    opponents TEXT,
+    endorsements TEXT,
+    campaign_finance TEXT,
+    research_status TEXT,
+    research_depth TEXT,
+    research_updated_at TIMESTAMP,
+    research_sources TEXT,
 
     FOREIGN KEY(master_id) REFERENCES measures(id)
 );

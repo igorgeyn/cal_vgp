@@ -182,32 +182,36 @@ def research_measure_standard(measure: Dict, conn: sqlite3.Connection,
     }
 
 
-def write_results(conn: sqlite3.Connection, measure_id: int,
-                  result: Dict) -> None:
-    """Write research results to the database."""
+def write_results(db, measure_id: int, result: Dict) -> None:
+    """Write research results to the database via update_measure() (respects field protection)."""
+    from src.database.operations import Database
+
     briefing = result.get('briefing', {})
+    briefing_text = briefing.get('briefing_summary', '')
+
+    # Check for failure indicators
+    is_failed = (not briefing_text or
+                 'failed' in briefing_text.lower()[:50] or
+                 'error' in briefing_text.lower()[:50] or
+                 len(briefing_text) < 20)
 
     updates = {
-        'briefing_text': briefing.get('briefing_summary', ''),
+        'briefing_text': briefing_text if not is_failed else None,
         'fiscal_impact': briefing.get('fiscal_impact'),
         'pro_arguments': json.dumps(briefing.get('pro_arguments', [])),
         'con_arguments': json.dumps(briefing.get('con_arguments', [])),
         'proponents': json.dumps(briefing.get('proponents', [])),
         'opponents': json.dumps(briefing.get('opponents', [])),
-        'research_status': 'complete',
+        'research_status': 'failed' if is_failed else 'complete',
         'research_depth': result.get('depth', 'minimal'),
         'research_updated_at': datetime.now().isoformat(),
         'research_sources': json.dumps([s.get('name', str(s)) for s in result.get('sources', [])]),
     }
 
-    # Build UPDATE statement
-    set_clauses = [f"{k} = ?" for k in updates.keys()]
-    values = list(updates.values()) + [measure_id]
+    # Strip None values so update_measure() protection works
+    updates = {k: v for k, v in updates.items() if v is not None and v != ''}
 
-    conn.execute(
-        f"UPDATE measures SET {', '.join(set_clauses)} WHERE id = ?",
-        values
-    )
+    db.update_measure(measure_id, updates)
 
 
 def save_checkpoint(processed_ids: set, stats: Dict):
@@ -239,8 +243,12 @@ def main():
                         help="LLM model to use")
     args = parser.parse_args()
 
+    from src.database.operations import Database
+
     conn = sqlite3.connect(str(DB_PATH))
     conn.row_factory = sqlite3.Row
+    db = Database(DB_PATH)
+    db.connect()
 
     measures = get_pending_measures(conn, year=args.year, measure_id=args.measure_id)
     logger.info(f"Found {len(measures)} measures to research")
@@ -277,9 +285,9 @@ def main():
                 else:
                     result = research_measure_standard(measure, conn, extractor)
 
-                # Write to DB
-                write_results(conn, measure['id'], result)
-                conn.commit()
+                # Write to DB via protected update_measure()
+                write_results(db, measure['id'], result)
+                db.conn.commit()
 
                 # Generate standalone report
                 report_path = save_report(measure, result['briefing'], result['sources'])

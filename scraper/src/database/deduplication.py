@@ -134,11 +134,12 @@ class Deduplicator:
         if merged_data:
             self.db.update_measure(master_id, merged_data)
         
-        # Mark others as duplicates
+        # Mark others as duplicates and deactivate
         for measure in versions:
             if measure.id != master_id:
                 self.db.update_measure(measure.id, {
                     'is_duplicate': True,
+                    'is_active': False,
                     'duplicate_type': 'cross_source',
                     'master_id': master_id
                 })

@@ -209,6 +209,10 @@ class Database:
             'ballot_question', 'description',
             'category_type', 'category_topic',
             'pass_fail',
+            'briefing_text', 'fiscal_impact',
+            'pro_arguments', 'con_arguments',
+            'proponents', 'opponents', 'endorsements',
+            'campaign_finance', 'research_sources',
         }
         NUMERIC_PROTECTED = {
             'yes_votes', 'no_votes', 'total_votes',

@@ -43,7 +43,11 @@ def normalize_measure_data(data: dict) -> dict:
         'has_summary', 'summary_title', 'summary_text',
         'election_type', 'election_date', 'decade', 'century',
         'created_at', 'updated_at', 'last_seen_at', 'update_count',
-        'is_active', 'is_duplicate', 'duplicate_type', 'master_id', 'merged_from'
+        'is_active', 'is_duplicate', 'duplicate_type', 'master_id', 'merged_from',
+        'related_measures', 'relationship_type',
+        'briefing_text', 'fiscal_impact', 'pro_arguments', 'con_arguments',
+        'proponents', 'opponents', 'endorsements', 'campaign_finance',
+        'research_status', 'research_depth', 'research_updated_at', 'research_sources',
     }
 
     # Remove any fields not in the model

@@ -251,17 +251,30 @@ def generate_legislature_url(measure: Dict) -> Optional[Dict]:
         match = re.search(pattern, text, re.IGNORECASE)
         if match:
             bill_num = match.group(1)
-            year = measure.get('year')
 
-            # CA Legislature uses 2-year sessions: odd year starts session
-            # Session ID format: YYYYYYY0 (e.g., 20232024 for 2023-2024 session)
-            if year:
-                if year % 2 == 0:
-                    session = f"{year - 1}{year}0"
+            # Determine the legislative session the bill belongs to.
+            # Try to extract the actual session year from the title (e.g., "Res. Ch. 176, 2023")
+            # rather than defaulting to the election year (which is the ballot year, not the bill year).
+            session_year = None
+            title = measure.get('title', '') or ''
+            year_in_title = re.search(r'(?:20[12]\d)', title)
+            if year_in_title:
+                bill_year = int(year_in_title.group(0))
+                if bill_year % 2 == 0:
+                    session_year = bill_year - 1
                 else:
-                    session = f"{year}{year + 1}0"
-            else:
-                session = "202520260"  # default to current session
+                    session_year = bill_year
+
+            if not session_year:
+                # Fallback to ballot year
+                year = measure.get('year')
+                if year:
+                    session_year = year - 1 if year % 2 == 0 else year
+                else:
+                    session_year = 2025
+
+            # CA Legislature session ID format: YYYYYYY0 (e.g., 20232024 for 2023-2024 session)
+            session = f"{session_year}{session_year + 1}0"
 
             url = f"https://leginfo.legislature.ca.gov/faces/billNavClient.xhtml?bill_id={session}{bill_type}{bill_num}"
 
