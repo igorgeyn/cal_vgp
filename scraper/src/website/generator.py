@@ -1065,6 +1065,11 @@ class WebsiteGenerator:
                     <p id="modalBallotText" class="measure-detail-ballot-text"></p>
                 </div>
 
+                <div id="modalBriefingSection" class="measure-detail-section" style="display: none;">
+                    <h3>📋 Research Briefing</h3>
+                    <div id="modalBriefingContent"></div>
+                </div>
+
                 <div id="modalRelatedSection" class="measure-detail-section" style="display: none;">
                     <h3>🔗 Related Measures</h3>
                     <div id="modalRelatedMeasures" class="measure-detail-related"></div>
@@ -7140,6 +7145,55 @@ class WebsiteGenerator:
                 relatedSection.style.display = 'block';
             }} else {{
                 relatedSection.style.display = 'none';
+            }}
+
+            // Research briefing section (for measures with agent-generated briefings)
+            const briefingSection = document.getElementById('modalBriefingSection');
+            const briefingContent = document.getElementById('modalBriefingContent');
+            if (measure.briefing && measure.briefing.text) {{
+                let bHtml = '';
+                const b = measure.briefing;
+
+                // Briefing summary
+                if (b.text && b.text !== 'Not yet available.') {{
+                    bHtml += `<div style="font-size:0.9rem;line-height:1.6;margin-bottom:1rem;">${{escapeHtml(b.text)}}</div>`;
+                }}
+
+                // Fiscal impact
+                if (b.fiscal_impact && b.fiscal_impact !== 'Not yet available.' && b.fiscal_impact.length > 20) {{
+                    bHtml += `<div style="margin-bottom:0.75rem;"><strong>Fiscal Impact:</strong> <span style="font-size:0.9rem;">${{escapeHtml(b.fiscal_impact)}}</span></div>`;
+                }}
+
+                // Pro/con arguments
+                try {{
+                    const pros = typeof b.pro_arguments === 'string' ? JSON.parse(b.pro_arguments) : b.pro_arguments;
+                    const cons = typeof b.con_arguments === 'string' ? JSON.parse(b.con_arguments) : b.con_arguments;
+
+                    if ((pros && pros.length > 0 && pros[0] !== 'Not yet available.') ||
+                        (cons && cons.length > 0 && cons[0] !== 'Not yet available.')) {{
+                        bHtml += `<div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:0.75rem;">`;
+                        if (pros && pros.length > 0 && pros[0] !== 'Not yet available.') {{
+                            bHtml += `<div><div style="font-weight:600;color:#2D9D78;margin-bottom:0.3rem;font-size:0.85rem;">Arguments For</div>`;
+                            pros.forEach(p => {{ bHtml += `<div style="font-size:0.8rem;margin-bottom:0.3rem;">+ ${{escapeHtml(p)}}</div>`; }});
+                            bHtml += `</div>`;
+                        }}
+                        if (cons && cons.length > 0 && cons[0] !== 'Not yet available.') {{
+                            bHtml += `<div><div style="font-weight:600;color:#E54D4D;margin-bottom:0.3rem;font-size:0.85rem;">Arguments Against</div>`;
+                            cons.forEach(c => {{ bHtml += `<div style="font-size:0.8rem;margin-bottom:0.3rem;">\u2013 ${{escapeHtml(c)}}</div>`; }});
+                            bHtml += `</div>`;
+                        }}
+                        bHtml += `</div>`;
+                    }}
+                }} catch(e) {{}}
+
+                if (bHtml) {{
+                    briefingContent.innerHTML = bHtml;
+                    briefingSection.style.display = 'block';
+                }} else {{
+                    briefingSection.style.display = 'none';
+                }}
+            }} else {{
+                if (briefingSection) briefingSection.style.display = 'none';
             }}
 
             // Links section

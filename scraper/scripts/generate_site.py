@@ -149,6 +149,30 @@ def main():
         from src.utils.category_type_mapping import get_display_category_type
         from src.utils.external_links import generate_external_links, is_landmark_measure
 
+        # Load research briefing data directly from DB (not through BallotMeasure model)
+        # Key by both id and measure_id for flexible lookup
+        research_by_id = {}
+        research_by_mid = {}
+        try:
+            import sqlite3 as _sqlite3
+            _conn = _sqlite3.connect(str(DB_PATH))
+            _conn.row_factory = _sqlite3.Row
+            _cursor = _conn.execute("""
+                SELECT id, measure_id, briefing_text, fiscal_impact, pro_arguments, con_arguments,
+                       proponents, opponents, research_status, research_depth
+                FROM measures WHERE research_status IS NOT NULL
+            """)
+            for _row in _cursor.fetchall():
+                _rd = dict(_row)
+                research_by_id[_row['id']] = _rd
+                if _row['measure_id']:
+                    research_by_mid[str(_row['measure_id'])] = _rd
+            _conn.close()
+            if research_by_id:
+                logger.info(f"  Loaded research data for {len(research_by_id)} measures")
+        except Exception as _e:
+            logger.warning(f"  Could not load research data: {_e}")
+
         measures_for_website = []
         links_generated = 0
         landmark_count = 0
@@ -200,6 +224,20 @@ def main():
             if is_landmark_measure(m_dict):
                 m_dict['is_landmark'] = True
                 landmark_count += 1
+
+            # Attach research briefing data if available (try id, then measure_id)
+            rd = research_by_id.get(m_dict.get('id')) or research_by_mid.get(str(m_dict.get('measure_id', '')))
+            if rd and rd.get('briefing_text'):
+                m_dict['briefing'] = {
+                    'text': rd.get('briefing_text', ''),
+                    'fiscal_impact': rd.get('fiscal_impact', ''),
+                    'pro_arguments': rd.get('pro_arguments', '[]'),
+                    'con_arguments': rd.get('con_arguments', '[]'),
+                    'proponents': rd.get('proponents', '[]'),
+                    'opponents': rd.get('opponents', '[]'),
+                    'status': rd.get('research_status', ''),
+                    'depth': rd.get('research_depth', ''),
+                }
 
             measures_for_website.append(m_dict)
 
@@ -347,6 +385,11 @@ def main():
             {'topic': topic, 'count': count}
             for topic, count in topic_counts.most_common(20)
         ]
+
+        # Count briefings
+        _briefing_count = sum(1 for m in measures_for_website if 'briefing' in m)
+        if _briefing_count:
+            logger.info(f"  Attached briefing data to {_briefing_count} measures")
 
         # Load recommendations for related measures
         recommendations = generator._load_recommendations()
