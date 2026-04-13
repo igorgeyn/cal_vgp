@@ -27,14 +27,14 @@ logger = logging.getLogger(__name__)
 DB_PATH = Path(__file__).parent.parent / "data" / "ballot_measures.db"
 CHECKPOINT_PATH = Path(__file__).parent.parent / "data" / "summary_checkpoint.json"
 
-MODEL = "claude-sonnet-4-20250514"
+MODEL = "claude-haiku-4-5-20251001"
 MAX_TOKENS = 150
 BATCH_SIZE = 50
-RATE_LIMIT_DELAY = 0.15  # seconds between API calls
+RATE_LIMIT_DELAY = 0.5  # seconds between API calls (increased to avoid 529s)
 
 
 def get_measures_needing_summaries(conn, limit=None):
-    """Get Tier A and Tier B measures that need summaries."""
+    """Get measures that need summaries — Tier A (ballot text), B (description), C (long title)."""
     query = """
         SELECT id, year, county, measure_letter, measure_id,
                ballot_question, description, title,
@@ -45,9 +45,12 @@ def get_measures_needing_summaries(conn, limit=None):
           AND (
               (ballot_question IS NOT NULL AND length(ballot_question) > 30)
               OR (description IS NOT NULL AND length(description) > 30)
+              OR (title IS NOT NULL AND length(title) > 50)
           )
         ORDER BY
-            CASE WHEN ballot_question IS NOT NULL AND length(ballot_question) > 30 THEN 0 ELSE 1 END,
+            CASE WHEN ballot_question IS NOT NULL AND length(ballot_question) > 30 THEN 0
+                 WHEN description IS NOT NULL AND length(description) > 30 THEN 1
+                 ELSE 2 END,
             year DESC, county
     """
     if limit:
@@ -59,8 +62,8 @@ def build_prompt(row):
     """Build the prompt for a single measure."""
     mid, year, county, letter, meas_id, bq, desc, title, ctype, ctopic, passed, pct = row
 
-    # Use ballot question if available, otherwise description
-    text = bq if (bq and len(bq) > 30) else desc
+    # Use ballot question if available, then description, then title
+    text = bq if (bq and len(bq) > 30) else (desc if (desc and len(desc) > 30) else title)
 
     # Build context
     parts = []
@@ -191,9 +194,9 @@ def main():
             except Exception as e:
                 stats["errors"] += 1
                 logger.error(f"  Error on ID={mid}: {e}")
-                if "rate_limit" in str(e).lower():
-                    logger.info("  Rate limited, waiting 30s...")
-                    time.sleep(30)
+                if "rate_limit" in str(e).lower() or "overloaded" in str(e).lower() or "529" in str(e):
+                    logger.info("  Rate limited / overloaded, waiting 60s...")
+                    time.sleep(60)
 
         # Final batch
         if batch_updates:

@@ -90,6 +90,50 @@ class BallotpediaStatewideScraper:
                                 if measure:
                                     measures.append(measure)
 
+        # If no propositions found via tables (e.g., 2026 measures don't have prop numbers yet),
+        # look for on-ballot measure links in the first bptable (confirmed measures only).
+        # Don't scrape the full list of 50+ citizen initiatives — Ballotpedia rate-limits aggressively.
+        if not measures and content:
+            # Find on-ballot measures from the first bptable (if it has measure links)
+            seen_urls = set()
+            measure_link_pattern = re.compile(
+                rf'https://ballotpedia\.org/California_[A-Z].*_\({year}\)',
+                re.IGNORECASE
+            )
+
+            # Only look in the first table (on-ballot measures) and nearby content
+            first_table = content.find('table', class_='bptable')
+            search_scope = first_table if first_table else content
+
+            for link in search_scope.find_all('a', href=True):
+                href = link.get('href', '')
+                text = link.get_text(strip=True)
+
+                if measure_link_pattern.match(href) and len(text) > 15:
+                    if href in seen_urls:
+                        continue
+                    seen_urls.add(href)
+
+                    clean_title = text.strip()
+                    measure_id = re.sub(r'[^A-Za-z0-9]+', '_', clean_title)[:40]
+
+                    try:
+                        import time
+                        time.sleep(2)  # Be respectful to Ballotpedia
+                        measure = self._scrape_proposition(href, measure_id, year)
+                        if measure:
+                            measure.measure_id = measure_id
+                            measures.append(measure)
+                    except Exception as e:
+                        logger.warning(f"  Failed to scrape {text[:40]}: {e}")
+
+                    # Limit to on-ballot measures only (typically 3-10)
+                    if len(measures) >= 10:
+                        break
+
+            if measures:
+                logger.info(f"Found {len(measures)} on-ballot measures via article links for {year}")
+
         logger.info(f"Found {len(measures)} propositions for {year}")
         return measures
 

@@ -3947,44 +3947,54 @@ class WebsiteGenerator:
         }
 
         .measure-detail-links {
-            display: flex;
-            flex-direction: column;
-            gap: 0.5rem;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.4rem;
         }
 
         .measure-detail-links a {
             display: flex;
             align-items: center;
-            gap: 0.5rem;
+            gap: 0.4rem;
             color: var(--primary);
             text-decoration: none;
-            font-size: 0.95rem;
-            padding: 0.5rem;
+            font-size: 0.82rem;
+            padding: 0.45rem 0.6rem;
             border-radius: 6px;
+            border: 1px solid var(--border);
+            background: var(--bg-primary);
             transition: var(--transition);
+            line-height: 1.3;
         }
 
         .measure-detail-links a:hover {
             background: var(--bg-secondary);
+            border-color: var(--primary);
         }
 
-        .measure-detail-links a.link-high-confidence {
-            font-weight: 500;
+        .measure-detail-links a .link-label {
+            font-weight: 600;
         }
 
-        .measure-detail-links a.link-medium-confidence {
-            opacity: 0.9;
+        .measure-detail-links a .link-source {
+            color: var(--text-tertiary);
+            font-size: 0.75rem;
         }
 
         .measure-detail-links a.link-low-confidence {
-            opacity: 0.75;
-            font-size: 0.9rem;
+            opacity: 0.65;
         }
 
-        .measure-detail-links a.link-low-confidence::after {
-            content: ' (search)';
-            font-size: 0.8rem;
-            color: var(--text-tertiary);
+        /* Full-width items (context blocks, disclaimers) */
+        .measure-detail-links .pending-context,
+        .measure-detail-links .pending-disclaimer {
+            grid-column: 1 / -1;
+        }
+
+        @media (max-width: 480px) {
+            .measure-detail-links {
+                grid-template-columns: 1fr;
+            }
         }
 
         .no-summary-text {
@@ -7137,37 +7147,72 @@ class WebsiteGenerator:
             const links = [];
 
             // Add generated external links first (higher quality)
+            // Descriptive labels for link sources
+            const linkLabels = {{
+                'Ballotpedia': {{ label: 'Measure Details', source: 'Ballotpedia' }},
+                'CA Voter Guide': {{ label: 'Official Voter Guide', source: 'CA SOS' }},
+                'LAO Analysis': {{ label: 'Fiscal Analysis', source: 'CA LAO' }},
+                'LAO Ballot Analysis': {{ label: 'Fiscal Analysis', source: 'CA LAO' }},
+                'UC Law SF': {{ label: 'Legal Archive', source: 'UC Law SF' }},
+                'Wikipedia': {{ label: 'Encyclopedia', source: 'Wikipedia' }},
+                'CA SOS - Qualified Measures': {{ label: 'Official Status', source: 'CA SOS' }},
+                'CA SOS Eligible Measures': {{ label: 'Eligible Measures', source: 'CA SOS' }},
+                'Campaign Finance': {{ label: 'Campaign Finance', source: 'CAL-ACCESS' }},
+                'Official Voter Guide': {{ label: 'Voter Guide', source: 'CA SOS' }},
+                "Voter's Edge CA": {{ label: 'Nonpartisan Guide', source: "Voter's Edge" }},
+                'CEDA Data Archive': {{ label: 'Election Data', source: 'CEDA' }},
+            }};
+            // Legislature links have dynamic source names
+            const legPattern = /^CA Legislature \((.+)\)$/;
+            Object.keys(linkLabels).length; // force eval
+            // Add legislature labels dynamically
+            ['Assembly Constitutional Amendment', 'Senate Constitutional Amendment', 'Assembly Bill', 'Senate Bill'].forEach(t => {{
+                linkLabels[`CA Legislature (${{t}})`] = {{ label: 'Bill Details', source: 'Legislature' }};
+            }});
+            // County registrar labels are dynamic
+            const registrarPattern = /^(.+) County Elections$/;
+
+            const linkIcons = {{
+                'ballot': '🗳️',
+                'government': '🏛️',
+                'academic': '🎓',
+                'analysis': '📊',
+                'wikipedia': '📚'
+            }};
+
             if (measure.external_links && measure.external_links.length > 0) {{
-                const linkIcons = {{
-                    'ballot': '🗳️',
-                    'government': '🏛️',
-                    'academic': '🎓',
-                    'analysis': '📊',
-                    'wikipedia': '📚'
-                }};
                 measure.external_links.forEach(link => {{
                     const icon = linkIcons[link.icon] || '🔗';
-                    const confidenceClass = link.confidence === 'high' ? 'link-high-confidence' :
-                                           link.confidence === 'medium' ? 'link-medium-confidence' : 'link-low-confidence';
-                    links.push(`<a href="${{escapeAttr(sanitizeUrl(link.url))}}" target="_blank" rel="noopener noreferrer" class="${{confidenceClass}}">${{icon}} ${{escapeHtml(link.source)}}</a>`);
+                    const confidenceClass = link.confidence === 'low' ? 'link-low-confidence' : '';
+                    let labelInfo = linkLabels[link.source];
+                    if (!labelInfo) {{
+                        const regMatch = link.source.match(registrarPattern);
+                        if (regMatch) {{
+                            labelInfo = {{ label: 'County Elections', source: regMatch[1] }};
+                        }} else {{
+                            labelInfo = {{ label: link.source, source: '' }};
+                        }}
+                    }}
+                    const sourceText = labelInfo.source ? ` <span class="link-source">(${{escapeHtml(labelInfo.source)}})</span>` : '';
+                    links.push(`<a href="${{escapeAttr(sanitizeUrl(link.url))}}" target="_blank" rel="noopener noreferrer" class="${{confidenceClass}}">${{icon}} <span class="link-label">${{escapeHtml(labelInfo.label)}}</span>${{sourceText}}</a>`);
                 }});
             }}
 
             // Add original source links
             if (measure.source_url) {{
-                links.push(`<a href="${{escapeAttr(sanitizeUrl(measure.source_url))}}" target="_blank" rel="noopener noreferrer">🔗 Data Source (${{escapeHtml(measure.data_source || 'Original')}})</a>`);
+                links.push(`<a href="${{escapeAttr(sanitizeUrl(measure.source_url))}}" target="_blank" rel="noopener noreferrer">🔗 <span class="link-label">Raw Data</span> <span class="link-source">(${{escapeHtml(measure.data_source || 'Source')}})</span></a>`);
             }}
             if (measure.pdf_url && measure.pdf_url !== '#') {{
-                links.push(`<a href="${{escapeAttr(sanitizeUrl(measure.pdf_url))}}" target="_blank" rel="noopener noreferrer">📄 Full Ballot Text (PDF)</a>`);
+                links.push(`<a href="${{escapeAttr(sanitizeUrl(measure.pdf_url))}}" target="_blank" rel="noopener noreferrer">📄 <span class="link-label">Full Ballot Text</span> <span class="link-source">(PDF)</span></a>`);
             }}
 
             // For pending measures, add helpful official source links
             if (isPending && links.length === 0) {{
-                links.push(`<a href="https://www.sos.ca.gov/elections/ballot-measures" target="_blank" rel="noopener noreferrer" class="link-high-confidence">🏛️ CA Secretary of State - Ballot Measures</a>`);
-                links.push(`<a href="https://lao.ca.gov/BallotAnalysis" target="_blank" rel="noopener noreferrer" class="link-high-confidence">📊 LAO - Fiscal Analysis</a>`);
-                links.push(`<a href="https://leginfo.legislature.ca.gov/" target="_blank" rel="noopener noreferrer" class="link-medium-confidence">📜 CA Legislature - Bill Information</a>`);
+                links.push(`<a href="https://www.sos.ca.gov/elections/ballot-measures" target="_blank" rel="noopener noreferrer">🏛️ <span class="link-label">Official Status</span> <span class="link-source">(CA SOS)</span></a>`);
+                links.push(`<a href="https://lao.ca.gov/BallotAnalysis" target="_blank" rel="noopener noreferrer">📊 <span class="link-label">Fiscal Analysis</span> <span class="link-source">(CA LAO)</span></a>`);
+                links.push(`<a href="https://leginfo.legislature.ca.gov/" target="_blank" rel="noopener noreferrer">📜 <span class="link-label">Bill Details</span> <span class="link-source">(Legislature)</span></a>`);
             }} else if (links.length === 0) {{
-                links.push('<span class="no-summary-text">No external links available</span>');
+                links.push('<span class="no-summary-text" style="grid-column:1/-1;">No external links available</span>');
             }}
 
             // Add historical context for pending measures

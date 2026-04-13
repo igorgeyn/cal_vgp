@@ -314,43 +314,120 @@ class CASOSScraper(BaseScraper):
                     'source_url': url
                 })
 
-        logger.info(f"Found {len(measures)} in-progress initiatives")
-        return measures
+        # Deduplicate by initiative number, keeping the highest-status version
+        STATUS_PRIORITY = {
+            'qualified': 0, 'eligible': 1, 'pending signature verification': 2,
+            'pending verification': 2, 'raw count': 3, 'raw count of signatures': 3,
+            '25% of required signatures': 4, '25 percent': 4,
+            'cleared for circulation': 5, 'circulating': 5,
+            'attorney general': 6, 'failed': 7, 'withdrawn': 8,
+        }
+
+        best_by_id = {}
+        for m in measures:
+            mid = m.get('measure_id', '')
+            status_key = m.get('status', '').lower().strip()
+            priority = min((v for k, v in STATUS_PRIORITY.items() if k in status_key), default=9)
+
+            if mid not in best_by_id or priority < best_by_id[mid][0]:
+                best_by_id[mid] = (priority, m)
+
+        deduped = [v[1] for v in best_by_id.values()]
+        logger.info(f"Found {len(deduped)} in-progress initiatives (deduped from {len(measures)})")
+        return deduped
 
     def _scrape_initiative_detail_page(self, url: str, status: str) -> List[Dict]:
-        """Scrape individual initiatives from a detail page"""
+        """Scrape individual initiatives from a detail page.
+
+        CA SOS initiative pages use <p>/<strong> blocks, not tables.
+        Each initiative is a sequence:
+          <p><strong>NUMBER. (AG-ID) TITLE IN CAPS...</strong></p>
+          <p>Summary Date: ... | Circulation Deadline ... | Signatures Required: ...</p>
+          <a>(PDF link)</a>
+          <p>Description text...</p>
+          <strong>Fiscal impact...</strong>
+          <a>AG-ID link</a>
+        """
         html = self._fetch_page(url)
         if not html:
             return []
 
         soup = BeautifulSoup(html, "html.parser")
         measures = []
+        seen_nums = set()
 
-        # Prefer table parsing when available (more structured than free text)
-        for table in soup.find_all('table'):
-            table_measures = self._parse_initiative_table(table, status, url)
-            measures.extend(table_measures)
+        # Strategy: find all <p> and <strong> elements that start with a 4-digit number
+        # followed by a period and AG filing number (e.g., "1993. (25-0016)")
+        # Each such element starts a new initiative block.
+        init_pattern = re.compile(r'^(\d{4})\.\s*\(([^)]+)\)\s*(.+)', re.DOTALL)
 
-        if measures:
-            return measures
-
-        # Look for initiative listings
-        # CA SOS typically lists initiatives with their number and title
-        for elem in soup.find_all(['div', 'p', 'li']):
+        for elem in soup.find_all(['p', 'strong']):
             text = elem.get_text(" ", strip=True)
+            match = init_pattern.match(text)
+            if not match:
+                continue
 
-            # Look for initiative numbers (e.g., "1234", "Initiative #1234")
-            initiative_num, title = self._extract_initiative_from_text(text)
-            if initiative_num:
-                measures.append({
-                    'measure_id': f"INIT_{initiative_num}",
-                    'title': title or f"Initiative {initiative_num}",
-                    'measure_text': text,
-                    'year': 2026,
-                    'status': status,
-                    'in_progress': True,
-                    'source_url': url
-                })
+            initiative_num = match.group(1)
+            ag_id = match.group(2).strip()
+            raw_title = match.group(3).strip()
+
+            # Skip duplicates (same initiative appears in multiple elements)
+            if initiative_num in seen_nums:
+                continue
+            seen_nums.add(initiative_num)
+
+            # Clean the title — remove metadata that bleeds in
+            title = self._clean_initiative_title(raw_title)
+
+            # Look for PDF link in nearby siblings
+            pdf_url = None
+            next_elem = elem.find_next_sibling()
+            for _ in range(5):  # Check up to 5 siblings
+                if next_elem is None:
+                    break
+                pdf_link = next_elem.find('a', href=re.compile(r'\.pdf', re.IGNORECASE))
+                if pdf_link:
+                    pdf_url = pdf_link.get('href', '')
+                    break
+                next_elem = next_elem.find_next_sibling()
+
+            # Look for description in the next <p> after metadata
+            description = None
+            next_elem = elem.find_next_sibling()
+            for _ in range(5):
+                if next_elem is None:
+                    break
+                next_text = next_elem.get_text(" ", strip=True)
+                # Skip metadata lines and PDF links
+                if (not next_text.startswith('Summary Date') and
+                    not next_text.startswith('(') and
+                    not next_text.startswith('Proponent') and
+                    len(next_text) > 30 and
+                    not init_pattern.match(next_text)):
+                    description = next_text[:500]
+                    break
+                next_elem = next_elem.find_next_sibling()
+
+            if not self._is_valid_initiative_title(title):
+                title = f"Initiative {initiative_num}"
+
+            measures.append({
+                'measure_id': f"INIT_{initiative_num}",
+                'title': title,
+                'description': description,
+                'measure_text': title,
+                'year': 2026,
+                'status': status,
+                'in_progress': True,
+                'source_url': url,
+                'pdf_url': pdf_url,
+            })
+
+        # Fall back to table parsing if no block-style content found
+        if not measures:
+            for table in soup.find_all('table'):
+                table_measures = self._parse_initiative_table(table, status, url)
+                measures.extend(table_measures)
 
         return measures
 
@@ -444,11 +521,17 @@ class CASOSScraper(BaseScraper):
             return None
 
         cleaned = re.sub(r'\s+', ' ', title).strip()
-        cleaned = re.split(r'\bSummary Date\b', cleaned, flags=re.IGNORECASE)[0].strip()
-        cleaned = re.split(r'\bCirculation Deadline\b', cleaned, flags=re.IGNORECASE)[0].strip()
-        cleaned = re.split(r'\bSignatures Required\b', cleaned, flags=re.IGNORECASE)[0].strip()
-        cleaned = re.split(r'\bFailed\b', cleaned, flags=re.IGNORECASE)[0].strip()
-        cleaned = cleaned.strip(' -|:;')
+        # Remove common metadata that bleeds into titles
+        for pattern in [
+            r'\bSummary Date\b.*', r'\bCirculation Deadline\b.*',
+            r'\bSignatures Required\b.*', r'\bFailed\b.*',
+            r'\bProponent\(s\)\b.*', r'\(PDF\)\).*',
+            r'\bReceive Updates\b.*', r'\bSign up\b.*',
+            r'\bOffice:\s*\(\d+\).*', r'\b\d+\w*\s+Street\s+Sacramento\b.*',
+            r'\bCalifornia Secretary of State\b.*',
+        ]:
+            cleaned = re.split(pattern, cleaned, maxsplit=1, flags=re.IGNORECASE)[0].strip()
+        cleaned = cleaned.strip(' -|:;.,')
         return cleaned or None
 
     def _is_valid_initiative_title(self, title: Optional[str]) -> bool:

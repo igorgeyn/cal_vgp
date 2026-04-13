@@ -227,38 +227,57 @@ def generate_sos_pending_measures_url(measure: Dict) -> Optional[Dict]:
 
 def generate_legislature_url(measure: Dict) -> Optional[Dict]:
     """
-    Generate CA Legislature bill search URL for constitutional amendments.
+    Generate canonical CA Legislature bill URL for legislative measures.
 
-    ACAs (Assembly Constitutional Amendments) and SCAs (Senate Constitutional
-    Amendments) can be looked up on the legislature website.
+    Supports ACA, SCA, AB, SB bill types. Uses the direct billNavClient URL
+    format with correct session year (CA uses 2-year sessions: 2023-2024, 2025-2026).
     """
     if not is_statewide(measure):
         return None
 
     measure_id = measure.get('measure_id', '') or ''
+    title = measure.get('title', '') or ''
+    text = f"{measure_id} {title}"
 
-    # Check if this is a constitutional amendment from the legislature
-    aca_match = re.search(r'ACA[_\s]*(\d+)', measure_id, re.IGNORECASE)
-    sca_match = re.search(r'SCA[_\s]*(\d+)', measure_id, re.IGNORECASE)
+    # Match bill types: ACA, SCA, AB, SB
+    bill_patterns = [
+        (r'ACA[_\s]*(\d+)', 'ACA'),
+        (r'SCA[_\s]*(\d+)', 'SCA'),
+        (r'(?:Assembly\s+Bill|AB)[_\s]*(\d+)', 'AB'),
+        (r'(?:Senate\s+Bill|SB)[_\s]*(\d+)', 'SB'),
+    ]
 
-    if aca_match:
-        bill_num = aca_match.group(1)
-        url = f"https://leginfo.legislature.ca.gov/faces/billSearchClient.xhtml?session_year=2025&house=Both&lawCode=All&keyword=ACA+{bill_num}"
-        return {
-            'source': 'CA Legislature (ACA)',
-            'url': url,
-            'confidence': 'medium',
-            'icon': 'government'
-        }
-    elif sca_match:
-        bill_num = sca_match.group(1)
-        url = f"https://leginfo.legislature.ca.gov/faces/billSearchClient.xhtml?session_year=2025&house=Both&lawCode=All&keyword=SCA+{bill_num}"
-        return {
-            'source': 'CA Legislature (SCA)',
-            'url': url,
-            'confidence': 'medium',
-            'icon': 'government'
-        }
+    for pattern, bill_type in bill_patterns:
+        match = re.search(pattern, text, re.IGNORECASE)
+        if match:
+            bill_num = match.group(1)
+            year = measure.get('year')
+
+            # CA Legislature uses 2-year sessions: odd year starts session
+            # Session ID format: YYYYYYY0 (e.g., 20232024 for 2023-2024 session)
+            if year:
+                if year % 2 == 0:
+                    session = f"{year - 1}{year}0"
+                else:
+                    session = f"{year}{year + 1}0"
+            else:
+                session = "202520260"  # default to current session
+
+            url = f"https://leginfo.legislature.ca.gov/faces/billNavClient.xhtml?bill_id={session}{bill_type}{bill_num}"
+
+            type_labels = {
+                'ACA': 'Assembly Constitutional Amendment',
+                'SCA': 'Senate Constitutional Amendment',
+                'AB': 'Assembly Bill',
+                'SB': 'Senate Bill',
+            }
+
+            return {
+                'source': f'CA Legislature ({type_labels.get(bill_type, bill_type)})',
+                'url': url,
+                'confidence': 'high',
+                'icon': 'government'
+            }
 
     return None
 
@@ -284,6 +303,89 @@ def generate_lao_pending_url(measure: Dict) -> Optional[Dict]:
         'url': url,
         'confidence': 'high',
         'icon': 'analysis'
+    }
+
+
+def generate_sos_eligible_url(measure: Dict) -> Optional[Dict]:
+    """
+    Generate CA SOS eligible statewide initiative measures page URL.
+    """
+    if not is_statewide(measure):
+        return None
+
+    year = measure.get('year')
+    if not year or year < 2025:
+        return None
+
+    return {
+        'source': 'CA SOS Eligible Measures',
+        'url': 'https://www.sos.ca.gov/elections/ballot-measures/initiative-and-referendum-status/eligible-statewide-initiative-measures',
+        'confidence': 'high',
+        'icon': 'government'
+    }
+
+
+def generate_calaccess_url(measure: Dict) -> Optional[Dict]:
+    """
+    Generate CAL-ACCESS campaign finance URL for ballot measures.
+
+    Links to the official CA campaign finance tracking for measure committees.
+    """
+    if not is_statewide(measure):
+        return None
+
+    year = measure.get('year')
+    if not year or year < 2024:
+        return None
+
+    # CAL-ACCESS uses session years (odd years start sessions)
+    session = year if year % 2 == 1 else year - 1
+    url = f"https://cal-access.sos.ca.gov/Campaign/Measures/list.aspx?session={session}"
+
+    return {
+        'source': 'Campaign Finance',
+        'url': url,
+        'confidence': 'high',
+        'icon': 'analysis'
+    }
+
+
+def generate_voter_guide_url(measure: Dict) -> Optional[Dict]:
+    """
+    Generate official CA Voter Guide URL. Available ~Aug before election.
+    """
+    if not is_statewide(measure):
+        return None
+
+    year = measure.get('year')
+    if not year or year < 2025:
+        return None
+
+    return {
+        'source': 'Official Voter Guide',
+        'url': 'https://voterguide.sos.ca.gov/',
+        'confidence': 'medium',
+        'icon': 'government'
+    }
+
+
+def generate_voters_edge_url(measure: Dict) -> Optional[Dict]:
+    """
+    Generate Voter's Edge California URL (League of Women Voters + MapLight).
+    Nonpartisan voter guide with endorsement data.
+    """
+    if not is_statewide(measure):
+        return None
+
+    year = measure.get('year')
+    if not year or year < 2025:
+        return None
+
+    return {
+        'source': "Voter's Edge CA",
+        'url': 'https://votersedge.org/ca',
+        'confidence': 'medium',
+        'icon': 'ballot'
     }
 
 
@@ -399,12 +501,16 @@ def generate_external_links(measure: Dict) -> List[Dict]:
     is_pending = is_pending_measure(measure)
 
     if is_pending:
-        # Pending measures get special sources
+        # Pending measures get comprehensive sources
         generators = [
             generate_sos_pending_measures_url,
-            generate_lao_pending_url,
+            generate_sos_eligible_url,
             generate_legislature_url,
+            generate_lao_pending_url,
+            generate_calaccess_url,
             generate_ballotpedia_url,
+            generate_voter_guide_url,
+            generate_voters_edge_url,
             generate_ballotpedia_county_url,
             generate_county_registrar_url,
         ]

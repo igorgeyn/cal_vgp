@@ -46,6 +46,7 @@ SOURCES = {
         "base_url": "https://www.sos.ca.gov",
         "endpoints": {
             "qualified": "/elections/ballot-measures/qualified-ballot-measures",
+            "eligible": "/elections/ballot-measures/initiative-and-referendum-status/eligible-statewide-initiative-measures",
             "initiative_status": "/elections/ballot-measures/initiative-and-referendum-status",
         }
     },
