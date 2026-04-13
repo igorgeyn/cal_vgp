@@ -7280,30 +7280,46 @@ class WebsiteGenerator:
                 ctxHtml += `with a median YES vote of <strong>${{ctx.median_yes}}%</strong>.`;
                 ctxHtml += `</div>`;
 
-                // Most similar measures
+                // Helper: build a tile card for a similar measure, clickable to open its detail
+                const buildContextTile = (item) => {{
+                    const status = item.passed === 1 ? 'passed' : 'failed';
+                    const statusIcon = item.passed === 1 ? '✓' : '✗';
+                    const pct = item.percent_yes ? `${{item.percent_yes}}% YES` : '';
+                    const title = item.title ? item.title.substring(0, 55) : 'Untitled';
+                    const county = item.county || '';
+                    // Try to find this measure in allMeasures for clickthrough
+                    const match = allMeasures.find(m =>
+                        m.year == item.year && m.county === county &&
+                        (m.percent_yes && Math.abs(m.percent_yes - item.percent_yes) < 0.5)
+                    );
+                    const clickAttr = match ? `data-midx="${{allMeasures.indexOf(match)}}" onclick="viewMeasure(allMeasures[this.dataset.midx])" style="cursor:pointer;"` : '';
+                    return `<div class="related-card" ${{clickAttr}}>
+                        <div class="related-header">
+                            <span class="related-id">${{escapeHtml(county)}}</span>
+                            <span class="related-year">${{item.year}}</span>
+                        </div>
+                        <div class="related-title" style="font-size:0.75rem;line-height:1.3;">${{escapeHtml(title)}}</div>
+                        <div class="related-meta">
+                            <span class="badge badge-${{status}} badge-small">${{statusIcon}}</span>
+                            <span style="font-size:0.7rem;color:#888;">${{pct}}</span>
+                        </div>
+                    </div>`;
+                }};
+
+                // Most similar measures — tile grid
                 if (ctx.top_similar && ctx.top_similar.length > 0) {{
-                    ctxHtml += `<div style="font-size:0.8rem;font-weight:600;margin-top:0.75rem;margin-bottom:0.25rem;">Most similar past measures:</div>`;
-                    ctx.top_similar.forEach(ts => {{
-                        const status = ts.passed === 1 ? '<span style="color:#2D9D78;">Passed</span>' : '<span style="color:#E54D4D;">Failed</span>';
-                        const title = ts.title ? ts.title.substring(0, 80) : 'Untitled';
-                        const pct = ts.percent_yes ? ` (${{ts.percent_yes}}% YES)` : '';
-                        ctxHtml += `<div style="font-size:0.8rem;padding:0.3rem 0;border-bottom:1px solid #eee;">`;
-                        ctxHtml += `<strong>${{ts.year}}</strong> ${{ts.county}} — ${{status}}${{pct}}`;
-                        ctxHtml += `<div style="color:#777;margin-top:1px;">${{escapeHtml(title)}}</div>`;
-                        ctxHtml += `</div>`;
-                    }});
+                    ctxHtml += `<div style="font-size:0.8rem;font-weight:600;margin-top:0.75rem;margin-bottom:0.4rem;">Most similar past measures:</div>`;
+                    ctxHtml += `<div class="measure-detail-related" style="grid-template-columns:repeat(3,1fr);gap:0.4rem;">`;
+                    ctx.top_similar.forEach(ts => {{ ctxHtml += buildContextTile(ts); }});
+                    ctxHtml += `</div>`;
                 }}
 
-                // Closest races
+                // Closest races — tile grid
                 if (ctx.closest_races && ctx.closest_races.length > 0) {{
-                    ctxHtml += `<div style="font-size:0.8rem;font-weight:600;margin-top:0.75rem;margin-bottom:0.25rem;">Closest races on similar measures:</div>`;
-                    ctx.closest_races.forEach(cr => {{
-                        const status = cr.passed === 1 ? '<span style="color:#2D9D78;">Passed</span>' : '<span style="color:#E54D4D;">Failed</span>';
-                        const title = cr.title ? cr.title.substring(0, 80) : 'Untitled';
-                        ctxHtml += `<div style="font-size:0.8rem;padding:0.25rem 0;border-bottom:1px solid #eee;">`;
-                        ctxHtml += `<strong>${{cr.year}}</strong> ${{cr.county}} — ${{status}} (${{cr.percent_yes}}% YES) — ${{escapeHtml(title)}}`;
-                        ctxHtml += `</div>`;
-                    }});
+                    ctxHtml += `<div style="font-size:0.8rem;font-weight:600;margin-top:0.75rem;margin-bottom:0.4rem;">Closest races on similar measures:</div>`;
+                    ctxHtml += `<div class="measure-detail-related" style="grid-template-columns:repeat(3,1fr);gap:0.4rem;">`;
+                    ctx.closest_races.forEach(cr => {{ ctxHtml += buildContextTile(cr); }});
+                    ctxHtml += `</div>`;
                 }}
 
                 ctxHtml += `</div>`;
