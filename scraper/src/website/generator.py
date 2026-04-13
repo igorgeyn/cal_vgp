@@ -1027,62 +1027,90 @@ class WebsiteGenerator:
             </div>
 
             <div class="modal-body">
+                <!-- Fixed header (always visible) -->
                 <h2 id="modalTitle" class="measure-detail-title"></h2>
-
                 <div id="modalJurisdiction" class="measure-detail-jurisdiction"></div>
-
                 <div class="measure-detail-badges" id="modalBadges"></div>
 
-                <div id="modalTimelineSection" class="measure-detail-section" style="display: none;">
-                    <h3>📍 Status</h3>
-                    <div id="modalTimeline"></div>
-                </div>
+                <!-- Tab navigation — dictionary/planner style -->
+                <div class="modal-tab-container">
+                    <div class="modal-tabs">
+                        <button class="modal-tab active" data-tab="main" onclick="switchModalTab('main')">Main</button>
+                        <button class="modal-tab" data-tab="research" onclick="switchModalTab('research')">Research</button>
+                        <button class="modal-tab" data-tab="finance" onclick="switchModalTab('finance')">Finance</button>
+                    </div>
 
-                <div class="measure-detail-section">
-                    <h3>📝 Summary</h3>
-                    <p id="modalSummary" class="measure-detail-summary"></p>
-                    <span id="summaryToggle" class="summary-toggle" style="display:none;" onclick="toggleSummary()">Show more</span>
-                </div>
+                    <!-- TAB: Main -->
+                    <div class="modal-tab-panel active" id="tabMain">
+                        <div id="modalTimelineSection" class="measure-detail-section" style="display: none;">
+                            <h3>📍 Status</h3>
+                            <div id="modalTimeline"></div>
+                        </div>
 
-                <div id="modalResultsSection" class="measure-detail-section" style="display: none;">
-                    <h3>📊 Results</h3>
-                    <div class="measure-detail-results">
-                        <div class="result-bar-container">
-                            <div class="result-bar">
-                                <div id="modalYesBar" class="result-bar-yes"></div>
-                            </div>
-                            <div class="result-labels">
-                                <span id="modalYesLabel" class="result-yes-label"></span>
-                                <span id="modalNoLabel" class="result-no-label"></span>
+                        <div class="measure-detail-section">
+                            <h3>📝 Summary</h3>
+                            <p id="modalSummary" class="measure-detail-summary"></p>
+                            <span id="summaryToggle" class="summary-toggle" style="display:none;" onclick="toggleSummary()">Show more</span>
+                        </div>
+
+                        <div id="modalResultsSection" class="measure-detail-section" style="display: none;">
+                            <h3>📊 Results</h3>
+                            <div class="measure-detail-results">
+                                <div class="result-bar-container">
+                                    <div class="result-bar">
+                                        <div id="modalYesBar" class="result-bar-yes"></div>
+                                    </div>
+                                    <div class="result-labels">
+                                        <span id="modalYesLabel" class="result-yes-label"></span>
+                                        <span id="modalNoLabel" class="result-no-label"></span>
+                                    </div>
+                                </div>
+                                <div id="modalTotalVotes" class="result-total"></div>
                             </div>
                         </div>
-                        <div id="modalTotalVotes" class="result-total"></div>
+
+                        <div id="modalBallotQuestion" class="measure-detail-section" style="display: none;">
+                            <h3>📜 Ballot Question</h3>
+                            <p id="modalBallotText" class="measure-detail-ballot-text"></p>
+                        </div>
+
+                        <div id="modalRelatedSection" class="measure-detail-section" style="display: none;">
+                            <h3>🔗 Related Measures</h3>
+                            <div id="modalRelatedMeasures" class="measure-detail-related"></div>
+                        </div>
+
+                        <div id="modalLinksSection" class="measure-detail-section">
+                            <h3>📎 Links</h3>
+                            <div id="modalLinks" class="measure-detail-links"></div>
+                        </div>
                     </div>
-                </div>
 
-                <div id="modalBallotQuestion" class="measure-detail-section" style="display: none;">
-                    <h3>📜 Ballot Question</h3>
-                    <p id="modalBallotText" class="measure-detail-ballot-text"></p>
-                </div>
+                    <!-- TAB: Research -->
+                    <div class="modal-tab-panel" id="tabResearch">
+                        <div id="modalBriefingSection" class="measure-detail-section" style="display: none;">
+                            <h3>📋 Research Briefing <span class="info-tip" data-tip="An AI-generated summary synthesizing official sources, historical context, and key facts about this measure. Produced by CalBallot's research agent.">i</span></h3>
+                            <div id="modalBriefingContent"></div>
+                        </div>
 
-                <div id="modalBriefingSection" class="measure-detail-section" style="display: none;">
-                    <h3>📋 Research Briefing</h3>
-                    <div id="modalBriefingContent"></div>
-                </div>
+                        <div id="modalHistoricalContextSection" class="measure-detail-section">
+                            <div id="modalHistoricalContext"></div>
+                        </div>
 
-                <div id="modalRelatedSection" class="measure-detail-section" style="display: none;">
-                    <h3>🔗 Related Measures</h3>
-                    <div id="modalRelatedMeasures" class="measure-detail-related"></div>
-                </div>
+                        <div id="modalResearchEmpty" class="measure-detail-section" style="display:none;">
+                            <p style="color:var(--text-tertiary);font-style:italic;">No research data available for this measure yet. Research briefings are generated for upcoming and recent measures.</p>
+                        </div>
+                    </div>
 
-                <div id="modalLinksSection" class="measure-detail-section">
-                    <h3>📎 Links</h3>
-                    <div id="modalLinks" class="measure-detail-links"></div>
-                </div>
-
-                <div id="modalFinanceSection" class="measure-detail-section" style="display: none;">
-                    <h3>💰 Money &amp; Coalition</h3>
-                    <div id="modalFinanceContent" class="measure-detail-finance"></div>
+                    <!-- TAB: Finance -->
+                    <div class="modal-tab-panel" id="tabFinance">
+                        <div id="modalFinanceSection" class="measure-detail-section" style="display: none;">
+                            <h3>💰 Money &amp; Coalition</h3>
+                            <div id="modalFinanceContent" class="measure-detail-finance"></div>
+                        </div>
+                        <div id="modalFinanceEmpty" class="measure-detail-section" style="display:none;">
+                            <p style="color:var(--text-tertiary);font-style:italic;">No campaign finance data available for this measure yet.</p>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -2649,16 +2677,16 @@ class WebsiteGenerator:
         .measure-card {
             background: var(--bg-primary);
             border-radius: var(--radius);
-            padding: 1.5rem;
+            padding: 1rem 1.1rem;
             box-shadow: var(--shadow-sm);
             transition: all 0.2s ease;
             cursor: pointer;
             display: flex;
             flex-direction: column;
-            gap: 0.875rem;
+            gap: 0.5rem;
             border: 1px solid #E8E2D4;
-            min-height: 200px;
-            max-height: 400px;
+            min-height: 170px;
+            max-height: 350px;
         }
 
         .measure-card:hover {
@@ -2862,8 +2890,8 @@ class WebsiteGenerator:
         /* Grid View */
         .results-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-            gap: 1rem;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 0.75rem;
         }
         
         /* List View */
@@ -3951,6 +3979,103 @@ class WebsiteGenerator:
             font-size: 0.7rem;
         }
 
+        /* Dictionary/planner-style tabs */
+        .modal-tab-container {
+            position: relative;
+            margin-top: 0.75rem;
+        }
+
+        .modal-tabs {
+            display: flex;
+            gap: 0;
+            border-bottom: 2px solid var(--border);
+            margin-bottom: 0;
+        }
+
+        .modal-tab {
+            position: relative;
+            padding: 0.5rem 1.2rem;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-bottom: none;
+            border-radius: 8px 8px 0 0;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+            transition: var(--transition);
+            margin-right: -1px;
+        }
+
+        .modal-tab:hover {
+            background: var(--bg-primary);
+            color: var(--text-primary);
+        }
+
+        .modal-tab.active {
+            background: var(--bg-primary);
+            color: var(--primary);
+            border-color: var(--border);
+            border-bottom: 2px solid var(--bg-primary);
+            margin-bottom: -2px;
+            z-index: 1;
+            font-weight: 600;
+        }
+
+        .modal-tab-panel {
+            display: none;
+            padding-top: 0.75rem;
+            min-height: 400px;
+        }
+
+        .modal-tab-panel.active {
+            display: block;
+        }
+
+        /* Info tooltip icon */
+        .info-tip {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #4a90c2;
+            color: white;
+            font-size: 10px;
+            font-weight: 700;
+            font-style: normal;
+            cursor: help;
+            margin-left: 5px;
+            vertical-align: middle;
+            position: relative;
+            flex-shrink: 0;
+        }
+        .info-tip::after {
+            content: attr(data-tip);
+            position: absolute;
+            bottom: calc(100% + 6px);
+            left: 50%;
+            transform: translateX(-50%);
+            background: #333;
+            color: #fff;
+            font-size: 0.72rem;
+            font-weight: 400;
+            padding: 6px 10px;
+            border-radius: 6px;
+            white-space: normal;
+            width: 220px;
+            text-align: left;
+            line-height: 1.4;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.15s;
+            z-index: 100;
+        }
+        .info-tip:hover::after {
+            opacity: 1;
+        }
+
         .measure-detail-links {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -4954,7 +5079,7 @@ class WebsiteGenerator:
         // Pagination state
         let pagination = {{
             currentPage: 1,
-            itemsPerPage: 25,
+            itemsPerPage: 12,
             totalPages: 0
         }};
 
@@ -6759,6 +6884,8 @@ class WebsiteGenerator:
                     <div class="pagination-info">
                         <span>Showing ${{showingStart.toLocaleString()}}–${{showingEnd.toLocaleString()}} of ${{filteredMeasures.length.toLocaleString()}}</span>
                         <select class="page-size-select" onchange="updateItemsPerPage(this.value)">
+                            <option value="12" ${{pagination.itemsPerPage === 12 ? 'selected' : ''}}>12 per page</option>
+                            <option value="10" ${{pagination.itemsPerPage === 10 ? 'selected' : ''}}>10 per page</option>
                             <option value="25" ${{pagination.itemsPerPage === 25 ? 'selected' : ''}}>25 per page</option>
                             <option value="50" ${{pagination.itemsPerPage === 50 ? 'selected' : ''}}>50 per page</option>
                             <option value="100" ${{pagination.itemsPerPage === 100 ? 'selected' : ''}}>100 per page</option>
@@ -6996,6 +7123,9 @@ class WebsiteGenerator:
             const modal = document.getElementById('measureDetailModal');
             const isPending = isPendingMeasure(measure);
 
+            // Reset to Main tab
+            switchModalTab('main');
+
             // Populate header - use human-readable measure ID
             document.getElementById('modalMeasureId').textContent = getDisplayMeasureId(measure) || '';
             document.getElementById('modalYear').textContent = measure.year || '';
@@ -7173,12 +7303,12 @@ class WebsiteGenerator:
                         (cons && cons.length > 0 && cons[0] !== 'Not yet available.')) {{
                         bHtml += `<div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:0.75rem;">`;
                         if (pros && pros.length > 0 && pros[0] !== 'Not yet available.') {{
-                            bHtml += `<div><div style="font-weight:600;color:#2D9D78;margin-bottom:0.3rem;font-size:0.85rem;">Arguments For</div>`;
+                            bHtml += `<div><div style="font-weight:600;color:#2D9D78;margin-bottom:0.3rem;font-size:0.85rem;">Arguments For <span class="info-tip" data-tip="Key arguments in favor of this measure, drawn from official sources, ballot arguments, and nonpartisan analyses.">i</span></div>`;
                             pros.forEach(p => {{ bHtml += `<div style="font-size:0.8rem;margin-bottom:0.3rem;">+ ${{escapeHtml(p)}}</div>`; }});
                             bHtml += `</div>`;
                         }}
                         if (cons && cons.length > 0 && cons[0] !== 'Not yet available.') {{
-                            bHtml += `<div><div style="font-weight:600;color:#E54D4D;margin-bottom:0.3rem;font-size:0.85rem;">Arguments Against</div>`;
+                            bHtml += `<div><div style="font-weight:600;color:#E54D4D;margin-bottom:0.3rem;font-size:0.85rem;">Arguments Against <span class="info-tip" data-tip="Key arguments against this measure, drawn from official sources, ballot arguments, and nonpartisan analyses.">i</span></div>`;
                             cons.forEach(c => {{ bHtml += `<div style="font-size:0.8rem;margin-bottom:0.3rem;">\u2013 ${{escapeHtml(c)}}</div>`; }});
                             bHtml += `</div>`;
                         }}
@@ -7269,11 +7399,12 @@ class WebsiteGenerator:
                 links.push('<span class="no-summary-text" style="grid-column:1/-1;">No external links available</span>');
             }}
 
-            // Add historical context for pending measures
-            if (isPending && measure.historical_context) {{
+            // Render historical context in Research tab (not in Links section)
+            const histCtxEl = document.getElementById('modalHistoricalContext');
+            if (measure.historical_context) {{
                 const ctx = measure.historical_context;
-                let ctxHtml = `<div class="pending-context" style="background:#f8f6f0;border:1px solid #e0dac8;border-radius:8px;padding:1rem;margin-top:0.75rem;">`;
-                ctxHtml += `<div style="font-weight:600;font-size:0.95rem;margin-bottom:0.5rem;">📊 Measures Like This</div>`;
+                let ctxHtml = `<div style="padding:0.5rem 0;">`;
+                ctxHtml += `<h3>📊 Measures Like This <span class="info-tip" data-tip="Semantically similar past measures found using AI embeddings across CalBallot's 12,000+ measure database. Shows how voters decided on comparable issues.">i</span></h3>`;
                 ctxHtml += `<div style="font-size:0.85rem;color:#555;line-height:1.5;">`;
                 ctxHtml += `We found <strong>${{ctx.total_similar}}</strong> semantically similar past measures (mostly <strong>${{ctx.matched_topic}}</strong>). `;
                 ctxHtml += `They passed <strong>${{ctx.pass_rate}}%</strong> of the time `;
@@ -7323,7 +7454,11 @@ class WebsiteGenerator:
                 }}
 
                 ctxHtml += `</div>`;
-                links.push(ctxHtml);
+                histCtxEl.innerHTML = ctxHtml;
+                histCtxEl.parentElement.style.display = 'block';
+            }} else {{
+                histCtxEl.innerHTML = '';
+                histCtxEl.parentElement.style.display = 'none';
             }}
 
             // Add pending disclaimer
@@ -7350,6 +7485,27 @@ class WebsiteGenerator:
         }}
 
         // Close measure detail modal
+        function switchModalTab(tabName) {{
+            // Switch active tab button
+            document.querySelectorAll('.modal-tab').forEach(t => {{
+                t.classList.toggle('active', t.dataset.tab === tabName);
+            }});
+            // Switch active panel
+            document.querySelectorAll('.modal-tab-panel').forEach(p => {{
+                p.classList.toggle('active', p.id === 'tab' + tabName.charAt(0).toUpperCase() + tabName.slice(1));
+            }});
+            // Show empty states if no data
+            if (tabName === 'finance') {{
+                const hasFinance = document.getElementById('modalFinanceSection').style.display !== 'none';
+                document.getElementById('modalFinanceEmpty').style.display = hasFinance ? 'none' : 'block';
+            }}
+            if (tabName === 'research') {{
+                const hasBriefing = document.getElementById('modalBriefingSection').style.display !== 'none';
+                const hasContext = document.getElementById('modalHistoricalContext').innerHTML.trim().length > 0;
+                document.getElementById('modalResearchEmpty').style.display = (hasBriefing || hasContext) ? 'none' : 'block';
+            }}
+        }}
+
         function closeMeasureDetail() {{
             const modal = document.getElementById('measureDetailModal');
             modal.style.display = 'none';
@@ -7372,6 +7528,13 @@ class WebsiteGenerator:
         // Set view mode
         function setView(view) {{
             currentView = view;
+            // Set default items per page based on view
+            if (view === 'grid') {{
+                pagination.itemsPerPage = 12;
+            }} else if (view === 'list') {{
+                pagination.itemsPerPage = 10;
+            }}
+            pagination.currentPage = 1;
             // Update header view buttons (legacy)
             document.querySelectorAll('.view-btn').forEach(btn => btn.classList.remove('active'));
             const headerBtn = document.getElementById(view + 'View');
