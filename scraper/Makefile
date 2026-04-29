@@ -1,7 +1,7 @@
 # California Ballot Measures - Fixed Makefile
 # For use with the reorganized project structure
 
-.PHONY: help install setup update scrape check website api clean test backup restore migrate
+.PHONY: help install setup update scrape check insights website api clean test backup restore migrate
 
 # Default - show help
 help:
@@ -66,6 +66,7 @@ check:
 
 website:
 	@echo "🌐 Generating website..."
+	@python scripts/generate_insights.py
 	@python scripts/generate_site.py --force
 	@echo ""
 	@echo "✓ Checking files were created..."
@@ -74,6 +75,10 @@ website:
 	@echo "📂 Files ready for deployment:"
 	@echo "  - scraper/index.html (for local testing)"
 	@echo "  - index.html (project root, for GitHub Pages)"
+
+insights:
+	@echo "📊 Generating insights analysis payload..."
+	@python scripts/generate_insights.py
 
 website-preview: website
 	@echo "👀 Opening website in browser..."

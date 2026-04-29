@@ -10,7 +10,7 @@
 
 ## What It Does
 
-This constitutional amendment would eliminate the simultaneous successor election from California's recall process. Instead of voters choosing both whether to recall an officer and who should replace them on the same ballot, recalled officers would be replaced according to existing constitutional succession rules, such as the Lieutenant Governor automatically becoming Governor (CalBallot existing summary).
+This constitutional amendment would eliminate the simultaneous successor election from California's recall process. Instead of voters choosing both whether to recall an officer and who should replace them on the same ballot, recalled officials would be replaced according to existing constitutional succession rules, such as the Lieutenant Governor becoming Governor (CalBallot).
 
 ## Why It's on the Ballot
 
@@ -22,8 +22,8 @@ This constitutional amendment would eliminate the simultaneous successor electio
 
 ## Arguments For
 
-- Prevents a replacement from being chosen by a slim plurality rather than majority support, addressing concerns about democratic legitimacy (CalBallot existing summary)
-- Removes political gamesmanship from the recall process by using established succession rules (CalBallot existing summary)
+- Prevents replacement candidates from winning with a small plurality rather than majority support (CalBallot)
+- Removes political gamesmanship from the recall process by using established succession rules (CalBallot)
 
 ## Arguments Against
 
@@ -32,7 +32,7 @@ This constitutional amendment would eliminate the simultaneous successor electio
 
 ## Proponents
 
-- Senator Josh Newman (author)
+- Senator Josh Newman
 
 ## Opponents
 
@@ -40,7 +40,7 @@ This constitutional amendment would eliminate the simultaneous successor electio
 
 ## Historical Context
 
-California has seen 20 semantically similar measures related to recall reform in the past (CalBallot database). The state's current recall process gained national attention during the 2021 gubernatorial recall attempt and the 2003 recall that replaced Governor Gray Davis with Arnold Schwarzenegger.
+California has 20 semantically similar past measures in its ballot history (CalBallot). Not yet available.
 
 ## Expert Analysis
 

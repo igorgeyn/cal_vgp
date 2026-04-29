@@ -29,8 +29,10 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from src.config import DB_PATH, DATA_DIR
 from src.research.sources.historical import get_historical_context
+from src.research.sources.finance import get_finance_facts
 from src.research.extractors.llm import LLMExtractor
 from src.research.output.markdown import save_report
+from src.research.spec import load_briefing_spec
 
 logging.basicConfig(
     level=logging.INFO,
@@ -92,11 +94,23 @@ def research_measure_minimal(measure: Dict, conn: sqlite3.Connection,
             'source': 'Official ballot question',
             'extracted': {'what_it_does': measure['ballot_question'][:500]}
         })
+    if measure.get('description'):
+        facts.append({
+            'source': 'Measure description',
+            'extracted': {'what_it_does': measure['description'][:1000]}
+        })
+
+    # Real campaign finance for statewide measures (CAL-ACCESS)
+    finance_fact = get_finance_facts(measure)
+    if finance_fact:
+        facts.append(finance_fact)
 
     # Synthesize
     briefing = extractor.synthesize_briefing(measure, facts, historical)
 
     sources = [{'name': 'CalBallot Database', 'url': 'https://cal-vgp.igorgeyn.com'}]
+    if finance_fact:
+        sources.append({'name': 'CAL-ACCESS Campaign Finance', 'url': 'https://cal-access.sos.ca.gov/'})
 
     return {
         'briefing': briefing,
@@ -123,6 +137,12 @@ def research_measure_standard(measure: Dict, conn: sqlite3.Connection,
             'source': 'CalBallot existing summary',
             'extracted': {'what_it_does': measure['summary_text']}
         })
+
+    # Real campaign finance for statewide measures (CAL-ACCESS)
+    finance_fact = get_finance_facts(measure)
+    if finance_fact:
+        facts.append(finance_fact)
+        sources_consulted.append({'name': 'CAL-ACCESS Campaign Finance', 'url': 'https://cal-access.sos.ca.gov/'})
 
     # Fetch official sources
     from src.utils.external_links import generate_external_links
@@ -182,8 +202,14 @@ def research_measure_standard(measure: Dict, conn: sqlite3.Connection,
     }
 
 
-def write_results(db, measure_id: int, result: Dict) -> None:
-    """Write research results to the database via update_measure() (respects field protection)."""
+def write_results(db, measure_id: int, result: Dict,
+                  spec_version: str = "missing", spec_hash: str = "missing") -> None:
+    """Write research results to the database via update_measure() (respects field protection).
+
+    research_sources is persisted as a structured JSON object:
+        {"sources": [...], "spec_version": "0.1", "spec_hash": "abc..."}
+    so stale briefings can be identified by spec hash.
+    """
     from src.database.operations import Database
 
     briefing = result.get('briefing', {})
@@ -195,6 +221,12 @@ def write_results(db, measure_id: int, result: Dict) -> None:
                  'error' in briefing_text.lower()[:50] or
                  len(briefing_text) < 20)
 
+    sources_payload = {
+        'sources': [s.get('name', str(s)) for s in result.get('sources', [])],
+        'spec_version': spec_version,
+        'spec_hash': spec_hash,
+    }
+
     updates = {
         'briefing_text': briefing_text if not is_failed else None,
         'fiscal_impact': briefing.get('fiscal_impact'),
@@ -205,7 +237,7 @@ def write_results(db, measure_id: int, result: Dict) -> None:
         'research_status': 'failed' if is_failed else 'complete',
         'research_depth': result.get('depth', 'minimal'),
         'research_updated_at': datetime.now().isoformat(),
-        'research_sources': json.dumps([s.get('name', str(s)) for s in result.get('sources', [])]),
+        'research_sources': json.dumps(sources_payload),
     }
 
     # Strip None values so update_measure() protection works
@@ -241,6 +273,9 @@ def main():
     parser.add_argument("--resume", action="store_true", help="Resume from checkpoint")
     parser.add_argument("--model", type=str, default="claude-sonnet-4-20250514",
                         help="LLM model to use")
+    parser.add_argument("--spec-path", type=str, default=None,
+                        help="Path to the governing briefing spec (default: plans/briefing-spec.md). "
+                             "Overrides BRIEFING_SPEC_PATH env var.")
     args = parser.parse_args()
 
     from src.database.operations import Database
@@ -271,8 +306,18 @@ def main():
     measures = [m for m in measures if m['id'] not in processed_ids]
     logger.info(f"Will research {len(measures)} measures")
 
+    # Load the governing briefing spec
+    from pathlib import Path as _Path
+    spec_path = _Path(args.spec_path) if args.spec_path else None
+    spec_text, spec_version, spec_hash = load_briefing_spec(spec_path)
+
     # Initialize LLM extractor
-    extractor = LLMExtractor(model=args.model)
+    extractor = LLMExtractor(
+        model=args.model,
+        spec_text=spec_text,
+        spec_version=spec_version,
+        spec_hash=spec_hash,
+    )
 
     stats = {"processed": 0, "errors": 0, "start": datetime.now().isoformat()}
 
@@ -286,7 +331,9 @@ def main():
                     result = research_measure_standard(measure, conn, extractor)
 
                 # Write to DB via protected update_measure()
-                write_results(db, measure['id'], result)
+                write_results(db, measure['id'], result,
+                              spec_version=extractor.spec_version,
+                              spec_hash=extractor.spec_hash)
                 db.conn.commit()
 
                 # Generate standalone report

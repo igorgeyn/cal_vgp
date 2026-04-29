@@ -57,3 +57,6 @@ scraper/data/ballot_measures_*.db
 # Logs
 *.log
 logs/
+
+# Local planning docs (not for publication)
+plans/

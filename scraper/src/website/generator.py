@@ -395,6 +395,21 @@ class WebsiteGenerator:
             logger.warning(f"Could not load finance data: {e}")
             return {}
 
+    def _load_insights_data(self) -> Dict:
+        """Load compact precomputed Insights data."""
+        insights_path = BASE_DIR / "data" / "insights.json"
+        if not insights_path.exists():
+            logger.info("Insights data not found, skipping Insights payload")
+            return {}
+        try:
+            with open(insights_path, "r", encoding="utf-8") as f:
+                payload = json.load(f)
+            logger.info(f"Loaded Insights data from {insights_path}")
+            return payload
+        except Exception as e:
+            logger.warning(f"Could not load Insights data: {e}")
+            return {}
+
     def _generate_html(self, measures: List[Dict], stats: Dict,
                       topics: List[Dict], recommendations: Dict = None) -> str:
         """Generate the complete HTML with type safety"""
@@ -412,6 +427,10 @@ class WebsiteGenerator:
         finance_data = self._load_finance_data()
         finance_json = json.dumps(finance_data, default=str)
 
+        # Load compact analysis payload if available
+        insights_data = self._load_insights_data()
+        insights_json = json.dumps(insights_data, default=str)
+
         # Generate quiz questions
         quiz_questions = self._generate_quiz_questions(measures, stats)
         quiz_json = json.dumps(quiz_questions, default=str)
@@ -425,6 +444,9 @@ class WebsiteGenerator:
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CalBallot — California Ballot Measures</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/topojson-client@3/dist/topojson-client.min.js"></script>
     <style>
         {self._get_css()}
     </style>
@@ -463,6 +485,14 @@ class WebsiteGenerator:
                         <rect x="3" y="11" width="18" height="2"></rect>
                         <rect x="3" y="18" width="18" height="2"></rect>
                     </svg>
+                </button>
+                <button class="view-btn" id="insightsView" onclick="setView('insights')" title="Insights: reported analysis from the data">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                        <rect x="4" y="12" width="3" height="8" rx="1"></rect>
+                        <rect x="10.5" y="7" width="3" height="13" rx="1"></rect>
+                        <rect x="17" y="3" width="3" height="17" rx="1"></rect>
+                    </svg>
+                    Insights
                 </button>
                 <button class="view-btn" id="exploreView" onclick="setView('explore')" title="Explore: topic × jurisdiction matrix">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
@@ -513,6 +543,19 @@ class WebsiteGenerator:
                     <div class="view-card-text">
                         <span class="view-card-title">List</span>
                         <span class="view-card-desc">Compact list for quick scanning</span>
+                    </div>
+                </button>
+                <button class="view-card" id="insightsViewCard" onclick="setView('insights')">
+                    <div class="view-card-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                            <rect x="4" y="12" width="3.5" height="8" rx="1"></rect>
+                            <rect x="10.25" y="7" width="3.5" height="13" rx="1"></rect>
+                            <rect x="16.5" y="3" width="3.5" height="17" rx="1"></rect>
+                        </svg>
+                    </div>
+                    <div class="view-card-text">
+                        <span class="view-card-title">Insights</span>
+                        <span class="view-card-desc">Reported analysis from the full dataset</span>
                     </div>
                 </button>
                 <button class="view-card" id="exploreViewCard" onclick="setView('explore')">
@@ -574,6 +617,206 @@ class WebsiteGenerator:
                     </div>
                 </div>
             </div>
+
+            <!-- Insights Section -->
+            <section class="insights-view" id="insightsSection" style="display: none;">
+                <div class="insights-kicker">Analysis</div>
+                <div class="insights-hero">
+                    <div>
+                        <h2>What California ballot measures reveal</h2>
+                        <p>
+                            A reported-analysis view of the full CalBallot dataset: what voters approve,
+                            where the ballot is busiest, which rules change outcomes, and where campaign
+                            money reshapes statewide fights.
+                        </p>
+                    </div>
+                    <div class="insights-method-card">
+                        <span class="method-label">Dataset</span>
+                        <strong id="insightsDatasetLabel">Active, non-duplicate measures</strong>
+                        <span id="insightsGeneratedLabel">Precomputed analysis payload</span>
+                    </div>
+                </div>
+
+                <div class="insights-analysis-shell">
+                    <nav class="insights-side-nav" aria-label="Insights sections">
+                        <span>Sections</span>
+                        <a href="#insightsOverview" class="active">Overview</a>
+                        <a href="#insightsKeyFindings">Key Findings</a>
+                        <a href="#insightsTrendPanel">Trend</a>
+                        <a href="#insightsTopicsPanel">Topics</a>
+                        <a href="#insightsTypesPanel">Measure Types</a>
+                        <a href="#insightsGeographyPanel">Geography</a>
+                        <a href="#insightsRulesPanel">Rules</a>
+                        <a href="#insightsClosePanel">Close Calls</a>
+                        <a href="#insightsFinanceSection">Finance</a>
+                        <a href="#insightsMethodologySection">Methodology</a>
+                    </nav>
+
+                    <div class="insights-analysis-content">
+                <div class="insights-carousel" id="insightsCarousel">
+                    <button class="insights-carousel-arrow insights-carousel-arrow-prev" onclick="moveInsightsSlide(-1)" aria-label="Previous insight">
+                        <span aria-hidden="true">&lsaquo;</span>
+                    </button>
+                    <div class="insights-carousel-viewport">
+                        <div class="insights-carousel-track" id="insightsCarouselTrack">
+                <section class="insights-carousel-slide insights-anchor-target" id="insightsOverview">
+                    <div class="insights-metrics" id="insightsMetrics"></div>
+                </section>
+
+                <section class="insights-carousel-slide insights-anchor-target" id="insightsKeyFindings">
+                    <div class="insights-findings" id="insightsFindings"></div>
+                </section>
+
+                    <article class="insight-panel insight-panel-wide insights-carousel-slide insights-anchor-target" id="insightsTrendPanel">
+                        <div class="panel-heading">
+                            <div>
+                                <span class="panel-eyebrow">Trend</span>
+                                <h3>Ballot activity rises and falls with election cycles</h3>
+                            </div>
+                            <span class="confidence-badge">High confidence</span>
+                        </div>
+                        <p class="panel-deck">Annual counts, decade composition, and election-cycle patterns show when California voters faced the heaviest measure load.</p>
+                        <div id="trendInsightSummary" class="mini-callouts"></div>
+                        <div class="analysis-chart-grid">
+                            <div class="chart-module chart-module-wide">
+                                <h4>Annual volume and pass rate</h4>
+                                <div class="chart-wrap"><canvas id="insightsYearChart"></canvas></div>
+                            </div>
+                            <div class="chart-module">
+                                <h4>Local vs. statewide by decade</h4>
+                                <div class="chart-wrap compact"><canvas id="insightsDecadeChart"></canvas></div>
+                            </div>
+                            <div class="chart-module">
+                                <h4>Election-cycle load</h4>
+                                <div class="chart-wrap compact"><canvas id="insightsElectionCycleChart"></canvas></div>
+                            </div>
+                        </div>
+                        <p class="method-note">Method: active records by election year. Trend fits are descriptive and not coverage-adjusted.</p>
+                    </article>
+
+                    <article class="insight-panel insights-carousel-slide insights-anchor-target" id="insightsTopicsPanel">
+                        <div class="panel-heading">
+                            <div>
+                                <span class="panel-eyebrow">Topics</span>
+                                <h3>The issue mix is broad, but unevenly classified</h3>
+                            </div>
+                        </div>
+                        <p class="panel-deck">CEDA supplies many local records with reliable measure types but sparse topical text.</p>
+                        <div class="analysis-chart-grid single-column">
+                            <div class="chart-module">
+                                <h4>Overall topic mix</h4>
+                                <div class="chart-wrap compact"><canvas id="insightsTopicChart"></canvas></div>
+                            </div>
+                            <div class="chart-module">
+                                <h4>Topic share by decade</h4>
+                                <div class="chart-wrap compact"><canvas id="insightsTopicTrendChart"></canvas></div>
+                            </div>
+                        </div>
+                        <div id="topicTrendSummary" class="compact-list"></div>
+                        <p class="method-note">Method: consolidated display topics. Treat large Other counts as a data limitation, not a substantive topic.</p>
+                    </article>
+
+                    <article class="insight-panel insights-carousel-slide insights-anchor-target" id="insightsTypesPanel">
+                        <div class="panel-heading">
+                            <div>
+                                <span class="panel-eyebrow">Measure Types</span>
+                                <h3>Fiscal tools dominate the local ballot</h3>
+                            </div>
+                        </div>
+                        <p class="panel-deck">Measure type is the cleaner lens for CEDA-heavy local records.</p>
+                        <div class="analysis-chart-grid single-column">
+                            <div class="chart-module">
+                                <h4>Largest measure types</h4>
+                                <div class="chart-wrap compact"><canvas id="insightsTypeChart"></canvas></div>
+                            </div>
+                            <div class="chart-module">
+                                <h4>Fiscal share over time</h4>
+                                <div class="chart-wrap compact"><canvas id="insightsFiscalTrendChart"></canvas></div>
+                            </div>
+                        </div>
+                        <div id="typeInsightSummary" class="mini-callouts"></div>
+                        <div id="typeRankingsList" class="compact-list"></div>
+                        <p class="method-note">Method: normalized category type from source records.</p>
+                    </article>
+
+                    <article class="insight-panel insight-panel-wide insights-carousel-slide insights-anchor-target" id="insightsGeographyPanel">
+                        <div class="panel-heading">
+                            <div>
+                                <span class="panel-eyebrow">Geography</span>
+                                <h3>The map of ballot activity is not evenly distributed</h3>
+                            </div>
+                            <span class="confidence-badge">Raw counts</span>
+                        </div>
+                        <p class="panel-deck">County totals reflect local-government density and source coverage. They are not population adjusted.</p>
+                        <div class="county-map-layout">
+                            <div id="californiaCountyMap" class="county-map"></div>
+                            <div class="county-map-side">
+                                <h4>Busiest counties</h4>
+                                <div id="countyLeaderboard"></div>
+                                <div id="regionInsightSummary" class="mini-callouts mini-callouts-single"></div>
+                            </div>
+                        </div>
+                        <p class="method-note">Method: active local records grouped by normalized county name. Map geometry loads from the public us-atlas county topology.</p>
+                    </article>
+
+                    <article class="insight-panel insights-carousel-slide insights-anchor-target" id="insightsRulesPanel">
+                        <div class="panel-heading">
+                            <div>
+                                <span class="panel-eyebrow">Rules</span>
+                                <h3>Thresholds can turn majorities into losses</h3>
+                            </div>
+                        </div>
+                        <p class="panel-deck">Simple-majority elections are not the same world as 55% or two-thirds contests.</p>
+                        <div class="chart-wrap compact"><canvas id="insightsThresholdChart"></canvas></div>
+                        <div id="thresholdCallouts" class="mini-callouts"></div>
+                        <div id="thresholdStatsSummary" class="compact-list"></div>
+                        <p class="method-note">Method: pass/fail codes and vote-threshold fields; known edge cases remain under review.</p>
+                    </article>
+
+                    <article class="insight-panel insights-carousel-slide insights-anchor-target" id="insightsClosePanel">
+                        <div class="panel-heading">
+                            <div>
+                                <span class="panel-eyebrow">Close Calls</span>
+                                <h3>Many outcomes are decided near 50%</h3>
+                            </div>
+                        </div>
+                        <p class="panel-deck">The closest races are a useful quality check and an editorial trailhead.</p>
+                        <div id="closeCallSummary" class="mini-callouts"></div>
+                        <div id="closeMeasuresList" class="compact-list"></div>
+                        <p class="method-note">Method: records with valid percent yes; margin shown around 50%, not legal threshold.</p>
+                    </article>
+
+                    <article class="insight-panel insight-panel-wide insights-carousel-slide insights-anchor-target" id="insightsFinanceSection">
+                        <div class="panel-heading">
+                            <div>
+                                <span class="panel-eyebrow">Campaign Finance</span>
+                                <h3>Statewide propositions can become billion-dollar fights</h3>
+                            </div>
+                            <span class="confidence-badge">Statewide only</span>
+                        </div>
+                        <p class="panel-deck">Finance coverage is intentionally scoped to matched statewide propositions from CalAccess.</p>
+                        <div id="financeInsightSummary" class="mini-callouts finance-summary-callouts"></div>
+                        <div class="finance-insights-grid">
+                            <div class="chart-wrap compact"><canvas id="insightsFinanceChart"></canvas></div>
+                            <div id="financeTopMeasures" class="compact-list"></div>
+                        </div>
+                        <p class="method-note">Method: pre-aggregated finance_statewide.db summaries by measure and stance.</p>
+                    </article>
+
+                <details class="insights-methodology insights-carousel-slide insights-anchor-target" id="insightsMethodologySection">
+                    <summary>How these insights were calculated</summary>
+                    <div id="insightsMethodology"></div>
+                </details>
+                        </div>
+                    </div>
+                    <button class="insights-carousel-arrow insights-carousel-arrow-next" onclick="moveInsightsSlide(1)" aria-label="Next insight">
+                        <span aria-hidden="true">&rsaquo;</span>
+                    </button>
+                </div>
+                <div class="insights-carousel-status" id="insightsCarouselStatus">1 / 10</div>
+                    </div>
+                </div>
+            </section>
 
             <!-- Filter Section (redesigned) -->
             <div class="filter-section-wrapper">
@@ -730,6 +973,14 @@ class WebsiteGenerator:
                         <p class="panel-hint">Filter by measure type (GO Bond, Property Tax, Sales Tax, etc.)</p>
                         <div class="measure-type-cards" id="measureTypeCards"></div>
                     </div>
+                </div>
+
+                <div class="active-filter-summary" id="activeFilterSummary" style="display: none;" aria-live="polite">
+                    <div class="active-filter-summary-header">
+                        <span>Active filters</span>
+                        <button type="button" onclick="clearAllFilters()">Clear all</button>
+                    </div>
+                    <div class="active-filter-chips" id="activeFilterChips"></div>
                 </div>
             </div>
 
@@ -1117,7 +1368,7 @@ class WebsiteGenerator:
     </div>
 
     <script>
-        {self._get_javascript(measures_json, topics_json, recommendations_json, stats, quiz_json, finance_json)}
+        {self._get_javascript(measures_json, topics_json, recommendations_json, stats, quiz_json, finance_json, insights_json)}
         {self._get_chat_javascript()}
     </script>
 </body>
@@ -1284,21 +1535,26 @@ class WebsiteGenerator:
 
         /* Explore Matrix - Clean Modern Design */
         .matrix-wrapper {
-            margin: 1rem 0;
-            border-radius: 12px;
+            margin: 0 0 1rem;
+            border-radius: 10px;
             background: #FDFCFA;
             border: 1px solid #E5E0D8;
             box-shadow: 0 2px 8px rgba(0,0,0,0.04);
         }
         .matrix-toolbar {
             display: flex;
-            gap: 1rem;
-            padding: 1rem 1.25rem;
+            gap: 0.5rem 0.7rem;
+            padding: 0.55rem 0.75rem;
             border-bottom: 1px solid #E5E0D8;
             align-items: center;
             flex-wrap: wrap;
             background: #F8F6F3;
-            border-radius: 12px 12px 0 0;
+            border-radius: 10px 10px 0 0;
+            font-size: 0.82rem;
+        }
+        .matrix-toolbar > span:first-child {
+            flex: 1 1 280px;
+            min-width: 240px;
         }
         .matrix-toolbar-info {
             color: #666;
@@ -1313,20 +1569,95 @@ class WebsiteGenerator:
             color: #333;
             border: 1px solid #D4CFC5;
             border-radius: 6px;
-            padding: 0.4rem 0.6rem;
-            font-size: 0.8rem;
+            padding: 0.28rem 1.6rem 0.28rem 0.45rem;
+            font-size: 0.76rem;
             cursor: pointer;
             transition: border-color 0.2s;
+        }
+        .matrix-toolbar label {
+            align-items: center;
+            display: inline-flex;
+            gap: 0.35rem;
+            white-space: nowrap;
         }
         .matrix-toolbar select:hover {
             border-color: var(--primary);
         }
+        .matrix-reset-btn {
+            background: #FFFDF8;
+            border: 1px solid #D8CEBB;
+            border-radius: 6px;
+            color: #5F5647;
+            cursor: pointer;
+            font-size: 0.76rem;
+            font-weight: 700;
+            padding: 0.32rem 0.55rem;
+            transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+        }
+        .matrix-reset-btn:hover {
+            background: #FFFFFF;
+            border-color: var(--primary);
+            color: #111;
+        }
+        .matrix-insight-strip {
+            display: grid;
+            gap: 0.65rem;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            padding: 0.75rem;
+            border-bottom: 1px solid #E5E0D8;
+            background: #FFFDF8;
+        }
+        .matrix-insight-card {
+            border: 1px solid #E6DDCC;
+            border-radius: 8px;
+            background: #FFFFFF;
+            padding: 0.7rem 0.8rem;
+            min-width: 0;
+        }
+        .matrix-insight-card span {
+            color: #756B5B;
+            display: block;
+            font-size: 0.68rem;
+            font-weight: 800;
+            letter-spacing: 0.04em;
+            margin-bottom: 0.3rem;
+            text-transform: uppercase;
+        }
+        .matrix-insight-card strong {
+            color: #16120B;
+            display: block;
+            font-size: 0.95rem;
+            line-height: 1.18;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .matrix-insight-card em {
+            color: #6F6656;
+            display: block;
+            font-size: 0.74rem;
+            font-style: normal;
+            margin-top: 0.28rem;
+        }
+        .matrix-toolbar-group {
+            align-items: center;
+            display: inline-flex;
+            gap: 0.35rem;
+            white-space: nowrap;
+        }
+        .matrix-toolbar-group-label {
+            color: #6F6656;
+            font-size: 0.68rem;
+            font-weight: 800;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+        }
         .matrix-legend {
             display: flex;
             align-items: center;
-            gap: 0.5rem;
-            margin-left: auto;
-            font-size: 0.75rem;
+            gap: 0.35rem;
+            margin-left: 0;
+            font-size: 0.68rem;
             color: #888;
         }
         .matrix-legend-label {
@@ -1334,27 +1665,42 @@ class WebsiteGenerator:
         }
         .matrix-legend-bar {
             display: flex;
-            height: 12px;
-            width: 100px;
+            height: 10px;
+            width: 78px;
             border-radius: 6px;
             overflow: hidden;
             box-shadow: inset 0 1px 2px rgba(0,0,0,0.1);
         }
         .matrix-legend-bar span { flex: 1; }
+        .matrix-top-scroll {
+            height: 16px;
+            overflow-x: auto;
+            overflow-y: hidden;
+            border-bottom: 1px solid #E5E0D8;
+            background: #FDFCFA;
+        }
+        .matrix-top-scroll-inner {
+            height: 1px;
+            min-width: 100%;
+        }
         .matrix-scroll {
-            max-height: 65vh;
+            height: clamp(460px, calc(100vh - 250px), 760px);
             overflow: auto;
+        }
+        .matrix-wrapper.matrix-compact .matrix-scroll {
+            height: auto;
+            max-height: calc(100vh - 230px);
         }
         .matrix-table {
             border-collapse: separate;
-            border-spacing: 3px;
-            font-size: 0.8rem;
+            border-spacing: 2px;
+            font-size: 0.74rem;
             min-width: 100%;
-            padding: 0.75rem;
+            padding: 0.45rem;
         }
         .matrix-table th,
         .matrix-table td {
-            padding: 0.6rem 0.75rem;
+            padding: 0.36rem 0.5rem;
             text-align: center;
             white-space: nowrap;
         }
@@ -1365,30 +1711,45 @@ class WebsiteGenerator:
             top: 0;
             z-index: 2;
             user-select: none;
-            font-size: 0.7rem;
+            font-size: 0.64rem;
             font-weight: 600;
             text-transform: uppercase;
             letter-spacing: 0.03em;
-            padding-bottom: 0.75rem;
+            padding-bottom: 0.45rem;
+            vertical-align: bottom;
+        }
+        .matrix-table tfoot th {
+            background: #FDFCFA;
+            color: #666;
+            font-size: 0.64rem;
+            font-weight: 600;
+            letter-spacing: 0.03em;
+            padding-top: 0.45rem;
+            text-transform: uppercase;
         }
         .matrix-table thead th:hover { color: var(--primary); }
+        .matrix-table tfoot th:hover { color: var(--primary); }
         .matrix-table thead th.sorted-asc::after { content: ' ↑'; color: var(--primary); }
         .matrix-table thead th.sorted-desc::after { content: ' ↓'; color: var(--primary); }
         .matrix-table thead th:first-child,
+        .matrix-table tfoot th:first-child,
         .matrix-table td:first-child {
             position: sticky;
             left: 0;
             z-index: 3;
             text-align: left;
-            min-width: 160px;
+            min-width: 138px;
             background: #FDFCFA;
+        }
+        .matrix-table tfoot th:first-child {
+            z-index: 2;
         }
         .matrix-table td:first-child {
             font-weight: 600;
             color: #333;
             z-index: 1;
-            font-size: 0.85rem;
-            padding-left: 0.5rem;
+            font-size: 0.76rem;
+            padding-left: 0.4rem;
         }
         .matrix-table td:first-child:hover { color: var(--primary); }
         .matrix-table th[role="button"],
@@ -1402,10 +1763,10 @@ class WebsiteGenerator:
             border-radius: 6px;
         }
         .matrix-cell {
-            min-width: 80px;
-            border-radius: 8px;
+            min-width: 68px;
+            border-radius: 6px;
             transition: transform 0.15s, box-shadow 0.15s;
-            padding: 0.5rem 0.6rem !important;
+            padding: 0.28rem 0.42rem !important;
         }
         .matrix-cell[role="button"]:hover {
             transform: scale(1.05);
@@ -1416,21 +1777,31 @@ class WebsiteGenerator:
         .matrix-cell.low-conf {
             opacity: 0.6;
         }
+        .matrix-cell.limited-conf {
+            opacity: 0.82;
+        }
         .matrix-cell.low-conf .cell-rate {
             font-size: 0.7rem;
         }
+        .matrix-cell .cell-note {
+            display: block;
+            font-size: 0.54rem;
+            font-weight: 700;
+            color: rgba(255,255,255,0.82);
+            margin-top: 1px;
+        }
         .matrix-cell .cell-rate {
             font-weight: 700;
-            font-size: 0.95rem;
+            font-size: 0.82rem;
             color: #fff;
             text-shadow: 0 1px 2px rgba(0,0,0,0.2);
             display: block;
         }
         .matrix-cell .cell-count {
-            font-size: 0.65rem;
+            font-size: 0.56rem;
             color: rgba(255,255,255,0.75);
             display: block;
-            margin-top: 2px;
+            margin-top: 1px;
             font-weight: 500;
         }
         .matrix-cell.empty-cell {
@@ -1466,6 +1837,57 @@ class WebsiteGenerator:
             color: #666;
             font-weight: 600;
         }
+        .matrix-modal-metrics {
+            display: grid;
+            gap: 0.6rem;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            margin-bottom: 1rem;
+        }
+        .matrix-modal-metric {
+            background: #F8F6F3;
+            border: 1px solid #E5E0D8;
+            border-radius: 8px;
+            padding: 0.65rem;
+            text-align: center;
+        }
+        .matrix-modal-metric strong {
+            display: block;
+            font-size: 1.1rem;
+            line-height: 1.1;
+        }
+        .matrix-modal-metric span {
+            color: #756B5B;
+            display: block;
+            font-size: 0.68rem;
+            font-weight: 700;
+            margin-top: 0.25rem;
+        }
+        .matrix-modal-section {
+            border-top: 1px solid #EEE7DA;
+            padding-top: 0.85rem;
+            margin-top: 0.85rem;
+        }
+        .matrix-modal-section h4 {
+            font-size: 0.78rem;
+            margin: 0 0 0.55rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: #6F6656;
+        }
+        .matrix-modal-list-item {
+            border-bottom: 1px solid #EEE7DA;
+            font-size: 0.8rem;
+            padding: 0.48rem 0;
+        }
+        .matrix-modal-list-item:last-child {
+            border-bottom: none;
+        }
+        .matrix-modal-list-item span {
+            color: #756B5B;
+            display: block;
+            font-size: 0.72rem;
+            margin-top: 0.15rem;
+        }
 
         /* Main Layout */
         .main-container {
@@ -1481,7 +1903,7 @@ class WebsiteGenerator:
         .main-container-full {
             max-width: 1400px;
             margin: 0 auto;
-            padding: 2rem;
+            padding: 1rem 1.5rem 2rem;
         }
 
         .content-full {
@@ -1490,7 +1912,7 @@ class WebsiteGenerator:
 
         /* View Switcher */
         .view-switcher {
-            display: flex;
+            display: none;
             justify-content: center;
             gap: 1rem;
             padding: 1.25rem 1rem;
@@ -1558,6 +1980,7 @@ class WebsiteGenerator:
 
         @media (max-width: 768px) {
             .view-switcher {
+                display: none;
                 flex-direction: column;
                 align-items: center;
                 gap: 0.75rem;
@@ -1598,21 +2021,22 @@ class WebsiteGenerator:
 
         /* Site Introduction */
         .site-intro {
+            display: none;
             text-align: center;
-            padding: 2rem 1rem;
-            margin-bottom: 1.5rem;
-        }
-
-        .intro-title {
-            font-size: 2rem;
-            font-weight: 700;
-            color: var(--text-primary);
+            padding: 0.75rem 1rem 1rem;
             margin-bottom: 0.75rem;
         }
 
+        .intro-title {
+            font-size: 1.35rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 0.35rem;
+        }
+
         .intro-text {
-            font-size: 1.1rem;
-            line-height: 1.6;
+            font-size: 0.9rem;
+            line-height: 1.45;
             color: var(--text-secondary);
             max-width: 700px;
             margin: 0 auto;
@@ -1856,25 +2280,26 @@ class WebsiteGenerator:
         /* Results Header */
         .results-header {
             background: var(--bg-primary);
-            border-radius: var(--radius);
-            padding: 1.5rem;
-            margin-bottom: 1.5rem;
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 0.8rem 1rem;
+            margin-bottom: 0.8rem;
             box-shadow: var(--shadow-sm);
             display: flex;
             align-items: center;
             justify-content: space-between;
             flex-wrap: wrap;
-            gap: 1rem;
+            gap: 0.75rem;
         }
         
         .results-info {
             display: flex;
             align-items: baseline;
-            gap: 1rem;
+            gap: 0.7rem;
         }
         
         .results-count {
-            font-size: 1.5rem;
+            font-size: 1.25rem;
             font-weight: 600;
             color: var(--text-primary);
         }
@@ -2439,9 +2864,9 @@ class WebsiteGenerator:
         .stats-ribbon {
             background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
             border: 1px solid var(--border-color);
-            border-radius: 12px;
-            padding: 1rem 1.5rem;
-            margin-bottom: 1.5rem;
+            border-radius: 10px;
+            padding: 0.55rem 1rem;
+            margin-bottom: 0.8rem;
             box-shadow: var(--shadow-sm);
         }
 
@@ -2449,7 +2874,7 @@ class WebsiteGenerator:
             display: flex;
             justify-content: center;
             align-items: center;
-            gap: 1.5rem;
+            gap: 1rem;
             flex-wrap: wrap;
         }
 
@@ -2457,27 +2882,27 @@ class WebsiteGenerator:
             display: flex;
             flex-direction: column;
             align-items: center;
-            min-width: 80px;
+            min-width: 72px;
         }
 
         .stat-value {
-            font-size: 1.5rem;
+            font-size: 1.16rem;
             font-weight: 700;
             color: var(--primary);
             line-height: 1.2;
         }
 
         .stat-label {
-            font-size: 0.75rem;
+            font-size: 0.62rem;
             color: var(--text-secondary);
             text-transform: uppercase;
             letter-spacing: 0.5px;
-            margin-top: 0.25rem;
+            margin-top: 0.12rem;
         }
 
         .stat-divider {
             width: 1px;
-            height: 40px;
+            height: 28px;
             background: var(--border-color);
         }
 
@@ -2507,9 +2932,9 @@ class WebsiteGenerator:
         .filter-section-wrapper {
             background: var(--bg-primary);
             border: 1px solid var(--border-color);
-            border-radius: 16px;
-            padding: 1.5rem;
-            margin-bottom: 2rem;
+            border-radius: 10px;
+            padding: 0.9rem 1rem;
+            margin-bottom: 0.9rem;
             box-shadow: var(--shadow-sm);
         }
 
@@ -2517,13 +2942,13 @@ class WebsiteGenerator:
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 1.25rem;
+            margin-bottom: 0.7rem;
             flex-wrap: wrap;
-            gap: 1rem;
+            gap: 0.7rem;
         }
 
         .filter-title {
-            font-size: 1.25rem;
+            font-size: 1rem;
             font-weight: 600;
             color: var(--text-primary);
             margin: 0;
@@ -2572,25 +2997,25 @@ class WebsiteGenerator:
 
         .filter-buttons {
             display: flex;
-            justify-content: center;
-            gap: 0.75rem;
+            justify-content: flex-start;
+            gap: 0.5rem;
             flex-wrap: wrap;
         }
 
         .filter-btn {
             display: flex;
             align-items: center;
-            gap: 0.625rem;
-            padding: 0.875rem 1.5rem;
-            background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
-            border: 2px solid var(--border-color);
-            border-radius: 12px;
+            gap: 0.45rem;
+            padding: 0.55rem 0.8rem;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
             cursor: pointer;
             transition: all 0.2s ease;
-            font-size: 0.95rem;
+            font-size: 0.82rem;
             color: var(--text-primary);
             font-weight: 500;
-            min-width: 120px;
+            min-width: auto;
             justify-content: center;
         }
 
@@ -2619,7 +3044,7 @@ class WebsiteGenerator:
         }
 
         .filter-btn-icon {
-            font-size: 1.1rem;
+            font-size: 0.95rem;
         }
 
         .filter-btn-label {
@@ -2629,16 +3054,108 @@ class WebsiteGenerator:
         .filter-btn-count {
             background: var(--bg-tertiary);
             color: var(--text-secondary);
-            font-size: 0.75rem;
+            font-size: 0.68rem;
             font-weight: 600;
-            padding: 0.2rem 0.5rem;
+            padding: 0.1rem 0.35rem;
             border-radius: 10px;
-            min-width: 20px;
+            min-width: 16px;
             text-align: center;
         }
 
         .filter-btn.active .filter-btn-count {
             background: rgba(255, 255, 255, 0.25);
+            color: white;
+        }
+
+        .active-filter-summary {
+            border-top: 1px solid var(--border-color);
+            margin-top: 0.8rem;
+            padding-top: 0.75rem;
+        }
+
+        .active-filter-summary-header {
+            align-items: center;
+            display: flex;
+            justify-content: space-between;
+            gap: 0.75rem;
+            margin-bottom: 0.55rem;
+        }
+
+        .active-filter-summary-header span {
+            color: var(--text-secondary);
+            font-size: 0.74rem;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+        }
+
+        .active-filter-summary-header button {
+            background: transparent;
+            border: 0;
+            color: var(--primary-dark);
+            cursor: pointer;
+            font-size: 0.78rem;
+            font-weight: 700;
+            padding: 0.2rem 0;
+        }
+
+        .active-filter-summary-header button:hover {
+            color: var(--error);
+            text-decoration: underline;
+        }
+
+        .active-filter-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.45rem;
+        }
+
+        .active-filter-chip {
+            align-items: center;
+            background: #fffdfa;
+            border: 1px solid #d9cda5;
+            border-radius: 999px;
+            color: var(--text-primary);
+            display: inline-flex;
+            gap: 0.35rem;
+            max-width: 100%;
+            min-height: 30px;
+            padding: 0.28rem 0.38rem 0.28rem 0.65rem;
+        }
+
+        .active-filter-chip strong {
+            color: var(--text-tertiary);
+            font-size: 0.68rem;
+            font-weight: 800;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+        }
+
+        .active-filter-chip span {
+            font-size: 0.8rem;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .active-filter-chip button {
+            align-items: center;
+            background: rgba(0,0,0,0.06);
+            border: 0;
+            border-radius: 999px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            display: inline-flex;
+            font-size: 0.95rem;
+            height: 20px;
+            justify-content: center;
+            line-height: 1;
+            padding: 0;
+            width: 20px;
+        }
+
+        .active-filter-chip button:hover {
+            background: var(--error);
             color: white;
         }
 
@@ -2670,6 +3187,12 @@ class WebsiteGenerator:
                 min-width: auto;
                 flex: 1;
                 max-width: calc(50% - 0.25rem);
+            }
+
+            .active-filter-summary-header {
+                align-items: flex-start;
+                flex-direction: column;
+                gap: 0.35rem;
             }
         }
 
@@ -4694,6 +5217,318 @@ class WebsiteGenerator:
         .measure-type-chip-name { font-weight: 500; }
         .measure-type-chip-count { font-size: 0.75rem; opacity: 0.6; }
 
+        /* Unified filter option system */
+        .filter-section-wrapper .panel-content {
+            background: #F4F0E6;
+            border: 1px solid #E4DBC8;
+            border-radius: 10px;
+            padding: 1rem 1.1rem;
+        }
+
+        .filter-section-wrapper .panel-hint {
+            color: #6F6656;
+            font-size: 0.78rem;
+            margin: 0 0 0.85rem;
+            text-align: center;
+        }
+
+        .filter-section-wrapper .level-cards,
+        .filter-section-wrapper .region-cards,
+        .filter-section-wrapper .topic-cards,
+        .filter-section-wrapper .status-cards,
+        .filter-section-wrapper .measure-type-cards,
+        .filter-section-wrapper .year-chips {
+            align-items: center;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            justify-content: flex-start;
+        }
+
+        .filter-section-wrapper .region-cards,
+        .filter-section-wrapper .topic-cards,
+        .filter-section-wrapper .measure-type-cards {
+            margin: 0 auto;
+        }
+
+        .filter-section-wrapper .status-chip,
+        .filter-section-wrapper .region-chip,
+        .filter-section-wrapper .topic-chip,
+        .filter-section-wrapper .measure-type-chip,
+        .filter-section-wrapper .year-chip {
+            align-items: center;
+            background: #FFFDF8;
+            border: 1px solid #DDD2BF;
+            border-radius: 999px;
+            box-shadow: 0 1px 0 rgba(27, 31, 35, 0.04);
+            color: var(--text-primary);
+            cursor: pointer;
+            display: inline-flex;
+            font-size: 0.81rem;
+            gap: 0.42rem;
+            justify-content: center;
+            line-height: 1.05;
+            min-height: 34px;
+            padding: 0.44rem 0.72rem;
+            transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, color 0.15s ease, transform 0.15s ease;
+            user-select: none;
+        }
+
+        .filter-section-wrapper .status-chip:hover,
+        .filter-section-wrapper .region-chip:hover,
+        .filter-section-wrapper .topic-chip:hover,
+        .filter-section-wrapper .measure-type-chip:hover,
+        .filter-section-wrapper .year-chip:hover {
+            background: #FFFFFF;
+            border-color: #C9A23C;
+            box-shadow: 0 5px 14px rgba(89, 69, 28, 0.12);
+            transform: translateY(-1px);
+        }
+
+        .filter-section-wrapper .status-chip.selected,
+        .filter-section-wrapper .status-chip[data-status].selected,
+        .filter-section-wrapper .status-chip[data-status]:hover,
+        .filter-section-wrapper .region-chip.selected,
+        .filter-section-wrapper .topic-chip.selected,
+        .filter-section-wrapper .measure-type-chip.selected,
+        .filter-section-wrapper .year-chip.selected {
+            background: #C9A23C;
+            border-color: #C9A23C;
+            box-shadow: 0 6px 16px rgba(201, 162, 60, 0.22);
+            color: #1D1A13;
+            font-weight: 700;
+        }
+
+        .filter-section-wrapper .status-chip[data-status="failed"].selected,
+        .filter-section-wrapper .status-chip[data-status="failed"]:hover {
+            background: #7A1F2A;
+            border-color: #7A1F2A;
+            color: white;
+        }
+
+        .filter-section-wrapper .status-chip[data-status="passed"].selected,
+        .filter-section-wrapper .status-chip[data-status="passed"]:hover {
+            background: #2D7D5F;
+            border-color: #2D7D5F;
+            color: white;
+        }
+
+        .filter-section-wrapper .status-chip-icon,
+        .filter-section-wrapper .region-chip-emoji,
+        .filter-section-wrapper .topic-chip-icon,
+        .filter-section-wrapper .measure-type-chip-icon {
+            align-items: center;
+            display: inline-flex;
+            font-size: 0.95rem;
+            height: 1.05rem;
+            justify-content: center;
+            width: 1.05rem;
+        }
+
+        .filter-section-wrapper .status-chip-name,
+        .filter-section-wrapper .region-chip-name,
+        .filter-section-wrapper .topic-chip-name,
+        .filter-section-wrapper .measure-type-chip-name {
+            font-weight: 650;
+            white-space: nowrap;
+        }
+
+        .filter-section-wrapper .status-chip-count,
+        .filter-section-wrapper .region-chip-count,
+        .filter-section-wrapper .topic-chip-count,
+        .filter-section-wrapper .measure-type-chip-count,
+        .filter-section-wrapper .year-chip-count {
+            color: var(--text-tertiary);
+            font-size: 0.72rem;
+            font-weight: 650;
+            margin-left: 0.1rem;
+            opacity: 0.9;
+        }
+
+        .filter-section-wrapper .status-chip.selected .status-chip-count,
+        .filter-section-wrapper .region-chip.selected .region-chip-count,
+        .filter-section-wrapper .topic-chip.selected .topic-chip-count,
+        .filter-section-wrapper .measure-type-chip.selected .measure-type-chip-count,
+        .filter-section-wrapper .year-chip.selected .year-chip-count {
+            color: currentColor;
+            opacity: 0.78;
+        }
+
+        .filter-section-wrapper .decade-groups {
+            gap: 0.75rem;
+        }
+
+        .filter-section-wrapper .year-picker-shell {
+            overflow-x: auto;
+            padding-bottom: 0.15rem;
+        }
+
+        .filter-section-wrapper .year-decade-grid {
+            display: grid;
+            gap: 0.45rem;
+            min-width: 100%;
+            width: max-content;
+        }
+
+        .filter-section-wrapper .year-decade-column {
+            background: rgba(255,253,248,0.5);
+            border: 1px solid #E1D6C2;
+            border-radius: 8px;
+            min-width: 0;
+            overflow: hidden;
+            padding: 0;
+        }
+
+        .filter-section-wrapper .year-decade-button {
+            align-items: center;
+            background: rgba(255,253,248,0.72);
+            border: none;
+            border-bottom: 1px solid #DDD2BF;
+            border-radius: 0;
+            color: var(--text-primary);
+            cursor: pointer;
+            display: grid;
+            font-family: inherit;
+            gap: 0.2rem 0.5rem;
+            grid-template-columns: 1fr auto auto;
+            min-height: 44px;
+            padding: 0.52rem 0.6rem;
+            text-align: left;
+            transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+            width: 100%;
+        }
+
+        .filter-section-wrapper .year-decade-button:hover,
+        .filter-section-wrapper .year-decade-button.selected {
+            background: #FFFFFF;
+            box-shadow: 0 5px 14px rgba(89, 69, 28, 0.12);
+        }
+
+        .filter-section-wrapper .year-decade-button.selected {
+            background: #C9A23C;
+            border-bottom-color: #B48F2B;
+            color: #1D1A13;
+            font-weight: 800;
+        }
+
+        .filter-section-wrapper .year-decade-button span {
+            font-size: 0.82rem;
+            font-weight: 800;
+        }
+
+        .filter-section-wrapper .year-decade-button small {
+            color: var(--text-tertiary);
+            font-size: 0.72rem;
+            font-weight: 700;
+        }
+
+        .filter-section-wrapper .year-decade-button.selected small {
+            color: currentColor;
+            opacity: 0.78;
+        }
+
+        .filter-section-wrapper .year-decade-button em {
+            align-items: center;
+            background: rgba(201, 162, 60, 0.18);
+            border-radius: 999px;
+            color: #7A5D12;
+            display: inline-flex;
+            font-size: 0.68rem;
+            font-style: normal;
+            font-weight: 800;
+            height: 18px;
+            justify-content: center;
+            min-width: 18px;
+            padding: 0 0.3rem;
+        }
+
+        .filter-section-wrapper .year-decade-button.selected em {
+            background: rgba(29, 26, 19, 0.14);
+            color: currentColor;
+        }
+
+        .filter-section-wrapper .year-column-years {
+            display: grid;
+            gap: 0;
+            grid-template-columns: 1fr;
+            margin-top: 0;
+        }
+
+        .filter-section-wrapper .decade-group {
+            align-items: flex-start;
+            display: grid;
+            gap: 0.65rem;
+            grid-template-columns: 48px minmax(0, 1fr);
+        }
+
+        .filter-section-wrapper .decade-label {
+            color: #6F5B2B;
+            font-size: 0.8rem;
+            font-weight: 800;
+            line-height: 34px;
+            min-width: 0;
+        }
+
+        .filter-section-wrapper .year-chip {
+            background: rgba(255, 253, 248, 0.72);
+            border: none;
+            border-bottom: 1px solid #E7DCCB;
+            border-radius: 0;
+            font-family: inherit;
+            justify-content: space-between;
+            min-width: 0;
+            padding: 0.48rem 0.58rem;
+            width: 100%;
+        }
+
+        .filter-section-wrapper .year-column-years .year-chip:last-child {
+            border-bottom: none;
+        }
+
+        .filter-section-wrapper .year-chip:hover {
+            background: #FFFFFF;
+        }
+
+        .filter-section-wrapper .year-chip.covered:not(.selected) {
+            background: #F6EDDA;
+            color: #4D3D17;
+        }
+
+        .filter-section-wrapper .county-navigation {
+            background: rgba(255, 253, 248, 0.58);
+            border: 1px solid #DED2BA;
+            border-radius: 8px;
+            margin-top: 0.95rem;
+            padding: 0.8rem 1rem;
+        }
+
+        .filter-section-wrapper .county-label {
+            color: var(--text-primary);
+            font-size: 0.84rem;
+            font-weight: 700;
+        }
+
+        .filter-section-wrapper .county-select {
+            background: #FFFFFF;
+            border-color: #D8CEBB;
+            border-radius: 7px;
+            font-size: 0.84rem;
+            max-width: 270px;
+            padding: 0.55rem 0.8rem;
+        }
+
+        @media (max-width: 768px) {
+            .matrix-insight-strip {
+                grid-template-columns: 1fr;
+            }
+            .matrix-modal-metrics {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+            .filter-section-wrapper .year-decade-grid {
+                min-width: max-content;
+            }
+        }
+
         /* Matrix column toggle */
         .matrix-col-toggle {
             display: inline-flex;
@@ -4721,11 +5556,775 @@ class WebsiteGenerator:
         .matrix-col-toggle button:hover:not(.active) {
             background: #f5f5f5;
         }
+
+        /* Insights view */
+        .insights-view {
+            max-width: 1220px;
+            margin: 0 auto 3rem;
+            padding: 0 1.5rem 2rem;
+        }
+        .insights-kicker {
+            color: #8a3ffc;
+            font-size: 0.78rem;
+            font-weight: 800;
+            letter-spacing: 0.08em;
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+        }
+        .insights-hero {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) 280px;
+            gap: 2rem;
+            align-items: end;
+            margin-bottom: 1.5rem;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 1.5rem;
+        }
+        .insights-hero h2 {
+            font-size: 2.4rem;
+            line-height: 1.05;
+            margin: 0 0 0.75rem;
+            color: var(--text-primary);
+            letter-spacing: 0;
+        }
+        .insights-hero p {
+            color: var(--text-secondary);
+            font-size: 1rem;
+            line-height: 1.6;
+            max-width: 760px;
+        }
+        .insights-method-card {
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1rem;
+            background: #fbfaf7;
+            display: flex;
+            flex-direction: column;
+            gap: 0.35rem;
+            color: var(--text-secondary);
+            font-size: 0.82rem;
+        }
+        .insights-method-card strong {
+            color: var(--text-primary);
+            font-size: 0.95rem;
+        }
+        .insights-analysis-shell {
+            display: block;
+        }
+        .insights-side-nav {
+            display: flex;
+            flex-direction: row;
+            gap: 0.25rem;
+            padding: 0 0 0.75rem;
+            margin-bottom: 0.9rem;
+            overflow-x: auto;
+            overflow-y: hidden;
+            border-bottom: 1px solid var(--border);
+        }
+        .insights-side-nav span {
+            color: var(--text-tertiary);
+            font-size: 0.68rem;
+            font-weight: 800;
+            letter-spacing: 0.08em;
+            padding: 0.52rem 0.65rem 0.45rem 0;
+            text-transform: uppercase;
+            white-space: nowrap;
+        }
+        .insights-side-nav a {
+            border-bottom: 3px solid transparent;
+            color: var(--text-secondary);
+            display: block;
+            flex: 0 0 auto;
+            font-size: 0.82rem;
+            font-weight: 650;
+            line-height: 1.2;
+            padding: 0.52rem 0.65rem 0.45rem;
+            text-decoration: none;
+            transition: all 0.15s ease;
+            white-space: nowrap;
+        }
+        .insights-side-nav a:hover {
+            background: #fbfaf7;
+            color: var(--text-primary);
+        }
+        .insights-side-nav a.active {
+            border-bottom-color: #7A1F2A;
+            background: #fbfaf7;
+            color: #7A1F2A;
+        }
+        .insights-analysis-content {
+            min-width: 0;
+        }
+        .insights-carousel {
+            position: relative;
+        }
+        .insights-carousel-viewport {
+            overflow: hidden;
+            border-radius: 8px;
+            transition: height 0.25s ease;
+        }
+        .insights-carousel-track {
+            align-items: flex-start;
+            display: flex;
+            transition: transform 0.35s ease;
+            width: 100%;
+        }
+        .insights-carousel-slide {
+            box-sizing: border-box;
+            flex: 0 0 100%;
+            min-width: 100%;
+            min-height: 0;
+        }
+        section.insights-carousel-slide {
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1rem;
+        }
+        .insight-panel.insights-carousel-slide,
+        .insights-methodology.insights-carousel-slide {
+            margin: 0;
+        }
+        .insights-carousel-arrow {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 5;
+            width: 54px;
+            height: 54px;
+            border-radius: 999px;
+            border: 2px solid #7A1F2A;
+            background: #FFFFFF;
+            color: #7A1F2A;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 12px 32px rgba(0,0,0,0.18);
+            transition: transform 0.15s ease, background 0.15s ease, color 0.15s ease;
+        }
+        .insights-carousel-arrow span {
+            display: block;
+            font-size: 2.4rem;
+            line-height: 1;
+            margin-top: -0.1rem;
+        }
+        .insights-carousel-arrow:hover {
+            background: #7A1F2A;
+            color: white;
+            transform: translateY(-50%) scale(1.05);
+        }
+        .insights-carousel-arrow-prev {
+            left: -28px;
+        }
+        .insights-carousel-arrow-next {
+            right: -28px;
+        }
+        .insights-carousel-status {
+            color: var(--text-tertiary);
+            font-size: 0.78rem;
+            font-weight: 700;
+            margin-top: 0.55rem;
+            text-align: center;
+        }
+        .insights-anchor-target {
+            scroll-margin-top: 96px;
+        }
+        .method-label,
+        .panel-eyebrow {
+            color: #6b7280;
+            font-size: 0.72rem;
+            font-weight: 800;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+        }
+        .insights-metrics {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 0.75rem;
+            margin-bottom: 1.2rem;
+        }
+        .insight-metric,
+        .finding-card,
+        .insight-panel,
+        .insights-methodology {
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: white;
+        }
+        .insight-metric {
+            padding: 0.9rem;
+        }
+        .insight-metric-value {
+            font-size: 1.55rem;
+            font-weight: 800;
+            color: #174ea6;
+            line-height: 1;
+        }
+        .insight-metric-label {
+            margin-top: 0.35rem;
+            color: var(--text-secondary);
+            font-size: 0.78rem;
+        }
+        .insights-findings {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.25rem;
+        }
+        .finding-card {
+            padding: 1.05rem;
+            min-height: 210px;
+            display: flex;
+            flex-direction: column;
+            gap: 0.7rem;
+        }
+        .finding-card h3 {
+            font-size: 1rem;
+            line-height: 1.25;
+            margin: 0;
+            color: var(--text-primary);
+        }
+        .finding-card p {
+            color: var(--text-secondary);
+            font-size: 0.86rem;
+            line-height: 1.45;
+            margin: 0;
+        }
+        .finding-metric {
+            font-size: 1.75rem;
+            line-height: 1;
+            font-weight: 800;
+            color: #b42318;
+        }
+        .finding-label {
+            color: var(--text-tertiary);
+            font-size: 0.76rem;
+            font-weight: 700;
+        }
+        .finding-footer {
+            margin-top: auto;
+            border-top: 1px solid #eef0f3;
+            padding-top: 0.65rem;
+            color: var(--text-tertiary);
+            font-size: 0.72rem;
+            line-height: 1.35;
+        }
+        .insights-dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 1rem;
+        }
+        .insight-panel {
+            padding: 1rem;
+            min-width: 0;
+        }
+        .insight-panel-wide {
+            grid-column: 1 / -1;
+        }
+        .panel-heading {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            gap: 1rem;
+            margin-bottom: 0.55rem;
+        }
+        .panel-heading h3 {
+            margin: 0.2rem 0 0;
+            font-size: 1.15rem;
+            line-height: 1.25;
+            color: var(--text-primary);
+        }
+        .panel-deck,
+        .method-note {
+            color: var(--text-secondary);
+            font-size: 0.84rem;
+            line-height: 1.45;
+            margin: 0 0 0.8rem;
+        }
+        .method-note {
+            color: var(--text-tertiary);
+            margin: 0.8rem 0 0;
+            font-size: 0.75rem;
+        }
+        .confidence-badge {
+            white-space: nowrap;
+            background: #eef6f3;
+            color: #126e55;
+            border: 1px solid #c7e7dd;
+            border-radius: 999px;
+            padding: 0.25rem 0.55rem;
+            font-size: 0.72rem;
+            font-weight: 700;
+        }
+        .chart-wrap {
+            height: 320px;
+            min-height: 260px;
+            position: relative;
+        }
+        .chart-wrap.compact {
+            height: 250px;
+            min-height: 220px;
+        }
+        .analysis-chart-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 0.85rem;
+        }
+        .analysis-chart-grid.single-column {
+            grid-template-columns: 1fr;
+        }
+        .chart-module {
+            border: 1px solid #ebe2d3;
+            border-radius: 8px;
+            background: #fffdfa;
+            padding: 0.7rem;
+            min-width: 0;
+        }
+        .chart-module-wide {
+            grid-column: 1 / -1;
+        }
+        .chart-module h4 {
+            color: var(--text-primary);
+            font-size: 0.82rem;
+            margin: 0 0 0.55rem;
+        }
+        .county-map-layout,
+        .finance-insights-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) 320px;
+            gap: 1rem;
+            align-items: stretch;
+        }
+        .county-map {
+            min-height: 520px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            background: #f8fafc;
+            position: relative;
+            overflow: hidden;
+        }
+        .county-map svg {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+        .county-map-side h4 {
+            margin: 0 0 0.7rem;
+            font-size: 0.95rem;
+        }
+        .leader-row,
+        .compact-row {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            gap: 0.75rem;
+            padding: 0.55rem 0;
+            border-bottom: 1px solid #eef0f3;
+            color: var(--text-secondary);
+            font-size: 0.82rem;
+        }
+        .leader-row strong,
+        .compact-row strong {
+            display: block;
+            color: var(--text-primary);
+            font-size: 0.86rem;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .leader-bar {
+            grid-column: 1 / -1;
+            height: 6px;
+            border-radius: 999px;
+            background: #e5e7eb;
+            overflow: hidden;
+        }
+        .leader-bar span {
+            display: block;
+            height: 100%;
+            background: #174ea6;
+        }
+        .mini-callouts {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 0.6rem;
+            margin-top: 0.8rem;
+        }
+        .mini-callouts-single {
+            grid-template-columns: 1fr;
+        }
+        .mini-callout {
+            background: #fbfaf7;
+            border: 1px solid #ebe2d3;
+            border-radius: 8px;
+            padding: 0.65rem;
+        }
+        .mini-callout strong {
+            display: block;
+            color: var(--text-primary);
+            font-size: 1.15rem;
+        }
+        .mini-callout span {
+            color: var(--text-secondary);
+            font-size: 0.74rem;
+        }
+        .compact-list-heading {
+            color: var(--text-tertiary);
+            font-size: 0.72rem;
+            font-weight: 800;
+            letter-spacing: 0.05em;
+            margin-top: 0.9rem;
+            text-transform: uppercase;
+        }
+        .insights-methodology {
+            margin-top: 1rem;
+            padding: 0.9rem 1rem;
+        }
+        .insights-methodology summary {
+            cursor: pointer;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+        .insights-methodology div {
+            margin-top: 0.8rem;
+            color: var(--text-secondary);
+            font-size: 0.84rem;
+            line-height: 1.5;
+        }
+        .county-tooltip {
+            position: fixed;
+            pointer-events: none;
+            background: rgba(17, 24, 39, 0.94);
+            color: white;
+            padding: 0.45rem 0.55rem;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            z-index: 9999;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.18);
+        }
+
+        /* ══════════════════════════════════════════════════════
+           MOBILE RESPONSIVE OVERRIDES
+           ══════════════════════════════════════════════════════ */
+
+        /* Tablets and small laptops */
+        @media (max-width: 768px) {
+            .insights-analysis-shell {
+                grid-template-columns: 1fr;
+                gap: 0.75rem;
+            }
+            .insights-side-nav {
+                position: sticky;
+                top: 62px;
+                z-index: 20;
+                flex-direction: row;
+                overflow-x: auto;
+                overflow-y: hidden;
+                max-height: none;
+                background: rgba(255, 255, 255, 0.96);
+                border-bottom: 1px solid var(--border);
+                padding: 0.45rem 0;
+                margin: 0 -0.75rem 0.25rem;
+            }
+            .insights-side-nav span {
+                display: none;
+            }
+            .insights-side-nav a {
+                border-left: 0;
+                border-bottom: 3px solid transparent;
+                flex: 0 0 auto;
+                padding: 0.5rem 0.65rem 0.45rem;
+                white-space: nowrap;
+            }
+            .insights-side-nav a.active {
+                border-left-color: transparent;
+                border-bottom-color: #7A1F2A;
+            }
+            .insights-carousel-viewport {
+                overflow: visible;
+            }
+            .insights-carousel-track {
+                display: block;
+                transform: none !important;
+                transition: none;
+            }
+            .insights-carousel-slide {
+                min-height: auto;
+                min-width: 0;
+                margin-bottom: 1rem;
+            }
+            .insights-carousel-arrow,
+            .insights-carousel-status {
+                display: none;
+            }
+            .insights-hero,
+            .county-map-layout,
+            .finance-insights-grid {
+                grid-template-columns: 1fr;
+            }
+            .analysis-chart-grid {
+                grid-template-columns: 1fr;
+            }
+            .insights-metrics {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+            .insights-findings,
+            .insights-dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+            .insight-panel-wide {
+                grid-column: auto;
+            }
+
+            /* Modal: fill most of the screen */
+            .measure-detail-modal {
+                max-width: 95vw !important;
+                width: 95vw;
+                max-height: 90vh;
+            }
+
+            /* Modal tabs: tighter padding */
+            .modal-tab {
+                padding: 0.4rem 0.8rem;
+                font-size: 0.8rem;
+            }
+
+            /* Tab panel min-height: shorter on mobile */
+            .modal-tab-panel {
+                min-height: 280px;
+            }
+
+            /* Matrix toolbar: wrap controls */
+            .matrix-toolbar {
+                flex-wrap: wrap;
+                gap: 0.5rem;
+            }
+            .matrix-toolbar span:first-child {
+                flex-basis: 100%;
+                font-size: 0.75rem;
+            }
+            .matrix-scroll {
+                height: clamp(420px, calc(100vh - 230px), 620px);
+            }
+
+            /* Info tooltips: wider and repositioned */
+            .info-tip::after {
+                width: 180px;
+                left: auto;
+                right: -10px;
+                transform: none;
+            }
+
+            /* Logo: smaller */
+            .site-logo h1 {
+                font-size: 1rem !important;
+            }
+        }
+
+        /* Phones */
+        @media (max-width: 480px) {
+            .insights-view {
+                padding: 0 0.75rem 1.5rem;
+            }
+            .insights-side-nav {
+                top: 56px;
+            }
+            .insights-hero h2 {
+                font-size: 1.75rem;
+            }
+            .insights-metrics {
+                grid-template-columns: 1fr;
+            }
+            .county-map {
+                min-height: 360px;
+            }
+
+            /* Header: compact */
+            .header-content {
+                padding: 0.75rem 0.75rem !important;
+                gap: 0.5rem;
+            }
+            .site-logo h1 {
+                font-size: 0.9rem !important;
+            }
+            .logo-icon {
+                width: 28px !important;
+                height: 28px !important;
+            }
+
+            /* Search: compact */
+            .search-container input {
+                padding: 0.5rem 0.75rem !important;
+                font-size: 0.85rem;
+            }
+
+            /* View toggle buttons: smaller */
+            .view-btn {
+                padding: 0.4rem !important;
+            }
+
+            /* Cards grid: 1 column on phones */
+            .results-grid {
+                grid-template-columns: 1fr !important;
+                gap: 0.5rem;
+            }
+
+            /* Card: even tighter */
+            .measure-card {
+                padding: 0.75rem 0.85rem;
+                gap: 0.4rem;
+                min-height: 140px;
+            }
+
+            /* Modal: full screen */
+            .measure-detail-modal {
+                max-width: 100vw !important;
+                width: 100vw;
+                max-height: 100vh;
+                border-radius: 0;
+                margin: 0;
+            }
+            .modal-content {
+                border-radius: 0 !important;
+            }
+
+            /* Modal tabs: fill width equally */
+            .modal-tabs {
+                display: flex;
+            }
+            .modal-tab {
+                flex: 1;
+                text-align: center;
+                padding: 0.4rem 0.4rem;
+                font-size: 0.75rem;
+            }
+
+            /* Tab panel: shorter min-height */
+            .modal-tab-panel {
+                min-height: 200px;
+            }
+
+            /* Related measures / context tiles: 1 column */
+            .measure-detail-related {
+                grid-template-columns: 1fr !important;
+            }
+
+            /* Links: 1 column */
+            .measure-detail-links {
+                grid-template-columns: 1fr !important;
+            }
+
+            /* Stats ribbon: smaller */
+            .stats-ribbon {
+                gap: 0.25rem !important;
+                padding: 0.5rem !important;
+            }
+            .stat-value {
+                font-size: 1rem !important;
+            }
+            .stat-label {
+                font-size: 0.55rem !important;
+            }
+
+            /* Matrix: enable horizontal scroll, reduce cell sizes */
+            .matrix-scroll {
+                height: clamp(380px, calc(100vh - 210px), 560px);
+                -webkit-overflow-scrolling: touch;
+            }
+            .matrix-cell {
+                min-width: 60px !important;
+                font-size: 0.7rem;
+            }
+            .matrix-table td:first-child,
+            .matrix-table th:first-child {
+                min-width: 100px !important;
+                font-size: 0.7rem;
+            }
+
+            /* Matrix toolbar: stack vertically */
+            .matrix-toolbar {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.4rem;
+            }
+
+            /* Chat panel: full width */
+            .chat-panel {
+                left: 0 !important;
+                right: 0 !important;
+                bottom: 0 !important;
+                width: 100% !important;
+                max-width: 100% !important;
+                height: 70vh !important;
+                border-radius: 12px 12px 0 0 !important;
+            }
+
+            /* Info tooltips: smaller, fit screen */
+            .info-tip {
+                width: 18px;
+                height: 18px;
+                font-size: 11px;
+            }
+            .info-tip::after {
+                width: min(200px, 70vw);
+                font-size: 0.68rem;
+            }
+
+            /* Hero section: compact */
+            .hero-section {
+                padding: 1rem !important;
+            }
+            .hero-title {
+                font-size: 1.1rem !important;
+            }
+
+            /* Pagination: wrap */
+            .pagination {
+                flex-wrap: wrap;
+                gap: 0.25rem;
+            }
+            .pagination button {
+                padding: 0.3rem 0.5rem;
+                font-size: 0.75rem;
+            }
+
+            /* Filter section: compact */
+            .filter-panel {
+                padding: 0.75rem !important;
+            }
+
+            /* Finance: stack columns */
+            .finance-sides {
+                flex-direction: column !important;
+            }
+
+            /* Briefing arguments: stack to 1 column */
+            .briefing-args-grid {
+                grid-template-columns: 1fr !important;
+            }
+        }
+
+        /* Very small phones (320px) */
+        @media (max-width: 375px) {
+            .header-content {
+                padding: 0.5rem !important;
+            }
+            .site-logo h1 {
+                font-size: 0.8rem !important;
+            }
+            .modal-tab {
+                font-size: 0.7rem;
+                padding: 0.35rem 0.3rem;
+            }
+            .measure-card {
+                padding: 0.6rem 0.7rem;
+            }
+        }
         """
 
     def _get_javascript(self, measures_json: str, topics_json: str,
                        recommendations_json: str, stats: Dict, quiz_json: str = "[]",
-                       finance_json: str = "{}") -> str:
+                       finance_json: str = "{}", insights_json: str = "{}") -> str:
         """Get JavaScript code for the website"""
         return f"""
         // Data
@@ -4734,6 +6333,7 @@ class WebsiteGenerator:
         const recommendations = {recommendations_json};
         const quizQuestions = {quiz_json};
         const financeData = {finance_json};
+        const insightsData = {insights_json};
 
         // Utility function to escape HTML special characters (prevents XSS)
         function escapeHtml(text) {{
@@ -5066,6 +6666,8 @@ class WebsiteGenerator:
             features: [],
             topics: [],
             selectedYears: [],
+            selectedDecades: [],
+            thresholds: [],
             search: '',
             regions: [],
             county: null,
@@ -5075,6 +6677,10 @@ class WebsiteGenerator:
         }};
         let currentSort = 'year-desc';
         let filteredMeasures = [];
+        let activeYearDecade = null;
+        let yearFilterCounts = {{}};
+        let yearFilterDecades = {{}};
+        let sortedYearDecades = [];
 
         // Pagination state
         let pagination = {{
@@ -5359,10 +6965,11 @@ class WebsiteGenerator:
                 chip.classList.remove('selected');
             }});
 
+            currentFilters.county = county || null;
+            pagination.currentPage = 1;
+
             // Update filter count badges
             updateFilterCountBadges();
-
-            currentFilters.county = county || null;
 
             // Apply filters
             applyFilters();
@@ -5377,6 +6984,7 @@ class WebsiteGenerator:
             document.querySelectorAll('.region-chip.selected').forEach(chip => {{
                 chip.classList.remove('selected');
             }});
+            updateFilterCountBadges();
 
             // Apply filters
             applyFilters();
@@ -5460,7 +7068,7 @@ class WebsiteGenerator:
             }}
 
             // Year count
-            const yearCount = currentFilters.selectedYears?.length || 0;
+            const yearCount = getEffectiveSelectedYearCount();
             const yearBadge = document.getElementById('yearFilterCount');
             if (yearBadge) {{
                 yearBadge.textContent = yearCount > 0 ? yearCount : '';
@@ -5503,6 +7111,138 @@ class WebsiteGenerator:
                     }}
                 }}
             }}
+
+            renderActiveFilterSummary();
+        }}
+
+        function getActiveFilterTokens() {{
+            normalizeYearFilters();
+            const defaultYearMin = {stats.get('year_min', 1902)};
+            const defaultYearMax = {stats.get('year_max', 2026)};
+            const statusLabels = {{ passed: 'Passed', failed: 'Failed', pending: 'Pending/Unknown' }};
+            const levelLabels = {{ statewide: 'Statewide', local: 'Local' }};
+            const tokens = [];
+
+            if (currentFilters.search) {{
+                tokens.push({{ kind: 'search', group: 'Search', label: currentFilters.search, value: currentFilters.search }});
+            }}
+            if (currentFilters.level) {{
+                tokens.push({{ kind: 'level', group: 'Level', label: levelLabels[currentFilters.level] || currentFilters.level, value: currentFilters.level }});
+            }}
+            if (currentFilters.levelCounty) {{
+                tokens.push({{ kind: 'levelCounty', group: 'County', label: currentFilters.levelCounty, value: currentFilters.levelCounty }});
+            }}
+            (currentFilters.regions || []).forEach(region => {{
+                tokens.push({{ kind: 'region', group: 'Region', label: region, value: region }});
+            }});
+            if (currentFilters.county) {{
+                tokens.push({{ kind: 'county', group: 'County', label: currentFilters.county, value: currentFilters.county }});
+            }}
+            (currentFilters.topics || []).forEach(topic => {{
+                tokens.push({{ kind: 'topic', group: 'Topic', label: topic, value: topic }});
+            }});
+            (currentFilters.selectedDecades || []).slice().sort((a, b) => b - a).forEach(decade => {{
+                tokens.push({{ kind: 'decade', group: 'Decade', label: `${{decade}}s`, value: decade }});
+            }});
+            (currentFilters.selectedYears || []).slice().sort((a, b) => b - a).forEach(year => {{
+                tokens.push({{ kind: 'year', group: 'Year', label: String(year), value: year }});
+            }});
+            (currentFilters.thresholds || []).forEach(threshold => {{
+                tokens.push({{ kind: 'threshold', group: 'Threshold', label: threshold, value: threshold }});
+            }});
+            (currentFilters.status || []).forEach(status => {{
+                tokens.push({{ kind: 'status', group: 'Status', label: statusLabels[status] || status, value: status }});
+            }});
+            (currentFilters.measureTypes || []).forEach(type => {{
+                tokens.push({{ kind: 'measureType', group: 'Measure Type', label: type, value: type }});
+            }});
+            (currentFilters.features || []).forEach(feature => {{
+                tokens.push({{ kind: 'feature', group: 'Feature', label: feature, value: feature }});
+            }});
+            if (currentFilters.yearMin !== defaultYearMin || currentFilters.yearMax !== defaultYearMax) {{
+                tokens.push({{
+                    kind: 'yearRange',
+                    group: 'Year Range',
+                    label: `${{currentFilters.yearMin}}-${{currentFilters.yearMax}}`,
+                    value: 'range'
+                }});
+            }}
+
+            return tokens;
+        }}
+
+        function renderActiveFilterSummary() {{
+            const summary = document.getElementById('activeFilterSummary');
+            const chips = document.getElementById('activeFilterChips');
+            if (!summary || !chips) return;
+
+            const tokens = getActiveFilterTokens();
+            summary.style.display = tokens.length ? 'block' : 'none';
+            chips.innerHTML = tokens.map(token => `
+                <div class="active-filter-chip" title="${{escapeAttr(token.group + ': ' + token.label)}}">
+                    <strong>${{escapeHtml(token.group)}}</strong>
+                    <span>${{escapeHtml(token.label)}}</span>
+                    <button type="button" onclick="removeActiveFilterFromButton(this)" data-kind="${{escapeAttr(token.kind)}}" data-value="${{escapeAttr(String(token.value))}}" aria-label="Remove ${{escapeAttr(token.group + ': ' + token.label)}}">&times;</button>
+                </div>
+            `).join('');
+        }}
+
+        function removeActiveFilterFromButton(button) {{
+            removeActiveFilter(button.dataset.kind, button.dataset.value);
+        }}
+
+        function removeActiveFilter(kind, value) {{
+            if (kind === 'search') {{
+                currentFilters.search = '';
+                const input = document.getElementById('searchInput');
+                if (input) input.value = '';
+            }} else if (kind === 'level') {{
+                currentFilters.level = null;
+                currentFilters.levelCounty = null;
+                const select = document.getElementById('levelCountySelect');
+                if (select) select.value = '';
+                updateLevelChipUI();
+            }} else if (kind === 'levelCounty') {{
+                currentFilters.levelCounty = null;
+                const select = document.getElementById('levelCountySelect');
+                if (select) select.value = '';
+            }} else if (kind === 'region') {{
+                currentFilters.regions = (currentFilters.regions || []).filter(region => region !== value);
+                updateRegionChipUI();
+            }} else if (kind === 'county') {{
+                currentFilters.county = null;
+                const select = document.getElementById('countySelect');
+                if (select) select.value = '';
+            }} else if (kind === 'topic') {{
+                currentFilters.topics = (currentFilters.topics || []).filter(topic => topic !== value);
+                updateTopicChipUI();
+            }} else if (kind === 'year') {{
+                const numericYear = parseInt(value);
+                currentFilters.selectedYears = (currentFilters.selectedYears || []).filter(year => year !== numericYear);
+                renderYearNavigation();
+            }} else if (kind === 'decade') {{
+                const numericDecade = parseInt(value);
+                currentFilters.selectedDecades = (currentFilters.selectedDecades || []).filter(decade => decade !== numericDecade);
+                renderYearNavigation();
+            }} else if (kind === 'threshold') {{
+                currentFilters.thresholds = (currentFilters.thresholds || []).filter(threshold => threshold !== value);
+            }} else if (kind === 'status') {{
+                currentFilters.status = (currentFilters.status || []).filter(status => status !== value);
+                updateStatusChipUI();
+            }} else if (kind === 'measureType') {{
+                currentFilters.measureTypes = (currentFilters.measureTypes || []).filter(type => type !== value);
+                updateMeasureTypeChipUI();
+            }} else if (kind === 'feature') {{
+                currentFilters.features = (currentFilters.features || []).filter(feature => feature !== value);
+                updateFilterUI();
+            }} else if (kind === 'yearRange') {{
+                currentFilters.yearMin = {stats.get('year_min', 1902)};
+                currentFilters.yearMax = {stats.get('year_max', 2026)};
+            }}
+
+            pagination.currentPage = 1;
+            updateFilterCountBadges();
+            applyFilters();
         }}
 
         // Level filter (statewide vs local)
@@ -5700,56 +7440,138 @@ class WebsiteGenerator:
             const container = document.getElementById('decadeGroups');
 
             // Count measures by year
-            const yearCounts = {{}};
+            yearFilterCounts = {{}};
             allMeasures.forEach(m => {{
                 const year = parseInt(m.year);
                 if (year) {{
-                    yearCounts[year] = (yearCounts[year] || 0) + 1;
+                    yearFilterCounts[year] = (yearFilterCounts[year] || 0) + 1;
                 }}
             }});
 
             // Get all years and group by decade
-            const years = Object.keys(yearCounts).map(y => parseInt(y)).sort((a, b) => b - a);
-            const decades = {{}};
+            const years = Object.keys(yearFilterCounts).map(y => parseInt(y)).sort((a, b) => b - a);
+            yearFilterDecades = {{}};
 
             years.forEach(year => {{
                 const decade = Math.floor(year / 10) * 10;
-                if (!decades[decade]) {{
-                    decades[decade] = [];
+                if (!yearFilterDecades[decade]) {{
+                    yearFilterDecades[decade] = [];
                 }}
-                decades[decade].push(year);
+                yearFilterDecades[decade].push(year);
             }});
 
             // Sort decades descending
-            const sortedDecades = Object.keys(decades).map(d => parseInt(d)).sort((a, b) => b - a);
+            sortedYearDecades = Object.keys(yearFilterDecades).map(d => parseInt(d)).sort((a, b) => b - a);
+            renderYearNavigation();
+        }}
 
-            container.innerHTML = sortedDecades.map(decade => {{
-                const decadeYears = decades[decade].sort((a, b) => b - a);
+        function getYearDecade(year) {{
+            const numericYear = parseInt(year);
+            return Number.isFinite(numericYear) ? Math.floor(numericYear / 10) * 10 : null;
+        }}
+
+        function normalizeYearFilters() {{
+            const selectedDecades = new Set((currentFilters.selectedDecades || [])
+                .map(decade => parseInt(decade))
+                .filter(decade => Number.isFinite(decade)));
+
+            const selectedYears = new Set((currentFilters.selectedYears || [])
+                .map(year => parseInt(year))
+                .filter(year => Number.isFinite(year)));
+
+            currentFilters.selectedDecades = Array.from(selectedDecades).sort((a, b) => b - a);
+            currentFilters.selectedYears = Array.from(selectedYears)
+                .filter(year => !selectedDecades.has(getYearDecade(year)))
+                .sort((a, b) => b - a);
+        }}
+
+        function getEffectiveSelectedYearCount() {{
+            normalizeYearFilters();
+            const years = new Set(currentFilters.selectedYears || []);
+
+            (currentFilters.selectedDecades || []).forEach(decade => {{
+                (yearFilterDecades[decade] || []).forEach(year => years.add(year));
+            }});
+
+            return years.size;
+        }}
+
+        function renderYearNavigation() {{
+            const container = document.getElementById('decadeGroups');
+            if (!container) return;
+            normalizeYearFilters();
+            if (!sortedYearDecades.length) {{
+                container.innerHTML = '';
+                return;
+            }}
+
+            const decadeColumns = sortedYearDecades.map(decade => {{
+                const years = yearFilterDecades[decade] || [];
+                const decadeTotal = years.reduce((sum, year) => sum + (yearFilterCounts[year] || 0), 0);
+                const selectedCount = years.filter(year => currentFilters.selectedYears.includes(year)).length;
+                const decadeSelected = (currentFilters.selectedDecades || []).includes(decade);
+                const headerCount = decadeSelected ? years.length : selectedCount;
                 return `
-                    <div class="decade-group">
-                        <span class="decade-label">${{decade}}s</span>
-                        <div class="year-chips">
-                            ${{decadeYears.map(year => `
-                                <div class="year-chip" data-year="${{year}}" onclick="toggleYearFilter(${{year}})">
-                                    ${{year}}
-                                    <span class="year-chip-count">(${{yearCounts[year]}})</span>
-                                </div>
+                    <div class="year-decade-column ${{decadeSelected ? 'selected' : ''}} ${{headerCount ? 'has-selection' : ''}}">
+                        <button type="button" class="year-decade-button ${{decadeSelected ? 'selected' : ''}} ${{headerCount ? 'has-selection' : ''}}" onclick="toggleYearDecade(${{decade}})" aria-pressed="${{decadeSelected}}">
+                            <span>${{decade}}s</span>
+                            <small>${{decadeTotal.toLocaleString()}}</small>
+                            ${{headerCount ? `<em title="${{decadeSelected ? 'Years included in selected decade' : 'Selected years in this decade'}}">${{headerCount}}</em>` : ''}}
+                        </button>
+                        <div class="year-column-years">
+                            ${{years.slice().sort((a, b) => b - a).map(year => `
+                                <button type="button" class="year-chip ${{decadeSelected ? 'covered' : ''}}" data-year="${{year}}" onclick="toggleYearFilter(${{year}})" aria-pressed="${{currentFilters.selectedYears.includes(year)}}">
+                                    <span>${{year}}</span>
+                                    <span class="year-chip-count">(${{yearFilterCounts[year]}})</span>
+                                </button>
                             `).join('')}}
                         </div>
                     </div>
                 `;
             }}).join('');
+
+            container.innerHTML = `
+                <div class="year-picker-shell">
+                    <div class="year-decade-grid" style="grid-template-columns: repeat(${{sortedYearDecades.length}}, minmax(86px, 1fr));" aria-label="Select decades or individual years">
+                        ${{decadeColumns}}
+                    </div>
+                </div>
+            `;
+            updateYearChipUI();
+        }}
+
+        function toggleYearDecade(decade) {{
+            const selected = currentFilters.selectedDecades || [];
+            const index = selected.indexOf(decade);
+            if (index === -1) {{
+                selected.push(decade);
+                currentFilters.selectedYears = (currentFilters.selectedYears || [])
+                    .filter(year => getYearDecade(year) !== decade);
+            }} else {{
+                selected.splice(index, 1);
+            }}
+            currentFilters.selectedDecades = selected;
+            normalizeYearFilters();
+            pagination.currentPage = 1;
+            renderYearNavigation();
+            updateFilterCountBadges();
+            applyFilters();
         }}
 
         // Toggle year filter
         function toggleYearFilter(year) {{
+            const decade = getYearDecade(year);
+            currentFilters.selectedDecades = (currentFilters.selectedDecades || [])
+                .filter(selectedDecade => selectedDecade !== decade);
+
             const index = currentFilters.selectedYears.indexOf(year);
             if (index === -1) {{
                 currentFilters.selectedYears.push(year);
             }} else {{
                 currentFilters.selectedYears.splice(index, 1);
             }}
-            updateYearChipUI();
+            normalizeYearFilters();
+            renderYearNavigation();
             updateFilterCountBadges();
             pagination.currentPage = 1;
             applyFilters();
@@ -5761,8 +7583,10 @@ class WebsiteGenerator:
                 const year = parseInt(chip.dataset.year);
                 if (currentFilters.selectedYears.includes(year)) {{
                     chip.classList.add('selected');
+                    chip.setAttribute('aria-pressed', 'true');
                 }} else {{
                     chip.classList.remove('selected');
+                    chip.setAttribute('aria-pressed', 'false');
                 }}
             }});
         }}
@@ -5819,6 +7643,7 @@ class WebsiteGenerator:
                 searchTimeout = setTimeout(() => {{
                     currentFilters.search = e.target.value.toLowerCase();
                     pagination.currentPage = 1; // Reset to first page on search
+                    updateFilterCountBadges();
                     applyFilters();
                 }}, 300);
             }});
@@ -5844,6 +7669,7 @@ class WebsiteGenerator:
             
             // Update UI
             updateFilterUI();
+            updateFilterCountBadges();
             applyFilters();
         }}
         
@@ -5861,6 +7687,7 @@ class WebsiteGenerator:
             
             // Update UI
             updateTopicUI();
+            updateFilterCountBadges();
             applyFilters();
         }}
         
@@ -5897,6 +7724,7 @@ class WebsiteGenerator:
         
         // Apply filters
         function applyFilters() {{
+            normalizeYearFilters();
             filteredMeasures = allMeasures.filter(measure => {{
                 // Year range filter (from sidebar)
                 const year = parseInt(measure.year);
@@ -5906,9 +7734,19 @@ class WebsiteGenerator:
                     }}
                 }}
 
-                // Selected years filter (from year chips)
-                if (currentFilters.selectedYears.length > 0) {{
-                    if (!currentFilters.selectedYears.includes(year)) {{
+                // Selected years/decades filter
+                const selectedDecades = currentFilters.selectedDecades || [];
+                const hasYearFilter = currentFilters.selectedYears.length > 0 || selectedDecades.length > 0;
+                if (hasYearFilter) {{
+                    const decade = !isNaN(year) ? Math.floor(year / 10) * 10 : null;
+                    if (!currentFilters.selectedYears.includes(year) && !selectedDecades.includes(decade)) {{
+                        return false;
+                    }}
+                }}
+
+                // Threshold filter (used by Explore drilldowns)
+                if ((currentFilters.thresholds || []).length > 0) {{
+                    if (!currentFilters.thresholds.includes(getThresholdLabel(measure))) {{
                         return false;
                     }}
                 }}
@@ -6016,7 +7854,7 @@ class WebsiteGenerator:
                 // Exclude upcoming/pending measures (2026+) from default view
                 // (they're featured in the dedicated hero section)
                 // Historical measures with null passed status are NOT excluded
-                if (!currentFilters.status.includes('pending') && currentFilters.selectedYears.length === 0) {{
+                if (!currentFilters.status.includes('pending') && currentFilters.selectedYears.length === 0 && (currentFilters.selectedDecades || []).length === 0) {{
                     const measureYear = parseInt(measure.year);
                     if (measure.passed !== 1 && measure.passed !== 0 && measureYear >= 2026) {{
                         return false;
@@ -6140,6 +7978,8 @@ class WebsiteGenerator:
                 currentFilters.features.length === 0 &&
                 currentFilters.topics.length === 0 &&
                 currentFilters.selectedYears.length === 0 &&
+                (currentFilters.selectedDecades || []).length === 0 &&
+                (currentFilters.thresholds || []).length === 0 &&
                 (!currentFilters.regions || currentFilters.regions.length === 0) &&
                 (!currentFilters.measureTypes || currentFilters.measureTypes.length === 0) &&
                 !currentFilters.county &&
@@ -6302,15 +8142,45 @@ class WebsiteGenerator:
             return `rgb(${{r}}, ${{g}}, ${{b}})`;
         }}
 
+        function matrixVolumeColor(value, maxValue) {{
+            if (!maxValue || value < 1) return '#f0eee8';
+            const t = Math.sqrt(value / maxValue);
+            const r = Math.round(244 - 115 * t);
+            const g = Math.round(237 - 105 * t);
+            const b = Math.round(220 - 150 * t);
+            return `rgb(${{r}}, ${{g}}, ${{b}})`;
+        }}
+
+        function matrixYesColor(avgYes) {{
+            if (avgYes == null) return '#f0eee8';
+            return matrixCellColor(avgYes, 100);
+        }}
+
+        function matrixDeltaColor(delta) {{
+            if (delta == null) return '#f0eee8';
+            const capped = Math.max(-35, Math.min(35, delta));
+            const t = Math.abs(capped) / 35;
+            if (capped < 0) {{
+                const r = Math.round(248 - 26 * t);
+                const g = Math.round(246 - 115 * t);
+                const b = Math.round(241 - 143 * t);
+                return `rgb(${{r}}, ${{g}}, ${{b}})`;
+            }}
+            const r = Math.round(248 - 114 * t);
+            const g = Math.round(246 - 91 * t);
+            const b = Math.round(241 - 125 * t);
+            return `rgb(${{r}}, ${{g}}, ${{b}})`;
+        }}
+
         // ── Matrix State ──────────────────────────────
         const matrixState = {{
-            rowGrouping: 'jurisdiction',  // 'jurisdiction' | 'region'
+            rowGrouping: 'jurisdiction',  // 'jurisdiction' | 'region' | 'decade' | 'year'
             rowSort: 'count',             // 'count' | 'alpha' | 'rate'
-            colField: 'topic',            // 'topic' | 'measureType'
+            colField: 'topic',            // 'topic' | 'measureType' | 'threshold'
             sortCol: null,
             sortDir: 'desc',
             minN: 0,                      // minimum measures per cell to display (0 = show all)
-            metric: 'passRate',           // 'passRate' | 'trap'
+            metric: 'passRate',           // 'passRate' | 'volume' | 'avgYes' | 'baseline' | 'close' | 'trap'
         }};
         // Keep legacy aliases for existing code that references them
         let matrixRowMode = matrixState.rowSort;
@@ -6328,7 +8198,366 @@ class WebsiteGenerator:
             }});
         }});
 
+        function escapeJsString(value) {{
+            return String(value ?? '').split('\\\\').join('\\\\\\\\').replace(/'/g, "\\\\'");
+        }}
+
+        function getMeasureThreshold(measure) {{
+            const raw = String(measure.vote_threshold || '').toLowerCase();
+            if (raw.includes('66') || raw.includes('2/3') || raw.includes('two-thirds') || raw.includes('two thirds')) return 66.67;
+            if (raw.includes('55')) return 55;
+            return 50;
+        }}
+
+        function getThresholdLabel(measure) {{
+            const threshold = getMeasureThreshold(measure);
+            if (threshold >= 66) return 'Two-thirds';
+            if (threshold === 55) return '55%';
+            return 'Simple majority';
+        }}
+
+        function getExploreColValue(measure) {{
+            if (matrixState.colField === 'measureType') return measure.display_category_type || null;
+            if (matrixState.colField === 'threshold') return getThresholdLabel(measure);
+            return measure.display_topic || null;
+        }}
+
+        function getExploreRowValue(measure) {{
+            if (matrixState.rowGrouping === 'region') {{
+                const cnty = (measure.county || '').toUpperCase();
+                return cnty === 'STATEWIDE' ? 'Statewide' : (countyToRegion[cnty] || 'Other');
+            }}
+            if (matrixState.rowGrouping === 'decade') {{
+                const year = parseInt(measure.year);
+                return Number.isFinite(year) ? `${{Math.floor(year / 10) * 10}}s` : 'Unknown';
+            }}
+            if (matrixState.rowGrouping === 'year') {{
+                const year = parseInt(measure.year);
+                return Number.isFinite(year) ? String(year) : 'Unknown';
+            }}
+            return measure.county || 'Unknown';
+        }}
+
+        function createExploreCell() {{
+            return {{
+                passed: 0,
+                total: 0,
+                trapped: 0,
+                close: 0,
+                yesSum: 0,
+                yesCount: 0,
+                measures: []
+            }};
+        }}
+
+        function addMeasureToExploreCell(cell, measure) {{
+            cell.total++;
+            cell.passed += measure.passed;
+            cell.measures.push(measure);
+
+            const pct = measure.percent_yes;
+            if (pct != null && pct >= 0 && pct <= 100) {{
+                cell.yesSum += pct;
+                cell.yesCount++;
+                const threshold = getMeasureThreshold(measure);
+                if (Math.abs(pct - threshold) <= 5) cell.close++;
+                if (measure.passed === 0 && pct > 50) cell.trapped++;
+            }}
+        }}
+
+        function finalizeExploreCell(cell, baselineCell = null, maxVolume = 0) {{
+            const passRate = cell.total > 0 ? (100 * cell.passed / cell.total) : null;
+            const avgYes = cell.yesCount > 0 ? (cell.yesSum / cell.yesCount) : null;
+            const closeRate = cell.total > 0 ? (100 * cell.close / cell.total) : null;
+            const trapRate = cell.total > 0 ? (100 * cell.trapped / cell.total) : null;
+            const baselineRate = baselineCell && baselineCell.total > 0 ? (100 * baselineCell.passed / baselineCell.total) : null;
+            const baselineDelta = passRate != null && baselineRate != null ? passRate - baselineRate : null;
+            const reliability = cell.total >= 10 ? 'solid' : cell.total >= 3 ? 'limited' : cell.total > 0 ? 'anecdotal' : 'empty';
+            return {{ ...cell, passRate, avgYes, closeRate, trapRate, baselineRate, baselineDelta, reliability, maxVolume }};
+        }}
+
+        function buildExploreMatrixData() {{
+            const colLabel = matrixState.colField === 'measureType' ? 'measure types'
+                : matrixState.colField === 'threshold' ? 'thresholds'
+                : 'topics';
+            const rowLabel = matrixState.rowGrouping === 'region' ? 'regions'
+                : matrixState.rowGrouping === 'decade' ? 'decades'
+                : matrixState.rowGrouping === 'year' ? 'years'
+                : 'jurisdictions';
+
+            const valid = filteredMeasures.filter(m => (m.passed === 1 || m.passed === 0) && getExploreColValue(m));
+            const colSet = new Set();
+            valid.forEach(m => colSet.add(getExploreColValue(m)));
+
+            const canonicalOrder = matrixState.colField === 'measureType' ? CANONICAL_TYPE_ORDER
+                : matrixState.colField === 'threshold' ? ['Simple majority', '55%', 'Two-thirds']
+                : CANONICAL_TOPIC_ORDER;
+            const columns = canonicalOrder.filter(t => colSet.has(t));
+            colSet.forEach(t => {{ if (!columns.includes(t)) columns.push(t); }});
+
+            const matrix = {{}};
+            const rowTotals = {{}};
+            const colTotals = {{}};
+            const grandTotal = createExploreCell();
+            columns.forEach(col => colTotals[col] = createExploreCell());
+
+            valid.forEach(m => {{
+                const rowKey = getExploreRowValue(m);
+                const colValue = getExploreColValue(m);
+                if (!matrix[rowKey]) matrix[rowKey] = {{}};
+                if (!matrix[rowKey][colValue]) matrix[rowKey][colValue] = createExploreCell();
+                if (!rowTotals[rowKey]) rowTotals[rowKey] = createExploreCell();
+
+                addMeasureToExploreCell(matrix[rowKey][colValue], m);
+                addMeasureToExploreCell(rowTotals[rowKey], m);
+                addMeasureToExploreCell(colTotals[colValue], m);
+                addMeasureToExploreCell(grandTotal, m);
+            }});
+
+            const allCells = Object.values(matrix).flatMap(row => Object.values(row));
+            const maxVolume = Math.max(1, ...allCells.map(cell => cell.total));
+            Object.keys(matrix).forEach(rowKey => {{
+                columns.forEach(col => {{
+                    if (!matrix[rowKey][col]) matrix[rowKey][col] = createExploreCell();
+                    matrix[rowKey][col] = finalizeExploreCell(matrix[rowKey][col], colTotals[col], maxVolume);
+                }});
+            }});
+            Object.keys(rowTotals).forEach(rowKey => {{
+                rowTotals[rowKey] = finalizeExploreCell(rowTotals[rowKey], grandTotal, maxVolume);
+            }});
+            columns.forEach(col => {{
+                colTotals[col] = finalizeExploreCell(colTotals[col], grandTotal, maxVolume);
+            }});
+            const finalizedGrandTotal = finalizeExploreCell(grandTotal, grandTotal, maxVolume);
+
+            let rows = Object.keys(rowTotals);
+            if (matrixState.sortCol && colTotals[matrixState.sortCol]) {{
+                rows.sort((a, b) => {{
+                    const av = getExploreMetricSortValue(matrix[a]?.[matrixState.sortCol] || createExploreCell());
+                    const bv = getExploreMetricSortValue(matrix[b]?.[matrixState.sortCol] || createExploreCell());
+                    return matrixState.sortDir === 'desc' ? bv - av : av - bv;
+                }});
+            }} else if (matrixState.rowSort === 'alpha') {{
+                rows.sort((a, b) => a.localeCompare(b, undefined, {{ numeric: true }}));
+            }} else if (matrixState.rowSort === 'rate') {{
+                rows.sort((a, b) => (rowTotals[b].passRate ?? -1) - (rowTotals[a].passRate ?? -1));
+            }} else {{
+                rows.sort((a, b) => (rowTotals[b]?.total || 0) - (rowTotals[a]?.total || 0));
+            }}
+
+            return {{ valid, columns, rows, matrix, rowTotals, colTotals, grandTotal: finalizedGrandTotal, rowLabel, colLabel, maxVolume }};
+        }}
+
+        function getExploreMetricSortValue(cell) {{
+            const finalCell = cell.passRate === undefined ? finalizeExploreCell(cell) : cell;
+            switch (matrixState.metric) {{
+                case 'volume': return finalCell.total || 0;
+                case 'avgYes': return finalCell.avgYes ?? -Infinity;
+                case 'baseline': return finalCell.baselineDelta ?? -Infinity;
+                case 'close': return finalCell.close || 0;
+                case 'trap': return finalCell.trapped || 0;
+                default: return finalCell.passRate ?? -Infinity;
+            }}
+        }}
+
+        function getExploreMetricLabel() {{
+            const labels = {{
+                passRate: 'Pass Rate',
+                volume: 'Volume',
+                avgYes: 'Avg Yes Vote',
+                baseline: 'Vs. Baseline',
+                close: 'Close Calls',
+                trap: 'Threshold Trap'
+            }};
+            return labels[matrixState.metric] || 'Pass Rate';
+        }}
+
+        function renderExploreSummary(data) {{
+            const reliableCells = [];
+            data.rows.forEach(row => {{
+                data.columns.forEach(col => {{
+                    const cell = data.matrix[row][col];
+                    if (cell.total >= 10) reliableCells.push({{ row, col, cell }});
+                }});
+            }});
+            const high = [...reliableCells].sort((a, b) => (b.cell.passRate ?? -1) - (a.cell.passRate ?? -1))[0];
+            const low = [...reliableCells].sort((a, b) => (a.cell.passRate ?? 101) - (b.cell.passRate ?? 101))[0];
+            const volume = [...reliableCells].sort((a, b) => b.cell.total - a.cell.total)[0];
+            const trap = [...reliableCells].sort((a, b) => b.cell.trapped - a.cell.trapped)[0];
+            const sparseCells = data.rows.length * data.columns.length - reliableCells.length;
+            const sparseShare = data.rows.length && data.columns.length ? Math.round(100 * sparseCells / (data.rows.length * data.columns.length)) : 0;
+            const card = (eyebrow, title, detail) => `
+                <div class="matrix-insight-card">
+                    <span>${{escapeHtml(eyebrow)}}</span>
+                    <strong>${{escapeHtml(title)}}</strong>
+                    <em>${{escapeHtml(detail)}}</em>
+                </div>`;
+            return `<div class="matrix-insight-strip">
+                ${{high ? card('Highest reliable pass rate', `${{high.row}} / ${{high.col}}`, `${{Math.round(high.cell.passRate)}}% passed across ${{high.cell.total}} measures`) : card('Highest reliable pass rate', 'Not enough data', 'Need at least 10 measures per cell')}}
+                ${{low ? card('Lowest reliable pass rate', `${{low.row}} / ${{low.col}}`, `${{Math.round(low.cell.passRate)}}% passed across ${{low.cell.total}} measures`) : card('Lowest reliable pass rate', 'Not enough data', 'Need at least 10 measures per cell')}}
+                ${{volume ? card('Largest cluster', `${{volume.row}} / ${{volume.col}}`, `${{volume.cell.total.toLocaleString()}} measures in this cell`) : card('Largest cluster', 'No cluster', 'Adjust filters to include outcomes')}}
+                ${{trap && trap.cell.trapped > 0 ? card('Most threshold traps', `${{trap.row}} / ${{trap.col}}`, `${{trap.cell.trapped}} majority-supported failures`) : card('Reliability note', `${{sparseShare}}% sparse`, 'Cells below 10 measures are visually de-emphasized')}}
+            </div>`;
+        }}
+
+        function renderExploreToolbar(data) {{
+            const metric = matrixState.metric;
+            return `<div class="matrix-toolbar">
+                <span>${{data.valid.length.toLocaleString()}} measures with outcomes - ${{data.rows.length}} ${{data.rowLabel}} x ${{data.columns.length}} ${{data.colLabel}}</span>
+                <div class="matrix-toolbar-group">
+                    <span class="matrix-toolbar-group-label">Columns</span>
+                    <div class="matrix-col-toggle">
+                        <button class="${{matrixState.colField === 'topic' ? 'active' : ''}}" onclick="setMatrixColField('topic')">Topic</button>
+                        <button class="${{matrixState.colField === 'measureType' ? 'active' : ''}}" onclick="setMatrixColField('measureType')">Measure Type</button>
+                        <button class="${{matrixState.colField === 'threshold' ? 'active' : ''}}" onclick="setMatrixColField('threshold')">Threshold</button>
+                    </div>
+                </div>
+                <label>Rows:
+                    <select onchange="setMatrixRowGrouping(this.value)">
+                        <option value="jurisdiction" ${{matrixState.rowGrouping==='jurisdiction'?'selected':''}}>Jurisdictions</option>
+                        <option value="region" ${{matrixState.rowGrouping==='region'?'selected':''}}>Regions</option>
+                        <option value="decade" ${{matrixState.rowGrouping==='decade'?'selected':''}}>Decades</option>
+                        <option value="year" ${{matrixState.rowGrouping==='year'?'selected':''}}>Years</option>
+                    </select>
+                </label>
+                <label>Metric:
+                    <select onchange="setMatrixMetric(this.value)">
+                        <option value="passRate" ${{metric==='passRate'?'selected':''}}>Pass Rate</option>
+                        <option value="volume" ${{metric==='volume'?'selected':''}}>Volume</option>
+                        <option value="avgYes" ${{metric==='avgYes'?'selected':''}}>Avg Yes Vote</option>
+                        <option value="baseline" ${{metric==='baseline'?'selected':''}}>Vs. Baseline</option>
+                        <option value="close" ${{metric==='close'?'selected':''}}>Close Calls</option>
+                        <option value="trap" ${{metric==='trap'?'selected':''}}>Threshold Trap</option>
+                    </select>
+                </label>
+                <label>Sort:
+                    <select onchange="setMatrixRowSort(this.value)">
+                        <option value="count" ${{matrixState.rowSort==='count'?'selected':''}}>By count</option>
+                        <option value="alpha" ${{matrixState.rowSort==='alpha'?'selected':''}}>A-Z</option>
+                        <option value="rate" ${{matrixState.rowSort==='rate'?'selected':''}}>By pass rate</option>
+                    </select>
+                </label>
+                <label>Min n:
+                    <select onchange="setMatrixMinN(parseInt(this.value))">
+                        <option value="0" ${{matrixState.minN===0?'selected':''}}>All</option>
+                        <option value="3" ${{matrixState.minN===3?'selected':''}}>3+</option>
+                        <option value="5" ${{matrixState.minN===5?'selected':''}}>5+</option>
+                        <option value="10" ${{matrixState.minN===10?'selected':''}}>10+</option>
+                    </select>
+                </label>
+                <button class="matrix-reset-btn" type="button" onclick="resetMatrixControls()">Reset Explore</button>
+                <div class="matrix-legend">
+                    <span class="matrix-legend-label">${{escapeHtml(getExploreMetricLabel())}}</span>
+                    <div class="matrix-legend-bar">
+                        <span style="background:#E54D4D"></span>
+                        <span style="background:#EA7A3F"></span>
+                        <span style="background:#F0A030"></span>
+                        <span style="background:#7CB86A"></span>
+                        <span style="background:#2D9D78"></span>
+                    </div>
+                    <span style="opacity:0.5; margin-left:8px; color:#666;">o</span><span style="color:#888;font-size:0.7rem;margin-left:2px;">low n</span>
+                </div>
+            </div>`;
+        }}
+
+        function getExploreCellPresentation(cell) {{
+            if (!cell || cell.total === 0) return {{ text: '-', subtext: '', bg: '#F0EDE8', empty: true }};
+            switch (matrixState.metric) {{
+                case 'volume':
+                    return {{ text: cell.total.toLocaleString(), subtext: `${{cell.passed}} passed`, bg: matrixVolumeColor(cell.total, cell.maxVolume) }};
+                case 'avgYes':
+                    return {{ text: cell.avgYes == null ? 'n/a' : `${{cell.avgYes.toFixed(1)}}%`, subtext: `${{cell.yesCount}} with vote %`, bg: matrixYesColor(cell.avgYes) }};
+                case 'baseline':
+                    return {{ text: cell.baselineDelta == null ? 'n/a' : `${{cell.baselineDelta >= 0 ? '+' : ''}}${{cell.baselineDelta.toFixed(0)}}pt`, subtext: `${{Math.round(cell.passRate ?? 0)}}% pass`, bg: matrixDeltaColor(cell.baselineDelta) }};
+                case 'close':
+                    return {{ text: String(cell.close), subtext: `${{Math.round(cell.closeRate || 0)}}% close`, bg: trapCellColor(cell.close, cell.total) }};
+                case 'trap':
+                    return {{ text: String(cell.trapped), subtext: `${{Math.round(cell.trapRate || 0)}}% trap`, bg: trapCellColor(cell.trapped, cell.total) }};
+                default:
+                    return {{ text: `${{Math.round(cell.passRate ?? 0)}}%`, subtext: String(cell.total), bg: matrixCellColor(cell.passed, cell.total) }};
+            }}
+        }}
+
+        function renderExploreCell(cell, rowKey, colValue, isTotal = false) {{
+            if (!cell || cell.total === 0 || (!isTotal && cell.total < matrixState.minN)) {{
+                return '<td class="matrix-cell empty-cell"><span class="cell-rate">-</span></td>';
+            }}
+            const presentation = getExploreCellPresentation(cell);
+            const lowClass = !isTotal && cell.total < 3 ? 'low-conf' : !isTotal && cell.total < 10 ? 'limited-conf' : '';
+            const rEsc = escapeJsString(rowKey);
+            const cEsc = escapeJsString(colValue);
+            const detail = `${{rowKey}}, ${{colValue}}: ${{getExploreMetricLabel()}} ${{presentation.text}}; ${{cell.passed}} of ${{cell.total}} passed`;
+            const attrs = isTotal ? '' : `role="button" tabindex="0" onclick="matrixCellClick('${{rEsc}}','${{cEsc}}')" onkeydown="if(event.key==='Enter')matrixCellClick('${{rEsc}}','${{cEsc}}')"`;
+            return `<td class="matrix-cell ${{lowClass}}" style="background:${{presentation.bg}}" ${{attrs}} title="${{escapeAttr(detail)}}" aria-label="${{escapeAttr(detail)}}">
+                <span class="cell-rate">${{escapeHtml(presentation.text)}}</span>
+                <span class="cell-count">${{escapeHtml(presentation.subtext)}}</span>
+                ${{!isTotal && cell.total < 10 ? `<span class="cell-note">${{cell.reliability}}</span>` : ''}}
+            </td>`;
+        }}
+
+        function renderMatrixV2() {{
+            const data = buildExploreMatrixData();
+
+            if (data.valid.length === 0) {{
+                return `<div class="empty-state">
+                    <div class="empty-icon">📊</div>
+                    <h3>No outcome data</h3>
+                    <p>Adjust filters to include measures with pass/fail results</p>
+                </div>`;
+            }}
+
+            const matrixDensityClass = data.rows.length <= 16 ? 'matrix-compact' : '';
+            let html = `<div class="matrix-wrapper ${{matrixDensityClass}}">`;
+            html += renderExploreToolbar(data);
+            html += renderExploreSummary(data);
+            html += '<div class="matrix-top-scroll" aria-hidden="true"><div class="matrix-top-scroll-inner"></div></div>';
+            html += '<div class="matrix-scroll"><table class="matrix-table" role="grid">';
+
+            const rowHeader = matrixState.rowGrouping === 'region' ? 'Region'
+                : matrixState.rowGrouping === 'decade' ? 'Decade'
+                : matrixState.rowGrouping === 'year' ? 'Year'
+                : 'Jurisdiction';
+            const jSortCls = !matrixState.sortCol ? 'sorted-desc' : '';
+            html += '<thead><tr>';
+            html += `<th class="${{jSortCls}}" role="button" tabindex="0" onclick="sortMatrixByRow()" onkeydown="if(event.key==='Enter')sortMatrixByRow()">${{rowHeader}}</th>`;
+            data.columns.forEach(col => {{
+                const cls = matrixState.sortCol === col ? (matrixState.sortDir === 'asc' ? 'sorted-asc' : 'sorted-desc') : '';
+                const escaped = escapeJsString(col);
+                html += `<th class="${{cls}}" role="button" tabindex="0" onclick="sortMatrixByCol('${{escaped}}')" onkeydown="if(event.key==='Enter')sortMatrixByCol('${{escaped}}')" title="${{escapeAttr(col)}}">${{escapeHtml(col)}}</th>`;
+            }});
+            html += '<th>All</th></tr></thead><tbody>';
+
+            data.rows.forEach(row => {{
+                const rowTotal = data.rowTotals[row];
+                const rEsc = escapeJsString(row);
+                html += `<tr><td role="button" tabindex="0" onclick="exploreFilterToCounty('${{rEsc}}')" onkeydown="if(event.key==='Enter')exploreFilterToCounty('${{rEsc}}')">${{escapeHtml(row)}} <span class="cell-count">(${{rowTotal.total}})</span></td>`;
+                data.columns.forEach(col => {{
+                    html += renderExploreCell(data.matrix[row][col], row, col);
+                }});
+                html += renderExploreCell(rowTotal, row, 'All', true);
+                html += '</tr>';
+            }});
+
+            html += '<tr class="matrix-totals"><td>All</td>';
+            data.columns.forEach(col => {{
+                html += renderExploreCell(data.colTotals[col], 'All', col, true);
+            }});
+            html += renderExploreCell(data.grandTotal, 'All', 'All', true);
+            html += '</tr></tbody>';
+
+            html += '<tfoot><tr>';
+            html += `<th role="button" tabindex="0" onclick="sortMatrixByRow()" onkeydown="if(event.key==='Enter')sortMatrixByRow()">${{rowHeader}}</th>`;
+            data.columns.forEach(col => {{
+                const cls = matrixState.sortCol === col ? (matrixState.sortDir === 'asc' ? 'sorted-asc' : 'sorted-desc') : '';
+                const escaped = escapeJsString(col);
+                html += `<th class="${{cls}}" role="button" tabindex="0" onclick="sortMatrixByCol('${{escaped}}')" onkeydown="if(event.key==='Enter')sortMatrixByCol('${{escaped}}')" title="${{escapeAttr(col)}}">${{escapeHtml(col)}}</th>`;
+            }});
+            html += '<th>All</th></tr></tfoot></table></div></div>';
+            return html;
+        }}
+
         function renderMatrix() {{
+            return renderMatrixV2();
             // Determine which field to use for columns based on toggle
             const colFieldKey = matrixState.colField === 'measureType' ? 'display_category_type' : 'display_topic';
             const colLabel = matrixState.colField === 'measureType' ? 'measure types' : 'topics';
@@ -6418,7 +8647,8 @@ class WebsiteGenerator:
             }}
 
             // Build HTML
-            let html = '<div class="matrix-wrapper">';
+            const matrixDensityClass = counties.length <= 16 ? 'matrix-compact' : '';
+            let html = `<div class="matrix-wrapper ${{matrixDensityClass}}">`;
 
             // Toolbar with info, controls, and legend
             const rowLabel = useRegions ? 'regions' : 'jurisdictions';
@@ -6466,6 +8696,7 @@ class WebsiteGenerator:
                     <span style="opacity:0.5; margin-left:8px; color:#666;">●</span><span style="color:#888;font-size:0.7rem;margin-left:2px;">sparse</span>
                 </div>
             </div>`;
+            html += '<div class="matrix-top-scroll" aria-hidden="true"><div class="matrix-top-scroll-inner"></div></div>';
             html += '<div class="matrix-scroll"><table class="matrix-table" role="grid">';
 
             // Header
@@ -6566,9 +8797,52 @@ class WebsiteGenerator:
             }} else {{
                 html += `<td><span class="cell-rate">${{gt.total > 0 ? Math.round(100*gt.passed/gt.total) : 0}}%</span><span class="cell-count">${{gt.total}}</span></td>`;
             }}
-            html += '</tr></tbody></table></div></div>';
+            html += '</tr></tbody>';
+
+            // Bottom column labels mirror the header for easier reading after vertical scrolling.
+            html += '<tfoot><tr>';
+            html += `<th role="button" tabindex="0"
+                onclick="sortMatrixByRow()" onkeydown="if(event.key==='Enter')sortMatrixByRow()">${{rowHeader}}</th>`;
+            topics.forEach(t => {{
+                const cls = matrixState.sortCol === t ? (matrixState.sortDir === 'asc' ? 'sorted-asc' : 'sorted-desc') : '';
+                const escaped = t.replace(/'/g, "\\\\'");
+                html += `<th class="${{cls}}" role="button" tabindex="0"
+                    onclick="sortMatrixByCol('${{escaped}}')"
+                    onkeydown="if(event.key==='Enter')sortMatrixByCol('${{escaped}}')"
+                    title="${{escapeAttr(t)}}">${{escapeHtml(t)}}</th>`;
+            }});
+            html += '<th>All</th></tr></tfoot></table></div></div>';
 
             return html;
+        }}
+
+        function syncMatrixScrollbars() {{
+            const topScroll = document.querySelector('.matrix-top-scroll');
+            const topInner = document.querySelector('.matrix-top-scroll-inner');
+            const matrixScroll = document.querySelector('.matrix-scroll');
+            const matrixTable = document.querySelector('.matrix-table');
+            if (!topScroll || !topInner || !matrixScroll || !matrixTable) return;
+
+            const updateTopWidth = () => {{
+                topInner.style.width = matrixTable.scrollWidth + 'px';
+                topScroll.scrollLeft = matrixScroll.scrollLeft;
+            }};
+            updateTopWidth();
+            requestAnimationFrame(updateTopWidth);
+
+            let syncing = false;
+            topScroll.addEventListener('scroll', () => {{
+                if (syncing) return;
+                syncing = true;
+                matrixScroll.scrollLeft = topScroll.scrollLeft;
+                syncing = false;
+            }});
+            matrixScroll.addEventListener('scroll', () => {{
+                if (syncing) return;
+                syncing = true;
+                topScroll.scrollLeft = matrixScroll.scrollLeft;
+                syncing = false;
+            }});
         }}
 
         function sortMatrixByCol(topic) {{
@@ -6616,6 +8890,19 @@ class WebsiteGenerator:
             displayResults();
         }}
 
+        function resetMatrixControls() {{
+            matrixState.rowGrouping = 'jurisdiction';
+            matrixState.rowSort = 'count';
+            matrixState.colField = 'topic';
+            matrixState.sortCol = null;
+            matrixState.sortDir = 'desc';
+            matrixState.minN = 0;
+            matrixState.metric = 'passRate';
+            matrixRowMode = matrixState.rowSort;
+            matrixColField = matrixState.colField;
+            displayResults();
+        }}
+
         // Threshold trap color: purple scale
         function trapCellColor(trapCount, total) {{
             if (total < 1 || trapCount === 0) return '#f0eee8';
@@ -6629,21 +8916,11 @@ class WebsiteGenerator:
 
         function matrixCellClick(rowKey, colValue) {{
             // Show cell detail modal instead of drilling down
-            const colFieldKey = matrixState.colField === 'measureType' ? 'display_category_type' : 'display_topic';
-
-            // Filter measures for this cell
-            const cellMeasures = filteredMeasures.filter(m => {{
-                const mCol = m[colFieldKey];
-                if (mCol !== colValue) return false;
-                if (m.passed !== 1 && m.passed !== 0) return false;
-                if (matrixState.rowGrouping === 'region') {{
-                    const cnty = (m.county || '').toUpperCase();
-                    const region = cnty === 'STATEWIDE' ? 'Statewide' : (countyToRegion[cnty] || 'Other');
-                    return region === rowKey;
-                }} else {{
-                    return (m.county || 'Unknown') === rowKey;
-                }}
-            }});
+            const cellMeasures = filteredMeasures.filter(m =>
+                (m.passed === 1 || m.passed === 0) &&
+                getExploreColValue(m) === colValue &&
+                getExploreRowValue(m) === rowKey
+            );
 
             if (cellMeasures.length === 0) return;
 
@@ -6653,6 +8930,9 @@ class WebsiteGenerator:
             const passRate = Math.round(100 * passed / total);
             const validPct = cellMeasures.filter(m => m.percent_yes != null && m.percent_yes >= 0 && m.percent_yes <= 100);
             const avgYes = validPct.length > 0 ? (validPct.reduce((s, m) => s + m.percent_yes, 0) / validPct.length).toFixed(1) : null;
+            const trapped = validPct.filter(m => m.passed === 0 && m.percent_yes > 50).length;
+            const closeCalls = validPct.filter(m => Math.abs(m.percent_yes - getMeasureThreshold(m)) <= 5).length;
+            const reliability = total >= 10 ? 'solid' : total >= 3 ? 'limited' : 'anecdotal';
 
             // Decade breakdown
             const decades = {{}};
@@ -6687,6 +8967,14 @@ class WebsiteGenerator:
                         <div style="font-size:0.75rem;color:#888;">avg YES vote</div>
                     </div>` : ''}}
                 </div>`;
+            body = `
+                <div class="matrix-modal-metrics">
+                    <div class="matrix-modal-metric"><strong>${{passRate}}%</strong><span>Pass rate (${{passed}}/${{total}})</span></div>
+                    <div class="matrix-modal-metric"><strong>${{avgYes ? avgYes + '%' : 'n/a'}}</strong><span>Avg yes vote</span></div>
+                    <div class="matrix-modal-metric"><strong>${{closeCalls}}</strong><span>Close calls</span></div>
+                    <div class="matrix-modal-metric"><strong>${{trapped}}</strong><span>Threshold traps</span></div>
+                </div>
+                <p style="font-size:0.82rem;color:#5F5647;margin:0 0 0.8rem;">Reliability: <strong>${{reliability}}</strong>. Close calls are measures within 5 points of their inferred legal threshold; threshold traps are majority-supported failures.</p>`;
 
             // Decade chart
             if (decadeKeys.length >= 2) {{
@@ -6733,12 +9021,32 @@ class WebsiteGenerator:
             // The old drill-down behavior — sets filters and switches to grid
             if (matrixState.colField === 'measureType') {{
                 currentFilters.measureTypes = [colValue];
+                currentFilters.thresholds = [];
                 updateMeasureTypeChipUI();
+            }} else if (matrixState.colField === 'threshold') {{
+                currentFilters.measureTypes = [];
+                currentFilters.topics = [];
+                currentFilters.thresholds = [colValue];
             }} else {{
                 currentFilters.topics = [colValue];
+                currentFilters.thresholds = [];
                 updateTopicChipUI();
             }}
-            if (matrixState.rowGrouping === 'region' && CA_REGIONS[rowKey]) {{
+            if (matrixState.rowGrouping === 'decade') {{
+                const decade = parseInt(rowKey);
+                if (Number.isFinite(decade)) {{
+                    currentFilters.selectedDecades = [decade];
+                    currentFilters.selectedYears = [];
+                    renderYearNavigation();
+                }}
+            }} else if (matrixState.rowGrouping === 'year') {{
+                const year = parseInt(rowKey);
+                if (Number.isFinite(year)) {{
+                    currentFilters.selectedYears = [year];
+                    currentFilters.selectedDecades = [];
+                    renderYearNavigation();
+                }}
+            }} else if (matrixState.rowGrouping === 'region' && CA_REGIONS[rowKey]) {{
                 currentFilters.regions = [rowKey];
                 currentFilters.level = null;
                 currentFilters.levelCounty = null;
@@ -6760,7 +9068,21 @@ class WebsiteGenerator:
         }}
 
         function exploreFilterToCounty(rowKey) {{
-            if (matrixState.rowGrouping === 'region' && CA_REGIONS[rowKey]) {{
+            if (matrixState.rowGrouping === 'decade') {{
+                const decade = parseInt(rowKey);
+                if (Number.isFinite(decade)) {{
+                    currentFilters.selectedDecades = [decade];
+                    currentFilters.selectedYears = [];
+                    renderYearNavigation();
+                }}
+            }} else if (matrixState.rowGrouping === 'year') {{
+                const year = parseInt(rowKey);
+                if (Number.isFinite(year)) {{
+                    currentFilters.selectedYears = [year];
+                    currentFilters.selectedDecades = [];
+                    renderYearNavigation();
+                }}
+            }} else if (matrixState.rowGrouping === 'region' && CA_REGIONS[rowKey]) {{
                 currentFilters.regions = [rowKey];
                 currentFilters.level = null;
                 currentFilters.levelCounty = null;
@@ -6777,12 +9099,824 @@ class WebsiteGenerator:
             applyFilters();
         }}
 
+        let insightsRendered = false;
+        let insightsCharts = {{}};
+        let countyMapRendered = false;
+        let insightsNavInitialized = false;
+        let currentInsightsSlide = 0;
+
+        function formatInsightNumber(value) {{
+            if (value === null || value === undefined || Number.isNaN(value)) return '—';
+            if (typeof value === 'string') return value;
+            if (Math.abs(value) >= 1000000000) return (value / 1000000000).toFixed(1) + 'B';
+            if (Math.abs(value) >= 1000000) return (value / 1000000).toFixed(1) + 'M';
+            return Number(value).toLocaleString();
+        }}
+
+        function formatInsightPct(value) {{
+            return value === null || value === undefined || Number.isNaN(value) ? '—' : Number(value).toFixed(1) + '%';
+        }}
+
+        function updateViewVisibility() {{
+            const isInsights = currentView === 'insights';
+            const isExplore = currentView === 'explore';
+            const insights = document.getElementById('insightsSection');
+            if (insights) insights.style.display = isInsights ? 'block' : 'none';
+
+            const visibility = {{
+                '.site-intro': isInsights,
+                '#statsRibbon': isInsights || isExplore,
+                '.filter-section-wrapper': isInsights || isExplore,
+                '.results-header': isInsights || isExplore,
+                '#resultsContainer': isInsights,
+                '#heroSection': isInsights || isExplore,
+                '.quiz-section': isInsights || isExplore
+            }};
+            Object.entries(visibility).forEach(([selector, hide]) => {{
+                const el = document.querySelector(selector);
+                if (el) el.style.display = hide ? 'none' : '';
+            }});
+        }}
+
+        function renderInsights() {{
+            updateViewVisibility();
+            if (insightsRendered) {{
+                if (!countyMapRendered) renderCountyMap();
+                initializeInsightsNav();
+                return;
+            }}
+
+            if (!insightsData || !insightsData.overview) {{
+                const section = document.getElementById('insightsSection');
+                if (section) {{
+                    section.innerHTML = '<div class="empty-state"><h3>Insights data is not available</h3><p>Run scripts/generate_insights.py before generating the site.</p></div>';
+                }}
+                return;
+            }}
+
+            renderInsightsMetrics();
+            renderInsightsFindings();
+            renderInsightsCharts();
+            renderTrendSummary();
+            renderTopicTrendSummary();
+            renderTypeInsights();
+            renderCountyLeaderboard();
+            renderGeographyInsights();
+            renderCountyMap();
+            renderThresholdCallouts();
+            renderStatisticalComparisons();
+            renderCloseMeasures();
+            renderFinanceInsights();
+            renderInsightsMethodology();
+            initializeInsightsNav();
+            setInsightsSlide(currentInsightsSlide);
+
+            const overview = insightsData.overview || {{}};
+            const datasetLabel = document.getElementById('insightsDatasetLabel');
+            const generatedLabel = document.getElementById('insightsGeneratedLabel');
+            if (datasetLabel) {{
+                datasetLabel.textContent = formatInsightNumber(overview.active_measures) + ' active records, ' + formatInsightNumber(overview.county_count) + ' counties';
+            }}
+            if (generatedLabel && overview.generated_at) {{
+                const generatedDate = new Date(overview.generated_at);
+                generatedLabel.textContent = 'Updated ' + generatedDate.toLocaleDateString(undefined, {{ year: 'numeric', month: 'short', day: 'numeric' }});
+            }}
+
+            insightsRendered = true;
+        }}
+
+        function getInsightsSlides() {{
+            return Array.from(document.querySelectorAll('.insights-carousel-slide'));
+        }}
+
+        function isInsightsCarouselDesktop() {{
+            return window.matchMedia('(min-width: 769px)').matches;
+        }}
+
+        function setInsightsSlide(index) {{
+            const slides = getInsightsSlides();
+            const track = document.getElementById('insightsCarouselTrack');
+            const viewport = document.querySelector('.insights-carousel-viewport');
+            if (!track || slides.length === 0) return;
+
+            const normalized = ((index % slides.length) + slides.length) % slides.length;
+            currentInsightsSlide = normalized;
+
+            if (isInsightsCarouselDesktop()) {{
+                track.style.transform = `translateX(-${{normalized * 100}}%)`;
+                if (viewport) {{
+                    requestAnimationFrame(() => {{
+                        viewport.style.height = slides[normalized].offsetHeight + 'px';
+                    }});
+                }}
+            }} else {{
+                track.style.transform = 'none';
+                if (viewport) viewport.style.height = 'auto';
+            }}
+
+            const activeId = slides[normalized].id;
+            document.querySelectorAll('.insights-side-nav a[href^="#"]').forEach(link => {{
+                link.classList.toggle('active', link.getAttribute('href') === '#' + activeId);
+            }});
+
+            const status = document.getElementById('insightsCarouselStatus');
+            if (status) status.textContent = `${{normalized + 1}} / ${{slides.length}}`;
+
+            setTimeout(() => {{
+                Object.values(insightsCharts || {{}}).forEach(chart => {{
+                    if (chart && typeof chart.resize === 'function') chart.resize();
+                }});
+                if (isInsightsCarouselDesktop() && viewport) {{
+                    viewport.style.height = slides[normalized].offsetHeight + 'px';
+                }}
+            }}, 80);
+        }}
+
+        function moveInsightsSlide(delta) {{
+            setInsightsSlide(currentInsightsSlide + delta);
+        }}
+
+        window.addEventListener('resize', () => {{
+            if (currentView === 'insights') setInsightsSlide(currentInsightsSlide);
+        }});
+
+        function initializeInsightsNav() {{
+            const nav = document.querySelector('.insights-side-nav');
+            if (!nav) return;
+            const links = Array.from(nav.querySelectorAll('a[href^="#"]'));
+            const targets = links.map(link => document.querySelector(link.getAttribute('href'))).filter(Boolean);
+            if (links.length === 0 || targets.length === 0) return;
+
+            const setActive = id => {{
+                links.forEach(link => link.classList.toggle('active', link.getAttribute('href') === '#' + id));
+            }};
+
+            if (!insightsNavInitialized) {{
+                links.forEach(link => {{
+                    link.addEventListener('click', event => {{
+                        const target = document.querySelector(link.getAttribute('href'));
+                        if (!target) return;
+                        event.preventDefault();
+                        const slideIndex = getInsightsSlides().findIndex(slide => slide.id === target.id);
+                        if (isInsightsCarouselDesktop() && slideIndex >= 0) {{
+                            setInsightsSlide(slideIndex);
+                        }} else {{
+                            setActive(target.id);
+                            target.scrollIntoView({{ behavior: 'smooth', block: 'start' }});
+                        }}
+                    }});
+                }});
+
+                if ('IntersectionObserver' in window) {{
+                    const observer = new IntersectionObserver(entries => {{
+                        if (isInsightsCarouselDesktop()) return;
+                        const visible = entries
+                            .filter(entry => entry.isIntersecting)
+                            .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+                        if (visible && currentView === 'insights') setActive(visible.target.id);
+                    }}, {{ root: null, rootMargin: '-18% 0px -68% 0px', threshold: [0, 0.2, 0.5, 1] }});
+                    targets.forEach(target => observer.observe(target));
+                }}
+                insightsNavInitialized = true;
+            }}
+        }}
+
+        function renderInsightsMetrics() {{
+            const overview = insightsData.overview || {{}};
+            const metrics = [
+                ['Active measures', overview.active_measures, `${{overview.year_min}}–${{overview.year_max}}`],
+                ['Pass rate', formatInsightPct(overview.pass_rate), 'decided records'],
+                ['Local share', formatInsightPct(overview.local_share), `${{formatInsightNumber(overview.local_measures)}} local measures`],
+                ['With vote data', overview.vote_data_measures, 'valid yes/no totals']
+            ];
+            const target = document.getElementById('insightsMetrics');
+            if (!target) return;
+            target.innerHTML = metrics.map(([label, value, note]) => `
+                <div class="insight-metric">
+                    <span>${{escapeHtml(label)}}</span>
+                    <strong>${{formatInsightNumber(value)}}</strong>
+                    <small>${{escapeHtml(note || '')}}</small>
+                </div>
+            `).join('');
+        }}
+
+        function renderInsightsFindings() {{
+            const target = document.getElementById('insightsFindings');
+            if (!target) return;
+            target.innerHTML = (insightsData.featured_findings || []).map(finding => `
+                <article class="finding-card">
+                    <div class="finding-meta">
+                        <span>${{escapeHtml(finding.confidence || 'Reviewed')}} confidence</span>
+                        <strong>${{escapeHtml(finding.metric || '')}}</strong>
+                    </div>
+                    <h3>${{escapeHtml(finding.title || '')}}</h3>
+                    <p>${{escapeHtml(finding.deck || '')}}</p>
+                    <small>${{escapeHtml(finding.caveat || '')}}</small>
+                </article>
+            `).join('');
+        }}
+
+        function createInsightChart(canvasId, config) {{
+            if (!window.Chart) return;
+            const canvas = document.getElementById(canvasId);
+            if (!canvas) return;
+            if (insightsCharts[canvasId]) insightsCharts[canvasId].destroy();
+            insightsCharts[canvasId] = new Chart(canvas, config);
+        }}
+
+        function renderInsightsCharts() {{
+            const timeSeries = insightsData.time_series || [];
+            const yearRows = timeSeries.filter(row => row.year && row.total > 0);
+            createInsightChart('insightsYearChart', {{
+                type: 'bar',
+                data: {{
+                    labels: yearRows.map(row => row.year),
+                    datasets: [
+                        {{
+                            type: 'bar',
+                            label: 'Measures',
+                            data: yearRows.map(row => row.total),
+                            backgroundColor: '#7A1F2A',
+                            borderRadius: 3,
+                            yAxisID: 'y'
+                        }},
+                        {{
+                            type: 'line',
+                            label: 'Pass rate',
+                            data: yearRows.map(row => row.pass_rate),
+                            borderColor: '#2D9D78',
+                            backgroundColor: '#2D9D78',
+                            pointRadius: 1.5,
+                            tension: 0.2,
+                            yAxisID: 'y1'
+                        }}
+                    ]
+                }},
+                options: {{
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {{ mode: 'index', intersect: false }},
+                    plugins: {{ legend: {{ position: 'bottom' }} }},
+                    scales: {{
+                        x: {{ ticks: {{ maxTicksLimit: 12 }} }},
+                        y: {{ beginAtZero: true, title: {{ display: true, text: 'Measures' }} }},
+                        y1: {{ beginAtZero: true, max: 100, position: 'right', grid: {{ drawOnChartArea: false }}, title: {{ display: true, text: 'Pass rate' }} }}
+                    }}
+                }}
+            }});
+
+            const decades = insightsData.decade_series || [];
+            createInsightChart('insightsDecadeChart', {{
+                type: 'bar',
+                data: {{
+                    labels: decades.map(row => row.decade + 's'),
+                    datasets: [
+                        {{
+                            label: 'Local',
+                            data: decades.map(row => row.local || 0),
+                            backgroundColor: '#254E70',
+                            borderRadius: 3
+                        }},
+                        {{
+                            label: 'Statewide',
+                            data: decades.map(row => row.statewide || 0),
+                            backgroundColor: '#D4A62A',
+                            borderRadius: 3
+                        }}
+                    ]
+                }},
+                options: {{
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {{ legend: {{ position: 'bottom' }} }},
+                    scales: {{
+                        x: {{ stacked: true, ticks: {{ maxRotation: 0 }} }},
+                        y: {{ stacked: true, beginAtZero: true }}
+                    }}
+                }}
+            }});
+
+            const cycles = insightsData.election_cycle_stats || [];
+            createInsightChart('insightsElectionCycleChart', {{
+                type: 'bar',
+                data: {{
+                    labels: cycles.map(row => row.cycle),
+                    datasets: [
+                        {{
+                            type: 'bar',
+                            label: 'Avg. measures per year',
+                            data: cycles.map(row => row.avg_measures_per_year || 0),
+                            backgroundColor: '#7A1F2A',
+                            borderRadius: 4,
+                            yAxisID: 'y'
+                        }},
+                        {{
+                            type: 'line',
+                            label: 'Pass rate',
+                            data: cycles.map(row => row.pass_rate),
+                            borderColor: '#2D9D78',
+                            backgroundColor: '#2D9D78',
+                            tension: 0.25,
+                            yAxisID: 'y1'
+                        }}
+                    ]
+                }},
+                options: {{
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {{ legend: {{ position: 'bottom' }} }},
+                    scales: {{
+                        y: {{ beginAtZero: true, title: {{ display: true, text: 'Measures/year' }} }},
+                        y1: {{ beginAtZero: true, max: 100, position: 'right', grid: {{ drawOnChartArea: false }}, title: {{ display: true, text: 'Pass rate' }} }}
+                    }}
+                }}
+            }});
+
+            const topics = (insightsData.topic_stats || []).slice(0, 9);
+            createInsightChart('insightsTopicChart', {{
+                type: 'bar',
+                data: {{
+                    labels: topics.map(row => row.topic),
+                    datasets: [{{
+                        label: 'Measures',
+                        data: topics.map(row => row.total),
+                        backgroundColor: topics.map(row => row.topic === 'Other' ? '#B8B0A5' : '#7A1F2A'),
+                        borderRadius: 4
+                    }}]
+                }},
+                options: {{
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {{ legend: {{ display: false }} }},
+                    scales: {{ x: {{ beginAtZero: true }} }}
+                }}
+            }});
+
+            const topicTrends = insightsData.topic_trends || {{}};
+            const topicTrendRows = topicTrends.decade_shares || [];
+            const topicPalette = ['#7A1F2A', '#254E70', '#2D9D78', '#D4A62A', '#8B5CF6', '#E4572E'];
+            createInsightChart('insightsTopicTrendChart', {{
+                type: 'line',
+                data: {{
+                    labels: topicTrendRows.map(row => row.decade + 's'),
+                    datasets: (topicTrends.tracked_topics || []).map((topic, i) => ({{
+                        label: topic,
+                        data: topicTrendRows.map(row => (row.shares || {{}})[topic]),
+                        borderColor: topicPalette[i % topicPalette.length],
+                        backgroundColor: topicPalette[i % topicPalette.length],
+                        pointRadius: 2,
+                        tension: 0.25
+                    }}))
+                }},
+                options: {{
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {{ legend: {{ position: 'bottom' }} }},
+                    scales: {{ y: {{ beginAtZero: true, title: {{ display: true, text: 'Share of records (%)' }} }} }}
+                }}
+            }});
+
+            const types = (insightsData.category_type_stats || []).slice(0, 8);
+            createInsightChart('insightsTypeChart', {{
+                type: 'bar',
+                data: {{
+                    labels: types.map(row => row.category_type || row.type),
+                    datasets: [{{
+                        label: 'Measures',
+                        data: types.map(row => row.total),
+                        backgroundColor: '#254E70',
+                        borderRadius: 4
+                    }}]
+                }},
+                options: {{
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {{ legend: {{ display: false }} }},
+                    scales: {{ x: {{ beginAtZero: true }} }}
+                }}
+            }});
+
+            const typeTrendRows = insightsData.type_trends || [];
+            createInsightChart('insightsFiscalTrendChart', {{
+                type: 'line',
+                data: {{
+                    labels: typeTrendRows.map(row => row.decade + 's'),
+                    datasets: [
+                        {{
+                            label: 'Fiscal share',
+                            data: typeTrendRows.map(row => row.fiscal_share),
+                            borderColor: '#7A1F2A',
+                            backgroundColor: '#7A1F2A',
+                            tension: 0.25
+                        }},
+                        {{
+                            label: 'Bond share',
+                            data: typeTrendRows.map(row => row.bond_share),
+                            borderColor: '#254E70',
+                            backgroundColor: '#254E70',
+                            tension: 0.25
+                        }},
+                        {{
+                            label: 'Tax share',
+                            data: typeTrendRows.map(row => row.tax_share),
+                            borderColor: '#2D9D78',
+                            backgroundColor: '#2D9D78',
+                            tension: 0.25
+                        }}
+                    ]
+                }},
+                options: {{
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {{ legend: {{ position: 'bottom' }} }},
+                    scales: {{ y: {{ beginAtZero: true, title: {{ display: true, text: 'Share of records (%)' }} }} }}
+                }}
+            }});
+
+            const thresholds = insightsData.threshold_stats || [];
+            createInsightChart('insightsThresholdChart', {{
+                type: 'bar',
+                data: {{
+                    labels: thresholds.map(row => row.threshold),
+                    datasets: [
+                        {{
+                            label: 'Passed',
+                            data: thresholds.map(row => row.passed),
+                            backgroundColor: '#2D9D78',
+                            borderRadius: 4
+                        }},
+                        {{
+                            label: 'Majority-backed failures',
+                            data: thresholds.map(row => row.majority_failed),
+                            backgroundColor: '#E54D4D',
+                            borderRadius: 4
+                        }}
+                    ]
+                }},
+                options: {{
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {{ legend: {{ position: 'bottom' }} }},
+                    scales: {{ x: {{ stacked: true }}, y: {{ stacked: true, beginAtZero: true }} }}
+                }}
+            }});
+
+            const finance = insightsData.finance || {{}};
+            const financeRows = (finance.top_measures || []).slice(0, 8).reverse();
+            createInsightChart('insightsFinanceChart', {{
+                type: 'bar',
+                data: {{
+                    labels: financeRows.map(row => row.measure_id + ' (' + row.year + ')'),
+                    datasets: [
+                        {{
+                            label: 'Support receipts',
+                            data: financeRows.map(row => row.support_receipts || 0),
+                            backgroundColor: '#2D9D78',
+                            borderRadius: 4
+                        }},
+                        {{
+                            label: 'Oppose receipts',
+                            data: financeRows.map(row => row.oppose_receipts || 0),
+                            backgroundColor: '#E54D4D',
+                            borderRadius: 4
+                        }}
+                    ]
+                }},
+                options: {{
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {{
+                        legend: {{ position: 'bottom' }},
+                        tooltip: {{ callbacks: {{ label: context => context.dataset.label + ': ' + formatDollars(context.parsed.x || 0) }} }}
+                    }},
+                    scales: {{ x: {{ stacked: true, ticks: {{ callback: value => formatDollars(value) }} }}, y: {{ stacked: true }} }}
+                }}
+            }});
+        }}
+
+        function renderTrendSummary() {{
+            const target = document.getElementById('trendInsightSummary');
+            if (!target) return;
+            const trend = insightsData.trend_insights || {{}};
+            const busiestDecade = trend.busiest_decade || {{}};
+            const busiestYear = (trend.busiest_years || [])[0] || {{}};
+            const volumeTrend = trend.annual_volume_trend || {{}};
+            const recentPassTrend = trend.recent_pass_rate_trend || {{}};
+            target.innerHTML = `
+                <div class="mini-callout"><strong>${{busiestDecade.decade ? busiestDecade.decade + 's' : 'n/a'}}</strong><span>busiest complete decade, with ${{formatInsightNumber(busiestDecade.total || 0)}} records</span></div>
+                <div class="mini-callout"><strong>${{busiestYear.year || 'n/a'}}</strong><span>busiest single year, with ${{formatInsightNumber(busiestYear.total || 0)}} records</span></div>
+                <div class="mini-callout"><strong>${{volumeTrend.slope == null ? 'n/a' : volumeTrend.slope.toFixed(1)}}</strong><span>additional records per year in descriptive annual-volume fit</span></div>
+                <div class="mini-callout"><strong>${{recentPassTrend.slope == null ? 'n/a' : recentPassTrend.slope.toFixed(2)}}</strong><span>percentage-point pass-rate slope per year since 2000</span></div>
+            `;
+        }}
+
+        function renderTopicTrendSummary() {{
+            const target = document.getElementById('topicTrendSummary');
+            if (!target) return;
+            const trend = insightsData.topic_trends || {{}};
+            const rows = (trend.share_trends || []).slice(0, 4);
+            target.innerHTML = `
+                <div class="compact-list-heading">Largest decade-share movements</div>
+                ${{rows.map(row => `
+                    <div class="compact-row">
+                        <div><strong>${{escapeHtml(row.topic)}}</strong><span>${{formatInsightNumber(row.n)}} decade observations</span></div>
+                        <em>${{row.slope == null ? 'n/a' : row.slope.toFixed(2)}} pts/decade</em>
+                    </div>
+                `).join('')}}
+            `;
+        }}
+
+        function renderTypeInsights() {{
+            const summary = insightsData.type_insights || {{}};
+            const panel = document.getElementById('typeInsightSummary');
+            const list = document.getElementById('typeRankingsList');
+            if (panel) {{
+                const stats = (insightsData.statistical_comparisons || {{}}).fiscal_vs_non_fiscal || {{}};
+                panel.innerHTML = `
+                    <div class="mini-callout"><strong>${{formatInsightPct(summary.fiscal_share)}}</strong><span>of active records are tax, bond, or spending-limit measures</span></div>
+                    <div class="mini-callout"><strong>${{formatInsightPct(summary.fiscal_pass_rate)}}</strong><span>pass rate for fiscal measure types</span></div>
+                    <div class="mini-callout"><strong>${{stats.odds_ratio == null ? 'n/a' : stats.odds_ratio + 'x'}}</strong><span>descriptive fiscal vs. non-fiscal pass odds ratio</span></div>
+                `;
+            }}
+            if (list) {{
+                const highRows = (summary.highest_pass_rate_types || []).slice(0, 3).map(row => `
+                    <div class="compact-row">
+                        <div><strong>${{escapeHtml(row.category_type || 'Measure type')}}</strong><span>${{formatInsightNumber(row.decided)}} decided records</span></div>
+                        <em>${{formatInsightPct(row.pass_rate)}} passed</em>
+                    </div>
+                `).join('');
+                const lowRows = (summary.lowest_pass_rate_types || []).slice(0, 3).map(row => `
+                    <div class="compact-row">
+                        <div><strong>${{escapeHtml(row.category_type || 'Measure type')}}</strong><span>${{formatInsightNumber(row.decided)}} decided records</span></div>
+                        <em>${{formatInsightPct(row.pass_rate)}} passed</em>
+                    </div>
+                `).join('');
+                list.innerHTML = `
+                    <div class="compact-list-heading">Highest pass rates among common types</div>
+                    ${{highRows}}
+                    <div class="compact-list-heading">Lowest pass rates among common types</div>
+                    ${{lowRows}}
+                `;
+            }}
+        }}
+
+        function renderCountyLeaderboard() {{
+            const target = document.getElementById('countyLeaderboard');
+            if (!target) return;
+            const rows = (insightsData.county_stats || []).slice(0, 10);
+            const maxTotal = Math.max(...rows.map(row => row.total || 0), 1);
+            target.innerHTML = rows.map(row => `
+                <div class="leader-row">
+                    <div class="leader-row-top">
+                        <strong>${{escapeHtml(row.county)}}</strong>
+                        <span>${{formatInsightNumber(row.total)}} measures</span>
+                    </div>
+                    <div class="leader-bar"><span style="width:${{Math.round((row.total || 0) / maxTotal * 100)}}%"></span></div>
+                    <small>${{formatInsightPct(row.pass_rate)}} passed</small>
+                </div>
+            `).join('');
+        }}
+
+        function renderGeographyInsights() {{
+            const target = document.getElementById('regionInsightSummary');
+            if (!target) return;
+            const geo = insightsData.geography_insights || {{}};
+            const highRegion = (geo.highest_pass_rate_regions || [])[0];
+            const lowRegion = (geo.lowest_pass_rate_regions || [])[0];
+            target.innerHTML = `
+                <div class="mini-callout"><strong>${{formatInsightPct(geo.county_pass_rate_gap)}}</strong><span>gap between highest- and lowest-pass-rate counties with enough decided records</span></div>
+                <div class="mini-callout"><strong>${{highRegion ? escapeHtml(highRegion.region) : 'n/a'}}</strong><span>highest regional pass rate${{highRegion ? ' at ' + formatInsightPct(highRegion.pass_rate) : ''}}</span></div>
+                <div class="mini-callout"><strong>${{lowRegion ? escapeHtml(lowRegion.region) : 'n/a'}}</strong><span>lowest regional pass rate${{lowRegion ? ' at ' + formatInsightPct(lowRegion.pass_rate) : ''}}</span></div>
+            `;
+        }}
+
+        function renderCountyMap() {{
+            const target = document.getElementById('californiaCountyMap');
+            if (!target || !window.d3 || !window.topojson) return;
+            target.innerHTML = '';
+            const width = target.clientWidth || 640;
+            const height = Math.max(420, Math.round(width * 0.78));
+            const countyByFips = new Map((insightsData.county_stats || []).map(row => [String(row.fips), row]));
+            const maxTotal = Math.max(...(insightsData.county_stats || []).map(row => row.total || 0), 1);
+            const color = d3.scaleSequentialSqrt([0, maxTotal], d3.interpolateBlues);
+            const tooltip = d3.select('body').append('div').attr('class', 'county-tooltip').style('display', 'none');
+
+            d3.json('https://cdn.jsdelivr.net/npm/us-atlas@3/counties-10m.json').then(us => {{
+                const counties = topojson.feature(us, us.objects.counties).features
+                    .filter(feature => String(feature.id).padStart(5, '0').startsWith('06'));
+                const collection = {{ type: 'FeatureCollection', features: counties }};
+                const projection = d3.geoIdentity().reflectY(true).fitSize([width, height], collection);
+                const path = d3.geoPath(projection);
+                const svg = d3.select(target).append('svg')
+                    .attr('viewBox', `0 0 ${{width}} ${{height}}`)
+                    .attr('role', 'img')
+                    .attr('aria-label', 'California county map colored by ballot-measure count');
+
+                svg.selectAll('path')
+                    .data(counties)
+                    .join('path')
+                    .attr('d', path)
+                    .attr('fill', d => {{
+                        const row = countyByFips.get(String(d.id).padStart(5, '0'));
+                        return row ? color(row.total || 0) : '#EEE9E2';
+                    }})
+                    .attr('stroke', '#FFFFFF')
+                    .attr('stroke-width', 0.7)
+                    .on('mousemove', (event, d) => {{
+                        const row = countyByFips.get(String(d.id).padStart(5, '0'));
+                        if (!row) return;
+                        tooltip.style('display', 'block')
+                            .style('left', (event.clientX + 12) + 'px')
+                            .style('top', (event.clientY + 12) + 'px')
+                            .html(`<strong>${{escapeHtml(row.county)}}</strong><br>${{formatInsightNumber(row.total)}} measures<br>${{formatInsightPct(row.pass_rate)}} passed`);
+                    }})
+                    .on('mouseleave', () => tooltip.style('display', 'none'));
+                countyMapRendered = true;
+            }}).catch(() => {{
+                target.innerHTML = '<div class="empty-state"><p>County map could not load. The leaderboard still shows county totals.</p></div>';
+            }});
+        }}
+
+        function renderThresholdCallouts() {{
+            const target = document.getElementById('thresholdCallouts');
+            if (!target) return;
+            const thresholdInsight = insightsData.threshold_insights || {{}};
+            const topFailure = (thresholdInsight.highest_yes_failures || [])[0];
+            target.innerHTML = (insightsData.threshold_stats || []).map(row => `
+                <div class="mini-callout">
+                    <strong>${{escapeHtml(row.threshold)}}</strong>
+                    <span>${{formatInsightPct(row.pass_rate)}} pass rate · ${{formatInsightNumber(row.majority_failed)}} majority-backed failures</span>
+                </div>
+            `).join('');
+            if (topFailure) {{
+                target.innerHTML += `
+                    <div class="mini-callout">
+                        <strong>${{formatInsightPct(topFailure.percent_yes)}} yes, failed</strong>
+                        <span>${{escapeHtml((topFailure.year || '') + ' - ' + (topFailure.title || topFailure.measure_id || 'Measure'))}}</span>
+                    </div>
+                `;
+            }}
+        }}
+
+        function renderStatisticalComparisons() {{
+            const target = document.getElementById('thresholdStatsSummary');
+            if (!target) return;
+            const stats = insightsData.statistical_comparisons || {{}};
+            const rows = stats.threshold_vs_simple_majority || [];
+            target.innerHTML = `
+                <div class="compact-list-heading">Descriptive odds ratio vs. simple-majority measures</div>
+                ${{rows.map(row => `
+                    <div class="compact-row">
+                        <div>
+                            <strong>${{escapeHtml(row.threshold + ' threshold')}}</strong>
+                            <span>${{formatInsightNumber(row.decided)}} decided records; ${{formatInsightPct(row.pass_rate)}} pass rate</span>
+                        </div>
+                        <em>${{row.odds_ratio == null ? 'n/a' : row.odds_ratio + 'x'}} (${{row.ci_low == null ? 'n/a' : row.ci_low}}-${{row.ci_high == null ? 'n/a' : row.ci_high}})</em>
+                    </div>
+                `).join('')}}
+            `;
+        }}
+
+        function renderCloseMeasures() {{
+            const target = document.getElementById('closeMeasuresList');
+            const summary = document.getElementById('closeCallSummary');
+            const closeInsight = insightsData.close_call_insights || {{}};
+            if (summary) {{
+                const counts = closeInsight.counts || {{}};
+                summary.innerHTML = `
+                    <div class="mini-callout"><strong>${{formatInsightNumber(counts.under_1 || 0)}}</strong><span>measures within 1 point of 50% yes</span></div>
+                    <div class="mini-callout"><strong>${{formatInsightNumber(counts.under_5 || 0)}}</strong><span>measures within 5 points of 50% yes</span></div>
+                `;
+            }}
+            if (!target) return;
+            const rows = ((insightsData.margin_stats || {{}}).closest_measures || []).slice(0, 8);
+            target.innerHTML = rows.map(row => `
+                <div class="compact-row">
+                    <div>
+                        <strong>${{escapeHtml(row.year + ' · ' + (row.county || 'Statewide'))}}</strong>
+                        <span>${{escapeHtml(row.title || row.measure_id || 'Measure')}}</span>
+                    </div>
+                    <em>${{formatInsightPct(row.percent_yes)}} yes · ${{row.passed ? 'Passed' : 'Failed'}}</em>
+                </div>
+            `).join('');
+            const legalRows = (closeInsight.closest_to_legal_threshold || []).slice(0, 5);
+            const fiftyRows = rows.slice(0, 5).map(row => `
+                <div class="compact-row">
+                    <div>
+                        <strong>${{escapeHtml(row.year + ' - ' + (row.county || 'Statewide'))}}</strong>
+                        <span>${{escapeHtml(row.title || row.measure_id || 'Measure')}}</span>
+                    </div>
+                    <em>${{formatInsightPct(row.percent_yes)}} yes - ${{row.passed ? 'Passed' : 'Failed'}}</em>
+                </div>
+            `).join('');
+            const legalList = legalRows.map(row => {{
+                const margin = row.legal_margin == null ? '' : Math.abs(row.legal_margin).toFixed(2) + ' pts ' + (row.legal_margin >= 0 ? 'above' : 'below');
+                return `
+                    <div class="compact-row">
+                        <div>
+                            <strong>${{escapeHtml(row.year + ' - ' + (row.county || 'Statewide'))}}</strong>
+                            <span>${{escapeHtml(row.title || row.measure_id || 'Measure')}}</span>
+                        </div>
+                        <em>${{escapeHtml(margin)}} threshold</em>
+                    </div>
+                `;
+            }}).join('');
+            target.innerHTML = `
+                <div class="compact-list-heading">Closest to 50% yes</div>
+                ${{fiftyRows}}
+                <div class="compact-list-heading">Closest to legal threshold</div>
+                ${{legalList}}
+            `;
+        }}
+
+        function renderFinanceInsights() {{
+            const finance = insightsData.finance || {{}};
+            const panel = document.getElementById('financeInsightSummary');
+            const list = document.getElementById('financeTopMeasures');
+            if (panel) {{
+                panel.innerHTML = `
+                    <div class="mini-callout"><strong>${{formatDollars(finance.total_receipts || 0)}}</strong><span>linked statewide receipts</span></div>
+                    <div class="mini-callout"><strong>${{formatInsightNumber(finance.measure_count || 0)}}</strong><span>matched proposition IDs</span></div>
+                    <div class="mini-callout"><strong>${{formatInsightPct(finance.better_funded_win_rate)}}</strong><span>better-funded side win rate</span></div>
+                `;
+            }}
+            if (list) {{
+                list.innerHTML = (finance.top_measures || []).slice(0, 6).map(row => `
+                    <div class="compact-row">
+                        <div>
+                            <strong>${{escapeHtml(row.measure_id + ' · ' + row.year)}}</strong>
+                            <span>${{escapeHtml((row.title || '').replace(/^California\\s+/, ''))}}</span>
+                        </div>
+                        <em>${{formatDollars(row.total_receipts || 0)}}</em>
+                    </div>
+                `).join('');
+                const topRows = (finance.top_measures || []).slice(0, 4).map(row => `
+                    <div class="compact-row">
+                        <div>
+                            <strong>${{escapeHtml(row.measure_id + ' - ' + row.year)}}</strong>
+                            <span>${{escapeHtml((row.title || '').replace(/^California\\s+/, ''))}}</span>
+                        </div>
+                        <em>${{formatDollars(row.total_receipts || 0)}}</em>
+                    </div>
+                `).join('');
+                const upsetRows = (finance.better_funded_losses || []).slice(0, 4).map(row => `
+                    <div class="compact-row">
+                        <div>
+                            <strong>${{escapeHtml(row.measure_id + ' - ' + row.year)}}</strong>
+                            <span>${{escapeHtml((row.title || '').replace(/^California\\s+/, ''))}}</span>
+                        </div>
+                        <em>${{escapeHtml(row.better_funded_side || 'better funded')}} lost</em>
+                    </div>
+                `).join('');
+                list.innerHTML = `
+                    <div class="compact-list-heading">Largest linked campaigns</div>
+                    ${{topRows}}
+                    <div class="compact-list-heading">Better-funded side lost</div>
+                    ${{upsetRows}}
+                `;
+            }}
+        }}
+
+        function renderInsightsMethodology() {{
+            const target = document.getElementById('insightsMethodology');
+            if (!target) return;
+            const methodology = insightsData.methodology || {{}};
+            const sources = (methodology.sources || []).map(source => {{
+                const label = Array.isArray(source) ? source[0] + ': ' + formatInsightNumber(source[1]) + ' records' : source;
+                return `<li>${{escapeHtml(label)}}</li>`;
+            }}).join('');
+            const notes = (methodology.notes || []).map(note => `<li>${{escapeHtml(note)}}</li>`).join('');
+            target.innerHTML = `
+                <details>
+                    <summary>Methodology and limits</summary>
+                    <div>
+                        <p>${{escapeHtml(methodology.scope || 'Active, non-duplicate records in the local project database.')}}</p>
+                        <strong>Sources</strong>
+                        <ul>${{sources}}</ul>
+                        <strong>Notes</strong>
+                        <ul>${{notes}}</ul>
+                    </div>
+                </details>
+            `;
+        }}
+
         function displayResults() {{
+            updateViewVisibility();
+
+            if (currentView === 'insights') {{
+                renderInsights();
+                return;
+            }}
+
             const container = document.getElementById('resultsContainer');
 
             // Explore matrix view
             if (currentView === 'explore') {{
                 container.innerHTML = renderMatrix();
+                syncMatrixScrollbars();
                 return;
             }}
 
@@ -7301,7 +10435,7 @@ class WebsiteGenerator:
 
                     if ((pros && pros.length > 0 && pros[0] !== 'Not yet available.') ||
                         (cons && cons.length > 0 && cons[0] !== 'Not yet available.')) {{
-                        bHtml += `<div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:0.75rem;">`;
+                        bHtml += `<div class="briefing-args-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:0.75rem;">`;
                         if (pros && pros.length > 0 && pros[0] !== 'Not yet available.') {{
                             bHtml += `<div><div style="font-weight:600;color:#2D9D78;margin-bottom:0.3rem;font-size:0.85rem;">Arguments For <span class="info-tip" data-tip="Key arguments in favor of this measure, drawn from official sources, ballot arguments, and nonpartisan analyses.">i</span></div>`;
                             pros.forEach(p => {{ bHtml += `<div style="font-size:0.8rem;margin-bottom:0.3rem;">+ ${{escapeHtml(p)}}</div>`; }});
@@ -7555,6 +10689,8 @@ class WebsiteGenerator:
                 features: [],
                 topics: [],
                 selectedYears: [],
+                selectedDecades: [],
+                thresholds: [],
                 search: '',
                 regions: [],
                 county: null,
@@ -7573,7 +10709,7 @@ class WebsiteGenerator:
             if (levelCountySelect) levelCountySelect.value = '';
             updateFilterUI();
             updateTopicChipUI();
-            updateYearChipUI();
+            renderYearNavigation();
             updateStatusChipUI();
             updateRegionChipUI();
             updateLevelChipUI();

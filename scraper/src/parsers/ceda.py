@@ -228,24 +228,32 @@ class CEDAParser:
         return None
     
     def _is_candidate_data(self, df: pd.DataFrame) -> bool:
-        """Check if dataframe contains candidate data instead of measures"""
+        """Check if dataframe contains candidate data instead of measures.
+
+        Uses strong, exact-name candidate signals (CAND#, OFFICE, BALDESIG,
+        candidate, party) rather than substrings — substring matching on
+        FIRST/LAST historically misfired on measures sheets that have a
+        MeasID_First column (CEDA 2015).
+        """
         if df is None or df.empty:
             return False
-        
-        # Look for candidate-specific columns
-        candidate_indicators = ['candidate', 'CAND#', 'FIRST', 'LAST', 'party']
-        cols_lower = [str(col).lower() for col in df.columns]
-        
-        for indicator in candidate_indicators:
-            if any(indicator.lower() in col for col in cols_lower):
-                return True
-        
-        # Check if we have measure-specific columns
-        measure_indicators = ['BALQUEST', 'LTR', 'YES', 'NO']
-        measure_count = sum(1 for indicator in measure_indicators 
-                          if any(indicator.lower() in col.lower() for col in df.columns))
-        
-        return measure_count < 2
+
+        cols_lower = {str(col).strip().lower() for col in df.columns}
+
+        # Strong candidate signals: exact column names that don't appear in
+        # measures sheets.
+        candidate_signals = {'cand#', 'office', 'baldesig', 'candidate', 'party'}
+        if cols_lower & candidate_signals:
+            return True
+
+        # Sanity-check: if we have multiple measure-specific columns, it's
+        # definitely a measures sheet regardless.
+        measure_signals = {'balquest', 'ltr', 'meastype', 'measid', 'measid_first'}
+        if cols_lower & measure_signals:
+            return False
+
+        # No clear evidence either way — assume it's not measures
+        return True
     
     def _find_column(self, df: pd.DataFrame, target_col: str) -> Optional[str]:
         """Find a column by checking multiple possible names"""
@@ -351,8 +359,9 @@ class CEDAParser:
                 measure_type=row.get('measure_type'),
                 category_type=row.get('rec_type_name'),
                 category_topic=row.get('rec_topic_name'),
-                
-                data_source='CEDA'
+
+                data_source='CEDA',
+                election_date=str(row.get('election_date'))[:10] if pd.notna(row.get('election_date')) else None,
             )
             
             # Generate fingerprints
