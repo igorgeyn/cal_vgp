@@ -66,6 +66,7 @@ class BallotMeasure:
     
     # Metadata
     election_type: Optional[str] = None
+    election_type_imputed: int = 0  # 1 = derived from election_date via month-based rule
     election_date: Optional[datetime] = None
     decade: Optional[int] = None
     century: Optional[int] = None
@@ -307,6 +308,7 @@ CREATE TABLE IF NOT EXISTS measures (
     
     -- Metadata
     election_type TEXT,
+    election_type_imputed INTEGER DEFAULT 0,
     election_date DATE,
     decade INTEGER,
     century INTEGER,

@@ -1,10 +1,12 @@
 name: Weekly Data Pipeline
 
 on:
-  schedule:
-    # Every Monday at 6am UTC (Sunday 11pm PT)
-    - cron: '0 6 * * 1'
-  workflow_dispatch:  # Allow manual trigger
+  # Weekly schedule disabled until governance/QA process is in place
+  # for auto-deploy to main. Re-enable by uncommenting the schedule
+  # block below. Manual runs via workflow_dispatch remain available.
+  # schedule:
+  #   - cron: '0 6 * * 1'  # Every Monday 6am UTC (Sunday 11pm PT)
+  workflow_dispatch:  # Manual trigger only
 
 jobs:
   update-data:

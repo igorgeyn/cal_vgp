@@ -58,12 +58,30 @@ def get_measures_needing_summaries(conn, limit=None):
     return conn.execute(query).fetchall()
 
 
+def _normalize_pct(pct):
+    """Normalize percent_yes to 0-100 scale.
+    DB has mixed scales — most rows store 0-100 but ~1,679 (CEDA + NCSL)
+    historically stored 0-1 fractions. Without normalization, the LLM
+    faithfully reproduces "0.4%" in the summary text when the actual
+    outcome was 40%. This fix is forward-looking; existing broken
+    summaries are cleaned up by a separate one-shot script.
+    """
+    if pct is None:
+        return None
+    if 0 < pct <= 1:
+        return pct * 100
+    return pct
+
+
 def build_prompt(row):
     """Build the prompt for a single measure."""
     mid, year, county, letter, meas_id, bq, desc, title, ctype, ctopic, passed, pct = row
 
     # Use ballot question if available, then description, then title
     text = bq if (bq and len(bq) > 30) else (desc if (desc and len(desc) > 30) else title)
+
+    # Normalize percent_yes BEFORE composing the prompt
+    pct = _normalize_pct(pct)
 
     # Build context
     parts = []

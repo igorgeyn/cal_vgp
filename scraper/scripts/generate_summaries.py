@@ -72,9 +72,24 @@ def get_measures_needing_summaries(conn, limit=None):
     return cursor.fetchall()
 
 
+def _normalize_pct(pct):
+    """Normalize percent_yes to 0-100 scale (some legacy CEDA/NCSL rows
+    were stored as 0-1 fractions, which previously caused the LLM to
+    write "passed at 0.6%" in summaries).
+    """
+    if pct is None:
+        return None
+    if 0 < pct <= 1:
+        return pct * 100
+    return pct
+
+
 def build_prompt(measure):
     """Build the prompt for a single measure."""
     id, title, county, year, topic, category_type, threshold, pct_yes, passed = measure
+
+    # Normalize percent_yes BEFORE composing the prompt
+    pct_yes = _normalize_pct(pct_yes)
 
     # Build context
     context_parts = []

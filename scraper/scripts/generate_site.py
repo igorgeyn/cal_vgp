@@ -157,10 +157,21 @@ def main():
             import sqlite3 as _sqlite3
             _conn = _sqlite3.connect(str(DB_PATH))
             _conn.row_factory = _sqlite3.Row
+            # Only surface briefings that are publishable. 'complete' is the
+            # default; 'draft' / 'spec_failed' / etc. are filtered out so
+            # pre-spec briefings (with literal "Not yet available" placeholders
+            # in pro/con args, etc.) don't reach the live site.
             _cursor = _conn.execute("""
                 SELECT id, measure_id, briefing_text, fiscal_impact, pro_arguments, con_arguments,
                        proponents, opponents, research_status, research_depth
-                FROM measures WHERE research_status IS NOT NULL
+                FROM measures
+                WHERE research_status = 'complete'
+                  AND briefing_text IS NOT NULL AND briefing_text != ''
+                  AND briefing_text NOT LIKE '%Not yet available%'
+                  AND (pro_arguments IS NULL OR pro_arguments NOT LIKE '%Not yet available%')
+                  AND (con_arguments IS NULL OR con_arguments NOT LIKE '%Not yet available%')
+                  AND (proponents IS NULL OR proponents NOT LIKE '%Not yet available%')
+                  AND (opponents IS NULL OR opponents NOT LIKE '%Not yet available%')
             """)
             for _row in _cursor.fetchall():
                 _rd = dict(_row)
