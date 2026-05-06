@@ -1,11 +1,15 @@
 """
 Campaign finance source — pulls real proponent/opponent committees and top
-donors from finance_statewide.db (CAL-ACCESS data) for the synthesis prompt.
+donors from finance_statewide_v2.db (CAL-ACCESS data, year-scoped by
+finance_campaign_id) for the synthesis prompt.
 
 Covers statewide propositions only. The briefing spec requires real names
 (not 'Not yet available') and named donors when available; this is the
 data path that makes that requirement satisfiable for statewide measures
-without scraping anything per-measure.
+without scraping anything per-measure. Resolution from a measure record to
+the right finance campaign is handled by `get_campaign_for_measure()` in
+`src.finance.operations`, which prefers measure_db_id (always unambiguous)
+over (measure_id, year).
 """
 import logging
 from typing import Dict, Optional
@@ -31,27 +35,29 @@ def get_finance_facts(measure: Dict) -> Optional[Dict]:
           }
         }
     """
-    # Statewide-only — local measures aren't in finance_statewide.db
+    # Statewide-only — local measures aren't in finance_statewide_v2.db
     if (measure.get('county') or '').strip().lower() != 'statewide':
         return None
 
-    measure_id = measure.get('measure_id')
-    if not measure_id:
-        return None
-
     try:
-        from src.finance.operations import FinanceDatabase
+        from src.finance.operations import FinanceDatabase, get_campaign_for_measure
     except ImportError as e:
         logger.debug("Finance module unavailable: %s", e)
         return None
 
     db = FinanceDatabase()
     try:
-        summary_rows = db.get_finance_summary(measure_id)
+        # v2 lookup: resolve the finance_campaign_id from the measure record
+        # (uses measure.id when available, falls back to measure_id+year).
+        campaign_id = get_campaign_for_measure(db, measure)
+        if not campaign_id:
+            return None
+
+        summary_rows = db.get_finance_summary(campaign_id)
         if not summary_rows:
             return None
 
-        top_donors = db.get_top_donors(measure_id, limit=10)
+        top_donors = db.get_top_donors(campaign_id, limit=10)
     finally:
         db.close()
 

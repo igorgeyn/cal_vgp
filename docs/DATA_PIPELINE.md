@@ -7,6 +7,14 @@
 **Coverage:** 58 California counties + statewide propositions
 **Quality Score:** 86.7% (A-) — see [KNOWN_ISSUES.md](KNOWN_ISSUES.md)
 
+> **Finance section is a snapshot.** Section 9 below describes the original
+> `finance_statewide.db` design. The finance database was rebuilt 2026-05-04
+> as `finance_statewide_v2.db`, keyed by year-scoped `finance_campaign_id`
+> (e.g. `PROP_16_2020`), after a cross-cycle contamination bug was found.
+> Current state: 181 matched campaigns / $3.32B retained receipts. See
+> [`scraper/data/finance/README.md`](../scraper/data/finance/README.md)
+> and `plans/finance-rebuild-verification.md` for the live design.
+
 ---
 
 ## Table of Contents
@@ -50,7 +58,8 @@ cal_vgp/
 │   ├── data/
 │   │   ├── ballot_measures.db      # Main SQLite database (29 MB)
 │   │   ├── finance/                # Finance database
-│   │   │   └── finance_statewide.db
+│   │   │   ├── finance_statewide_v2.db   # Live (post-2026-05-04 rebuild)
+│   │   │   └── finance_statewide.db      # Legacy v1, audit-only
 │   │   ├── embeddings.npz          # Semantic vectors (15.8 MB)
 │   │   ├── embedding_metadata.json # Measure IDs & recommendations
 │   │   ├── title_cache.json        # Generated titles cache
@@ -872,7 +881,9 @@ QUALITY_ISSUES = {
 
 California's official campaign finance database, processed into a local SQLite database.
 
-**Database:** `scraper/data/finance/finance_statewide.db`
+**Database:** `scraper/data/finance/finance_statewide_v2.db` (live; the
+unsuffixed `finance_statewide.db` is the legacy v1, kept for audit only).
+The schema and column descriptions in this section describe the v1 design.
 
 ### 9.2 Finance Schema
 
@@ -1158,7 +1169,7 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).parent.parent.parent
 DATA_DIR = PROJECT_ROOT / "scraper" / "data"
 DB_PATH = DATA_DIR / "ballot_measures.db"
-FINANCE_DB_PATH = DATA_DIR / "finance" / "finance_statewide.db"
+FINANCE_DB_PATH = DATA_DIR / "finance" / "finance_statewide_v2.db"
 
 # Output paths
 OUTPUT_HTML = PROJECT_ROOT / "index.html"
@@ -1276,7 +1287,9 @@ LOG_LEVEL=INFO
 | `generate_titles.py` | AI title improvement | `python scripts/generate_titles.py` |
 | `export_data.py` | Export to CSV/JSON | `python scripts/export_data.py --format csv` |
 | `generate_site.py` | Build website | `python scripts/generate_site.py` |
-| `build_statewide_prop_finance_db.py` | Process CalAccess | `python scripts/build_statewide_prop_finance_db.py` |
+| `build_finance_crosswalk.py` | Build (prop_num, year) → measure_db_id crosswalk for finance v2 | `python -m scripts.build_finance_crosswalk` |
+| `rebuild_finance_db.py` | Rebuild `finance_statewide_v2.db` from CalAccess CSV + crosswalk | `python -m scripts.rebuild_finance_db` |
+| ~~`build_statewide_prop_finance_db.py`~~ | DEPRECATED v1 ETL — refuses to run; superseded by the two scripts above | — |
 | `backfill_statewide_2022_2024.py` | Backfill historical data | `python scripts/backfill_statewide_2022_2024.py` |
 
 ### 13.2 Typical Workflow
@@ -1674,7 +1687,8 @@ sqlite3 $DB ".backup 'data/ballot_measures_$(date +%Y%m%d).db'"
 | File | Size | Description |
 |------|------|-------------|
 | `ballot_measures.db` | 29 MB | Main SQLite database |
-| `finance_statewide.db` | ~15 MB | Finance data |
+| `finance_statewide_v2.db` | ~12 MB | Finance data (live, post-2026-05-04 rebuild) |
+| `finance_statewide.db` | ~15 MB | Legacy v1 finance data, audit-only |
 | `embeddings.npz` | 15.8 MB | Semantic vectors |
 | `embedding_metadata.json` | 3.4 MB | Recommendations |
 | `title_cache.json` | 1.6 MB | Generated titles |

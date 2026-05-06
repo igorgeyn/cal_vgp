@@ -46,7 +46,7 @@ def normalize_measure_data(data: dict) -> dict:
         'is_active', 'is_duplicate', 'duplicate_type', 'master_id', 'merged_from',
         'related_measures', 'relationship_type',
         'briefing_text', 'fiscal_impact', 'pro_arguments', 'con_arguments',
-        'proponents', 'opponents', 'endorsements', 'campaign_finance',
+        'proponents', 'opponents', 'endorsements',
         'research_status', 'research_depth', 'research_updated_at', 'research_sources',
     }
 

@@ -35,6 +35,11 @@ import hashlib
 SCRIPT_DIR = Path(__file__).parent
 DATA_DIR = SCRIPT_DIR.parent / "data"
 DB_PATH = DATA_DIR / "ballot_measures.db"
+# TODO: Audit logic below queries v1-only tables (measure_finance_summary,
+# transaction_record, committee) that don't exist in finance_statewide_v2.db.
+# Pointing at the legacy DB so this script keeps working against the audit-
+# only artifact; full rewrite needed before this can audit v2 (different
+# schema, finance_campaign_id keying, no transaction_record table).
 FINANCE_DB_PATH = DATA_DIR / "finance" / "finance_statewide.db"
 EMBEDDINGS_PATH = DATA_DIR / "embedding_metadata.json"
 REPORT_PATH = DATA_DIR / "data_quality_report.json"

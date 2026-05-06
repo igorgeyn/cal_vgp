@@ -1,6 +1,13 @@
 # CalBallot Project History
 
 > Summary of development work from January–February 2026 for context in announcing the project.
+>
+> **Snapshot, not current state.** Finance numbers below (98 statewide props, 641K
+> transactions, the `finance_statewide.db` reference) describe the Jan–Feb 2026 build.
+> The finance database was rebuilt 2026-05-04 as `finance_statewide_v2.db` keyed by
+> year-scoped `finance_campaign_id` after Codex caught a cross-cycle contamination
+> bug. Current state: 181 matched campaigns / $3.32B retained receipts. See
+> `plans/finance-rebuild-verification.md` and `scraper/data/finance/README.md`.
 
 ---
 

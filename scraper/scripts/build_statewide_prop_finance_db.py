@@ -1,13 +1,28 @@
 #!/usr/bin/env python3
 """
-ETL script: Build statewide proposition finance database from CAL-ACCESS receipts.
+DEPRECATED 2026-05-04. DO NOT RUN. Use scripts/rebuild_finance_db.py instead.
 
-Reads the cleaned ballot_measure_receipts_clean.csv and populates the finance
-SQLite DB with committees, transactions, links, summaries, timelines, and top donors.
+This is the v1 ETL script for the original (contaminated) finance_statewide.db.
+The crosswalk it built used `WHERE measure_id LIKE 'PROP_%'` and assigned
+committees by receipt date instead of the source CSV's `year` column. That
+collapsed cross-cycle proposition-number reuse — e.g. 2010 PG&E money was
+attributed to the 2020 PROP_16 measure, 2012 Paycheck Protection money to
+2024 PROP_32, etc. See plans/finance-panel-redesign.md for the full story.
 
-Usage:
-    python scripts/build_statewide_prop_finance_db.py [--csv PATH] [--db PATH] [--main-db PATH]
+This file is preserved for historical reference only. It will not import
+because `SCHEMA_SQL` was removed from `src.finance.schema` during the v2
+rewrite. The replacement is `scripts/rebuild_finance_db.py`, which produces
+`data/finance/finance_statewide_v2.db` keyed on year-scoped
+`finance_campaign_id`.
+
+If you find yourself wanting to run this: stop. The thing you actually want
+is `python -m scripts.rebuild_finance_db`.
 """
+raise SystemExit(
+    "build_statewide_prop_finance_db.py is deprecated. "
+    "Run `python -m scripts.rebuild_finance_db` instead. "
+    "See plans/finance-panel-redesign.md for context."
+)
 import argparse
 import csv
 import re

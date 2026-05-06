@@ -5,14 +5,21 @@ Extract ballot-measure campaign finance data from raw CAL-ACCESS TSV files.
 Reads the full CAL-ACCESS data dump (multi-GB TSV files) and produces a clean
 CSV of itemized receipts for ballot measure committees only.
 
-The output CSV feeds into the existing build_statewide_prop_finance_db.py ETL.
+The output CSV feeds into the v2 finance build pipeline:
+    1. scripts/build_finance_crosswalk.py — (prop_num, year) → measure_db_id
+    2. scripts/rebuild_finance_db.py — rebuilds finance_statewide_v2.db
+
+`--build-db` runs both in sequence after extraction.
+
+The legacy `build_statewide_prop_finance_db.py` ETL is deprecated (see header
+in that file); do not call it directly.
 
 Usage:
     python scripts/extract_calaccess_finance.py \
         --calaccess-dir C:/path/to/CalAccess/DATA \
         --output data/finance/calaccess_raw/ballot_measure_receipts_clean.csv
 
-    # Or with auto-build of finance DB:
+    # Or with auto-build of the v2 finance DB:
     python scripts/extract_calaccess_finance.py \
         --calaccess-dir C:/path/to/CalAccess/DATA \
         --build-db
@@ -262,7 +269,8 @@ def main():
     parser.add_argument("--output", type=str, default=str(DEFAULT_OUTPUT),
                         help="Output CSV path")
     parser.add_argument("--build-db", action="store_true",
-                        help="Also run build_statewide_prop_finance_db.py after extraction")
+                        help="Also rebuild the v2 finance DB after extraction "
+                             "(runs build_finance_crosswalk + rebuild_finance_db)")
     args = parser.parse_args()
 
     calaccess_dir = Path(args.calaccess_dir)
@@ -288,18 +296,24 @@ def main():
     logger.info(f"Total receipts: {total:,}")
     logger.info(f"File size: {output_path.stat().st_size / 1e6:.1f} MB")
 
-    # Step 4: Optionally run ETL
+    # Step 4: Optionally rebuild the v2 finance DB.
+    # Two-step pipeline: crosswalk first (resolves (prop_num, year) →
+    # measure_db_id), then rebuild reads source CSV + crosswalk to write
+    # finance_statewide_v2.db. Both scripts run as modules from the scraper
+    # dir, matching the documented invocation in scraper/data/finance/README.md.
     if args.build_db:
-        logger.info("\nRunning finance DB build...")
         import subprocess
-        result = subprocess.run(
-            [sys.executable, str(Path(__file__).parent / "build_statewide_prop_finance_db.py")],
-            cwd=str(Path(__file__).parent.parent)
-        )
-        if result.returncode == 0:
-            logger.info("Finance DB built successfully")
-        else:
-            logger.error(f"Finance DB build failed with code {result.returncode}")
+        scraper_dir = Path(__file__).parent.parent
+        for module in ("scripts.build_finance_crosswalk", "scripts.rebuild_finance_db"):
+            logger.info(f"\nRunning {module}...")
+            result = subprocess.run(
+                [sys.executable, "-m", module],
+                cwd=str(scraper_dir),
+            )
+            if result.returncode != 0:
+                logger.error(f"{module} failed with code {result.returncode}; aborting")
+                sys.exit(result.returncode)
+        logger.info("v2 finance DB rebuilt successfully")
 
 
 if __name__ == "__main__":

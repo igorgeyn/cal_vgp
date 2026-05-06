@@ -1,5 +1,28 @@
 # Changelog - California Ballot Measures Scraper
 
+> **Note:** This changelog stopped being actively maintained after 2.1.0. For
+> the current state of the project — including campaign finance, AI summary
+> generation, semantic recommendations, and the Insights view — see
+> [`docs/PROJECT_HISTORY.md`](../docs/PROJECT_HISTORY.md),
+> [`docs/DATA_PIPELINE.md`](../docs/DATA_PIPELINE.md), and
+> [`scraper/data/finance/README.md`](data/finance/README.md). Both PROJECT_HISTORY
+> and DATA_PIPELINE carry "snapshot, not current state" disclaimers where
+> applicable.
+
+## [2.2.0] - 2026 (rolling)
+
+Major work landed since 2.1.0; this entry is a pointer, not exhaustive notes:
+
+- **Campaign finance integration** — `finance_statewide.db` (Jan–Feb 2026) and
+  the **v2 rebuild** as `finance_statewide_v2.db` keyed by year-scoped
+  `finance_campaign_id` (2026-05-04). 181 matched campaigns / $3.32B retained.
+- **AI summary generation** at scale + Insights view (Overview, Key Findings,
+  Trend, Topics, Measure Types, Geography, Rules, Finance, Methodology).
+- **Semantic recommendations** via sentence-transformer embeddings.
+- **DuckDB-WASM** in-browser SQL.
+
+For specifics, read the docs above. Listing every fix here would just rot.
+
 ## [2.1.0] - 2026-01-09
 
 ### 🚀 Added
@@ -120,19 +143,23 @@ python scripts/scrape.py --source all
 
 ## Upcoming Features
 
-### Planned for 2.2.0
-- Local measures scraper (county/city level)
-- Proposition text extraction from PDFs
-- Vote results real-time tracking
-- Campaign finance integration
-- Social media monitoring
+(Section retained for historical context; see the 2.2.0 entry above and
+the docs it links for what has actually shipped. The bullets below are
+the original 2.1.0-era roadmap.)
+
+### Originally planned for 2.2.0
+- Local measures scraper (county/city level) — *shipped*
+- Proposition text extraction from PDFs — pending
+- Vote results real-time tracking — pending
+- Campaign finance integration — *shipped (and rebuilt as v2 on 2026-05-04)*
+- Social media monitoring — pending
 
 ### Under Consideration
 - Natural language processing for topics
-- Geographic visualization
-- Historical trend analysis
+- Geographic visualization — *shipped*
+- Historical trend analysis — *shipped*
 - API rate limiting and caching
-- Web UI for data exploration
+- Web UI for data exploration — *shipped*
 
 ---
 

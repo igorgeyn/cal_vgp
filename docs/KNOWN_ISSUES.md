@@ -119,20 +119,24 @@ These are valid measure identifiers from their respective sources — just non-u
 
 ---
 
-## 8. Negative Finance Total (1 record)
+## 8. Negative Finance Total (1 record) — RESOLVED 2026-05-04
 
 **Severity:** Low (1 record)
-**Status:** Deferred — needs investigation
+**Status:** Resolved by the v2 finance rebuild.
 
-One measure in the finance database has a negative `total_receipts` value. This could be:
-- A refund or correction entry
-- Data entry error in CalAccess
-- Legitimate negative adjustment
+The v1 finance DB had one measure with a negative `total_receipts`. The
+2026-05-04 v2 rebuild (`finance_statewide_v2.db`) introduced a
+`non_positive_amount` acceptance gate that quarantines refunds and
+zero-amount rows at the source, eliminating the underlying cause. v2's
+`finance_summary` has 0 rows with negative `total_receipts`.
 
-**To investigate:**
 ```sql
-SELECT * FROM measure_finance_summary WHERE total_receipts < 0;
+-- v2 (live):
+SELECT COUNT(*) FROM finance_summary WHERE total_receipts < 0;  -- 0
 ```
+
+See `plans/finance-rebuild-verification.md` and
+`scraper/data/finance/README.md` for the rebuild details.
 
 ---
 

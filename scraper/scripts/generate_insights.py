@@ -498,6 +498,56 @@ def build_topic_trends(measures, topic_stats):
     }
 
 
+def build_topic_insights(measures, topic_stats, topic_decade_matrix):
+    """
+    Surfaces the chart-adjacent topic findings used by the Topics panel:
+      - era_anchors: 4 era cards (1910s, 1980s, 2010s, 2020s) with the top 2
+        topic shares each, computed against the classified-only denominator
+        (matches the on-page chart's renormalization).
+      - pass_rate_rankings: high/low topic pass rates, with min n=75 to
+        suppress small classified buckets.
+    """
+    # Era anchors
+    era_decades = [1910, 1980, 2010, 2020]
+    matrix_lookup = {str(row["decade"]): row.get("topics") or {} for row in topic_decade_matrix}
+    era_anchors = []
+    for decade in era_decades:
+        counts = matrix_lookup.get(str(decade), {})
+        classified = {t: n for t, n in counts.items() if t != "Other" and (n or 0) > 0}
+        total = sum(classified.values())
+        if total == 0:
+            era_anchors.append({"decade": decade, "classified_n": 0, "top": []})
+            continue
+        sorted_topics = sorted(classified.items(), key=lambda x: -x[1])[:2]
+        top = [
+            {"topic": t, "count": n, "share": round(100 * n / total, 1)}
+            for t, n in sorted_topics
+        ]
+        era_anchors.append({"decade": decade, "classified_n": total, "top": top})
+
+    # Pass rate rankings (n>=75 decided)
+    MIN_DECIDED = 75
+    eligible = [
+        t for t in topic_stats
+        if t.get("topic")
+        and t["topic"] != "Other"
+        and (t.get("decided") or 0) >= MIN_DECIDED
+    ]
+    by_rate_desc = sorted(eligible, key=lambda x: -(x.get("pass_rate") or 0))
+    high = by_rate_desc[:3]
+    low = sorted(eligible, key=lambda x: x.get("pass_rate") or 0)[:4]
+
+    return {
+        "era_anchors": era_anchors,
+        "pass_rate_rankings": {
+            "min_decided": MIN_DECIDED,
+            "high": [{"topic": t["topic"], "pass_rate": t.get("pass_rate"), "decided": t.get("decided")} for t in high],
+            "low": [{"topic": t["topic"], "pass_rate": t.get("pass_rate"), "decided": t.get("decided")} for t in low],
+        },
+        "note": "Era anchors and pass-rate rankings use the topic-classified subset (Other is excluded). Local CEDA records are better analyzed by measure type.",
+    }
+
+
 def build_type_trends(measures):
     by_decade = defaultdict(lambda: {"decade": None, "total": 0, "fiscal": 0, "bond": 0, "tax": 0})
     tax_types = FISCAL_TYPES - {"Bond", "Gann Limit"}
@@ -689,24 +739,146 @@ def build_category_type_stats(measures):
 
 
 def build_type_insights(measures, category_type_stats, overview):
-    fiscal = [m for m in measures if m.get("display_category_type") in FISCAL_TYPES]
-    fiscal_decided = [m for m in fiscal if m.get("passed") in (0, 1)]
-    fiscal_passed = sum(1 for m in fiscal_decided if m["passed"] == 1)
-    non_fiscal_decided = [
-        m for m in measures
-        if m.get("display_category_type") not in FISCAL_TYPES and m.get("passed") in (0, 1)
+    """
+    Powers the Measure Types panel below the two charts. Four narrative
+    modules (Codex-recommended): modern-year anatomy, fiscal instrument
+    profiles (with one-line typical-use copy), type x threshold profiles,
+    and a recall callout. Plus a revised pass-rate ranking that excludes
+    the Other / unclassified bucket.
+    """
+    MODERN_START = 1990
+    modern_year_max = max(
+        (int(m["year"]) for m in measures if m.get("year") and str(m["year"]).isdigit()),
+        default=2026,
+    )
+    year_count = max(modern_year_max - MODERN_START + 1, 1)
+
+    # Module 1: modern-year anatomy (records since 1990, divided by year count).
+    modern = [m for m in measures if m.get("year") and int(m["year"]) >= MODERN_START]
+    modern_by_type = defaultdict(int)
+    for m in modern:
+        ct = m.get("display_category_type")
+        if ct and ct != "Other":
+            modern_by_type[ct] += 1
+    modern_instruments = sorted(
+        [
+            {
+                "category_type": ct,
+                "total_since_modern": total,
+                "per_year_avg": round(total / year_count, 1),
+            }
+            for ct, total in modern_by_type.items()
+        ],
+        key=lambda x: -x["per_year_avg"],
+    )[:6]
+
+    # Module 2: fiscal instrument profiles (mini-table with typical use copy).
+    INSTRUMENT_USE = {
+        "Bond": "Borrowing for capital projects (schools, transit, infrastructure).",
+        "Sales Tax": "Local sales-tax surcharges for transit, public safety, or general fund.",
+        "Property Tax": "Parcel and property taxes, often for schools or special districts.",
+        "Business Tax": "Payroll, gross-receipts, or industry-specific business taxes.",
+        "Utility Tax": "Local levies on telecom, electricity, gas, or cable service.",
+        "Transient Occupancy Tax": "Hotel and short-term rental taxes.",
+    }
+    fiscal_profiles = []
+    for ct in ["Bond", "Sales Tax", "Property Tax", "Business Tax", "Utility Tax", "Transient Occupancy Tax"]:
+        row = next((r for r in category_type_stats if r.get("category_type") == ct), None)
+        if not row or (row.get("decided") or 0) < 50:
+            continue
+        fiscal_profiles.append({
+            "category_type": ct,
+            "total": row.get("total"),
+            "decided": row.get("decided"),
+            "pass_rate": row.get("pass_rate"),
+            "typical_use": INSTRUMENT_USE.get(ct, ""),
+        })
+
+    # Module 3: type x threshold profiles for the most consequential fiscal instruments.
+    TARGET_TYPES = ["Bond", "Property Tax", "Sales Tax"]
+    type_threshold_profiles = []
+    for ct in TARGET_TYPES:
+        type_decided = [
+            m for m in measures
+            if m.get("display_category_type") == ct and m.get("passed") in (0, 1)
+        ]
+        if len(type_decided) < 50:
+            continue
+        threshold_count = defaultdict(int)
+        majority_failed = 0
+        for m in type_decided:
+            t = m.get("threshold") or "Unknown"
+            threshold_count[t] += 1
+            legal = threshold_value(t)
+            if (
+                m.get("passed") == 0
+                and m.get("percent_yes") is not None
+                and m["percent_yes"] > 50
+                and legal is not None
+                and legal > 50
+            ):
+                majority_failed += 1
+        total = len(type_decided)
+        passed = sum(1 for m in type_decided if m["passed"] == 1)
+        type_threshold_profiles.append({
+            "category_type": ct,
+            "decided": total,
+            "pass_rate": pct(passed, total),
+            "threshold_mix": {k: pct(v, total) for k, v in threshold_count.items()},
+            "majority_failed": majority_failed,
+        })
+
+    # Module 4: recall profile.
+    recalls = [m for m in measures if m.get("display_category_type") == "Recall"]
+    decided_recalls = [m for m in recalls if m.get("passed") in (0, 1)]
+    recall_passed = sum(1 for m in decided_recalls if m["passed"] == 1)
+    recall_counties = {
+        m.get("county") for m in recalls
+        if m.get("county") and m["county"] != "Statewide"
+    }
+    year_counts = defaultdict(int)
+    for m in recalls:
+        if m.get("year") and str(m["year"]).isdigit():
+            year_counts[int(m["year"])] += 1
+    recall_avg = (sum(year_counts.values()) / len(year_counts)) if year_counts else 0
+    spike_years = sorted(
+        [
+            {"year": y, "count": c}
+            for y, c in year_counts.items()
+            if c >= max(recall_avg * 2.5, 5)
+        ],
+        key=lambda x: -x["count"],
+    )[:3]
+    recall_profile = {
+        "total": len(recalls),
+        "decided": len(decided_recalls),
+        "pass_rate": pct(recall_passed, len(decided_recalls)),
+        "county_count": len(recall_counties),
+        "spike_years": spike_years,
+    }
+
+    # Revised pass-rate rankings: exclude Other; n>=100 decided.
+    eligible = [
+        row for row in category_type_stats
+        if (row.get("decided") or 0) >= 100
+        and row.get("pass_rate") is not None
+        and row.get("category_type") != "Other"
     ]
-    non_fiscal_passed = sum(1 for m in non_fiscal_decided if m["passed"] == 1)
-    eligible = [row for row in category_type_stats if row.get("decided", 0) >= 100 and row.get("pass_rate") is not None]
 
     return {
-        "fiscal_count": len(fiscal),
-        "fiscal_share": pct(len(fiscal), overview["active_measures"]),
-        "fiscal_pass_rate": pct(fiscal_passed, len(fiscal_decided)),
-        "non_fiscal_pass_rate": pct(non_fiscal_passed, len(non_fiscal_decided)),
-        "highest_pass_rate_types": sorted(eligible, key=lambda x: x["pass_rate"], reverse=True)[:5],
-        "lowest_pass_rate_types": sorted(eligible, key=lambda x: x["pass_rate"])[:5],
+        "modern_year_anatomy": {
+            "modern_start": MODERN_START,
+            "modern_end": modern_year_max,
+            "years_covered": year_count,
+            "instruments": modern_instruments,
+        },
+        "fiscal_instrument_profiles": fiscal_profiles,
+        "type_threshold_profiles": type_threshold_profiles,
+        "recall_profile": recall_profile,
+        "highest_pass_rate_types": sorted(eligible, key=lambda x: x["pass_rate"], reverse=True)[:3],
+        "lowest_pass_rate_types": sorted(eligible, key=lambda x: x["pass_rate"])[:3],
         "minimum_decided_records": 100,
+        "note": "Modern-year anatomy uses records since 1990, where local category_type is consistently populated. Threshold profiles connect to the Rules panel for the deep dive.",
     }
 
 
@@ -731,11 +903,70 @@ def build_threshold_insights(measures, threshold_stats):
         key=lambda m: abs(m["percent_yes"] - threshold_value(m.get("threshold"))),
     )[:10]
 
+    # Hero subline: share of higher-threshold contests that ended in majority-backed failure.
+    higher_threshold_decided = sum(
+        row.get("total") or 0 for row in threshold_stats
+        if row.get("threshold") in ("55%", "66.67%")
+    )
+    failure_share = pct(len(majority_failures), higher_threshold_decided)
+
+    # Plain-English replacement for the odds-ratio block: percentage-point gaps vs simple-majority.
+    by_label = {row.get("threshold"): row for row in threshold_stats}
+    base_rate = (by_label.get("50%") or {}).get("pass_rate")
+    threshold_pp_diffs = []
+    for label in ("55%", "66.67%"):
+        row = by_label.get(label) or {}
+        rate = row.get("pass_rate")
+        if base_rate is not None and rate is not None:
+            threshold_pp_diffs.append({
+                "threshold": label,
+                "pass_rate": rate,
+                "pp_vs_simple_majority": round(rate - base_rate, 1),
+            })
+
+    # Curated landmark near-misses for the Rules panel. We sort highest_yes_failures by yes %
+    # descending and keep records that have a clean display_category_type so the cards aren't
+    # forced to fall back on 150-word ballot questions.
+    landmark_pool = sorted(
+        majority_failures,
+        key=lambda m: m.get("percent_yes") or 0,
+        reverse=True,
+    )
+    seen_keys = set()
+    landmark_near_misses = []
+    for m in landmark_pool:
+        ct = (m.get("display_category_type") or "").strip()
+        if not ct or ct == "Other":
+            continue
+        # Avoid two cards from the same county+type+year cluster (visual diversity).
+        key = (m.get("county"), ct, m.get("year"))
+        if key in seen_keys:
+            continue
+        seen_keys.add(key)
+        topic = (m.get("display_topic") or "").strip()
+        landmark_near_misses.append({
+            "id": m.get("id"),
+            "measure_id": m.get("measure_id"),
+            "year": m.get("year"),
+            "county": m.get("county"),
+            "category_type": ct,
+            "topic": topic if topic and topic != "Other" else None,
+            "percent_yes": round(m["percent_yes"], 2),
+            "threshold": m.get("threshold"),
+            "title": m.get("title"),
+        })
+        if len(landmark_near_misses) >= 4:
+            break
+
     return {
         "majority_failure_count": len(majority_failures),
+        "majority_failure_share_higher_thresholds": failure_share,
+        "higher_threshold_decided": higher_threshold_decided,
+        "threshold_pp_diffs": threshold_pp_diffs,
         "highest_yes_failures": [
             measure_excerpt(m) for m in sorted(majority_failures, key=lambda m: m["percent_yes"], reverse=True)[:8]
         ],
+        "landmark_near_misses": landmark_near_misses,
         "closest_to_legal_threshold": [
             {
                 **measure_excerpt(m),
@@ -809,30 +1040,42 @@ def build_close_call_insights(measures, margin_stats):
     }
 
 
-def build_finance_insights(measures_by_measure_id):
+def build_finance_insights(measures_by_db_id):
+    """Build cross-campaign finance aggregates from the v2 finance DB.
+
+    Each campaign is a (prop_num, election_year) pair; measure metadata is
+    looked up by `measure_db_id` (FK in finance_campaign). The bare measure_id
+    is no longer used as a key — bypassing the v1 cross-cycle contamination.
+    """
     if not FINANCE_DB_PATH.exists():
-        return {"available": False, "reason": "finance_statewide.db not found"}
+        return {"available": False, "reason": "finance_statewide_v2.db not found"}
 
     conn = sqlite3.connect(str(FINANCE_DB_PATH))
     conn.row_factory = sqlite3.Row
     rows = conn.execute(
         """
-        SELECT measure_id, stance, total_receipts, n_committees, top5_share, hhi
-        FROM measure_finance_summary
+        SELECT s.finance_campaign_id, s.stance, s.total_receipts,
+               s.n_committees, s.top5_share, s.hhi,
+               c.election_year, c.measure_db_id, c.measure_id
+        FROM finance_summary s
+        JOIN finance_campaign c USING (finance_campaign_id)
+        WHERE c.status = 'matched'
         """
     ).fetchall()
     conn.close()
 
-    by_measure = defaultdict(dict)
+    by_campaign = defaultdict(lambda: {"meta": None, "sides": {}})
     for row in rows:
         rec = dict(row)
-        by_measure[rec["measure_id"]][rec["stance"]] = rec
-
-    measures = []
-    better_funded_known = 0
-    better_funded_won = 0
-    support_total = 0
-    oppose_total = 0
+        cid = rec["finance_campaign_id"]
+        if by_campaign[cid]["meta"] is None:
+            by_campaign[cid]["meta"] = {
+                "finance_campaign_id": cid,
+                "election_year": rec.get("election_year"),
+                "measure_db_id": rec.get("measure_db_id"),
+                "measure_id": rec.get("measure_id"),
+            }
+        by_campaign[cid]["sides"][rec["stance"]] = rec
 
     def clean_float(value):
         try:
@@ -840,13 +1083,23 @@ def build_finance_insights(measures_by_measure_id):
         except (TypeError, ValueError):
             return None
 
-    for measure_id, sides in by_measure.items():
+    campaigns_out = []
+    better_funded_known = 0
+    better_funded_won = 0
+    support_total = 0
+    oppose_total = 0
+
+    for cid, payload in by_campaign.items():
+        meta = payload["meta"] or {}
+        sides = payload["sides"]
         support = float((sides.get("support") or {}).get("total_receipts") or 0)
         oppose = float((sides.get("oppose") or {}).get("total_receipts") or 0)
         support_total += support
         oppose_total += oppose
-        linked = measures_by_measure_id.get(measure_id)
+
+        linked = measures_by_db_id.get(meta.get("measure_db_id")) if meta.get("measure_db_id") is not None else None
         passed = linked.get("passed") if linked else None
+
         better_side = None
         better_won = None
         if support or oppose:
@@ -855,49 +1108,221 @@ def build_finance_insights(measures_by_measure_id):
                 better_funded_known += 1
                 better_won = (better_side == "support" and passed == 1) or (better_side == "oppose" and passed == 0)
                 better_funded_won += 1 if better_won else 0
+
         smaller_side = min(support, oppose)
         larger_side = max(support, oppose)
         funding_ratio = larger_side / smaller_side if smaller_side > 0 else None
 
-        measures.append(
-            {
-                "measure_id": measure_id,
-                "title": linked.get("title") if linked else measure_id,
-                "year": linked.get("year") if linked else None,
-                "passed": passed,
-                "support_receipts": round(support, 2),
-                "oppose_receipts": round(oppose, 2),
-                "total_receipts": round(support + oppose, 2),
-                "better_funded_side": better_side,
-                "better_funded_won": better_won,
-                "funding_ratio": round(funding_ratio, 1) if funding_ratio is not None else None,
-                "support_top5_share": clean_float((sides.get("support") or {}).get("top5_share")),
-                "oppose_top5_share": clean_float((sides.get("oppose") or {}).get("top5_share")),
-            }
-        )
+        campaigns_out.append({
+            "finance_campaign_id": cid,
+            "measure_id": meta.get("measure_id"),
+            "election_year": meta.get("election_year"),
+            "year": meta.get("election_year"),  # alias for back-compat with consumers
+            "title": linked.get("title") if linked else (meta.get("measure_id") or cid),
+            "passed": passed,
+            "support_receipts": round(support, 2),
+            "oppose_receipts": round(oppose, 2),
+            "total_receipts": round(support + oppose, 2),
+            "better_funded_side": better_side,
+            "better_funded_won": better_won,
+            "funding_ratio": round(funding_ratio, 1) if funding_ratio is not None else None,
+            "support_top5_share": clean_float((sides.get("support") or {}).get("top5_share")),
+            "oppose_top5_share": clean_float((sides.get("oppose") or {}).get("top5_share")),
+        })
 
     better_funded_losses = [
-        row for row in measures
+        row for row in campaigns_out
         if row.get("better_funded_won") is False and row.get("total_receipts", 0) > 0
     ]
     lopsided = [
-        row for row in measures
+        row for row in campaigns_out
         if row.get("funding_ratio") is not None and row.get("total_receipts", 0) > 0
     ]
 
+    annual_receipts, top_donors_overall, repeat_donors, marquee_fights = _build_finance_supplements(
+        campaigns_out, measures_by_db_id
+    )
+
     return {
         "available": True,
-        "measure_count": len(by_measure),
+        "measure_count": len(by_campaign),
         "support_receipts": round(support_total, 2),
         "oppose_receipts": round(oppose_total, 2),
         "total_receipts": round(support_total + oppose_total, 2),
         "better_funded_known": better_funded_known,
         "better_funded_won": better_funded_won,
         "better_funded_win_rate": pct(better_funded_won, better_funded_known),
-        "top_measures": sorted(measures, key=lambda x: x["total_receipts"], reverse=True)[:12],
+        "top_measures": sorted(campaigns_out, key=lambda x: x["total_receipts"], reverse=True)[:12],
         "better_funded_losses": sorted(better_funded_losses, key=lambda x: x["total_receipts"], reverse=True)[:8],
         "largest_imbalances": sorted(lopsided, key=lambda x: x["funding_ratio"], reverse=True)[:8],
+        "annual_receipts": annual_receipts,
+        "top_donors_overall": top_donors_overall,
+        "repeat_donors": repeat_donors,
+        "marquee_fights": marquee_fights,
     }
+
+
+# Curated marquee fights: three case studies spanning industries, outcomes, and
+# funding-ratio shapes. Hand-picked rather than auto-derived so the panel can
+# carry a coherent narrative across very different campaign archetypes.
+MARQUEE_FIGHT_IDS = [
+    {
+        "finance_campaign_id": "PROP_22_2020",
+        "headline": "App-based gig work vs labor",
+        "takeaway": "Uber, Lyft, DoorDash, and Instacart pooled into a single $81M Yes committee — five-to-one over the labor coalition opposing them. The measure passed.",
+    },
+    {
+        "finance_campaign_id": "PROP_27_2022",
+        "headline": "Online sports betting vs tribal gaming",
+        "takeaway": "The largest two-sided fight in the data ($181M). FanDuel and DraftKings spent $105M for; tribal coalitions led by San Manuel spent $76M against. Voters rejected it 17-83.",
+    },
+    {
+        "finance_campaign_id": "PROP_8_2018",
+        "headline": "Dialysis profit caps vs the dialysis industry",
+        "takeaway": "DaVita and Fresenius spent $97M to defeat a SEIU-backed $24M effort to cap dialysis-clinic revenue. The industry side outspent the labor coalition about four-to-one — and won.",
+    },
+]
+
+
+def _build_finance_supplements(campaigns_out, measures_by_db_id):
+    """Build the four post-rebuild supplemental fields the panel redesign needs:
+
+    1. annual_receipts — total receipts grouped by election year (bar chart)
+    2. top_donors_overall — top 15 donors aggregated across matched campaigns
+    3. repeat_donors — donors active in 3+ campaigns (filtered to ≥$1M to keep narrative)
+    4. marquee_fights — 3 hand-picked case studies with both-sides donor breakdowns
+    """
+    if not FINANCE_DB_PATH.exists():
+        return [], [], [], []
+
+    conn = sqlite3.connect(str(FINANCE_DB_PATH))
+    conn.row_factory = sqlite3.Row
+
+    # 1. Annual receipts by election year (already keyed on c.election_year, so
+    #    cross-cycle contamination is gone post-v2).
+    annual = conn.execute(
+        """
+        SELECT c.election_year AS year,
+               SUM(s.total_receipts) AS total,
+               COUNT(DISTINCT c.finance_campaign_id) AS n_campaigns
+        FROM finance_summary s
+        JOIN finance_campaign c USING (finance_campaign_id)
+        WHERE c.status = 'matched'
+        GROUP BY c.election_year
+        ORDER BY c.election_year
+        """
+    ).fetchall()
+    annual_receipts = [
+        {
+            "year": int(r["year"]),
+            "total_receipts": round(float(r["total"]), 2),
+            "n_campaigns": int(r["n_campaigns"]),
+        }
+        for r in annual
+        if r["year"] is not None
+    ]
+
+    # 2. Top donors overall — aggregate across all matched campaigns
+    top_donors_rows = conn.execute(
+        """
+        SELECT donor_name_canon AS name,
+               SUM(total_amount) AS total,
+               COUNT(DISTINCT finance_campaign_id) AS n_campaigns
+        FROM finance_top_donors
+        GROUP BY donor_name_canon
+        ORDER BY total DESC
+        LIMIT 15
+        """
+    ).fetchall()
+    top_donors_overall = [
+        {
+            "name": r["name"],
+            "total_amount": round(float(r["total"]), 2),
+            "n_campaigns": int(r["n_campaigns"]),
+        }
+        for r in top_donors_rows
+    ]
+
+    # 3. Repeat donors — donors active in 3+ campaigns AND ≥$1M aggregate.
+    #    The dollar floor keeps the list narrative-relevant (otherwise it fills
+    #    with $0.4M actors who happen to chip into many committees).
+    repeat_rows = conn.execute(
+        """
+        SELECT donor_name_canon AS name,
+               SUM(total_amount) AS total,
+               COUNT(DISTINCT finance_campaign_id) AS n_campaigns
+        FROM finance_top_donors
+        GROUP BY donor_name_canon
+        HAVING n_campaigns >= 3 AND total >= 1000000
+        ORDER BY n_campaigns DESC, total DESC
+        LIMIT 12
+        """
+    ).fetchall()
+    repeat_donors = [
+        {
+            "name": r["name"],
+            "total_amount": round(float(r["total"]), 2),
+            "n_campaigns": int(r["n_campaigns"]),
+        }
+        for r in repeat_rows
+    ]
+
+    # 4. Marquee fights — three curated case studies. Pull per-side summary +
+    #    top 5 donors per stance for each. If a curated id isn't in the DB
+    #    (rebuild changed coverage), warn loudly — a 2-card "Three fights"
+    #    section is an obvious broken state, so we want maintainers to notice.
+    by_cid = {row["finance_campaign_id"]: row for row in campaigns_out}
+    marquee_fights = []
+    for spec in MARQUEE_FIGHT_IDS:
+        cid = spec["finance_campaign_id"]
+        if cid not in by_cid:
+            print(
+                f"WARNING: marquee fight {cid!r} not present in finance v2 DB; "
+                f"section will render with fewer than {len(MARQUEE_FIGHT_IDS)} cards. "
+                "Update MARQUEE_FIGHT_IDS in build_finance_insights.",
+                file=sys.stderr,
+            )
+            continue
+        camp = by_cid[cid]
+        donor_rows = conn.execute(
+            """
+            SELECT stance, donor_name_canon, total_amount
+            FROM (
+                SELECT stance, donor_name_canon, total_amount,
+                       ROW_NUMBER() OVER (PARTITION BY stance ORDER BY total_amount DESC, donor_name_canon) AS rn
+                FROM finance_top_donors
+                WHERE finance_campaign_id = ?
+            )
+            WHERE rn <= 5
+            ORDER BY stance, total_amount DESC
+            """,
+            (cid,),
+        ).fetchall()
+        donors_by_stance = defaultdict(list)
+        for d in donor_rows:
+            donors_by_stance[d["stance"]].append({
+                "name": d["donor_name_canon"],
+                "total_amount": round(float(d["total_amount"]), 2),
+            })
+        marquee_fights.append({
+            "finance_campaign_id": cid,
+            "measure_id": camp.get("measure_id"),
+            "election_year": camp.get("election_year"),
+            "title": camp.get("title"),
+            "headline": spec["headline"],
+            "takeaway": spec["takeaway"],
+            "passed": camp.get("passed"),
+            "support_receipts": camp.get("support_receipts"),
+            "oppose_receipts": camp.get("oppose_receipts"),
+            "total_receipts": camp.get("total_receipts"),
+            "support_top5_share": camp.get("support_top5_share"),
+            "oppose_top5_share": camp.get("oppose_top5_share"),
+            "support_top_donors": donors_by_stance.get("support", []),
+            "oppose_top_donors": donors_by_stance.get("oppose", []),
+        })
+
+    conn.close()
+    return annual_receipts, top_donors_overall, repeat_donors, marquee_fights
 
 
 def build_featured_findings(
@@ -993,14 +1418,21 @@ def format_dollars(amount):
 
 def build_insights(db_path=DB_PATH):
     measures = load_measures(db_path)
+    # Two indexes: by string measure_id (for legacy consumers) and by integer
+    # db_id (for the v2 finance join, which keys on measure_db_id).
     measures_by_measure_id = {}
+    measures_by_db_id = {}
     for measure in measures:
         mid = measure.get("measure_id")
         if mid and mid not in measures_by_measure_id:
             measures_by_measure_id[mid] = measure
+        db_id = measure.get("id")
+        if db_id is not None:
+            measures_by_db_id[db_id] = measure
 
     overview = summarize_overview(measures)
     topic_stats = build_topic_stats(measures)
+    topic_decade_matrix = build_topic_decade_matrix(measures)
     category_type_stats = build_category_type_stats(measures)
     threshold_stats = build_threshold_stats(measures)
     margin_stats = build_margin_stats(measures)
@@ -1009,7 +1441,7 @@ def build_insights(db_path=DB_PATH):
     time_series = build_time_series(measures)
     decade_series = build_decade_series(measures)
     election_cycle_stats = build_election_cycle_stats(measures)
-    finance = build_finance_insights(measures_by_measure_id)
+    finance = build_finance_insights(measures_by_db_id)
 
     return {
         "version": 1,
@@ -1022,8 +1454,9 @@ def build_insights(db_path=DB_PATH):
         "election_cycle_stats": election_cycle_stats,
         "trend_insights": build_trend_insights(time_series, decade_series, election_cycle_stats),
         "topic_stats": topic_stats,
-        "topic_decade_matrix": build_topic_decade_matrix(measures),
+        "topic_decade_matrix": topic_decade_matrix,
         "topic_trends": build_topic_trends(measures, topic_stats),
+        "topic_insights": build_topic_insights(measures, topic_stats, topic_decade_matrix),
         "category_type_stats": category_type_stats,
         "type_trends": build_type_trends(measures),
         "type_insights": build_type_insights(measures, category_type_stats, overview),
@@ -1041,7 +1474,7 @@ def build_insights(db_path=DB_PATH):
             "sources": sorted(Counter(m.get("data_source") or "Unknown" for m in measures).items(), key=lambda x: x[1], reverse=True),
             "notes": [
                 "CEDA dominates local measure coverage and is strongest for outcomes, categories, and vote totals.",
-                "Campaign finance analysis uses the separate statewide proposition finance database and is not available for local measures.",
+                "Campaign finance analysis uses the year-scoped statewide proposition finance database (rebuilt 2026-05-04, keyed by finance_campaign_id) and is not available for local measures.",
                 "Pending-measure analogs are intentionally excluded from this MVP to avoid prediction framing.",
             ],
         },

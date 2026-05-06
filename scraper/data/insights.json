@@ -1,0 +1,5092 @@
+{
+  "version": 1,
+  "overview": {
+    "active_measures": 12312,
+    "decided_measures": 12252,
+    "vote_data_measures": 11029,
+    "summary_measures": 3472,
+    "pass_rate": 66.8,
+    "passed": 8188,
+    "failed": 4064,
+    "local_measures": 10997,
+    "statewide_measures": 1315,
+    "local_share": 89.3,
+    "county_count": 58,
+    "year_min": 1911,
+    "year_max": 2026,
+    "generated_at": "2026-05-04T17:44:30"
+  },
+  "featured_findings": [
+    {
+      "id": "local-democracy-is-fiscal",
+      "title": "The ballot is mostly local, and much of it is fiscal.",
+      "deck": "89.3% of active records are local measures, and 55.8% fall into tax, bond, or spending-limit measure types.",
+      "metric": "89.3%",
+      "metric_label": "local measures",
+      "confidence": "High",
+      "method": "Active, non-duplicate records grouped by county and consolidated measure type.",
+      "caveat": "Measure type is more reliable than topic for CEDA-heavy local records."
+    },
+    {
+      "id": "yes-wins-often",
+      "title": "Voters approve more measures than they reject.",
+      "deck": "Among decided measures, 66.8% passed statewide and locally combined.",
+      "metric": "66.8%",
+      "metric_label": "pass rate",
+      "confidence": "High",
+      "method": "Decided active records where passed is coded 0 or 1.",
+      "caveat": "This is descriptive, not a forecast for future measures."
+    },
+    {
+      "id": "thresholds-change-outcomes",
+      "title": "Threshold rules create a class of majority-backed failures.",
+      "deck": "1,099 decided measures received more than 50% yes but did not pass, usually because a higher threshold applied.",
+      "metric": "1,099",
+      "metric_label": "majority-backed failures",
+      "confidence": "Medium",
+      "method": "Decided records with percent_yes above 50 and passed coded false.",
+      "caveat": "A small number of threshold encodings are known to need manual verification."
+    },
+    {
+      "id": "close-calls",
+      "title": "Hundreds of measures are decided near the knife-edge.",
+      "deck": "2,149 measures landed within five percentage points of 50% yes.",
+      "metric": "2,149",
+      "metric_label": "within 5 points",
+      "confidence": "High",
+      "method": "Records with valid percent_yes and decided outcomes.",
+      "caveat": "Margin is measured around 50%, not around each measure's legal passage threshold."
+    },
+    {
+      "id": "geography-is-uneven",
+      "title": "Measure activity is concentrated in the largest civic ecosystems.",
+      "deck": "Los Angeles has the most local measures in the database, with 1,389 active records.",
+      "metric": "1,389",
+      "metric_label": "Los Angeles measures",
+      "confidence": "High",
+      "method": "Active local records grouped by normalized county name.",
+      "caveat": "Raw counts are not population-adjusted."
+    },
+    {
+      "id": "finance-lopsided",
+      "title": "Statewide proposition campaigns are often big-money contests.",
+      "deck": "The finance database links 181 statewide proposition IDs and $3.3B in receipts.",
+      "metric": "$3.3B",
+      "metric_label": "linked receipts",
+      "confidence": "Medium",
+      "method": "CalAccess-derived statewide proposition finance summaries.",
+      "caveat": "Finance coverage is statewide-only and limited to matched proposition committees."
+    }
+  ],
+  "time_series": [
+    {
+      "year": 1911,
+      "total": 23,
+      "passed": 1,
+      "failed": 22,
+      "decided": 23,
+      "local": 0,
+      "statewide": 23,
+      "fiscal": 0,
+      "pass_rate": 4.3,
+      "local_share": 0.0,
+      "fiscal_share": 0.0,
+      "avg_yes": null
+    },
+    {
+      "year": 1912,
+      "total": 8,
+      "passed": 2,
+      "failed": 6,
+      "decided": 8,
+      "local": 0,
+      "statewide": 8,
+      "fiscal": 0,
+      "pass_rate": 25.0,
+      "local_share": 0.0,
+      "fiscal_share": 0.0,
+      "avg_yes": 44.2
+    },
+    {
+      "year": 1914,
+      "total": 47,
+      "passed": 26,
+      "failed": 21,
+      "decided": 47,
+      "local": 0,
+      "statewide": 47,
+      "fiscal": 0,
+      "pass_rate": 55.3,
+      "local_share": 0.0,
+      "fiscal_share": 0.0,
+      "avg_yes": 50.5
+    },
+    {
+      "year": 1915,
+      "total": 11,
+      "passed": 0,
+      "failed": 11,
+      "decided": 11,
+      "local": 0,
+      "statewide": 11,
+      "fiscal": 0,
+      "pass_rate": 0.0,
+      "local_share": 0.0,
+      "fiscal_share": 0.0,
+      "avg_yes": 39.7
+    },
+    {
+      "year": 1916,
+      "total": 7,
+      "passed": 3,
+      "failed": 4,
+      "decided": 7,
+      "local": 0,
+      "statewide": 7,
+      "fiscal": 0,
+      "pass_rate": 42.9,
+      "local_share": 0.0,
+      "fiscal_share": 0.0,
+      "avg_yes": 55.9
+    },
+    {
+      "year": 1918,
+      "total": 25,
+      "passed": 10,
+      "failed": 15,
+      "decided": 25,
+      "local": 0,
+      "statewide": 25,
+      "fiscal": 0,
+      "pass_rate": 40.0,
+      "local_share": 0.0,
+      "fiscal_share": 0.0,
+      "avg_yes": 43.0
+    },
+    {
+      "year": 1919,
+      "total": 1,
+      "passed": 1,
+      "failed": 0,
+      "decided": 1,
+      "local": 0,
+      "statewide": 1,
+      "fiscal": 0,
+      "pass_rate": 100.0,
+      "local_share": 0.0,
+      "fiscal_share": 0.0,
+      "avg_yes": 87.5
+    },
+    {
+      "year": 1920,
+      "total": 20,
+      "passed": 8,
+      "failed": 12,
+      "decided": 20,
+      "local": 0,
+      "statewide": 20,
+      "fiscal": 0,
+      "pass_rate": 40.0,
+      "local_share": 0.0,
+      "fiscal_share": 0.0,
+      "avg_yes": 50.0
+    },
+    {
+      "year": 1922,
+      "total": 30,
+      "passed": 13,
+      "failed": 17,
+      "decided": 30,
+      "local": 0,
+      "statewide": 30,
+      "fiscal": 0,
+      "pass_rate": 43.3,
+      "local_share": 0.0,
+      "fiscal_share": 0.0,
+      "avg_yes": 45.8
+    },
+    {
+      "year": 1924,
+      "total": 18,
+      "passed": 12,
+      "failed": 6,
+      "decided": 18,
+      "local": 0,
+      "statewide": 18,
+      "fiscal": 0,
+      "pass_rate": 66.7,
+      "local_share": 0.0,
+      "fiscal_share": 0.0,
+      "avg_yes": 52.1
+    },
+    {
+      "year": 1926,
+      "total": 28,
+      "passed": 16,
+      "failed": 12,
+      "decided": 28,
+      "local": 0,
+      "statewide": 28,
+      "fiscal": 0,
+      "pass_rate": 57.1,
+      "local_share": 0.0,
+      "fiscal_share": 0.0,
+      "avg_yes": 53.0
+    },
+    {
+      "year": 1928,
+      "total": 21,
+      "passed": 16,
+      "failed": 5,
+      "decided": 21,
+      "local": 0,
+      "statewide": 21,
+      "fiscal": 0,
+      "pass_rate": 76.2,
+      "local_share": 0.0,
+      "fiscal_share": 0.0,
+      "avg_yes": 63.0
+    },
+    {
+      "year": 1930,
+      "total": 26,
+      "passed": 12,
+      "failed": 14,
+      "decided": 26,
+      "local": 0,
+      "statewide": 26,
+      "fiscal": 0,
+      "pass_rate": 46.2,
+      "local_share": 0.0,
+      "fiscal_share": 0.0,
+      "avg_yes": 50.1
+    },
+    {
+      "year": 1932,
+      "total": 22,
+      "passed": 12,
+      "failed": 10,
+      "decided": 22,
+      "local": 0,
+      "statewide": 22,
+      "fiscal": 0,
+      "pass_rate": 54.5,
+      "local_share": 0.0,
+      "fiscal_share": 0.0,
+      "avg_yes": 50.3
+    },
+    {
+      "year": 1933,
+      "total": 10,
+      "passed": 6,
+      "failed": 4,
+      "decided": 10,
+      "local": 0,
+      "statewide": 10,
+      "fiscal": 0,
+      "pass_rate": 60.0,
+      "local_share": 0.0,
+      "fiscal_share": 0.0,
+      "avg_yes": 54.7
+    },
+    {
+      "year": 1934,
+      "total": 23,
+      "passed": 14,
+      "failed": 9,
+      "decided": 23,
+      "local": 0,
+      "statewide": 23,
+      "fiscal": 0,
+      "pass_rate": 60.9,
+      "local_share": 0.0,
+      "fiscal_share": 0.0,
+      "avg_yes": 54.8
+    },
+    {
+      "year": 1935,
+      "total": 3,
+      "passed": 0,
+      "failed": 3,
+      "decided": 3,
+      "local": 0,
+      "statewide": 3,
+      "fiscal": 0,
+      "pass_rate": 0.0,
+      "local_share": 0.0,
+      "fiscal_share": 0.0,
+      "avg_yes": 41.4
+    },
+    {
+      "year": 1936,
+      "total": 22,
+      "passed": 3,
+      "failed": 19,
+      "decided": 22,
+      "local": 0,
+      "statewide": 22,
+      "fiscal": 0,
+      "pass_rate": 13.6,
+      "local_share": 0.0,
+      "fiscal_share": 0.0,
+      "avg_yes": 37.5
+    },
+    {
+      "year": 1938,
+      "total": 25,
+      "passed": 7,
+      "failed": 18,
+      "decided": 25,
+      "local": 0,
+      "statewide": 25,
+      "fiscal": 0,
+      "pass_rate": 28.0,
+      "local_share": 0.0,
+      "fiscal_share": 0.0,
+      "avg_yes": 41.4
+    },
+    {
+      "year": 1939,
+      "total": 5,
+      "passed": 2,
+      "failed": 3,
+      "decided": 5,
+      "local": 0,
+      "statewide": 5,
+      "fiscal": 0,
+      "pass_rate": 40.0,
+      "local_share": 0.0,
+      "fiscal_share": 0.0,
+      "avg_yes": 49.0
+    },
+    {
+      "year": 1940,
+      "total": 17,
+      "passed": 8,
+      "failed": 9,
+      "decided": 17,
+      "local": 0,
+      "statewide": 17,
+      "fiscal": 0,
+      "pass_rate": 47.1,
+      "local_share": 0.0,
+      "fiscal_share": 0.0,
+      "avg_yes": 46.4
+    },
+    {
+      "year": 1942,
+      "total": 18,
+      "passed": 7,
+      "failed": 11,
+      "decided": 18,
+      "local": 0,
+      "statewide": 18,
+      "fiscal": 0,
+      "pass_rate": 38.9,
+      "local_share": 0.0,
+      "fiscal_share": 0.0,
+      "avg_yes": 48.5
+    },
+    {
+      "year": 1944,
+      "total": 13,
+      "passed": 9,
+      "failed": 4,
+      "decided": 13,
+      "local": 0,
+      "statewide": 13,
+      "fiscal": 0,
+      "pass_rate": 69.2,
+      "local_share": 0.0,
+      "fiscal_share": 0.0,
+      "avg_yes": 57.3
+    },
+    {
+      "year": 1946,
+      "total": 17,
+      "passed": 13,
+      "failed": 4,
+      "decided": 17,
+      "local": 0,
+      "statewide": 17,
+      "fiscal": 0,
+      "pass_rate": 76.5,
+      "local_share": 0.0,
+      "fiscal_share": 0.0,
+      "avg_yes": 55.5
+    },
+    {
+      "year": 1948,
+      "total": 19,
+      "passed": 8,
+      "failed": 11,
+      "decided": 19,
+      "local": 0,
+      "statewide": 19,
+      "fiscal": 0,
+      "pass_rate": 42.1,
+      "local_share": 0.0,
+      "fiscal_share": 0.0,
+      "avg_yes": 57.1
+    },
+    {
+      "year": 1949,
+      "total": 12,
+      "passed": 11,
+      "failed": 1,
+      "decided": 12,
+      "local": 0,
+      "statewide": 12,
+      "fiscal": 0,
+      "pass_rate": 91.7,
+      "local_share": 0.0,
+      "fiscal_share": 0.0,
+      "avg_yes": 63.8
+    },
+    {
+      "year": 1950,
+      "total": 11,
+      "passed": 7,
+      "failed": 4,
+      "decided": 11,
+      "local": 0,
+      "statewide": 11,
+      "fiscal": 0,
+      "pass_rate": 63.6,
+      "local_share": 0.0,
+      "fiscal_share": 0.0,
+      "avg_yes": 52.8
+    },
+    {
+      "year": 1952,
+      "total": 24,
+      "passed": 17,
+      "failed": 7,
+      "decided": 24,
+      "local": 0,
+      "statewide": 24,
+      "fiscal": 0,
+      "pass_rate": 70.8,
+      "local_share": 0.0,
+      "fiscal_share": 0.0,
+      "avg_yes": 63.6
+    },
+    {
+      "year": 1954,
+      "total": 20,
+      "passed": 13,
+      "failed": 7,
+      "decided": 20,
+      "local": 0,
+      "statewide": 20,
+      "fiscal": 0,
+      "pass_rate": 65.0,
+      "local_share": 0.0,
+      "fiscal_share": 0.0,
+      "avg_yes": 61.3
+    },
+    {
+      "year": 1956,
+      "total": 19,
+      "passed": 14,
+      "failed": 5,
+      "decided": 19,
+      "local": 0,
+      "statewide": 19,
+      "fiscal": 0,
+      "pass_rate": 73.7,
+      "local_share": 0.0,
+      "fiscal_share": 0.0,
+      "avg_yes": 57.9
+    },
+    {
+      "year": 1958,
+      "total": 18,
+      "passed": 7,
+      "failed": 11,
+      "decided": 18,
+      "local": 0,
+      "statewide": 18,
+      "fiscal": 0,
+      "pass_rate": 38.9,
+      "local_share": 0.0,
+      "fiscal_share": 0.0,
+      "avg_yes": 46.7
+    },
+    {
+      "year": 1960,
+      "total": 18,
+      "passed": 13,
+      "failed": 5,
+      "decided": 18,
+      "local": 0,
+      "statewide": 18,
+      "fiscal": 0,
+      "pass_rate": 72.2,
+      "local_share": 0.0,
+      "fiscal_share": 0.0,
+      "avg_yes": 59.1
+    },
+    {
+      "year": 1962,
+      "total": 31,
+      "passed": 14,
+      "failed": 17,
+      "decided": 31,
+      "local": 0,
+      "statewide": 31,
+      "fiscal": 0,
+      "pass_rate": 45.2,
+      "local_share": 0.0,
+      "fiscal_share": 0.0,
+      "avg_yes": 50.7
+    },
+    {
+      "year": 1964,
+      "total": 17,
+      "passed": 15,
+      "failed": 2,
+      "decided": 17,
+      "local": 0,
+      "statewide": 17,
+      "fiscal": 0,
+      "pass_rate": 88.2,
+      "local_share": 0.0,
+      "fiscal_share": 0.0,
+      "avg_yes": 64.2
+    },
+    {
+      "year": 1966,
+      "total": 18,
+      "passed": 12,
+      "failed": 6,
+      "decided": 18,
+      "local": 0,
+      "statewide": 18,
+      "fiscal": 0,
+      "pass_rate": 66.7,
+      "local_share": 0.0,
+      "fiscal_share": 0.0,
+      "avg_yes": 57.4
+    },
+    {
+      "year": 1968,
+      "total": 12,
+      "passed": 7,
+      "failed": 5,
+      "decided": 12,
+      "local": 0,
+      "statewide": 12,
+      "fiscal": 0,
+      "pass_rate": 58.3,
+      "local_share": 0.0,
+      "fiscal_share": 0.0,
+      "avg_yes": 49.6
+    },
+    {
+      "year": 1970,
+      "total": 27,
+      "passed": 16,
+      "failed": 11,
+      "decided": 27,
+      "local": 0,
+      "statewide": 27,
+      "fiscal": 0,
+      "pass_rate": 59.3,
+      "local_share": 0.0,
+      "fiscal_share": 0.0,
+      "avg_yes": 53.8
+    },
+    {
+      "year": 1972,
+      "total": 32,
+      "passed": 24,
+      "failed": 8,
+      "decided": 32,
+      "local": 0,
+      "statewide": 32,
+      "fiscal": 0,
+      "pass_rate": 75.0,
+      "local_share": 0.0,
+      "fiscal_share": 0.0,
+      "avg_yes": 56.7
+    },
+    {
+      "year": 1973,
+      "total": 1,
+      "passed": 0,
+      "failed": 1,
+      "decided": 1,
+      "local": 0,
+      "statewide": 1,
+      "fiscal": 0,
+      "pass_rate": 0.0,
+      "local_share": 0.0,
+      "fiscal_share": 0.0,
+      "avg_yes": 46.0
+    },
+    {
+      "year": 1974,
+      "total": 26,
+      "passed": 20,
+      "failed": 6,
+      "decided": 26,
+      "local": 0,
+      "statewide": 26,
+      "fiscal": 0,
+      "pass_rate": 76.9,
+      "local_share": 0.0,
+      "fiscal_share": 0.0,
+      "avg_yes": 61.3
+    },
+    {
+      "year": 1976,
+      "total": 30,
+      "passed": 18,
+      "failed": 12,
+      "decided": 30,
+      "local": 0,
+      "statewide": 30,
+      "fiscal": 0,
+      "pass_rate": 60.0,
+      "local_share": 0.0,
+      "fiscal_share": 0.0,
+      "avg_yes": 55.5
+    },
+    {
+      "year": 1978,
+      "total": 21,
+      "passed": 12,
+      "failed": 9,
+      "decided": 21,
+      "local": 0,
+      "statewide": 21,
+      "fiscal": 0,
+      "pass_rate": 57.1,
+      "local_share": 0.0,
+      "fiscal_share": 0.0,
+      "avg_yes": 52.8
+    },
+    {
+      "year": 1979,
+      "total": 4,
+      "passed": 4,
+      "failed": 0,
+      "decided": 4,
+      "local": 0,
+      "statewide": 4,
+      "fiscal": 0,
+      "pass_rate": 100.0,
+      "local_share": 0.0,
+      "fiscal_share": 0.0,
+      "avg_yes": 70.9
+    },
+    {
+      "year": 1980,
+      "total": 22,
+      "passed": 11,
+      "failed": 11,
+      "decided": 22,
+      "local": 0,
+      "statewide": 22,
+      "fiscal": 0,
+      "pass_rate": 50.0,
+      "local_share": 0.0,
+      "fiscal_share": 0.0,
+      "avg_yes": 51.5
+    },
+    {
+      "year": 1982,
+      "total": 25,
+      "passed": 12,
+      "failed": 13,
+      "decided": 25,
+      "local": 0,
+      "statewide": 25,
+      "fiscal": 0,
+      "pass_rate": 48.0,
+      "local_share": 0.0,
+      "fiscal_share": 0.0,
+      "avg_yes": 47.2
+    },
+    {
+      "year": 1984,
+      "total": 25,
+      "passed": 19,
+      "failed": 6,
+      "decided": 25,
+      "local": 0,
+      "statewide": 25,
+      "fiscal": 0,
+      "pass_rate": 76.0,
+      "local_share": 0.0,
+      "fiscal_share": 0.0,
+      "avg_yes": 57.9
+    },
+    {
+      "year": 1986,
+      "total": 24,
+      "passed": 22,
+      "failed": 2,
+      "decided": 24,
+      "local": 0,
+      "statewide": 24,
+      "fiscal": 0,
+      "pass_rate": 91.7,
+      "local_share": 0.0,
+      "fiscal_share": 0.0,
+      "avg_yes": 66.4
+    },
+    {
+      "year": 1988,
+      "total": 41,
+      "passed": 31,
+      "failed": 10,
+      "decided": 41,
+      "local": 0,
+      "statewide": 41,
+      "fiscal": 0,
+      "pass_rate": 75.6,
+      "local_share": 0.0,
+      "fiscal_share": 0.0,
+      "avg_yes": 56.5
+    },
+    {
+      "year": 1990,
+      "total": 45,
+      "passed": 21,
+      "failed": 24,
+      "decided": 45,
+      "local": 0,
+      "statewide": 45,
+      "fiscal": 0,
+      "pass_rate": 46.7,
+      "local_share": 0.0,
+      "fiscal_share": 0.0,
+      "avg_yes": 48.6
+    },
+    {
+      "year": 1992,
+      "total": 16,
+      "passed": 7,
+      "failed": 9,
+      "decided": 16,
+      "local": 0,
+      "statewide": 16,
+      "fiscal": 0,
+      "pass_rate": 43.8,
+      "local_share": 0.0,
+      "fiscal_share": 0.0,
+      "avg_yes": 46.9
+    },
+    {
+      "year": 1993,
+      "total": 7,
+      "passed": 2,
+      "failed": 5,
+      "decided": 7,
+      "local": 0,
+      "statewide": 7,
+      "fiscal": 0,
+      "pass_rate": 28.6,
+      "local_share": 0.0,
+      "fiscal_share": 0.0,
+      "avg_yes": 41.6
+    },
+    {
+      "year": 1994,
+      "total": 19,
+      "passed": 9,
+      "failed": 10,
+      "decided": 19,
+      "local": 0,
+      "statewide": 19,
+      "fiscal": 0,
+      "pass_rate": 47.4,
+      "local_share": 0.0,
+      "fiscal_share": 0.0,
+      "avg_yes": 51.3
+    },
+    {
+      "year": 1996,
+      "total": 27,
+      "passed": 15,
+      "failed": 12,
+      "decided": 27,
+      "local": 0,
+      "statewide": 27,
+      "fiscal": 0,
+      "pass_rate": 55.6,
+      "local_share": 0.0,
+      "fiscal_share": 0.0,
+      "avg_yes": 54.1
+    },
+    {
+      "year": 1998,
+      "total": 593,
+      "passed": 358,
+      "failed": 235,
+      "decided": 593,
+      "local": 572,
+      "statewide": 21,
+      "fiscal": 311,
+      "pass_rate": 60.4,
+      "local_share": 96.5,
+      "fiscal_share": 52.4,
+      "avg_yes": 59.7
+    },
+    {
+      "year": 1999,
+      "total": 283,
+      "passed": 166,
+      "failed": 117,
+      "decided": 283,
+      "local": 283,
+      "statewide": 0,
+      "fiscal": 166,
+      "pass_rate": 58.7,
+      "local_share": 100.0,
+      "fiscal_share": 58.7,
+      "avg_yes": 63.0
+    },
+    {
+      "year": 2000,
+      "total": 587,
+      "passed": 344,
+      "failed": 237,
+      "decided": 581,
+      "local": 559,
+      "statewide": 28,
+      "fiscal": 266,
+      "pass_rate": 59.2,
+      "local_share": 95.2,
+      "fiscal_share": 45.3,
+      "avg_yes": 59.4
+    },
+    {
+      "year": 2001,
+      "total": 233,
+      "passed": 164,
+      "failed": 69,
+      "decided": 233,
+      "local": 233,
+      "statewide": 0,
+      "fiscal": 145,
+      "pass_rate": 70.4,
+      "local_share": 100.0,
+      "fiscal_share": 62.2,
+      "avg_yes": 63.6
+    },
+    {
+      "year": 2002,
+      "total": 670,
+      "passed": 440,
+      "failed": 230,
+      "decided": 670,
+      "local": 657,
+      "statewide": 13,
+      "fiscal": 405,
+      "pass_rate": 65.7,
+      "local_share": 98.1,
+      "fiscal_share": 60.4,
+      "avg_yes": 58.4
+    },
+    {
+      "year": 2003,
+      "total": 180,
+      "passed": 110,
+      "failed": 70,
+      "decided": 180,
+      "local": 178,
+      "statewide": 2,
+      "fiscal": 85,
+      "pass_rate": 61.1,
+      "local_share": 98.9,
+      "fiscal_share": 47.2,
+      "avg_yes": 60.0
+    },
+    {
+      "year": 2004,
+      "total": 732,
+      "passed": 456,
+      "failed": 276,
+      "decided": 732,
+      "local": 712,
+      "statewide": 20,
+      "fiscal": 447,
+      "pass_rate": 62.3,
+      "local_share": 97.3,
+      "fiscal_share": 61.1,
+      "avg_yes": 58.7
+    },
+    {
+      "year": 2005,
+      "total": 303,
+      "passed": 189,
+      "failed": 113,
+      "decided": 302,
+      "local": 295,
+      "statewide": 8,
+      "fiscal": 172,
+      "pass_rate": 62.6,
+      "local_share": 97.4,
+      "fiscal_share": 56.8,
+      "avg_yes": 59.3
+    },
+    {
+      "year": 2006,
+      "total": 571,
+      "passed": 340,
+      "failed": 231,
+      "decided": 571,
+      "local": 556,
+      "statewide": 15,
+      "fiscal": 330,
+      "pass_rate": 59.5,
+      "local_share": 97.4,
+      "fiscal_share": 57.8,
+      "avg_yes": 57.0
+    },
+    {
+      "year": 2007,
+      "total": 179,
+      "passed": 127,
+      "failed": 52,
+      "decided": 179,
+      "local": 179,
+      "statewide": 0,
+      "fiscal": 84,
+      "pass_rate": 70.9,
+      "local_share": 100.0,
+      "fiscal_share": 46.9,
+      "avg_yes": 64.2
+    },
+    {
+      "year": 2008,
+      "total": 614,
+      "passed": 452,
+      "failed": 162,
+      "decided": 614,
+      "local": 593,
+      "statewide": 21,
+      "fiscal": 394,
+      "pass_rate": 73.6,
+      "local_share": 96.6,
+      "fiscal_share": 64.2,
+      "avg_yes": 61.4
+    },
+    {
+      "year": 2009,
+      "total": 199,
+      "passed": 122,
+      "failed": 77,
+      "decided": 199,
+      "local": 193,
+      "statewide": 6,
+      "fiscal": 109,
+      "pass_rate": 61.3,
+      "local_share": 97.0,
+      "fiscal_share": 54.8,
+      "avg_yes": 58.4
+    },
+    {
+      "year": 2010,
+      "total": 496,
+      "passed": 326,
+      "failed": 170,
+      "decided": 496,
+      "local": 482,
+      "statewide": 14,
+      "fiscal": 262,
+      "pass_rate": 65.7,
+      "local_share": 97.2,
+      "fiscal_share": 52.8,
+      "avg_yes": 59.8
+    },
+    {
+      "year": 2011,
+      "total": 172,
+      "passed": 91,
+      "failed": 33,
+      "decided": 124,
+      "local": 172,
+      "statewide": 0,
+      "fiscal": 87,
+      "pass_rate": 73.4,
+      "local_share": 100.0,
+      "fiscal_share": 50.6,
+      "avg_yes": 66.1
+    },
+    {
+      "year": 2012,
+      "total": 543,
+      "passed": 382,
+      "failed": 161,
+      "decided": 543,
+      "local": 530,
+      "statewide": 13,
+      "fiscal": 337,
+      "pass_rate": 70.3,
+      "local_share": 97.6,
+      "fiscal_share": 62.1,
+      "avg_yes": 61.2
+    },
+    {
+      "year": 2013,
+      "total": 137,
+      "passed": 98,
+      "failed": 39,
+      "decided": 137,
+      "local": 137,
+      "statewide": 0,
+      "fiscal": 77,
+      "pass_rate": 71.5,
+      "local_share": 100.0,
+      "fiscal_share": 56.2,
+      "avg_yes": 61.5
+    },
+    {
+      "year": 2014,
+      "total": 569,
+      "passed": 407,
+      "failed": 162,
+      "decided": 569,
+      "local": 548,
+      "statewide": 21,
+      "fiscal": 341,
+      "pass_rate": 71.5,
+      "local_share": 96.3,
+      "fiscal_share": 59.9,
+      "avg_yes": 60.5
+    },
+    {
+      "year": 2015,
+      "total": 119,
+      "passed": 88,
+      "failed": 31,
+      "decided": 119,
+      "local": 119,
+      "statewide": 0,
+      "fiscal": 61,
+      "pass_rate": 73.9,
+      "local_share": 100.0,
+      "fiscal_share": 51.3,
+      "avg_yes": 63.7
+    },
+    {
+      "year": 2016,
+      "total": 908,
+      "passed": 691,
+      "failed": 217,
+      "decided": 908,
+      "local": 872,
+      "statewide": 36,
+      "fiscal": 576,
+      "pass_rate": 76.1,
+      "local_share": 96.0,
+      "fiscal_share": 63.4,
+      "avg_yes": 62.9
+    },
+    {
+      "year": 2017,
+      "total": 113,
+      "passed": 71,
+      "failed": 42,
+      "decided": 113,
+      "local": 113,
+      "statewide": 0,
+      "fiscal": 81,
+      "pass_rate": 62.8,
+      "local_share": 100.0,
+      "fiscal_share": 71.7,
+      "avg_yes": 61.3
+    },
+    {
+      "year": 2018,
+      "total": 714,
+      "passed": 564,
+      "failed": 149,
+      "decided": 713,
+      "local": 704,
+      "statewide": 10,
+      "fiscal": 511,
+      "pass_rate": 79.1,
+      "local_share": 98.6,
+      "fiscal_share": 71.6,
+      "avg_yes": 62.7
+    },
+    {
+      "year": 2019,
+      "total": 68,
+      "passed": 54,
+      "failed": 14,
+      "decided": 68,
+      "local": 68,
+      "statewide": 0,
+      "fiscal": 48,
+      "pass_rate": 79.4,
+      "local_share": 100.0,
+      "fiscal_share": 70.6,
+      "avg_yes": 66.8
+    },
+    {
+      "year": 2020,
+      "total": 733,
+      "passed": 461,
+      "failed": 272,
+      "decided": 733,
+      "local": 720,
+      "statewide": 13,
+      "fiscal": 512,
+      "pass_rate": 62.9,
+      "local_share": 98.2,
+      "fiscal_share": 69.8,
+      "avg_yes": 58.5
+    },
+    {
+      "year": 2021,
+      "total": 44,
+      "passed": 30,
+      "failed": 14,
+      "decided": 44,
+      "local": 44,
+      "statewide": 0,
+      "fiscal": 31,
+      "pass_rate": 68.2,
+      "local_share": 100.0,
+      "fiscal_share": 70.5,
+      "avg_yes": 64.0
+    },
+    {
+      "year": 2022,
+      "total": 587,
+      "passed": 397,
+      "failed": 190,
+      "decided": 587,
+      "local": 580,
+      "statewide": 7,
+      "fiscal": 368,
+      "pass_rate": 67.6,
+      "local_share": 98.8,
+      "fiscal_share": 62.7,
+      "avg_yes": 59.2
+    },
+    {
+      "year": 2023,
+      "total": 32,
+      "passed": 24,
+      "failed": 8,
+      "decided": 32,
+      "local": 32,
+      "statewide": 0,
+      "fiscal": 20,
+      "pass_rate": 75.0,
+      "local_share": 100.0,
+      "fiscal_share": 62.5,
+      "avg_yes": 70.2
+    },
+    {
+      "year": 2024,
+      "total": 877,
+      "passed": 653,
+      "failed": 224,
+      "decided": 877,
+      "local": 866,
+      "statewide": 11,
+      "fiscal": 639,
+      "pass_rate": 74.5,
+      "local_share": 98.7,
+      "fiscal_share": 72.9,
+      "avg_yes": 61.1
+    },
+    {
+      "year": 2025,
+      "total": 1,
+      "passed": 1,
+      "failed": 0,
+      "decided": 1,
+      "local": 0,
+      "statewide": 1,
+      "fiscal": 0,
+      "pass_rate": 100.0,
+      "local_share": 0.0,
+      "fiscal_share": 0.0,
+      "avg_yes": null
+    },
+    {
+      "year": 2026,
+      "total": 4,
+      "passed": 0,
+      "failed": 0,
+      "decided": 0,
+      "local": 0,
+      "statewide": 4,
+      "fiscal": 0,
+      "pass_rate": null,
+      "local_share": 0.0,
+      "fiscal_share": 0.0,
+      "avg_yes": null
+    }
+  ],
+  "decade_series": [
+    {
+      "decade": 1910,
+      "total": 122,
+      "local": 0,
+      "statewide": 122,
+      "fiscal": 0,
+      "decided": 122,
+      "passed": 43,
+      "pass_rate": 35.2,
+      "local_share": 0.0,
+      "fiscal_share": 0.0
+    },
+    {
+      "decade": 1920,
+      "total": 117,
+      "local": 0,
+      "statewide": 117,
+      "fiscal": 0,
+      "decided": 117,
+      "passed": 65,
+      "pass_rate": 55.6,
+      "local_share": 0.0,
+      "fiscal_share": 0.0
+    },
+    {
+      "decade": 1930,
+      "total": 136,
+      "local": 0,
+      "statewide": 136,
+      "fiscal": 0,
+      "decided": 136,
+      "passed": 56,
+      "pass_rate": 41.2,
+      "local_share": 0.0,
+      "fiscal_share": 0.0
+    },
+    {
+      "decade": 1940,
+      "total": 96,
+      "local": 0,
+      "statewide": 96,
+      "fiscal": 0,
+      "decided": 96,
+      "passed": 56,
+      "pass_rate": 58.3,
+      "local_share": 0.0,
+      "fiscal_share": 0.0
+    },
+    {
+      "decade": 1950,
+      "total": 92,
+      "local": 0,
+      "statewide": 92,
+      "fiscal": 0,
+      "decided": 92,
+      "passed": 58,
+      "pass_rate": 63.0,
+      "local_share": 0.0,
+      "fiscal_share": 0.0
+    },
+    {
+      "decade": 1960,
+      "total": 96,
+      "local": 0,
+      "statewide": 96,
+      "fiscal": 0,
+      "decided": 96,
+      "passed": 61,
+      "pass_rate": 63.5,
+      "local_share": 0.0,
+      "fiscal_share": 0.0
+    },
+    {
+      "decade": 1970,
+      "total": 141,
+      "local": 0,
+      "statewide": 141,
+      "fiscal": 0,
+      "decided": 141,
+      "passed": 94,
+      "pass_rate": 66.7,
+      "local_share": 0.0,
+      "fiscal_share": 0.0
+    },
+    {
+      "decade": 1980,
+      "total": 137,
+      "local": 0,
+      "statewide": 137,
+      "fiscal": 0,
+      "decided": 137,
+      "passed": 95,
+      "pass_rate": 69.3,
+      "local_share": 0.0,
+      "fiscal_share": 0.0
+    },
+    {
+      "decade": 1990,
+      "total": 990,
+      "local": 855,
+      "statewide": 135,
+      "fiscal": 477,
+      "decided": 990,
+      "passed": 578,
+      "pass_rate": 58.4,
+      "local_share": 86.4,
+      "fiscal_share": 48.2
+    },
+    {
+      "decade": 2000,
+      "total": 4268,
+      "local": 4155,
+      "statewide": 113,
+      "fiscal": 2437,
+      "decided": 4261,
+      "passed": 2744,
+      "pass_rate": 64.4,
+      "local_share": 97.4,
+      "fiscal_share": 57.1
+    },
+    {
+      "decade": 2010,
+      "total": 3839,
+      "local": 3745,
+      "statewide": 94,
+      "fiscal": 2381,
+      "decided": 3790,
+      "passed": 2772,
+      "pass_rate": 73.1,
+      "local_share": 97.6,
+      "fiscal_share": 62.0
+    },
+    {
+      "decade": 2020,
+      "total": 2278,
+      "local": 2242,
+      "statewide": 36,
+      "fiscal": 1570,
+      "decided": 2274,
+      "passed": 1566,
+      "pass_rate": 68.9,
+      "local_share": 98.4,
+      "fiscal_share": 68.9
+    }
+  ],
+  "election_cycle_stats": [
+    {
+      "cycle": "Presidential year",
+      "total": 5444,
+      "local": 4852,
+      "statewide": 592,
+      "decided": 5438,
+      "passed": 3711,
+      "year_count": 29,
+      "avg_measures_per_year": 187.7,
+      "pass_rate": 68.2,
+      "local_share": 89.1
+    },
+    {
+      "cycle": "Midterm year",
+      "total": 4728,
+      "local": 4099,
+      "statewide": 629,
+      "decided": 4723,
+      "passed": 3115,
+      "year_count": 29,
+      "avg_measures_per_year": 163.0,
+      "pass_rate": 66.0,
+      "local_share": 86.7
+    },
+    {
+      "cycle": "Odd year",
+      "total": 2140,
+      "local": 2046,
+      "statewide": 94,
+      "decided": 2091,
+      "passed": 1362,
+      "year_count": 24,
+      "avg_measures_per_year": 89.2,
+      "pass_rate": 65.1,
+      "local_share": 95.6
+    }
+  ],
+  "trend_insights": {
+    "busiest_decade": {
+      "decade": 2000,
+      "total": 4268,
+      "local": 4155,
+      "statewide": 113,
+      "fiscal": 2437,
+      "decided": 4261,
+      "passed": 2744,
+      "pass_rate": 64.4,
+      "local_share": 97.4,
+      "fiscal_share": 57.1
+    },
+    "busiest_years": [
+      {
+        "year": 2016,
+        "total": 908,
+        "passed": 691,
+        "failed": 217,
+        "decided": 908,
+        "local": 872,
+        "statewide": 36,
+        "fiscal": 576,
+        "pass_rate": 76.1,
+        "local_share": 96.0,
+        "fiscal_share": 63.4,
+        "avg_yes": 62.9
+      },
+      {
+        "year": 2024,
+        "total": 877,
+        "passed": 653,
+        "failed": 224,
+        "decided": 877,
+        "local": 866,
+        "statewide": 11,
+        "fiscal": 639,
+        "pass_rate": 74.5,
+        "local_share": 98.7,
+        "fiscal_share": 72.9,
+        "avg_yes": 61.1
+      },
+      {
+        "year": 2020,
+        "total": 733,
+        "passed": 461,
+        "failed": 272,
+        "decided": 733,
+        "local": 720,
+        "statewide": 13,
+        "fiscal": 512,
+        "pass_rate": 62.9,
+        "local_share": 98.2,
+        "fiscal_share": 69.8,
+        "avg_yes": 58.5
+      },
+      {
+        "year": 2004,
+        "total": 732,
+        "passed": 456,
+        "failed": 276,
+        "decided": 732,
+        "local": 712,
+        "statewide": 20,
+        "fiscal": 447,
+        "pass_rate": 62.3,
+        "local_share": 97.3,
+        "fiscal_share": 61.1,
+        "avg_yes": 58.7
+      },
+      {
+        "year": 2018,
+        "total": 714,
+        "passed": 564,
+        "failed": 149,
+        "decided": 713,
+        "local": 704,
+        "statewide": 10,
+        "fiscal": 511,
+        "pass_rate": 79.1,
+        "local_share": 98.6,
+        "fiscal_share": 71.6,
+        "avg_yes": 62.7
+      },
+      {
+        "year": 2002,
+        "total": 670,
+        "passed": 440,
+        "failed": 230,
+        "decided": 670,
+        "local": 657,
+        "statewide": 13,
+        "fiscal": 405,
+        "pass_rate": 65.7,
+        "local_share": 98.1,
+        "fiscal_share": 60.4,
+        "avg_yes": 58.4
+      },
+      {
+        "year": 2008,
+        "total": 614,
+        "passed": 452,
+        "failed": 162,
+        "decided": 614,
+        "local": 593,
+        "statewide": 21,
+        "fiscal": 394,
+        "pass_rate": 73.6,
+        "local_share": 96.6,
+        "fiscal_share": 64.2,
+        "avg_yes": 61.4
+      },
+      {
+        "year": 1998,
+        "total": 593,
+        "passed": 358,
+        "failed": 235,
+        "decided": 593,
+        "local": 572,
+        "statewide": 21,
+        "fiscal": 311,
+        "pass_rate": 60.4,
+        "local_share": 96.5,
+        "fiscal_share": 52.4,
+        "avg_yes": 59.7
+      }
+    ],
+    "annual_volume_trend": {
+      "n": 82,
+      "slope": 3.888,
+      "intercept": -7522.466,
+      "r2": 0.324
+    },
+    "annual_pass_rate_trend": {
+      "n": 72,
+      "slope": 0.249,
+      "intercept": -431.208,
+      "r2": 0.244
+    },
+    "recent_pass_rate_trend": {
+      "n": 25,
+      "slope": 0.442,
+      "intercept": -819.79,
+      "r2": 0.281
+    },
+    "election_cycle_stats": [
+      {
+        "cycle": "Presidential year",
+        "total": 5444,
+        "local": 4852,
+        "statewide": 592,
+        "decided": 5438,
+        "passed": 3711,
+        "year_count": 29,
+        "avg_measures_per_year": 187.7,
+        "pass_rate": 68.2,
+        "local_share": 89.1
+      },
+      {
+        "cycle": "Midterm year",
+        "total": 4728,
+        "local": 4099,
+        "statewide": 629,
+        "decided": 4723,
+        "passed": 3115,
+        "year_count": 29,
+        "avg_measures_per_year": 163.0,
+        "pass_rate": 66.0,
+        "local_share": 86.7
+      },
+      {
+        "cycle": "Odd year",
+        "total": 2140,
+        "local": 2046,
+        "statewide": 94,
+        "decided": 2091,
+        "passed": 1362,
+        "year_count": 24,
+        "avg_measures_per_year": 89.2,
+        "pass_rate": 65.1,
+        "local_share": 95.6
+      }
+    ],
+    "note": "Trend lines are descriptive OLS fits over available records, not causal or coverage-adjusted estimates."
+  },
+  "topic_stats": [
+    {
+      "topic": "Other",
+      "total": 9178,
+      "decided": 9176,
+      "passed": 6180,
+      "pass_rate": 67.3
+    },
+    {
+      "topic": "Government & Elections",
+      "total": 932,
+      "decided": 928,
+      "passed": 653,
+      "pass_rate": 70.4
+    },
+    {
+      "topic": "Education",
+      "total": 762,
+      "decided": 727,
+      "passed": 525,
+      "pass_rate": 72.2
+    },
+    {
+      "topic": "Taxes & Finance",
+      "total": 520,
+      "decided": 516,
+      "passed": 336,
+      "pass_rate": 65.1
+    },
+    {
+      "topic": "Public Safety & Crime",
+      "total": 179,
+      "decided": 167,
+      "passed": 118,
+      "pass_rate": 70.7
+    },
+    {
+      "topic": "Business & Labor",
+      "total": 159,
+      "decided": 159,
+      "passed": 80,
+      "pass_rate": 50.3
+    },
+    {
+      "topic": "Housing & Land Use",
+      "total": 156,
+      "decided": 156,
+      "passed": 79,
+      "pass_rate": 50.6
+    },
+    {
+      "topic": "Healthcare & Welfare",
+      "total": 115,
+      "decided": 115,
+      "passed": 54,
+      "pass_rate": 47.0
+    },
+    {
+      "topic": "Environment & Natural Resources",
+      "total": 105,
+      "decided": 104,
+      "passed": 53,
+      "pass_rate": 51.0
+    },
+    {
+      "topic": "Civil Rights",
+      "total": 82,
+      "decided": 82,
+      "passed": 53,
+      "pass_rate": 64.6
+    },
+    {
+      "topic": "Transportation",
+      "total": 80,
+      "decided": 78,
+      "passed": 37,
+      "pass_rate": 47.4
+    },
+    {
+      "topic": "Utilities & Energy",
+      "total": 44,
+      "decided": 44,
+      "passed": 20,
+      "pass_rate": 45.5
+    }
+  ],
+  "topic_decade_matrix": [
+    {
+      "decade": "1910",
+      "topics": {
+        "Business & Labor": 15,
+        "Civil Rights": 5,
+        "Education": 3,
+        "Environment & Natural Resources": 7,
+        "Government & Elections": 48,
+        "Healthcare & Welfare": 4,
+        "Housing & Land Use": 6,
+        "Other": 1,
+        "Public Safety & Crime": 2,
+        "Taxes & Finance": 24,
+        "Transportation": 4,
+        "Utilities & Energy": 3
+      }
+    },
+    {
+      "decade": "1920",
+      "topics": {
+        "Business & Labor": 12,
+        "Civil Rights": 9,
+        "Education": 6,
+        "Environment & Natural Resources": 13,
+        "Government & Elections": 31,
+        "Healthcare & Welfare": 7,
+        "Housing & Land Use": 2,
+        "Public Safety & Crime": 1,
+        "Taxes & Finance": 33,
+        "Transportation": 1,
+        "Utilities & Energy": 2
+      }
+    },
+    {
+      "decade": "1930",
+      "topics": {
+        "Business & Labor": 18,
+        "Civil Rights": 4,
+        "Education": 5,
+        "Environment & Natural Resources": 13,
+        "Government & Elections": 42,
+        "Healthcare & Welfare": 7,
+        "Housing & Land Use": 2,
+        "Other": 3,
+        "Public Safety & Crime": 4,
+        "Taxes & Finance": 31,
+        "Transportation": 3,
+        "Utilities & Energy": 4
+      }
+    },
+    {
+      "decade": "1940",
+      "topics": {
+        "Business & Labor": 18,
+        "Civil Rights": 8,
+        "Education": 4,
+        "Environment & Natural Resources": 8,
+        "Government & Elections": 32,
+        "Healthcare & Welfare": 10,
+        "Public Safety & Crime": 1,
+        "Taxes & Finance": 14,
+        "Utilities & Energy": 1
+      }
+    },
+    {
+      "decade": "1950",
+      "topics": {
+        "Business & Labor": 12,
+        "Civil Rights": 9,
+        "Education": 5,
+        "Government & Elections": 27,
+        "Healthcare & Welfare": 6,
+        "Housing & Land Use": 3,
+        "Public Safety & Crime": 1,
+        "Taxes & Finance": 28,
+        "Utilities & Energy": 1
+      }
+    },
+    {
+      "decade": "1960",
+      "topics": {
+        "Business & Labor": 17,
+        "Civil Rights": 8,
+        "Education": 2,
+        "Environment & Natural Resources": 3,
+        "Government & Elections": 25,
+        "Healthcare & Welfare": 9,
+        "Other": 3,
+        "Public Safety & Crime": 1,
+        "Taxes & Finance": 27,
+        "Utilities & Energy": 1
+      }
+    },
+    {
+      "decade": "1970",
+      "topics": {
+        "Business & Labor": 10,
+        "Civil Rights": 15,
+        "Education": 16,
+        "Environment & Natural Resources": 8,
+        "Government & Elections": 23,
+        "Healthcare & Welfare": 8,
+        "Other": 3,
+        "Public Safety & Crime": 5,
+        "Taxes & Finance": 47,
+        "Transportation": 1,
+        "Utilities & Energy": 5
+      }
+    },
+    {
+      "decade": "1980",
+      "topics": {
+        "Business & Labor": 15,
+        "Civil Rights": 6,
+        "Education": 2,
+        "Environment & Natural Resources": 6,
+        "Government & Elections": 25,
+        "Healthcare & Welfare": 6,
+        "Other": 3,
+        "Public Safety & Crime": 4,
+        "Taxes & Finance": 65,
+        "Transportation": 2,
+        "Utilities & Energy": 3
+      }
+    },
+    {
+      "decade": "1990",
+      "topics": {
+        "Business & Labor": 10,
+        "Civil Rights": 8,
+        "Education": 2,
+        "Environment & Natural Resources": 11,
+        "Government & Elections": 27,
+        "Healthcare & Welfare": 10,
+        "Other": 856,
+        "Public Safety & Crime": 14,
+        "Taxes & Finance": 49,
+        "Transportation": 3
+      }
+    },
+    {
+      "decade": "2000",
+      "topics": {
+        "Business & Labor": 13,
+        "Civil Rights": 8,
+        "Education": 12,
+        "Environment & Natural Resources": 1,
+        "Government & Elections": 20,
+        "Healthcare & Welfare": 9,
+        "Housing & Land Use": 4,
+        "Other": 4145,
+        "Public Safety & Crime": 9,
+        "Taxes & Finance": 44,
+        "Utilities & Energy": 3
+      }
+    },
+    {
+      "decade": "2010",
+      "topics": {
+        "Business & Labor": 19,
+        "Civil Rights": 2,
+        "Education": 117,
+        "Environment & Natural Resources": 16,
+        "Government & Elections": 102,
+        "Healthcare & Welfare": 16,
+        "Housing & Land Use": 38,
+        "Other": 3353,
+        "Public Safety & Crime": 58,
+        "Taxes & Finance": 96,
+        "Transportation": 15,
+        "Utilities & Energy": 7
+      }
+    },
+    {
+      "decade": "2020",
+      "topics": {
+        "Education": 588,
+        "Environment & Natural Resources": 19,
+        "Government & Elections": 530,
+        "Healthcare & Welfare": 23,
+        "Housing & Land Use": 101,
+        "Other": 811,
+        "Public Safety & Crime": 79,
+        "Taxes & Finance": 62,
+        "Transportation": 51,
+        "Utilities & Energy": 14
+      }
+    }
+  ],
+  "topic_trends": {
+    "tracked_topics": [
+      "Government & Elections",
+      "Education",
+      "Taxes & Finance",
+      "Public Safety & Crime",
+      "Business & Labor",
+      "Housing & Land Use"
+    ],
+    "decade_shares": [
+      {
+        "decade": 1910,
+        "total": 122,
+        "shares": {
+          "Government & Elections": 39.3,
+          "Education": 2.5,
+          "Taxes & Finance": 19.7,
+          "Public Safety & Crime": 1.6,
+          "Business & Labor": 12.3,
+          "Housing & Land Use": 4.9
+        }
+      },
+      {
+        "decade": 1920,
+        "total": 117,
+        "shares": {
+          "Government & Elections": 26.5,
+          "Education": 5.1,
+          "Taxes & Finance": 28.2,
+          "Public Safety & Crime": 0.9,
+          "Business & Labor": 10.3,
+          "Housing & Land Use": 1.7
+        }
+      },
+      {
+        "decade": 1930,
+        "total": 136,
+        "shares": {
+          "Government & Elections": 30.9,
+          "Education": 3.7,
+          "Taxes & Finance": 22.8,
+          "Public Safety & Crime": 2.9,
+          "Business & Labor": 13.2,
+          "Housing & Land Use": 1.5
+        }
+      },
+      {
+        "decade": 1940,
+        "total": 96,
+        "shares": {
+          "Government & Elections": 33.3,
+          "Education": 4.2,
+          "Taxes & Finance": 14.6,
+          "Public Safety & Crime": 1.0,
+          "Business & Labor": 18.8,
+          "Housing & Land Use": 0.0
+        }
+      },
+      {
+        "decade": 1950,
+        "total": 92,
+        "shares": {
+          "Government & Elections": 29.3,
+          "Education": 5.4,
+          "Taxes & Finance": 30.4,
+          "Public Safety & Crime": 1.1,
+          "Business & Labor": 13.0,
+          "Housing & Land Use": 3.3
+        }
+      },
+      {
+        "decade": 1960,
+        "total": 96,
+        "shares": {
+          "Government & Elections": 26.0,
+          "Education": 2.1,
+          "Taxes & Finance": 28.1,
+          "Public Safety & Crime": 1.0,
+          "Business & Labor": 17.7,
+          "Housing & Land Use": 0.0
+        }
+      },
+      {
+        "decade": 1970,
+        "total": 141,
+        "shares": {
+          "Government & Elections": 16.3,
+          "Education": 11.3,
+          "Taxes & Finance": 33.3,
+          "Public Safety & Crime": 3.5,
+          "Business & Labor": 7.1,
+          "Housing & Land Use": 0.0
+        }
+      },
+      {
+        "decade": 1980,
+        "total": 137,
+        "shares": {
+          "Government & Elections": 18.2,
+          "Education": 1.5,
+          "Taxes & Finance": 47.4,
+          "Public Safety & Crime": 2.9,
+          "Business & Labor": 10.9,
+          "Housing & Land Use": 0.0
+        }
+      },
+      {
+        "decade": 1990,
+        "total": 990,
+        "shares": {
+          "Government & Elections": 2.7,
+          "Education": 0.2,
+          "Taxes & Finance": 4.9,
+          "Public Safety & Crime": 1.4,
+          "Business & Labor": 1.0,
+          "Housing & Land Use": 0.0
+        }
+      },
+      {
+        "decade": 2000,
+        "total": 4268,
+        "shares": {
+          "Government & Elections": 0.5,
+          "Education": 0.3,
+          "Taxes & Finance": 1.0,
+          "Public Safety & Crime": 0.2,
+          "Business & Labor": 0.3,
+          "Housing & Land Use": 0.1
+        }
+      },
+      {
+        "decade": 2010,
+        "total": 3839,
+        "shares": {
+          "Government & Elections": 2.7,
+          "Education": 3.0,
+          "Taxes & Finance": 2.5,
+          "Public Safety & Crime": 1.5,
+          "Business & Labor": 0.5,
+          "Housing & Land Use": 1.0
+        }
+      },
+      {
+        "decade": 2020,
+        "total": 2278,
+        "shares": {
+          "Government & Elections": 23.3,
+          "Education": 25.8,
+          "Taxes & Finance": 2.7,
+          "Public Safety & Crime": 3.5,
+          "Business & Labor": 0.0,
+          "Housing & Land Use": 4.4
+        }
+      }
+    ],
+    "share_trends": [
+      {
+        "topic": "Government & Elections",
+        "n": 9,
+        "slope": -0.257,
+        "intercept": 524.5,
+        "r2": 0.583
+      },
+      {
+        "topic": "Taxes & Finance",
+        "n": 9,
+        "slope": -0.202,
+        "intercept": 416.085,
+        "r2": 0.249
+      },
+      {
+        "topic": "Business & Labor",
+        "n": 9,
+        "slope": -0.123,
+        "intercept": 248.398,
+        "r2": 0.771
+      },
+      {
+        "topic": "Education",
+        "n": 9,
+        "slope": 0.067,
+        "intercept": -126.146,
+        "r2": 0.111
+      },
+      {
+        "topic": "Housing & Land Use",
+        "n": 9,
+        "slope": -0.013,
+        "intercept": 27.778,
+        "r2": 0.081
+      },
+      {
+        "topic": "Public Safety & Crime",
+        "n": 9,
+        "slope": 0.003,
+        "intercept": -4.074,
+        "r2": 0.011
+      }
+    ],
+    "note": "Topic trends exclude Other because sparse local topic text makes it a coverage artifact."
+  },
+  "topic_insights": {
+    "era_anchors": [
+      {
+        "decade": 1910,
+        "classified_n": 121,
+        "top": [
+          {
+            "topic": "Government & Elections",
+            "count": 48,
+            "share": 39.7
+          },
+          {
+            "topic": "Taxes & Finance",
+            "count": 24,
+            "share": 19.8
+          }
+        ]
+      },
+      {
+        "decade": 1980,
+        "classified_n": 134,
+        "top": [
+          {
+            "topic": "Taxes & Finance",
+            "count": 65,
+            "share": 48.5
+          },
+          {
+            "topic": "Government & Elections",
+            "count": 25,
+            "share": 18.7
+          }
+        ]
+      },
+      {
+        "decade": 2010,
+        "classified_n": 486,
+        "top": [
+          {
+            "topic": "Education",
+            "count": 117,
+            "share": 24.1
+          },
+          {
+            "topic": "Government & Elections",
+            "count": 102,
+            "share": 21.0
+          }
+        ]
+      },
+      {
+        "decade": 2020,
+        "classified_n": 1467,
+        "top": [
+          {
+            "topic": "Education",
+            "count": 588,
+            "share": 40.1
+          },
+          {
+            "topic": "Government & Elections",
+            "count": 530,
+            "share": 36.1
+          }
+        ]
+      }
+    ],
+    "pass_rate_rankings": {
+      "min_decided": 75,
+      "high": [
+        {
+          "topic": "Education",
+          "pass_rate": 72.2,
+          "decided": 727
+        },
+        {
+          "topic": "Public Safety & Crime",
+          "pass_rate": 70.7,
+          "decided": 167
+        },
+        {
+          "topic": "Government & Elections",
+          "pass_rate": 70.4,
+          "decided": 928
+        }
+      ],
+      "low": [
+        {
+          "topic": "Healthcare & Welfare",
+          "pass_rate": 47.0,
+          "decided": 115
+        },
+        {
+          "topic": "Transportation",
+          "pass_rate": 47.4,
+          "decided": 78
+        },
+        {
+          "topic": "Business & Labor",
+          "pass_rate": 50.3,
+          "decided": 159
+        },
+        {
+          "topic": "Housing & Land Use",
+          "pass_rate": 50.6,
+          "decided": 156
+        }
+      ]
+    },
+    "note": "Era anchors and pass-rate rankings use the topic-classified subset (Other is excluded). Local CEDA records are better analyzed by measure type."
+  },
+  "category_type_stats": [
+    {
+      "category_type": "Bond",
+      "total": 3028,
+      "decided": 3016,
+      "passed": 2138,
+      "pass_rate": 70.9
+    },
+    {
+      "category_type": "Ordinance",
+      "total": 2082,
+      "decided": 2081,
+      "passed": 1318,
+      "pass_rate": 63.3
+    },
+    {
+      "category_type": "Property Tax",
+      "total": 1338,
+      "decided": 1300,
+      "passed": 784,
+      "pass_rate": 60.3
+    },
+    {
+      "category_type": "Other",
+      "total": 1314,
+      "decided": 1313,
+      "passed": 725,
+      "pass_rate": 55.2
+    },
+    {
+      "category_type": "Charter Amendment",
+      "total": 1160,
+      "decided": 1160,
+      "passed": 893,
+      "pass_rate": 77.0
+    },
+    {
+      "category_type": "Sales Tax",
+      "total": 979,
+      "decided": 975,
+      "passed": 659,
+      "pass_rate": 67.6
+    },
+    {
+      "category_type": "Transient Occupancy Tax",
+      "total": 449,
+      "decided": 449,
+      "passed": 303,
+      "pass_rate": 67.5
+    },
+    {
+      "category_type": "Business Tax",
+      "total": 396,
+      "decided": 395,
+      "passed": 334,
+      "pass_rate": 84.6
+    },
+    {
+      "category_type": "Utility Tax",
+      "total": 339,
+      "decided": 339,
+      "passed": 204,
+      "pass_rate": 60.2
+    },
+    {
+      "category_type": "Advisory",
+      "total": 324,
+      "decided": 324,
+      "passed": 231,
+      "pass_rate": 71.3
+    },
+    {
+      "category_type": "Recall",
+      "total": 312,
+      "decided": 312,
+      "passed": 237,
+      "pass_rate": 76.0
+    },
+    {
+      "category_type": "Initiative",
+      "total": 252,
+      "decided": 252,
+      "passed": 115,
+      "pass_rate": 45.6
+    },
+    {
+      "category_type": "Miscellaneous Tax",
+      "total": 238,
+      "decided": 238,
+      "passed": 154,
+      "pass_rate": 64.7
+    },
+    {
+      "category_type": "Gann Limit",
+      "total": 98,
+      "decided": 98,
+      "passed": 93,
+      "pass_rate": 94.9
+    },
+    {
+      "category_type": "Legislative Constitutional Amendment",
+      "total": 2,
+      "decided": 0,
+      "passed": 0,
+      "pass_rate": null
+    },
+    {
+      "category_type": "Legislative Statute",
+      "total": 1,
+      "decided": 0,
+      "passed": 0,
+      "pass_rate": null
+    }
+  ],
+  "type_trends": [
+    {
+      "decade": 1910,
+      "total": 122,
+      "fiscal": 0,
+      "bond": 0,
+      "tax": 0,
+      "fiscal_share": 0.0,
+      "bond_share": 0.0,
+      "tax_share": 0.0
+    },
+    {
+      "decade": 1920,
+      "total": 117,
+      "fiscal": 0,
+      "bond": 0,
+      "tax": 0,
+      "fiscal_share": 0.0,
+      "bond_share": 0.0,
+      "tax_share": 0.0
+    },
+    {
+      "decade": 1930,
+      "total": 136,
+      "fiscal": 0,
+      "bond": 0,
+      "tax": 0,
+      "fiscal_share": 0.0,
+      "bond_share": 0.0,
+      "tax_share": 0.0
+    },
+    {
+      "decade": 1940,
+      "total": 96,
+      "fiscal": 0,
+      "bond": 0,
+      "tax": 0,
+      "fiscal_share": 0.0,
+      "bond_share": 0.0,
+      "tax_share": 0.0
+    },
+    {
+      "decade": 1950,
+      "total": 92,
+      "fiscal": 0,
+      "bond": 0,
+      "tax": 0,
+      "fiscal_share": 0.0,
+      "bond_share": 0.0,
+      "tax_share": 0.0
+    },
+    {
+      "decade": 1960,
+      "total": 96,
+      "fiscal": 0,
+      "bond": 0,
+      "tax": 0,
+      "fiscal_share": 0.0,
+      "bond_share": 0.0,
+      "tax_share": 0.0
+    },
+    {
+      "decade": 1970,
+      "total": 141,
+      "fiscal": 0,
+      "bond": 0,
+      "tax": 0,
+      "fiscal_share": 0.0,
+      "bond_share": 0.0,
+      "tax_share": 0.0
+    },
+    {
+      "decade": 1980,
+      "total": 137,
+      "fiscal": 0,
+      "bond": 0,
+      "tax": 0,
+      "fiscal_share": 0.0,
+      "bond_share": 0.0,
+      "tax_share": 0.0
+    },
+    {
+      "decade": 1990,
+      "total": 990,
+      "fiscal": 477,
+      "bond": 249,
+      "tax": 218,
+      "fiscal_share": 48.2,
+      "bond_share": 25.2,
+      "tax_share": 22.0
+    },
+    {
+      "decade": 2000,
+      "total": 4268,
+      "fiscal": 2437,
+      "bond": 1124,
+      "tax": 1258,
+      "fiscal_share": 57.1,
+      "bond_share": 26.3,
+      "tax_share": 29.5
+    },
+    {
+      "decade": 2010,
+      "total": 3839,
+      "fiscal": 2381,
+      "bond": 941,
+      "tax": 1423,
+      "fiscal_share": 62.0,
+      "bond_share": 24.5,
+      "tax_share": 37.1
+    },
+    {
+      "decade": 2020,
+      "total": 2278,
+      "fiscal": 1570,
+      "bond": 714,
+      "tax": 840,
+      "fiscal_share": 68.9,
+      "bond_share": 31.3,
+      "tax_share": 36.9
+    }
+  ],
+  "type_insights": {
+    "modern_year_anatomy": {
+      "modern_start": 1990,
+      "modern_end": 2026,
+      "years_covered": 37,
+      "instruments": [
+        {
+          "category_type": "Bond",
+          "total_since_modern": 3028,
+          "per_year_avg": 81.8
+        },
+        {
+          "category_type": "Ordinance",
+          "total_since_modern": 2082,
+          "per_year_avg": 56.3
+        },
+        {
+          "category_type": "Property Tax",
+          "total_since_modern": 1338,
+          "per_year_avg": 36.2
+        },
+        {
+          "category_type": "Charter Amendment",
+          "total_since_modern": 1160,
+          "per_year_avg": 31.4
+        },
+        {
+          "category_type": "Sales Tax",
+          "total_since_modern": 979,
+          "per_year_avg": 26.5
+        },
+        {
+          "category_type": "Transient Occupancy Tax",
+          "total_since_modern": 449,
+          "per_year_avg": 12.1
+        }
+      ]
+    },
+    "fiscal_instrument_profiles": [
+      {
+        "category_type": "Bond",
+        "total": 3028,
+        "decided": 3016,
+        "pass_rate": 70.9,
+        "typical_use": "Borrowing for capital projects (schools, transit, infrastructure)."
+      },
+      {
+        "category_type": "Sales Tax",
+        "total": 979,
+        "decided": 975,
+        "pass_rate": 67.6,
+        "typical_use": "Local sales-tax surcharges for transit, public safety, or general fund."
+      },
+      {
+        "category_type": "Property Tax",
+        "total": 1338,
+        "decided": 1300,
+        "pass_rate": 60.3,
+        "typical_use": "Parcel and property taxes, often for schools or special districts."
+      },
+      {
+        "category_type": "Business Tax",
+        "total": 396,
+        "decided": 395,
+        "pass_rate": 84.6,
+        "typical_use": "Payroll, gross-receipts, or industry-specific business taxes."
+      },
+      {
+        "category_type": "Utility Tax",
+        "total": 339,
+        "decided": 339,
+        "pass_rate": 60.2,
+        "typical_use": "Local levies on telecom, electricity, gas, or cable service."
+      },
+      {
+        "category_type": "Transient Occupancy Tax",
+        "total": 449,
+        "decided": 449,
+        "pass_rate": 67.5,
+        "typical_use": "Hotel and short-term rental taxes."
+      }
+    ],
+    "type_threshold_profiles": [
+      {
+        "category_type": "Bond",
+        "decided": 3016,
+        "pass_rate": 70.9,
+        "threshold_mix": {
+          "55%": 76.0,
+          "66.67%": 22.4,
+          "50%": 1.6
+        },
+        "majority_failed": 522
+      },
+      {
+        "category_type": "Property Tax",
+        "decided": 1300,
+        "pass_rate": 60.3,
+        "threshold_mix": {
+          "66.67%": 92.2,
+          "50%": 7.4,
+          "55%": 0.5
+        },
+        "majority_failed": 354
+      },
+      {
+        "category_type": "Sales Tax",
+        "decided": 975,
+        "pass_rate": 67.6,
+        "threshold_mix": {
+          "50%": 72.3,
+          "66.67%": 27.3,
+          "55%": 0.4
+        },
+        "majority_failed": 119
+      }
+    ],
+    "recall_profile": {
+      "total": 312,
+      "decided": 312,
+      "pass_rate": 76.0,
+      "county_count": 44,
+      "spike_years": []
+    },
+    "highest_pass_rate_types": [
+      {
+        "category_type": "Business Tax",
+        "total": 396,
+        "decided": 395,
+        "passed": 334,
+        "pass_rate": 84.6
+      },
+      {
+        "category_type": "Charter Amendment",
+        "total": 1160,
+        "decided": 1160,
+        "passed": 893,
+        "pass_rate": 77.0
+      },
+      {
+        "category_type": "Recall",
+        "total": 312,
+        "decided": 312,
+        "passed": 237,
+        "pass_rate": 76.0
+      }
+    ],
+    "lowest_pass_rate_types": [
+      {
+        "category_type": "Initiative",
+        "total": 252,
+        "decided": 252,
+        "passed": 115,
+        "pass_rate": 45.6
+      },
+      {
+        "category_type": "Utility Tax",
+        "total": 339,
+        "decided": 339,
+        "passed": 204,
+        "pass_rate": 60.2
+      },
+      {
+        "category_type": "Property Tax",
+        "total": 1338,
+        "decided": 1300,
+        "passed": 784,
+        "pass_rate": 60.3
+      }
+    ],
+    "minimum_decided_records": 100,
+    "note": "Modern-year anatomy uses records since 1990, where local category_type is consistently populated. Threshold profiles connect to the Rules panel for the deep dive."
+  },
+  "statistical_comparisons": {
+    "threshold_vs_simple_majority": [
+      {
+        "threshold": "55%",
+        "decided": 2324,
+        "pass_rate": 74.1,
+        "reference": "50%",
+        "odds_ratio": 1.33,
+        "ci_low": 1.2,
+        "ci_high": 1.48
+      },
+      {
+        "threshold": "66.67%",
+        "decided": 2484,
+        "pass_rate": 55.8,
+        "reference": "50%",
+        "odds_ratio": 0.59,
+        "ci_low": 0.54,
+        "ci_high": 0.65
+      }
+    ],
+    "fiscal_vs_non_fiscal": {
+      "fiscal_decided": 6810,
+      "fiscal_pass_rate": 68.6,
+      "non_fiscal_decided": 5442,
+      "non_fiscal_pass_rate": 64.7,
+      "odds_ratio": 1.19,
+      "ci_low": 1.1,
+      "ci_high": 1.29
+    },
+    "note": "Odds ratios are descriptive associations from decided records and do not control for jurisdiction, year, topic, turnout, or selection into threshold rules."
+  },
+  "threshold_stats": [
+    {
+      "threshold": "50%",
+      "total": 7444,
+      "passed": 5079,
+      "majority_failed": 0,
+      "pass_rate": 68.2
+    },
+    {
+      "threshold": "55%",
+      "total": 2324,
+      "passed": 1723,
+      "majority_failed": 272,
+      "pass_rate": 74.1
+    },
+    {
+      "threshold": "66.67%",
+      "total": 2484,
+      "passed": 1386,
+      "majority_failed": 827,
+      "pass_rate": 55.8
+    }
+  ],
+  "threshold_insights": {
+    "majority_failure_count": 1099,
+    "majority_failure_share_higher_thresholds": 22.9,
+    "higher_threshold_decided": 4808,
+    "threshold_pp_diffs": [
+      {
+        "threshold": "55%",
+        "pass_rate": 74.1,
+        "pp_vs_simple_majority": 5.9
+      },
+      {
+        "threshold": "66.67%",
+        "pass_rate": 55.8,
+        "pp_vs_simple_majority": -12.4
+      }
+    ],
+    "highest_yes_failures": [
+      {
+        "id": 9894,
+        "measure_id": "200000199",
+        "year": 2000,
+        "county": "Los Angeles",
+        "title": "To relieve severe overcrowding by constructing and acquiring additional schools, classrooms and facilities and to rehabilitate aging junior high and high schools, including replacement of inadequate lighting, electrical, ventilation, plumbing systems and roofs, renovating classrooms, libraries, and obtain eligibility for State funding for construction and renovation, shall the William S. Hart Union High School District issue $52 million in bonds at interest rates below legal limits and appoint a Citizens Oversight Committee to guarantee funds are spent only on school improvements?",
+        "percent_yes": 66.57,
+        "passed": 0,
+        "threshold": "66.67%"
+      },
+      {
+        "id": 11387,
+        "measure_id": "201200002",
+        "year": 2012,
+        "county": "Alameda",
+        "title": "Shall a new Transportation Expenditure Plan be implemented to address current and future transportation needs that: 1) Improves transit access to jobs and schools; 2) Fixes roads, improves highways and increases bicycle and pedestrian safety; 3) Reduces traffic congestion and improves air quality; 4) Keeps senior, youth, and disabled fares affordable. Approval extends the existing County sales tax and increases it by 1/2 cent, with independent oversight, local job creation programs. No money can be taken by the state.",
+        "percent_yes": 66.53,
+        "passed": 0,
+        "threshold": "66.67%"
+      },
+      {
+        "id": 12091,
+        "measure_id": "200000204",
+        "year": 2000,
+        "county": "Monterey",
+        "title": "(INITIATIVE)  Shall the \"Del Monte Forest Plan: Forest Preservation and Development Limitations\" initiative ordinance be approved?",
+        "percent_yes": 66.49,
+        "passed": 0,
+        "threshold": "66.67%"
+      },
+      {
+        "id": 9288,
+        "measure_id": "200200080",
+        "year": 2002,
+        "county": "Riverside",
+        "title": "Shall an ordinance be adopted to authorize the levy of a special tax on each eligible parcel in the City to fund fire protection and paramedic services?",
+        "percent_yes": 66.47,
+        "passed": 0,
+        "threshold": "66.67%"
+      },
+      {
+        "id": 11228,
+        "measure_id": "201700050",
+        "year": 2017,
+        "county": "Los Angeles",
+        "title": "To expand 58-year-old Whittier Central Library to meet 21st century needs, including: providing a children's area for story times, parent/child reading, and children's book collections/technology; improving senior/disabled access; expanding/updating computer/technology center; space for up-to-date book/resource collections; relocating the Veterans Resource Center for better service; and related improvements; shall the City of Whittier issue $22,000,000 in bonds at legal rates, requiring independent citizen oversight, and all funds for Whittier Central Library only?",
+        "percent_yes": 66.45,
+        "passed": 0,
+        "threshold": "66.67%"
+      },
+      {
+        "id": 5831,
+        "measure_id": "201200184",
+        "year": 2012,
+        "county": "Nevada",
+        "title": "For such general fund purposes as restoring police and fire staffing, replacing police and fire equipment, and repairing City streets, shall a half-cent ($0.005) transactions and use tax (\"sales tax\") be adopted, requiring yearly review by an independent auditor and by a Citizens Oversight Committee, provided the tax must end in 10 years and may end sooner if other City sales taxes return to 2007 levels before then?",
+        "percent_yes": 66.45,
+        "passed": 0,
+        "threshold": "66.67%"
+      },
+      {
+        "id": 9875,
+        "measure_id": "200000516",
+        "year": 2000,
+        "county": "Kings",
+        "title": "To provide greater access to the College of the Sequoias' educational opportunities by building two full-service educational centers including a Center for Agricultural Science and Technology, repair and renovate classrooms and facilities, provide handicapped access, give students increased access to computers for job training, build and acquire new classrooms and facilities, shall the College of the Sequoias issue $49.2 million bonds at interest rates below the legal limit?",
+        "percent_yes": 66.44,
+        "passed": 0,
+        "threshold": "66.67%"
+      },
+      {
+        "id": 7312,
+        "measure_id": "200800275",
+        "year": 2008,
+        "county": "Stanislaus",
+        "title": "Shall a one-half cent sales tax be approved for 20 years, requiring ongoing citizen oversight, and securing state/federal matching funds for countywide road improvements, including: Improving safety/reducing congestion on local highways; Improving intersections and synchronizing traffic signals; Improving emergency response times for police/fire; Enhancing student safety around schools; Improving travel along east-west corridors; Retrofitting/replacing bridges; and Filling potholes, fixing, widening and extending local roads?",
+        "percent_yes": 66.42,
+        "passed": 0,
+        "threshold": "66.67%"
+      }
+    ],
+    "landmark_near_misses": [
+      {
+        "id": 9894,
+        "measure_id": "200000199",
+        "year": 2000,
+        "county": "Los Angeles",
+        "category_type": "Bond",
+        "topic": null,
+        "percent_yes": 66.57,
+        "threshold": "66.67%",
+        "title": "To relieve severe overcrowding by constructing and acquiring additional schools, classrooms and facilities and to rehabilitate aging junior high and high schools, including replacement of inadequate lighting, electrical, ventilation, plumbing systems and roofs, renovating classrooms, libraries, and obtain eligibility for State funding for construction and renovation, shall the William S. Hart Union High School District issue $52 million in bonds at interest rates below legal limits and appoint a Citizens Oversight Committee to guarantee funds are spent only on school improvements?"
+      },
+      {
+        "id": 11387,
+        "measure_id": "201200002",
+        "year": 2012,
+        "county": "Alameda",
+        "category_type": "Sales Tax",
+        "topic": null,
+        "percent_yes": 66.53,
+        "threshold": "66.67%",
+        "title": "Shall a new Transportation Expenditure Plan be implemented to address current and future transportation needs that: 1) Improves transit access to jobs and schools; 2) Fixes roads, improves highways and increases bicycle and pedestrian safety; 3) Reduces traffic congestion and improves air quality; 4) Keeps senior, youth, and disabled fares affordable. Approval extends the existing County sales tax and increases it by 1/2 cent, with independent oversight, local job creation programs. No money can be taken by the state."
+      },
+      {
+        "id": 12091,
+        "measure_id": "200000204",
+        "year": 2000,
+        "county": "Monterey",
+        "category_type": "Bond",
+        "topic": null,
+        "percent_yes": 66.49,
+        "threshold": "66.67%",
+        "title": "(INITIATIVE)  Shall the \"Del Monte Forest Plan: Forest Preservation and Development Limitations\" initiative ordinance be approved?"
+      },
+      {
+        "id": 9288,
+        "measure_id": "200200080",
+        "year": 2002,
+        "county": "Riverside",
+        "category_type": "Property Tax",
+        "topic": null,
+        "percent_yes": 66.47,
+        "threshold": "66.67%",
+        "title": "Shall an ordinance be adopted to authorize the levy of a special tax on each eligible parcel in the City to fund fire protection and paramedic services?"
+      }
+    ],
+    "closest_to_legal_threshold": [
+      {
+        "id": 2302,
+        "measure_id": "202200138",
+        "year": 2022,
+        "county": "Imperial",
+        "title": "IMPERIAL Measure V",
+        "percent_yes": 50.0,
+        "passed": 0,
+        "threshold": "50%",
+        "legal_margin": 0.0
+      },
+      {
+        "id": 11360,
+        "measure_id": "201400138",
+        "year": 2014,
+        "county": "Siskiyou",
+        "title": "Shall Randy Darrow be recalled (removed) from the office of City Councilmember, City of Tulelake?",
+        "percent_yes": 50.0,
+        "passed": 0,
+        "threshold": "50%",
+        "legal_margin": 0.0
+      },
+      {
+        "id": 6920,
+        "measure_id": "200800460",
+        "year": 2008,
+        "county": "Contra Costa",
+        "title": "To maintain the quality of local schools, attract and retain highly qualified teachers, and maintain small class sizes, college/career/job preparation classes, art/music/foreign language programs, computers, infrastructure and instructional technology upgrades, elementary science specialists, and high school counselors, shall Livermore Valley Joint Unified School District extend its expiring parcel tax for five years at $11.50/month per parcel, with a senior citizen exemption, independent oversignt, no administrative salaries, and all funds staying local to benefit Livermore children?",
+        "percent_yes": 66.67,
+        "passed": 1,
+        "threshold": "66.67%",
+        "legal_margin": -0.0
+      },
+      {
+        "id": 7228,
+        "measure_id": "200800204",
+        "year": 2008,
+        "county": "San Mateo",
+        "title": "To protect local elementary and middle schools from state budget cuts, maintain high quality education, preserve small class sizes, attract and retain qualified teachers, protect vital academic programs and maintain classroom and school facilities, shall the Pacifica School District levy a temporary parcel tax of $96/year for 5 years with independent citizen oversight, an exemption for senior citizens, no funds used for administrator salaries and all funds staying in this community to promote student achievement?",
+        "percent_yes": 66.67,
+        "passed": 1,
+        "threshold": "66.67%",
+        "legal_margin": -0.0
+      },
+      {
+        "id": 1855,
+        "measure_id": "202400066",
+        "year": 2024,
+        "county": "San Diego",
+        "title": "SAN DIEGO Measure C",
+        "percent_yes": 66.67,
+        "passed": 1,
+        "threshold": "66.67%",
+        "legal_margin": -0.0
+      },
+      {
+        "id": 12305,
+        "measure_id": "201500007",
+        "year": 2015,
+        "county": "San Luis Obispo",
+        "title": "SAN LUIS OBISPO Measure A-15",
+        "percent_yes": 66.67,
+        "passed": 1,
+        "threshold": "66.67%",
+        "legal_margin": -0.0
+      },
+      {
+        "id": 7816,
+        "measure_id": "200600226",
+        "year": 2006,
+        "county": "San Diego",
+        "title": "Shall the Rincon Ranch Community Services District be authorized to establish and levy a special tax override, for a period of 10 years, on all taxable real property within its boundaries for the purpose of providing funds for repair and resurface of the roads maintained by the district, with this special tax not to exceed five dollars and twenty cents ($5.20) per acre, or portion thereof, plus one hundred fifty dollars ($150) per parcel of land per year?",
+        "percent_yes": 66.67,
+        "passed": 1,
+        "threshold": "66.67%",
+        "legal_margin": -0.0
+      },
+      {
+        "id": 8165,
+        "measure_id": "200500107",
+        "year": 2005,
+        "county": "San Bernardino",
+        "title": "To provide the Needles community with a permanent college facility for programs preparing local students for jobs and four year colleges, shall Palo Verde Community College District be authorized to finance construction, reconstruction and development of a college center/building including acquisition of real property, by issuing $6,000,000 in bonds of School Facilities Improvement District No. 2004-1 of the Palo Verde Community College District at legal interest rates, with guaranteed annual audits, citizen's oversight committee, and no money for administrator salaries?",
+        "percent_yes": 66.67,
+        "passed": 1,
+        "threshold": "66.67%",
+        "legal_margin": -0.0
+      },
+      {
+        "id": 10383,
+        "measure_id": "199900046",
+        "year": 1999,
+        "county": "San Mateo",
+        "title": "Shall the Brisbane Elementary School District be authorized to levy a special tax of not more than $72 annually per parcel to provide (1) music, art and reading teachers; and, if funds allow (2) lower class size and additional library and instructional resources; provided, however, that senior citizens be eligible for an exemption.  Shall the District's appropriations limit be raised from July 1, 1999 to June 30, 2005 in an amount equal to said tax for each year?",
+        "percent_yes": 66.67,
+        "passed": 1,
+        "threshold": "66.67%",
+        "legal_margin": -0.0
+      },
+      {
+        "id": 2960,
+        "measure_id": "202000174",
+        "year": 2020,
+        "county": "Los Angeles",
+        "title": "To maintain 911 emergency response services, police, fire, parks, libraries, repair streets, and support general services, shall an ordinance be adopted extending the City of Long Beach's Transactions and Use Tax beyond 2027, generating approximately $60 million annually, at a 1% rate until December 31, 2022, at \u00be% until September 30, 2027, and at 1% from October 1, 2027 until ended by voters, requiring a citizens' advisory committee and annual independent audits, with all funds remaining in Long Beach?",
+        "percent_yes": 50.01,
+        "passed": 1,
+        "threshold": "50%",
+        "legal_margin": 0.01
+      }
+    ],
+    "by_threshold": [
+      {
+        "threshold": "50%",
+        "total": 7444,
+        "passed": 5079,
+        "majority_failed": 0,
+        "pass_rate": 68.2
+      },
+      {
+        "threshold": "55%",
+        "total": 2324,
+        "passed": 1723,
+        "majority_failed": 272,
+        "pass_rate": 74.1
+      },
+      {
+        "threshold": "66.67%",
+        "total": 2484,
+        "passed": 1386,
+        "majority_failed": 827,
+        "pass_rate": 55.8
+      }
+    ]
+  },
+  "margin_stats": {
+    "measures_with_percent": 12176,
+    "close_counts": {
+      "under_1": 461,
+      "under_3": 1277,
+      "under_5": 2149,
+      "under_10": 4266
+    },
+    "closest_measures": [
+      {
+        "id": 1538,
+        "year": 2024,
+        "county": "Kern",
+        "title": "KERN Measure C/AVH",
+        "measure_id": "202400533",
+        "percent_yes": 50.0,
+        "passed": 0,
+        "margin_from_50": 0.0
+      },
+      {
+        "id": 1543,
+        "year": 2024,
+        "county": "Kern",
+        "title": "KERN Measure M",
+        "measure_id": "202400538",
+        "percent_yes": 50.0,
+        "passed": 0,
+        "margin_from_50": 0.0
+      },
+      {
+        "id": 2302,
+        "year": 2022,
+        "county": "Imperial",
+        "title": "IMPERIAL Measure V",
+        "measure_id": "202200138",
+        "percent_yes": 50.0,
+        "passed": 0,
+        "margin_from_50": 0.0
+      },
+      {
+        "id": 11360,
+        "year": 2014,
+        "county": "Siskiyou",
+        "title": "Shall Randy Darrow be recalled (removed) from the office of City Councilmember, City of Tulelake?",
+        "measure_id": "201400138",
+        "percent_yes": 50.0,
+        "passed": 0,
+        "margin_from_50": 0.0
+      },
+      {
+        "id": 7274,
+        "year": 2008,
+        "county": "Santa Cruz",
+        "title": "To improve neighborhood schools and provide for student safety, health, and learning; to replace relocatable classrooms; to acquire, construct, upgrade and equip classrooms, restrooms, facilities and sites; and to retire an outstanding facilities loan, shall Aromas-San Juan Unified School District issue $18,800,000 of bonds at legal interest rates for Aromas-San Juan Bautista school projects, not administrator's salaries or operating expenses, with citizens' oversight and independent public financial audits?",
+        "measure_id": "200800211",
+        "percent_yes": 50.0,
+        "passed": 0,
+        "margin_from_50": 0.0
+      },
+      {
+        "id": 7449,
+        "year": 2007,
+        "county": "San Bernardino",
+        "title": "To improve the quality of education, renovate and upgrade existing schools including roof repairs, science labs, libraries, and energy efficient windows, make health and safety improvements including removing asbestos; update electrical systems to improve access to computers and technology; improve playgrounds and playfields, and qualify the District for approximately $1,200,000 in State grants, shall Muroc Joint Unified School District issue $14,800,000 of bonds at legal interest rates, with independent oversight, and no money for teacher or administrative salaries?",
+        "measure_id": "200700165",
+        "percent_yes": 50.0,
+        "passed": 0,
+        "margin_from_50": 0.0
+      },
+      {
+        "id": 7580,
+        "year": 2006,
+        "county": "Fresno",
+        "title": "To relieve student overcrowding by building new classrooms, restrooms and schools, making repairs and improvements to schools throughout the District including science labs, roofing and electrical upgrades, and making the District eligible for approximately $16,000,000 in State matching funds, shall Dinuba Unified School District issue $37,000,000 of bonds at the lowest possible interest rates provided spending is annually reviewed by an independent citizens' oversight committee and no money is used for administrative salaries or taken by the State?",
+        "measure_id": "200600461",
+        "percent_yes": 50.0,
+        "passed": 0,
+        "margin_from_50": 0.0
+      },
+      {
+        "id": 7652,
+        "year": 2006,
+        "county": "Los Angeles",
+        "title": "To improve academic achievement, enhance educational opportunities, and improve community-use school facilities not covered by previous bonds, including mitigating safety hazards and accessibility issues in the 80 year old auditorium and stadium, and constructing a community aquatics complex with additional parking, with all funds used locally, with independent audits and citizens' oversight and NO money for administrator salaries, shall the El Segundo Unified School District issue 19 million dollars in bonds?",
+        "measure_id": "200600480",
+        "percent_yes": 50.0,
+        "passed": 0,
+        "margin_from_50": 0.0
+      },
+      {
+        "id": 8131,
+        "year": 2005,
+        "county": "Monterey",
+        "title": "In order to meet the needs of student growth, expand campuses through construction of new buildings, provide continued access to education and technology, repair and upgrade existing facilities and furnish and equip buildings, shall the West Hills Community College District issue $36,000,000 in bonds with an interest rate below the legal limit for repair, improvement, construction and acquisition of classrooms and facilities with citizen oversight, guaranteed annual audits and no money for administrators' salaries?",
+        "measure_id": "200500263",
+        "percent_yes": 50.0,
+        "passed": 0,
+        "margin_from_50": 0.0
+      },
+      {
+        "id": 2681,
+        "year": 2022,
+        "county": "Solano",
+        "title": "SOLANO Measure M",
+        "measure_id": "202200551",
+        "percent_yes": 50.01,
+        "passed": 0,
+        "margin_from_50": 0.01
+      },
+      {
+        "id": 2960,
+        "year": 2020,
+        "county": "Los Angeles",
+        "title": "To maintain 911 emergency response services, police, fire, parks, libraries, repair streets, and support general services, shall an ordinance be adopted extending the City of Long Beach's Transactions and Use Tax beyond 2027, generating approximately $60 million annually, at a 1% rate until December 31, 2022, at \u00be% until September 30, 2027, and at 1% from October 1, 2027 until ended by voters, requiring a citizens' advisory committee and annual independent audits, with all funds remaining in Long Beach?",
+        "measure_id": "202000174",
+        "percent_yes": 50.01,
+        "passed": 1,
+        "margin_from_50": 0.01
+      },
+      {
+        "id": 928,
+        "year": 1988,
+        "county": "Statewide",
+        "title": "Proposition 74",
+        "measure_id": "CA906",
+        "percent_yes": 49.99,
+        "passed": 0,
+        "margin_from_50": 0.01
+      }
+    ]
+  },
+  "close_call_insights": {
+    "counts": {
+      "under_1": 461,
+      "under_3": 1277,
+      "under_5": 2149,
+      "under_10": 4266
+    },
+    "closest_passes": [
+      {
+        "id": 2960,
+        "measure_id": "202000174",
+        "year": 2020,
+        "county": "Los Angeles",
+        "title": "To maintain 911 emergency response services, police, fire, parks, libraries, repair streets, and support general services, shall an ordinance be adopted extending the City of Long Beach's Transactions and Use Tax beyond 2027, generating approximately $60 million annually, at a 1% rate until December 31, 2022, at \u00be% until September 30, 2027, and at 1% from October 1, 2027 until ended by voters, requiring a citizens' advisory committee and annual independent audits, with all funds remaining in Long Beach?",
+        "percent_yes": 50.01,
+        "passed": 1,
+        "threshold": "50%"
+      },
+      {
+        "id": 6938,
+        "measure_id": "200800323",
+        "year": 2008,
+        "county": "Fresno",
+        "title": "Shall the City of Kerman establish a Transient Occupancy Tax (TOT) at the rate of 8 percent for the users of motels, hotels and similar temporary lodgings in the City to pay as part of their room rate?",
+        "percent_yes": 50.02,
+        "passed": 1,
+        "threshold": "50%"
+      },
+      {
+        "id": 7087,
+        "measure_id": "200800372",
+        "year": 2008,
+        "county": "Orange",
+        "title": "Shall the ordinance amending the City of Garden Grove's term limits requirements to allow a City Council Member who has served two (2) consecutive terms in that office to run for the office of City Council Member after a two (2) year absence, instead of the current four (4) year absence, be adopted?",
+        "percent_yes": 50.02,
+        "passed": 1,
+        "threshold": "50%"
+      },
+      {
+        "id": 2481,
+        "measure_id": "202200273",
+        "year": 2022,
+        "county": "Orange",
+        "title": "ORANGE Measure K",
+        "percent_yes": 50.03,
+        "passed": 1,
+        "threshold": "50%"
+      },
+      {
+        "id": 3224,
+        "measure_id": "202000374",
+        "year": 2020,
+        "county": "San Mateo",
+        "title": "Shall the proposed ordinance to amend the City of San Mateo General Plan to maintain for ten years voter-enacted policies limiting building heights, residential densities, and nonresidential building intensities, and to modify and maintain for 10 years an inclusionary housing requirement for residential projects, be adopted?",
+        "percent_yes": 50.05,
+        "passed": 1,
+        "threshold": "50%"
+      },
+      {
+        "id": 9902,
+        "measure_id": "200000365",
+        "year": 2000,
+        "county": "Los Angeles",
+        "title": "(INITIATIVE)  Shall the \"Malibu Right to Vote on Development Initiative\" be adopted requiring voter approval of all commercial, industrial and combined commerical and residential development in excess of 25,000 square feet which either (I) requires a variance or conditional use permit, or (II) increases density over current zoning limitations, or (III) permits the construction or widening of any public roadway?",
+        "percent_yes": 50.05,
+        "passed": 1,
+        "threshold": "50%"
+      },
+      {
+        "id": 7819,
+        "measure_id": "200600384",
+        "year": 2006,
+        "county": "San Diego",
+        "title": "Shall the ordinance to redesignate all parcels currently zoned R-1B (Single Family Residential) to R-1A(E) (Single Family Residential), and to invalidate any existing permits for construction in the R-1B zone issued after January 18, 2006, where such improvements do not conform to the development standards for an R-1A(E) parcel be adopted?",
+        "percent_yes": 50.05,
+        "passed": 1,
+        "threshold": "50%"
+      },
+      {
+        "id": 3615,
+        "measure_id": "201800179",
+        "year": 2018,
+        "county": "Kern",
+        "title": "To prevent cuts/improve 911 emergency response, police/fire protection, anti-gang/drug units, neighborhood police patrols; rapid response to assaults, robberies, gang violence, home burglaries; crime prevention; address homelessness; retain, attract jobs/businesses; unrestricted general revenue purposes; shall the measure be adopted approving an ordinance establishing a one-cent sales tax providing $50,000,000 annually until ended by voters, requiring independent audits, citizens oversight, all funds for Bakersfield?",
+        "percent_yes": 50.05,
+        "passed": 1,
+        "threshold": "50%"
+      }
+    ],
+    "closest_failures": [
+      {
+        "id": 1538,
+        "measure_id": "202400533",
+        "year": 2024,
+        "county": "Kern",
+        "title": "KERN Measure C/AVH",
+        "percent_yes": 50.0,
+        "passed": 0,
+        "threshold": "55%"
+      },
+      {
+        "id": 1543,
+        "measure_id": "202400538",
+        "year": 2024,
+        "county": "Kern",
+        "title": "KERN Measure M",
+        "percent_yes": 50.0,
+        "passed": 0,
+        "threshold": "55%"
+      },
+      {
+        "id": 2302,
+        "measure_id": "202200138",
+        "year": 2022,
+        "county": "Imperial",
+        "title": "IMPERIAL Measure V",
+        "percent_yes": 50.0,
+        "passed": 0,
+        "threshold": "50%"
+      },
+      {
+        "id": 11360,
+        "measure_id": "201400138",
+        "year": 2014,
+        "county": "Siskiyou",
+        "title": "Shall Randy Darrow be recalled (removed) from the office of City Councilmember, City of Tulelake?",
+        "percent_yes": 50.0,
+        "passed": 0,
+        "threshold": "50%"
+      },
+      {
+        "id": 7274,
+        "measure_id": "200800211",
+        "year": 2008,
+        "county": "Santa Cruz",
+        "title": "To improve neighborhood schools and provide for student safety, health, and learning; to replace relocatable classrooms; to acquire, construct, upgrade and equip classrooms, restrooms, facilities and sites; and to retire an outstanding facilities loan, shall Aromas-San Juan Unified School District issue $18,800,000 of bonds at legal interest rates for Aromas-San Juan Bautista school projects, not administrator's salaries or operating expenses, with citizens' oversight and independent public financial audits?",
+        "percent_yes": 50.0,
+        "passed": 0,
+        "threshold": "55%"
+      },
+      {
+        "id": 7449,
+        "measure_id": "200700165",
+        "year": 2007,
+        "county": "San Bernardino",
+        "title": "To improve the quality of education, renovate and upgrade existing schools including roof repairs, science labs, libraries, and energy efficient windows, make health and safety improvements including removing asbestos; update electrical systems to improve access to computers and technology; improve playgrounds and playfields, and qualify the District for approximately $1,200,000 in State grants, shall Muroc Joint Unified School District issue $14,800,000 of bonds at legal interest rates, with independent oversight, and no money for teacher or administrative salaries?",
+        "percent_yes": 50.0,
+        "passed": 0,
+        "threshold": "66.67%"
+      },
+      {
+        "id": 7580,
+        "measure_id": "200600461",
+        "year": 2006,
+        "county": "Fresno",
+        "title": "To relieve student overcrowding by building new classrooms, restrooms and schools, making repairs and improvements to schools throughout the District including science labs, roofing and electrical upgrades, and making the District eligible for approximately $16,000,000 in State matching funds, shall Dinuba Unified School District issue $37,000,000 of bonds at the lowest possible interest rates provided spending is annually reviewed by an independent citizens' oversight committee and no money is used for administrative salaries or taken by the State?",
+        "percent_yes": 50.0,
+        "passed": 0,
+        "threshold": "55%"
+      },
+      {
+        "id": 7652,
+        "measure_id": "200600480",
+        "year": 2006,
+        "county": "Los Angeles",
+        "title": "To improve academic achievement, enhance educational opportunities, and improve community-use school facilities not covered by previous bonds, including mitigating safety hazards and accessibility issues in the 80 year old auditorium and stadium, and constructing a community aquatics complex with additional parking, with all funds used locally, with independent audits and citizens' oversight and NO money for administrator salaries, shall the El Segundo Unified School District issue 19 million dollars in bonds?",
+        "percent_yes": 50.0,
+        "passed": 0,
+        "threshold": "55%"
+      }
+    ],
+    "closest_to_legal_threshold": [
+      {
+        "id": 2302,
+        "measure_id": "202200138",
+        "year": 2022,
+        "county": "Imperial",
+        "title": "IMPERIAL Measure V",
+        "percent_yes": 50.0,
+        "passed": 0,
+        "threshold": "50%",
+        "legal_margin": 0.0
+      },
+      {
+        "id": 11360,
+        "measure_id": "201400138",
+        "year": 2014,
+        "county": "Siskiyou",
+        "title": "Shall Randy Darrow be recalled (removed) from the office of City Councilmember, City of Tulelake?",
+        "percent_yes": 50.0,
+        "passed": 0,
+        "threshold": "50%",
+        "legal_margin": 0.0
+      },
+      {
+        "id": 6920,
+        "measure_id": "200800460",
+        "year": 2008,
+        "county": "Contra Costa",
+        "title": "To maintain the quality of local schools, attract and retain highly qualified teachers, and maintain small class sizes, college/career/job preparation classes, art/music/foreign language programs, computers, infrastructure and instructional technology upgrades, elementary science specialists, and high school counselors, shall Livermore Valley Joint Unified School District extend its expiring parcel tax for five years at $11.50/month per parcel, with a senior citizen exemption, independent oversignt, no administrative salaries, and all funds staying local to benefit Livermore children?",
+        "percent_yes": 66.67,
+        "passed": 1,
+        "threshold": "66.67%",
+        "legal_margin": -0.0
+      },
+      {
+        "id": 7228,
+        "measure_id": "200800204",
+        "year": 2008,
+        "county": "San Mateo",
+        "title": "To protect local elementary and middle schools from state budget cuts, maintain high quality education, preserve small class sizes, attract and retain qualified teachers, protect vital academic programs and maintain classroom and school facilities, shall the Pacifica School District levy a temporary parcel tax of $96/year for 5 years with independent citizen oversight, an exemption for senior citizens, no funds used for administrator salaries and all funds staying in this community to promote student achievement?",
+        "percent_yes": 66.67,
+        "passed": 1,
+        "threshold": "66.67%",
+        "legal_margin": -0.0
+      },
+      {
+        "id": 1855,
+        "measure_id": "202400066",
+        "year": 2024,
+        "county": "San Diego",
+        "title": "SAN DIEGO Measure C",
+        "percent_yes": 66.67,
+        "passed": 1,
+        "threshold": "66.67%",
+        "legal_margin": -0.0
+      },
+      {
+        "id": 12305,
+        "measure_id": "201500007",
+        "year": 2015,
+        "county": "San Luis Obispo",
+        "title": "SAN LUIS OBISPO Measure A-15",
+        "percent_yes": 66.67,
+        "passed": 1,
+        "threshold": "66.67%",
+        "legal_margin": -0.0
+      },
+      {
+        "id": 7816,
+        "measure_id": "200600226",
+        "year": 2006,
+        "county": "San Diego",
+        "title": "Shall the Rincon Ranch Community Services District be authorized to establish and levy a special tax override, for a period of 10 years, on all taxable real property within its boundaries for the purpose of providing funds for repair and resurface of the roads maintained by the district, with this special tax not to exceed five dollars and twenty cents ($5.20) per acre, or portion thereof, plus one hundred fifty dollars ($150) per parcel of land per year?",
+        "percent_yes": 66.67,
+        "passed": 1,
+        "threshold": "66.67%",
+        "legal_margin": -0.0
+      },
+      {
+        "id": 8165,
+        "measure_id": "200500107",
+        "year": 2005,
+        "county": "San Bernardino",
+        "title": "To provide the Needles community with a permanent college facility for programs preparing local students for jobs and four year colleges, shall Palo Verde Community College District be authorized to finance construction, reconstruction and development of a college center/building including acquisition of real property, by issuing $6,000,000 in bonds of School Facilities Improvement District No. 2004-1 of the Palo Verde Community College District at legal interest rates, with guaranteed annual audits, citizen's oversight committee, and no money for administrator salaries?",
+        "percent_yes": 66.67,
+        "passed": 1,
+        "threshold": "66.67%",
+        "legal_margin": -0.0
+      },
+      {
+        "id": 10383,
+        "measure_id": "199900046",
+        "year": 1999,
+        "county": "San Mateo",
+        "title": "Shall the Brisbane Elementary School District be authorized to levy a special tax of not more than $72 annually per parcel to provide (1) music, art and reading teachers; and, if funds allow (2) lower class size and additional library and instructional resources; provided, however, that senior citizens be eligible for an exemption.  Shall the District's appropriations limit be raised from July 1, 1999 to June 30, 2005 in an amount equal to said tax for each year?",
+        "percent_yes": 66.67,
+        "passed": 1,
+        "threshold": "66.67%",
+        "legal_margin": -0.0
+      },
+      {
+        "id": 2960,
+        "measure_id": "202000174",
+        "year": 2020,
+        "county": "Los Angeles",
+        "title": "To maintain 911 emergency response services, police, fire, parks, libraries, repair streets, and support general services, shall an ordinance be adopted extending the City of Long Beach's Transactions and Use Tax beyond 2027, generating approximately $60 million annually, at a 1% rate until December 31, 2022, at \u00be% until September 30, 2027, and at 1% from October 1, 2027 until ended by voters, requiring a citizens' advisory committee and annual independent audits, with all funds remaining in Long Beach?",
+        "percent_yes": 50.01,
+        "passed": 1,
+        "threshold": "50%",
+        "legal_margin": 0.01
+      }
+    ]
+  },
+  "county_stats": [
+    {
+      "county": "Los Angeles",
+      "total": 1389,
+      "decided": 1387,
+      "passed": 1000,
+      "fips": "06037",
+      "region": "Greater Los Angeles",
+      "pass_rate": 72.1,
+      "avg_yes": 61.4
+    },
+    {
+      "county": "Alameda",
+      "total": 598,
+      "decided": 593,
+      "passed": 463,
+      "fips": "06001",
+      "region": "Greater Bay Area",
+      "pass_rate": 78.1,
+      "avg_yes": 65.7
+    },
+    {
+      "county": "Santa Clara",
+      "total": 531,
+      "decided": 531,
+      "passed": 411,
+      "fips": "06085",
+      "region": "Greater Bay Area",
+      "pass_rate": 77.4,
+      "avg_yes": 64.8
+    },
+    {
+      "county": "San Diego",
+      "total": 516,
+      "decided": 516,
+      "passed": 337,
+      "fips": "06073",
+      "region": "San Diego Region",
+      "pass_rate": 65.3,
+      "avg_yes": 59.0
+    },
+    {
+      "county": "San Mateo",
+      "total": 458,
+      "decided": 449,
+      "passed": 353,
+      "fips": "06081",
+      "region": "Greater Bay Area",
+      "pass_rate": 78.6,
+      "avg_yes": 65.8
+    },
+    {
+      "county": "Orange",
+      "total": 454,
+      "decided": 454,
+      "passed": 308,
+      "fips": "06059",
+      "region": "Greater Los Angeles",
+      "pass_rate": 67.8,
+      "avg_yes": 58.0
+    },
+    {
+      "county": "Riverside",
+      "total": 447,
+      "decided": 444,
+      "passed": 301,
+      "fips": "06065",
+      "region": "Greater Los Angeles",
+      "pass_rate": 67.8,
+      "avg_yes": 59.5
+    },
+    {
+      "county": "San Francisco",
+      "total": 386,
+      "decided": 383,
+      "passed": 284,
+      "fips": "06075",
+      "region": "Greater Bay Area",
+      "pass_rate": 74.2,
+      "avg_yes": 59.9
+    },
+    {
+      "county": "Contra Costa",
+      "total": 370,
+      "decided": 367,
+      "passed": 257,
+      "fips": "06013",
+      "region": "Greater Bay Area",
+      "pass_rate": 70.0,
+      "avg_yes": 62.5
+    },
+    {
+      "county": "San Bernardino",
+      "total": 349,
+      "decided": 342,
+      "passed": 214,
+      "fips": "06071",
+      "region": "Greater Los Angeles",
+      "pass_rate": 62.6,
+      "avg_yes": 57.2
+    },
+    {
+      "county": "Marin",
+      "total": 342,
+      "decided": 336,
+      "passed": 288,
+      "fips": "06041",
+      "region": "Greater Bay Area",
+      "pass_rate": 85.7,
+      "avg_yes": 70.8
+    },
+    {
+      "county": "Sonoma",
+      "total": 317,
+      "decided": 316,
+      "passed": 234,
+      "fips": "06097",
+      "region": "Greater Bay Area",
+      "pass_rate": 74.1,
+      "avg_yes": 62.6
+    },
+    {
+      "county": "Monterey",
+      "total": 302,
+      "decided": 299,
+      "passed": 204,
+      "fips": "06053",
+      "region": "Central Coast",
+      "pass_rate": 68.2,
+      "avg_yes": 60.4
+    },
+    {
+      "county": "Fresno",
+      "total": 289,
+      "decided": 289,
+      "passed": 169,
+      "fips": "06019",
+      "region": "Central Valley",
+      "pass_rate": 58.5,
+      "avg_yes": 57.5
+    },
+    {
+      "county": "Kern",
+      "total": 240,
+      "decided": 239,
+      "passed": 146,
+      "fips": "06029",
+      "region": "Central Valley",
+      "pass_rate": 61.1,
+      "avg_yes": 58.7
+    },
+    {
+      "county": "El Dorado",
+      "total": 222,
+      "decided": 221,
+      "passed": 122,
+      "fips": "06017",
+      "region": "Sacramento Region",
+      "pass_rate": 55.2,
+      "avg_yes": 59.4
+    },
+    {
+      "county": "Ventura",
+      "total": 213,
+      "decided": 212,
+      "passed": 149,
+      "fips": "06111",
+      "region": "Greater Los Angeles",
+      "pass_rate": 70.3,
+      "avg_yes": 59.9
+    },
+    {
+      "county": "Santa Cruz",
+      "total": 207,
+      "decided": 206,
+      "passed": 156,
+      "fips": "06087",
+      "region": "Central Coast",
+      "pass_rate": 75.7,
+      "avg_yes": 64.7
+    },
+    {
+      "county": "Tulare",
+      "total": 197,
+      "decided": 197,
+      "passed": 126,
+      "fips": "06107",
+      "region": "Central Valley",
+      "pass_rate": 64.0,
+      "avg_yes": 60.0
+    },
+    {
+      "county": "Stanislaus",
+      "total": 190,
+      "decided": 190,
+      "passed": 130,
+      "fips": "06099",
+      "region": "Central Valley",
+      "pass_rate": 68.4,
+      "avg_yes": 58.8
+    },
+    {
+      "county": "Santa Barbara",
+      "total": 180,
+      "decided": 180,
+      "passed": 115,
+      "fips": "06083",
+      "region": "Central Coast",
+      "pass_rate": 63.9,
+      "avg_yes": 60.0
+    },
+    {
+      "county": "Sacramento",
+      "total": 178,
+      "decided": 178,
+      "passed": 121,
+      "fips": "06067",
+      "region": "Sacramento Region",
+      "pass_rate": 68.0,
+      "avg_yes": 60.6
+    },
+    {
+      "county": "San Luis Obispo",
+      "total": 174,
+      "decided": 174,
+      "passed": 115,
+      "fips": "06079",
+      "region": "Central Coast",
+      "pass_rate": 66.1,
+      "avg_yes": 58.9
+    },
+    {
+      "county": "Humboldt",
+      "total": 164,
+      "decided": 164,
+      "passed": 122,
+      "fips": "06023",
+      "region": "North Coast",
+      "pass_rate": 74.4,
+      "avg_yes": 60.5
+    },
+    {
+      "county": "Placer",
+      "total": 163,
+      "decided": 162,
+      "passed": 84,
+      "fips": "06061",
+      "region": "Sacramento Region",
+      "pass_rate": 51.9,
+      "avg_yes": 55.9
+    },
+    {
+      "county": "San Joaquin",
+      "total": 159,
+      "decided": 159,
+      "passed": 101,
+      "fips": "06077",
+      "region": "Central Valley",
+      "pass_rate": 63.5,
+      "avg_yes": 60.2
+    },
+    {
+      "county": "Solano",
+      "total": 144,
+      "decided": 144,
+      "passed": 95,
+      "fips": "06095",
+      "region": "Greater Bay Area",
+      "pass_rate": 66.0,
+      "avg_yes": 59.2
+    },
+    {
+      "county": "Yolo",
+      "total": 144,
+      "decided": 142,
+      "passed": 115,
+      "fips": "06113",
+      "region": "Sacramento Region",
+      "pass_rate": 81.0,
+      "avg_yes": 62.1
+    },
+    {
+      "county": "Butte",
+      "total": 120,
+      "decided": 120,
+      "passed": 75,
+      "fips": "06007",
+      "region": "Northern California",
+      "pass_rate": 62.5,
+      "avg_yes": 56.7
+    },
+    {
+      "county": "Imperial",
+      "total": 115,
+      "decided": 115,
+      "passed": 64,
+      "fips": "06025",
+      "region": "San Diego Region",
+      "pass_rate": 55.7,
+      "avg_yes": 57.0
+    },
+    {
+      "county": "Merced",
+      "total": 114,
+      "decided": 114,
+      "passed": 79,
+      "fips": "06047",
+      "region": "Central Valley",
+      "pass_rate": 69.3,
+      "avg_yes": 62.0
+    },
+    {
+      "county": "Napa",
+      "total": 111,
+      "decided": 111,
+      "passed": 70,
+      "fips": "06055",
+      "region": "Greater Bay Area",
+      "pass_rate": 63.1,
+      "avg_yes": 60.3
+    },
+    {
+      "county": "Mendocino",
+      "total": 106,
+      "decided": 106,
+      "passed": 75,
+      "fips": "06045",
+      "region": "North Coast",
+      "pass_rate": 70.8,
+      "avg_yes": 62.0
+    },
+    {
+      "county": "Siskiyou",
+      "total": 101,
+      "decided": 100,
+      "passed": 47,
+      "fips": "06093",
+      "region": "Northern California",
+      "pass_rate": 47.0,
+      "avg_yes": 52.8
+    },
+    {
+      "county": "San Benito",
+      "total": 93,
+      "decided": 92,
+      "passed": 36,
+      "fips": "06069",
+      "region": "Central Coast",
+      "pass_rate": 39.1,
+      "avg_yes": 49.1
+    },
+    {
+      "county": "Kings",
+      "total": 85,
+      "decided": 85,
+      "passed": 47,
+      "fips": "06031",
+      "region": "Central Valley",
+      "pass_rate": 55.3,
+      "avg_yes": 60.1
+    },
+    {
+      "county": "Shasta",
+      "total": 80,
+      "decided": 80,
+      "passed": 52,
+      "fips": "06089",
+      "region": "Northern California",
+      "pass_rate": 65.0,
+      "avg_yes": 58.3
+    },
+    {
+      "county": "Nevada",
+      "total": 64,
+      "decided": 63,
+      "passed": 39,
+      "fips": "06057",
+      "region": "Eastern Sierra",
+      "pass_rate": 61.9,
+      "avg_yes": 62.2
+    },
+    {
+      "county": "Yuba",
+      "total": 61,
+      "decided": 61,
+      "passed": 26,
+      "fips": "06115",
+      "region": "Sacramento Region",
+      "pass_rate": 42.6,
+      "avg_yes": 52.8
+    },
+    {
+      "county": "Madera",
+      "total": 55,
+      "decided": 55,
+      "passed": 30,
+      "fips": "06039",
+      "region": "Central Valley",
+      "pass_rate": 54.5,
+      "avg_yes": 58.5
+    },
+    {
+      "county": "Lake",
+      "total": 51,
+      "decided": 51,
+      "passed": 28,
+      "fips": "06033",
+      "region": "North Coast",
+      "pass_rate": 54.9,
+      "avg_yes": 57.5
+    },
+    {
+      "county": "Lassen",
+      "total": 50,
+      "decided": 50,
+      "passed": 22,
+      "fips": "06035",
+      "region": "Northern California",
+      "pass_rate": 44.0,
+      "avg_yes": 53.7
+    },
+    {
+      "county": "Tehama",
+      "total": 48,
+      "decided": 48,
+      "passed": 21,
+      "fips": "06103",
+      "region": "Northern California",
+      "pass_rate": 43.8,
+      "avg_yes": 49.8
+    },
+    {
+      "county": "Tuolumne",
+      "total": 45,
+      "decided": 44,
+      "passed": 27,
+      "fips": "06109",
+      "region": "Eastern Sierra",
+      "pass_rate": 61.4,
+      "avg_yes": 57.6
+    },
+    {
+      "county": "Sutter",
+      "total": 44,
+      "decided": 44,
+      "passed": 19,
+      "fips": "06101",
+      "region": "Sacramento Region",
+      "pass_rate": 43.2,
+      "avg_yes": 51.2
+    },
+    {
+      "county": "Calaveras",
+      "total": 43,
+      "decided": 43,
+      "passed": 26,
+      "fips": "06009",
+      "region": "Eastern Sierra",
+      "pass_rate": 60.5,
+      "avg_yes": 60.8
+    },
+    {
+      "county": "Colusa",
+      "total": 35,
+      "decided": 34,
+      "passed": 18,
+      "fips": "06011",
+      "region": "Northern California",
+      "pass_rate": 52.9,
+      "avg_yes": 55.2
+    },
+    {
+      "county": "Glenn",
+      "total": 35,
+      "decided": 35,
+      "passed": 17,
+      "fips": "06021",
+      "region": "Northern California",
+      "pass_rate": 48.6,
+      "avg_yes": 52.5
+    },
+    {
+      "county": "Mono",
+      "total": 33,
+      "decided": 32,
+      "passed": 23,
+      "fips": "06051",
+      "region": "Eastern Sierra",
+      "pass_rate": 71.9,
+      "avg_yes": 64.1
+    },
+    {
+      "county": "Amador",
+      "total": 29,
+      "decided": 29,
+      "passed": 17,
+      "fips": "06005",
+      "region": "Eastern Sierra",
+      "pass_rate": 58.6,
+      "avg_yes": 54.6
+    },
+    {
+      "county": "Inyo",
+      "total": 29,
+      "decided": 29,
+      "passed": 21,
+      "fips": "06027",
+      "region": "Eastern Sierra",
+      "pass_rate": 72.4,
+      "avg_yes": 59.8
+    },
+    {
+      "county": "Plumas",
+      "total": 29,
+      "decided": 28,
+      "passed": 15,
+      "fips": "06063",
+      "region": "Northern California",
+      "pass_rate": 53.6,
+      "avg_yes": 59.1
+    },
+    {
+      "county": "Del Norte",
+      "total": 27,
+      "decided": 27,
+      "passed": 10,
+      "fips": "06015",
+      "region": "North Coast",
+      "pass_rate": 37.0,
+      "avg_yes": 48.7
+    },
+    {
+      "county": "Trinity",
+      "total": 23,
+      "decided": 23,
+      "passed": 13,
+      "fips": "06105",
+      "region": "Northern California",
+      "pass_rate": 56.5,
+      "avg_yes": 58.2
+    },
+    {
+      "county": "Modoc",
+      "total": 18,
+      "decided": 18,
+      "passed": 7,
+      "fips": "06049",
+      "region": "Northern California",
+      "pass_rate": 38.9,
+      "avg_yes": 60.6
+    },
+    {
+      "county": "Sierra",
+      "total": 14,
+      "decided": 14,
+      "passed": 8,
+      "fips": "06091",
+      "region": "Eastern Sierra",
+      "pass_rate": 57.1,
+      "avg_yes": 53.3
+    },
+    {
+      "county": "Mariposa",
+      "total": 9,
+      "decided": 9,
+      "passed": 5,
+      "fips": "06043",
+      "region": "Eastern Sierra",
+      "pass_rate": 55.6,
+      "avg_yes": 60.7
+    },
+    {
+      "county": "Alpine",
+      "total": 7,
+      "decided": 7,
+      "passed": 7,
+      "fips": "06003",
+      "region": "Eastern Sierra",
+      "pass_rate": 100.0,
+      "avg_yes": 68.2
+    }
+  ],
+  "region_stats": [
+    {
+      "region": "Greater Bay Area",
+      "total": 3257,
+      "decided": 3230,
+      "passed": 2455,
+      "counties": 9,
+      "pass_rate": 76.0
+    },
+    {
+      "region": "Greater Los Angeles",
+      "total": 2852,
+      "decided": 2839,
+      "passed": 1972,
+      "counties": 5,
+      "pass_rate": 69.5
+    },
+    {
+      "region": "Central Valley",
+      "total": 1329,
+      "decided": 1328,
+      "passed": 828,
+      "counties": 8,
+      "pass_rate": 62.3
+    },
+    {
+      "region": "Central Coast",
+      "total": 956,
+      "decided": 951,
+      "passed": 626,
+      "counties": 5,
+      "pass_rate": 65.8
+    },
+    {
+      "region": "Sacramento Region",
+      "total": 812,
+      "decided": 808,
+      "passed": 487,
+      "counties": 6,
+      "pass_rate": 60.3
+    },
+    {
+      "region": "San Diego Region",
+      "total": 631,
+      "decided": 631,
+      "passed": 401,
+      "counties": 2,
+      "pass_rate": 63.5
+    },
+    {
+      "region": "Northern California",
+      "total": 539,
+      "decided": 536,
+      "passed": 287,
+      "counties": 10,
+      "pass_rate": 53.5
+    },
+    {
+      "region": "North Coast",
+      "total": 348,
+      "decided": 348,
+      "passed": 235,
+      "counties": 4,
+      "pass_rate": 67.5
+    },
+    {
+      "region": "Eastern Sierra",
+      "total": 273,
+      "decided": 270,
+      "passed": 173,
+      "counties": 9,
+      "pass_rate": 64.1
+    }
+  ],
+  "geography_insights": {
+    "minimum_county_decided_records": 50,
+    "highest_pass_rate_counties": [
+      {
+        "county": "Marin",
+        "total": 342,
+        "decided": 336,
+        "passed": 288,
+        "fips": "06041",
+        "region": "Greater Bay Area",
+        "pass_rate": 85.7,
+        "avg_yes": 70.8
+      },
+      {
+        "county": "Yolo",
+        "total": 144,
+        "decided": 142,
+        "passed": 115,
+        "fips": "06113",
+        "region": "Sacramento Region",
+        "pass_rate": 81.0,
+        "avg_yes": 62.1
+      },
+      {
+        "county": "San Mateo",
+        "total": 458,
+        "decided": 449,
+        "passed": 353,
+        "fips": "06081",
+        "region": "Greater Bay Area",
+        "pass_rate": 78.6,
+        "avg_yes": 65.8
+      },
+      {
+        "county": "Alameda",
+        "total": 598,
+        "decided": 593,
+        "passed": 463,
+        "fips": "06001",
+        "region": "Greater Bay Area",
+        "pass_rate": 78.1,
+        "avg_yes": 65.7
+      },
+      {
+        "county": "Santa Clara",
+        "total": 531,
+        "decided": 531,
+        "passed": 411,
+        "fips": "06085",
+        "region": "Greater Bay Area",
+        "pass_rate": 77.4,
+        "avg_yes": 64.8
+      }
+    ],
+    "lowest_pass_rate_counties": [
+      {
+        "county": "San Benito",
+        "total": 93,
+        "decided": 92,
+        "passed": 36,
+        "fips": "06069",
+        "region": "Central Coast",
+        "pass_rate": 39.1,
+        "avg_yes": 49.1
+      },
+      {
+        "county": "Yuba",
+        "total": 61,
+        "decided": 61,
+        "passed": 26,
+        "fips": "06115",
+        "region": "Sacramento Region",
+        "pass_rate": 42.6,
+        "avg_yes": 52.8
+      },
+      {
+        "county": "Lassen",
+        "total": 50,
+        "decided": 50,
+        "passed": 22,
+        "fips": "06035",
+        "region": "Northern California",
+        "pass_rate": 44.0,
+        "avg_yes": 53.7
+      },
+      {
+        "county": "Siskiyou",
+        "total": 101,
+        "decided": 100,
+        "passed": 47,
+        "fips": "06093",
+        "region": "Northern California",
+        "pass_rate": 47.0,
+        "avg_yes": 52.8
+      },
+      {
+        "county": "Placer",
+        "total": 163,
+        "decided": 162,
+        "passed": 84,
+        "fips": "06061",
+        "region": "Sacramento Region",
+        "pass_rate": 51.9,
+        "avg_yes": 55.9
+      }
+    ],
+    "highest_pass_rate_regions": [
+      {
+        "region": "Greater Bay Area",
+        "total": 3257,
+        "decided": 3230,
+        "passed": 2455,
+        "counties": 9,
+        "pass_rate": 76.0
+      },
+      {
+        "region": "Greater Los Angeles",
+        "total": 2852,
+        "decided": 2839,
+        "passed": 1972,
+        "counties": 5,
+        "pass_rate": 69.5
+      },
+      {
+        "region": "North Coast",
+        "total": 348,
+        "decided": 348,
+        "passed": 235,
+        "counties": 4,
+        "pass_rate": 67.5
+      },
+      {
+        "region": "Central Coast",
+        "total": 956,
+        "decided": 951,
+        "passed": 626,
+        "counties": 5,
+        "pass_rate": 65.8
+      },
+      {
+        "region": "Eastern Sierra",
+        "total": 273,
+        "decided": 270,
+        "passed": 173,
+        "counties": 9,
+        "pass_rate": 64.1
+      }
+    ],
+    "lowest_pass_rate_regions": [
+      {
+        "region": "Northern California",
+        "total": 539,
+        "decided": 536,
+        "passed": 287,
+        "counties": 10,
+        "pass_rate": 53.5
+      },
+      {
+        "region": "Sacramento Region",
+        "total": 812,
+        "decided": 808,
+        "passed": 487,
+        "counties": 6,
+        "pass_rate": 60.3
+      },
+      {
+        "region": "Central Valley",
+        "total": 1329,
+        "decided": 1328,
+        "passed": 828,
+        "counties": 8,
+        "pass_rate": 62.3
+      },
+      {
+        "region": "San Diego Region",
+        "total": 631,
+        "decided": 631,
+        "passed": 401,
+        "counties": 2,
+        "pass_rate": 63.5
+      },
+      {
+        "region": "Eastern Sierra",
+        "total": 273,
+        "decided": 270,
+        "passed": 173,
+        "counties": 9,
+        "pass_rate": 64.1
+      }
+    ],
+    "county_pass_rate_gap": 46.6,
+    "region_pass_rate_gap": 22.5
+  },
+  "finance": {
+    "available": true,
+    "measure_count": 181,
+    "support_receipts": 1865882429.15,
+    "oppose_receipts": 1449811252.9,
+    "total_receipts": 3315693682.05,
+    "better_funded_known": 181,
+    "better_funded_won": 117,
+    "better_funded_win_rate": 64.6,
+    "top_measures": [
+      {
+        "finance_campaign_id": "PROP_27_2022",
+        "measure_id": "PROP_27",
+        "election_year": 2022,
+        "year": 2022,
+        "title": "California Proposition 27, Legalize Sports Betting and Revenue for Homelessness Prevention Fund Initiative (2022)",
+        "passed": 0,
+        "support_receipts": 105078245.42,
+        "oppose_receipts": 76083877.51,
+        "total_receipts": 181162122.93,
+        "better_funded_side": "support",
+        "better_funded_won": false,
+        "funding_ratio": 1.4,
+        "support_top5_share": 99.97,
+        "oppose_top5_share": 99.99
+      },
+      {
+        "finance_campaign_id": "PROP_32_2012",
+        "measure_id": "CA1202",
+        "election_year": 2012,
+        "year": 2012,
+        "title": "Proposition 32",
+        "passed": 0,
+        "support_receipts": 124082475.59,
+        "oppose_receipts": 55951747.75,
+        "total_receipts": 180034223.34,
+        "better_funded_side": "support",
+        "better_funded_won": false,
+        "funding_ratio": 2.2,
+        "support_top5_share": 82.35,
+        "oppose_top5_share": 61.25
+      },
+      {
+        "finance_campaign_id": "PROP_50_2025",
+        "measure_id": "PROP_50",
+        "election_year": 2025,
+        "year": 2025,
+        "title": "California Proposition 50, Use of Legislative Congressional Redistricting Map Amendment (2025)",
+        "passed": 1,
+        "support_receipts": 108162530.24,
+        "oppose_receipts": 56648694.82,
+        "total_receipts": 164811225.06,
+        "better_funded_side": "support",
+        "better_funded_won": true,
+        "funding_ratio": 1.9,
+        "support_top5_share": 32.37,
+        "oppose_top5_share": 92.36
+      },
+      {
+        "finance_campaign_id": "PROP_94_2008",
+        "measure_id": "CA1175",
+        "election_year": 2008,
+        "year": 2008,
+        "title": "Proposition 94",
+        "passed": 1,
+        "support_receipts": 101078440.16,
+        "oppose_receipts": 31619350.0,
+        "total_receipts": 132697790.16,
+        "better_funded_side": "support",
+        "better_funded_won": true,
+        "funding_ratio": 3.2,
+        "support_top5_share": 99.93,
+        "oppose_top5_share": 92.74
+      },
+      {
+        "finance_campaign_id": "PROP_8_2018",
+        "measure_id": "Proposition 8",
+        "election_year": 2018,
+        "year": 2018,
+        "title": "Limiting Dialysis Revenue and Requiring Refund to Patients or Insurers Initiative",
+        "passed": 0,
+        "support_receipts": 23864907.9,
+        "oppose_receipts": 97632340.2,
+        "total_receipts": 121497248.1,
+        "better_funded_side": "oppose",
+        "better_funded_won": true,
+        "funding_ratio": 4.1,
+        "support_top5_share": 99.99,
+        "oppose_top5_share": 99.86
+      },
+      {
+        "finance_campaign_id": "PROP_22_2020",
+        "measure_id": "PROP_22",
+        "election_year": 2020,
+        "year": 2020,
+        "title": "California Proposition 22, App-Based Drivers as Contractors and Labor Policies Initiative (2020)",
+        "passed": 1,
+        "support_receipts": 81202238.78,
+        "oppose_receipts": 16189630.35,
+        "total_receipts": 97391869.13,
+        "better_funded_side": "support",
+        "better_funded_won": true,
+        "funding_ratio": 5.0,
+        "support_top5_share": 99.67,
+        "oppose_top5_share": 37.93
+      },
+      {
+        "finance_campaign_id": "PROP_15_2020",
+        "measure_id": "PROP_15",
+        "election_year": 2020,
+        "year": 2020,
+        "title": "California Proposition 15, Tax on Commercial and Industrial Properties for Education and Local Government Funding Initiative (2020)",
+        "passed": 0,
+        "support_receipts": 55890183.04,
+        "oppose_receipts": 31493144.93,
+        "total_receipts": 87383327.97,
+        "better_funded_side": "support",
+        "better_funded_won": false,
+        "funding_ratio": 1.8,
+        "support_top5_share": 67.91,
+        "oppose_top5_share": 68.4
+      },
+      {
+        "finance_campaign_id": "PROP_38_2000",
+        "measure_id": "CA1075",
+        "election_year": 2000,
+        "year": 2000,
+        "title": "Proposition 38",
+        "passed": 0,
+        "support_receipts": 54117102.99,
+        "oppose_receipts": 28484535.37,
+        "total_receipts": 82601638.36,
+        "better_funded_side": "support",
+        "better_funded_won": false,
+        "funding_ratio": 1.9,
+        "support_top5_share": 95.61,
+        "oppose_top5_share": 95.72
+      },
+      {
+        "finance_campaign_id": "PROP_10_2018",
+        "measure_id": "Proposition 10",
+        "election_year": 2018,
+        "year": 2018,
+        "title": "Repeal of Costa-Hawkins Rental Housing Act and Allow Local Rent Control Initiative",
+        "passed": 0,
+        "support_receipts": 23866353.69,
+        "oppose_receipts": 56126748.71,
+        "total_receipts": 79993102.4,
+        "better_funded_side": "oppose",
+        "better_funded_won": true,
+        "funding_ratio": 2.4,
+        "support_top5_share": 95.92,
+        "oppose_top5_share": 34.41
+      },
+      {
+        "finance_campaign_id": "PROP_56_2016",
+        "measure_id": "Proposition 56",
+        "election_year": 2016,
+        "year": 2016,
+        "title": "Cigarette Tax Increase Amendment",
+        "passed": 1,
+        "support_receipts": 19813331.64,
+        "oppose_receipts": 57375864.08,
+        "total_receipts": 77189195.72,
+        "better_funded_side": "oppose",
+        "better_funded_won": false,
+        "funding_ratio": 2.9,
+        "support_top5_share": 87.77,
+        "oppose_top5_share": 98.76
+      },
+      {
+        "finance_campaign_id": "PROP_33_2024",
+        "measure_id": "PROP_33",
+        "election_year": 2024,
+        "year": 2024,
+        "title": "California Proposition 33, Prohibit State Limitations on Local Rent Control Initiative (2024)",
+        "passed": 0,
+        "support_receipts": 0.0,
+        "oppose_receipts": 73057631.32,
+        "total_receipts": 73057631.32,
+        "better_funded_side": "oppose",
+        "better_funded_won": true,
+        "funding_ratio": null,
+        "support_top5_share": null,
+        "oppose_top5_share": 98.76
+      },
+      {
+        "finance_campaign_id": "PROP_30_2022",
+        "measure_id": "PROP_30",
+        "election_year": 2022,
+        "year": 2022,
+        "title": "California Proposition 30, Tax on Income Above $2 Million for Zero-Emissions Vehicles and Wildfire Prevention Initiative (2022)",
+        "passed": 0,
+        "support_receipts": 32583579.55,
+        "oppose_receipts": 38722337.18,
+        "total_receipts": 71305916.73,
+        "better_funded_side": "oppose",
+        "better_funded_won": true,
+        "funding_ratio": 1.2,
+        "support_top5_share": 99.13,
+        "oppose_top5_share": 37.62
+      }
+    ],
+    "better_funded_losses": [
+      {
+        "finance_campaign_id": "PROP_27_2022",
+        "measure_id": "PROP_27",
+        "election_year": 2022,
+        "year": 2022,
+        "title": "California Proposition 27, Legalize Sports Betting and Revenue for Homelessness Prevention Fund Initiative (2022)",
+        "passed": 0,
+        "support_receipts": 105078245.42,
+        "oppose_receipts": 76083877.51,
+        "total_receipts": 181162122.93,
+        "better_funded_side": "support",
+        "better_funded_won": false,
+        "funding_ratio": 1.4,
+        "support_top5_share": 99.97,
+        "oppose_top5_share": 99.99
+      },
+      {
+        "finance_campaign_id": "PROP_32_2012",
+        "measure_id": "CA1202",
+        "election_year": 2012,
+        "year": 2012,
+        "title": "Proposition 32",
+        "passed": 0,
+        "support_receipts": 124082475.59,
+        "oppose_receipts": 55951747.75,
+        "total_receipts": 180034223.34,
+        "better_funded_side": "support",
+        "better_funded_won": false,
+        "funding_ratio": 2.2,
+        "support_top5_share": 82.35,
+        "oppose_top5_share": 61.25
+      },
+      {
+        "finance_campaign_id": "PROP_15_2020",
+        "measure_id": "PROP_15",
+        "election_year": 2020,
+        "year": 2020,
+        "title": "California Proposition 15, Tax on Commercial and Industrial Properties for Education and Local Government Funding Initiative (2020)",
+        "passed": 0,
+        "support_receipts": 55890183.04,
+        "oppose_receipts": 31493144.93,
+        "total_receipts": 87383327.97,
+        "better_funded_side": "support",
+        "better_funded_won": false,
+        "funding_ratio": 1.8,
+        "support_top5_share": 67.91,
+        "oppose_top5_share": 68.4
+      },
+      {
+        "finance_campaign_id": "PROP_38_2000",
+        "measure_id": "CA1075",
+        "election_year": 2000,
+        "year": 2000,
+        "title": "Proposition 38",
+        "passed": 0,
+        "support_receipts": 54117102.99,
+        "oppose_receipts": 28484535.37,
+        "total_receipts": 82601638.36,
+        "better_funded_side": "support",
+        "better_funded_won": false,
+        "funding_ratio": 1.9,
+        "support_top5_share": 95.61,
+        "oppose_top5_share": 95.72
+      },
+      {
+        "finance_campaign_id": "PROP_56_2016",
+        "measure_id": "Proposition 56",
+        "election_year": 2016,
+        "year": 2016,
+        "title": "Cigarette Tax Increase Amendment",
+        "passed": 1,
+        "support_receipts": 19813331.64,
+        "oppose_receipts": 57375864.08,
+        "total_receipts": 77189195.72,
+        "better_funded_side": "oppose",
+        "better_funded_won": false,
+        "funding_ratio": 2.9,
+        "support_top5_share": 87.77,
+        "oppose_top5_share": 98.76
+      },
+      {
+        "finance_campaign_id": "PROP_38_2012",
+        "measure_id": "CA1200",
+        "election_year": 2012,
+        "year": 2012,
+        "title": "Proposition 38",
+        "passed": 0,
+        "support_receipts": 43997366.8,
+        "oppose_receipts": 4594336.09,
+        "total_receipts": 48591702.89,
+        "better_funded_side": "support",
+        "better_funded_won": false,
+        "funding_ratio": 9.6,
+        "support_top5_share": 99.29,
+        "oppose_top5_share": 41.3
+      },
+      {
+        "finance_campaign_id": "PROP_8_2008",
+        "measure_id": "CA1169",
+        "election_year": 2008,
+        "year": 2008,
+        "title": "Proposition 8",
+        "passed": 1,
+        "support_receipts": 42919.88,
+        "oppose_receipts": 37770474.53,
+        "total_receipts": 37813394.41,
+        "better_funded_side": "oppose",
+        "better_funded_won": false,
+        "funding_ratio": 880.0,
+        "support_top5_share": 32.62,
+        "oppose_top5_share": 35.8
+      },
+      {
+        "finance_campaign_id": "PROP_24_2010",
+        "measure_id": "CA1188",
+        "election_year": 2010,
+        "year": 2010,
+        "title": "Proposition 24",
+        "passed": 0,
+        "support_receipts": 22705010.37,
+        "oppose_receipts": 7026687.53,
+        "total_receipts": 29731697.9,
+        "better_funded_side": "support",
+        "better_funded_won": false,
+        "funding_ratio": 3.2,
+        "support_top5_share": 53.18,
+        "oppose_top5_share": 73.29
+      }
+    ],
+    "largest_imbalances": [
+      {
+        "finance_campaign_id": "PROP_14_2020",
+        "measure_id": "PROP_14",
+        "election_year": 2020,
+        "year": 2020,
+        "title": "California Proposition 14, Stem Cell Research Institute Bond Initiative (2020)",
+        "passed": 1,
+        "support_receipts": 15749038.43,
+        "oppose_receipts": 250.0,
+        "total_receipts": 15749288.43,
+        "better_funded_side": "support",
+        "better_funded_won": true,
+        "funding_ratio": 62996.2,
+        "support_top5_share": 76.5,
+        "oppose_top5_share": 100.0
+      },
+      {
+        "finance_campaign_id": "PROP_35_2012",
+        "measure_id": "CA1212",
+        "election_year": 2012,
+        "year": 2012,
+        "title": "Proposition 35",
+        "passed": 1,
+        "support_receipts": 7846902.42,
+        "oppose_receipts": 1200.0,
+        "total_receipts": 7848102.42,
+        "better_funded_side": "support",
+        "better_funded_won": true,
+        "funding_ratio": 6539.1,
+        "support_top5_share": 34.68,
+        "oppose_top5_share": 100.0
+      },
+      {
+        "finance_campaign_id": "PROP_1_2024",
+        "measure_id": "PROP_1",
+        "election_year": 2024,
+        "year": 2024,
+        "title": "California Proposition 1, Behavioral Health Services Program and Bond Measure (March 2024)",
+        "passed": 1,
+        "support_receipts": 11386509.03,
+        "oppose_receipts": 4660.25,
+        "total_receipts": 11391169.28,
+        "better_funded_side": "support",
+        "better_funded_won": true,
+        "funding_ratio": 2443.3,
+        "support_top5_share": 66.61,
+        "oppose_top5_share": 69.96
+      },
+      {
+        "finance_campaign_id": "PROP_19_2010",
+        "measure_id": "CA1191",
+        "election_year": 2010,
+        "year": 2010,
+        "title": "Proposition 19",
+        "passed": 0,
+        "support_receipts": 1131224.13,
+        "oppose_receipts": 700.0,
+        "total_receipts": 1131924.13,
+        "better_funded_side": "support",
+        "better_funded_won": false,
+        "funding_ratio": 1616.0,
+        "support_top5_share": 44.16,
+        "oppose_top5_share": 100.0
+      },
+      {
+        "finance_campaign_id": "PROP_5_2024",
+        "measure_id": "PROP_5",
+        "election_year": 2024,
+        "year": 2024,
+        "title": "California Proposition 5, Lower Supermajority Requirement to 55% for Local Bond Measures to Fund Housing and Public Infrastructure Amendment (2024)",
+        "passed": 0,
+        "support_receipts": 25958091.83,
+        "oppose_receipts": 25000.0,
+        "total_receipts": 25983091.83,
+        "better_funded_side": "support",
+        "better_funded_won": false,
+        "funding_ratio": 1038.3,
+        "support_top5_share": 92.08,
+        "oppose_top5_share": 100.0
+      },
+      {
+        "finance_campaign_id": "PROP_8_2008",
+        "measure_id": "CA1169",
+        "election_year": 2008,
+        "year": 2008,
+        "title": "Proposition 8",
+        "passed": 1,
+        "support_receipts": 42919.88,
+        "oppose_receipts": 37770474.53,
+        "total_receipts": 37813394.41,
+        "better_funded_side": "oppose",
+        "better_funded_won": false,
+        "funding_ratio": 880.0,
+        "support_top5_share": 32.62,
+        "oppose_top5_share": 35.8
+      },
+      {
+        "finance_campaign_id": "PROP_16_2020",
+        "measure_id": "PROP_16",
+        "election_year": 2020,
+        "year": 2020,
+        "title": "California Proposition 16, Repeal Proposition 209 Affirmative Action Amendment (2020)",
+        "passed": 0,
+        "support_receipts": 18491317.78,
+        "oppose_receipts": 23743.84,
+        "total_receipts": 18515061.62,
+        "better_funded_side": "support",
+        "better_funded_won": false,
+        "funding_ratio": 778.8,
+        "support_top5_share": 49.85,
+        "oppose_top5_share": 63.17
+      },
+      {
+        "finance_campaign_id": "PROP_27_2010",
+        "measure_id": "CA1187",
+        "election_year": 2010,
+        "year": 2010,
+        "title": "Proposition 27",
+        "passed": 0,
+        "support_receipts": 15636212.19,
+        "oppose_receipts": 20516.0,
+        "total_receipts": 15656728.19,
+        "better_funded_side": "support",
+        "better_funded_won": false,
+        "funding_ratio": 762.1,
+        "support_top5_share": 24.32,
+        "oppose_top5_share": 100.0
+      }
+    ],
+    "annual_receipts": [
+      {
+        "year": 2000,
+        "total_receipts": 164517551.44,
+        "n_campaigns": 19
+      },
+      {
+        "year": 2002,
+        "total_receipts": 48369040.43,
+        "n_campaigns": 10
+      },
+      {
+        "year": 2003,
+        "total_receipts": 6728174.85,
+        "n_campaigns": 2
+      },
+      {
+        "year": 2004,
+        "total_receipts": 158956071.41,
+        "n_campaigns": 16
+      },
+      {
+        "year": 2005,
+        "total_receipts": 151520975.23,
+        "n_campaigns": 8
+      },
+      {
+        "year": 2006,
+        "total_receipts": 217433881.78,
+        "n_campaigns": 14
+      },
+      {
+        "year": 2008,
+        "total_receipts": 266595331.67,
+        "n_campaigns": 16
+      },
+      {
+        "year": 2009,
+        "total_receipts": 26708308.0,
+        "n_campaigns": 5
+      },
+      {
+        "year": 2010,
+        "total_receipts": 236700733.22,
+        "n_campaigns": 13
+      },
+      {
+        "year": 2012,
+        "total_receipts": 431823949.79,
+        "n_campaigns": 13
+      },
+      {
+        "year": 2014,
+        "total_receipts": 63190117.3,
+        "n_campaigns": 8
+      },
+      {
+        "year": 2016,
+        "total_receipts": 227173050.04,
+        "n_campaigns": 17
+      },
+      {
+        "year": 2018,
+        "total_receipts": 293305148.14,
+        "n_campaigns": 8
+      },
+      {
+        "year": 2020,
+        "total_receipts": 360631583.56,
+        "n_campaigns": 13
+      },
+      {
+        "year": 2022,
+        "total_receipts": 288541417.23,
+        "n_campaigns": 7
+      },
+      {
+        "year": 2024,
+        "total_receipts": 208687122.9,
+        "n_campaigns": 11
+      },
+      {
+        "year": 2025,
+        "total_receipts": 164811225.06,
+        "n_campaigns": 1
+      }
+    ],
+    "top_donors_overall": [
+      {
+        "name": "California Teachers Association Issues PAC",
+        "total_amount": 180828644.86,
+        "n_campaigns": 56
+      },
+      {
+        "name": "California Apartment Association Issues Committee",
+        "total_amount": 96665000.0,
+        "n_campaigns": 3
+      },
+      {
+        "name": "San Manuel Band of Mission Indians",
+        "total_amount": 84202936.58,
+        "n_campaigns": 6
+      },
+      {
+        "name": "Philip Morris USA Inc",
+        "total_amount": 78039559.0,
+        "n_campaigns": 11
+      },
+      {
+        "name": "DAVITA",
+        "total_amount": 63297812.66,
+        "n_campaigns": 1
+      },
+      {
+        "name": "AIDS HEALTHCARE FOUNDATION",
+        "total_amount": 52936246.66,
+        "n_campaigns": 5
+      },
+      {
+        "name": "Lyft, Inc",
+        "total_amount": 49010201.94,
+        "n_campaigns": 2
+      },
+      {
+        "name": "R.J. Reynolds Tobacco Company",
+        "total_amount": 48634712.65,
+        "n_campaigns": 6
+      },
+      {
+        "name": "CONGRESSIONAL LEADERSHIP FUND",
+        "total_amount": 44332904.3,
+        "n_campaigns": 1
+      },
+      {
+        "name": "PECHANGA BAND OF LUISENO MISSION INDIANS",
+        "total_amount": 41067880.46,
+        "n_campaigns": 1
+      },
+      {
+        "name": "MUNGER, MOLLY",
+        "total_amount": 40523847.07,
+        "n_campaigns": 2
+      },
+      {
+        "name": "MORONGO BAND OF MISSION INDIANS",
+        "total_amount": 39846063.7,
+        "n_campaigns": 10
+      },
+      {
+        "name": "FanDuel Sportsbook (Betfair Interactive US)",
+        "total_amount": 36684411.5,
+        "n_campaigns": 1
+      },
+      {
+        "name": "DraftKings (Crown Gaming Inc)",
+        "total_amount": 35044690.44,
+        "n_campaigns": 2
+      },
+      {
+        "name": "CALIFORNIA ASSOCIATION OF REALTORS",
+        "total_amount": 30450000.0,
+        "n_campaigns": 2
+      }
+    ],
+    "repeat_donors": [
+      {
+        "name": "California Teachers Association Issues PAC",
+        "total_amount": 180828644.86,
+        "n_campaigns": 56
+      },
+      {
+        "name": "CALIFORNIA DEMOCRATIC PARTY",
+        "total_amount": 5177545.08,
+        "n_campaigns": 31
+      },
+      {
+        "name": "CALIFORNIA HOSPITALS COMMITTEE ON ISSUES, SPONSORED BY CAHHS",
+        "total_amount": 4110000.0,
+        "n_campaigns": 17
+      },
+      {
+        "name": "AFSCME",
+        "total_amount": 6459200.0,
+        "n_campaigns": 16
+      },
+      {
+        "name": "NORTHERN CALIFORNIA CARPENTERS REGIONAL COUNCIL ISSUES PAC",
+        "total_amount": 3680300.0,
+        "n_campaigns": 16
+      },
+      {
+        "name": "CALIFORNIA FACULTY ASSOCIATION POLITICAL ISSUES COMMITTEE",
+        "total_amount": 2694622.04,
+        "n_campaigns": 16
+      },
+      {
+        "name": "DEMOCRATIC STATE CENTRAL COMMITTEE OF CALIFORNIA",
+        "total_amount": 7422299.38,
+        "n_campaigns": 15
+      },
+      {
+        "name": "PACE OF CALIFORNIA SCHOOL EMPLOYEES ASSOCIATION - ISSUES",
+        "total_amount": 5535641.29,
+        "n_campaigns": 15
+      },
+      {
+        "name": "CALIFORNIA STATE COUNCIL OF SERVICE EMPLOYEES ISSUES COMMITTEE",
+        "total_amount": 13966686.67,
+        "n_campaigns": 12
+      },
+      {
+        "name": "Philip Morris USA Inc",
+        "total_amount": 78039559.0,
+        "n_campaigns": 11
+      },
+      {
+        "name": "CALIFORNIA FEDERATION OF TEACHERS COPE PROP/BALLOT COMMITTEE",
+        "total_amount": 2081990.62,
+        "n_campaigns": 11
+      },
+      {
+        "name": "CALIFORNIA PROFESSIONAL FIREFIGHTERS BALLOT ISSUES COMMITTEE",
+        "total_amount": 1851218.29,
+        "n_campaigns": 11
+      }
+    ],
+    "marquee_fights": [
+      {
+        "finance_campaign_id": "PROP_22_2020",
+        "measure_id": "PROP_22",
+        "election_year": 2020,
+        "title": "California Proposition 22, App-Based Drivers as Contractors and Labor Policies Initiative (2020)",
+        "headline": "App-based gig work vs labor",
+        "takeaway": "Uber, Lyft, DoorDash, and Instacart pooled into a single $81M Yes committee \u2014 five-to-one over the labor coalition opposing them. The measure passed.",
+        "passed": 1,
+        "support_receipts": 81202238.78,
+        "oppose_receipts": 16189630.35,
+        "total_receipts": 97391869.13,
+        "support_top5_share": 99.67,
+        "oppose_top5_share": 37.93,
+        "support_top_donors": [
+          {
+            "name": "UBER TECHNOLOGIES, INC",
+            "total_amount": 23662515.99
+          },
+          {
+            "name": "DOORDASH, INC",
+            "total_amount": 18892421.06
+          },
+          {
+            "name": "Lyft, Inc",
+            "total_amount": 18842717.42
+          },
+          {
+            "name": "MAPLEBEAR INC., DBA INSTACART",
+            "total_amount": 17689348.28
+          },
+          {
+            "name": "POSTMATES INC",
+            "total_amount": 1843523.39
+          }
+        ],
+        "oppose_top_donors": [
+          {
+            "name": "SERVICE EMPLOYEES INTERNATIONAL UNION LOCAL 721 CTW, CLC ISSUES & INITIATIVES",
+            "total_amount": 1639957.24
+          },
+          {
+            "name": "INTERNATIONAL BROTHERHOOD OF TEAMSTERS",
+            "total_amount": 1500000.0
+          },
+          {
+            "name": "SERVICE EMPLOYEES INTERNATIONAL UNION UNITED HEALTH CARE WORKERS WEST POLITICAL ISSUES COMMITTEE",
+            "total_amount": 1000000.0
+          },
+          {
+            "name": "UNITED FOOD & COMMERCIAL WORKERS LOCAL 770",
+            "total_amount": 1000000.0
+          },
+          {
+            "name": "UNITED FOOD AND COMMERCIAL WORKERS INTERNATIONAL UNION CLC",
+            "total_amount": 1000000.0
+          }
+        ]
+      },
+      {
+        "finance_campaign_id": "PROP_27_2022",
+        "measure_id": "PROP_27",
+        "election_year": 2022,
+        "title": "California Proposition 27, Legalize Sports Betting and Revenue for Homelessness Prevention Fund Initiative (2022)",
+        "headline": "Online sports betting vs tribal gaming",
+        "takeaway": "The largest two-sided fight in the data ($181M). FanDuel and DraftKings spent $105M for; tribal coalitions led by San Manuel spent $76M against. Voters rejected it 17-83.",
+        "passed": 0,
+        "support_receipts": 105078245.42,
+        "oppose_receipts": 76083877.51,
+        "total_receipts": 181162122.93,
+        "support_top5_share": 99.97,
+        "oppose_top5_share": 99.99,
+        "support_top_donors": [
+          {
+            "name": "FanDuel Sportsbook (Betfair Interactive US)",
+            "total_amount": 36684411.5
+          },
+          {
+            "name": "DraftKings (Crown Gaming Inc)",
+            "total_amount": 35032190.44
+          },
+          {
+            "name": "FBG ENTERPRISES OPCO, LLC(RESPONSIBLE OFFICER: ARI BOROD)",
+            "total_amount": 12500000.0
+          },
+          {
+            "name": "PENN INTERACTIVE VENTURES, LLC(RESPONSIBLE OFFICER: JON KAPLOWITZ)",
+            "total_amount": 12500000.0
+          },
+          {
+            "name": "BETMGM LLC(RESPONSIBLE OFFICER: ANDREW HAGOPIAN)",
+            "total_amount": 8333000.0
+          }
+        ],
+        "oppose_top_donors": [
+          {
+            "name": "San Manuel Band of Mission Indians",
+            "total_amount": 75031675.97
+          },
+          {
+            "name": "CALIFORNIANS FOR COMMUNITY SAFETY, EQUALITY AND REINVESTMENT, SPONSORED BY TRIBAL ORGANIZATIONS",
+            "total_amount": 750000.0
+          },
+          {
+            "name": "ALG POLLING INC",
+            "total_amount": 219800.0
+          },
+          {
+            "name": "PALA CASINO RESORT SPA",
+            "total_amount": 43000.0
+          },
+          {
+            "name": "PALA BAND OF MISSION INDIANS",
+            "total_amount": 28131.18
+          }
+        ]
+      },
+      {
+        "finance_campaign_id": "PROP_8_2018",
+        "measure_id": "Proposition 8",
+        "election_year": 2018,
+        "title": "Limiting Dialysis Revenue and Requiring Refund to Patients or Insurers Initiative",
+        "headline": "Dialysis profit caps vs the dialysis industry",
+        "takeaway": "DaVita and Fresenius spent $97M to defeat a SEIU-backed $24M effort to cap dialysis-clinic revenue. The industry side outspent the labor coalition about four-to-one \u2014 and won.",
+        "passed": 0,
+        "support_receipts": 23864907.9,
+        "oppose_receipts": 97632340.2,
+        "total_receipts": 121497248.1,
+        "support_top5_share": 99.99,
+        "oppose_top5_share": 99.86,
+        "support_top_donors": [
+          {
+            "name": "SERVICE EMPLOYEES INTERNATIONAL UNION, UNITED HEALTHCARE WORKERS WEST (NONPROFIT 501(C)(5)) - CALIFORNIANS FOR KIDNEY DIALYSIS PATIENT PROTECTION AND CALIFORNIANS CARE",
+            "total_amount": 11387341.0
+          },
+          {
+            "name": "SERVICE EMPLOYEES INTERNATIONAL UNION, UNITED HEALTHCARE WORKERS WEST (NONPROFIT 501(C)(5)) - YES ON 8 - CALIFORNIANS FOR KIDNEY DIALYSIS PATIENT PROTECTION",
+            "total_amount": 11387341.0
+          },
+          {
+            "name": "CA STATE COUNCIL OF SERVICE EMPLOYEES ISSUES COMMITTEE",
+            "total_amount": 1000000.0
+          },
+          {
+            "name": "CALIFORNIA DEMOCRATIC PARTY",
+            "total_amount": 52971.14
+          },
+          {
+            "name": "SERVICE EMPLOYEES INTERNATIONAL UNION - UNITED HEALTHCARE WORKERS WEST",
+            "total_amount": 34308.48
+          }
+        ],
+        "oppose_top_donors": [
+          {
+            "name": "DAVITA",
+            "total_amount": 63297812.66
+          },
+          {
+            "name": "FRESENIUS MEDICAL CARE NORTH AMERICA",
+            "total_amount": 24308958.11
+          },
+          {
+            "name": "US RENAL CARE, INC",
+            "total_amount": 8176421.43
+          },
+          {
+            "name": "DIALYSIS CLINIC, INC",
+            "total_amount": 1215417.0
+          },
+          {
+            "name": "SATELLITE HEALTHCARE, INC",
+            "total_amount": 500000.0
+          }
+        ]
+      }
+    ]
+  },
+  "methodology": {
+    "scope": "Active, non-duplicate measures in scraper/data/ballot_measures.db.",
+    "sources": [
+      [
+        "CEDA",
+        10997
+      ],
+      [
+        "ICPSR",
+        1238
+      ],
+      [
+        "NCSL",
+        41
+      ],
+      [
+        "Ballotpedia",
+        32
+      ],
+      [
+        "CA_SOS",
+        4
+      ]
+    ],
+    "notes": [
+      "CEDA dominates local measure coverage and is strongest for outcomes, categories, and vote totals.",
+      "Campaign finance analysis uses the year-scoped statewide proposition finance database (rebuilt 2026-05-04, keyed by finance_campaign_id) and is not available for local measures.",
+      "Pending-measure analogs are intentionally excluded from this MVP to avoid prediction framing."
+    ]
+  }
+}

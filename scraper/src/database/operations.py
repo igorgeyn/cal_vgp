@@ -212,7 +212,7 @@ class Database:
             'briefing_text', 'fiscal_impact',
             'pro_arguments', 'con_arguments',
             'proponents', 'opponents', 'endorsements',
-            'campaign_finance', 'research_sources',
+            'research_sources',
         }
         NUMERIC_PROTECTED = {
             'yes_votes', 'no_votes', 'total_votes',

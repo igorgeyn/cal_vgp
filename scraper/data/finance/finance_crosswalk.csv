@@ -1,0 +1,219 @@
+finance_campaign_id,prop_num,election_year,election_month,measure_db_id,measure_id,status,match_via,csv_row_count,csv_total_amount,notes
+PROP_0_2000,0,2000,,,,missing,,13,2797.28,no measures-DB record
+PROP_12_2000,12,2000,,1117,CA1095,matched,title_short,1333,20129623.36,
+PROP_13_2000,13,2000,,1119,CA1097,matched,title_short,859,3649736.44,
+PROP_14_2000,14,2000,,1111,CA1089,matched,title_short,138,178398.0,
+PROP_15_2000,15,2000,,1103,CA1081,matched,title_short,42,126750.0,
+PROP_1A_2000,1A,2000,,1118,CA1096,matched,title_short,161,28818417.09,
+PROP_21_2000,21,2000,,1115,CA1093,matched,title_short,327,274001.48,
+PROP_22_2000,22,2000,,1114,CA1092,matched,title_short,86041,37016175.25,
+PROP_23_2000,23,2000,,1100,CA1078,matched,title_short,1,40000.0,
+PROP_25_2000,25,2000,,1099,CA1077,matched,title_short,21,1462756.24,
+PROP_26_2000,26,2000,,1105,CA1083,matched,title_short,3373,22297600.49,
+PROP_28_2000,28,2000,,1095,CA1073,matched,title_short,402,13996575.62,
+PROP_30_2000,30,2000,,1098,CA1076,matched,title_short,9121,13077866.83,
+PROP_33_2000,33,2000,,1101,CA1079,matched,title_short,3,4000.0,
+PROP_34_2000,34,2000,,1112,CA1090,matched,title_short,119,341521.53,
+PROP_35_2000,35,2000,,1109,CA1087,matched,title_short,40632,47977354.62,
+PROP_36_2000,36,2000,,1113,CA1091,matched,title_short,56,553906.5,
+PROP_37_2000,37,2000,,1104,CA1082,matched,title_short,147,4450636.06,
+PROP_38_2000,38,2000,,1097,CA1075,matched,title_short,3908,233379191.3,
+PROP_39_2000,39,2000,,1106,CA1084,matched,title_short,22628,5500770.55,
+PROP_1_2001,1,2001,,,,missing,,9,129500.0,no measures-DB record
+PROP_0_2002,0,2002,,,,missing,,21,213.15,no measures-DB record
+PROP_39_2002,39,2002,,,,missing,,17,1002082.53,no measures-DB record
+PROP_40_2002,40,2002,,1129,CA1107,matched,title_short,678,25705296.95,
+PROP_41_2002,41,2002,,1126,CA1104,matched,title_short,9,162003.09,
+PROP_42_2002,42,2002,,1132,CA1110,matched,title_short,1053,8175638.36,
+PROP_45_2002,45,2002,,1125,CA1103,matched,title_short,395,10509503.34,
+PROP_46_2002,46,2002,,1130,CA1108,matched,title_short,400,3288719.4,
+PROP_47_2002,47,2002,,1131,CA1109,matched,title_short,434,14755770.24,
+PROP_49_2002,49,2002,,1128,CA1106,matched,title_short,1967,17617468.02,
+PROP_50_2002,50,2002,,1127,CA1105,matched,title_short,607,12429051.8,
+PROP_51_2002,51,2002,,1124,CA1102,matched,title_short,347,6322121.96,
+PROP_52_2002,52,2002,,1123,CA1101,matched,title_short,227,27754504.21,
+PROP_49_2003,49,2003,,,,missing,,22,711073.0,no measures-DB record
+PROP_53_2003,53,2003,,1137,CA1115,matched,title_short,78,522566.0,
+PROP_54_2003,54,2003,,1136,CA1114,matched,title_short,1099,12041111.13,
+PROP_0_2004,0,2004,,,,missing,,12,216.48,no measures-DB record
+PROP_1A_2004,1A,2004,,1157,CA1135,matched,title_short,5138,14676423.6,
+PROP_55_2004,55,2004,,1146,CA1124,matched,title_short,593,17173986.03,
+PROP_56_2004,56,2004,,1141,CA1119,matched,title_short,1873,20842997.71,
+PROP_57_2004,57,2004,,1152,CA1130,matched,title_short,16,738527.12,
+PROP_61_2004,61,2004,,1148,CA1126,matched,title_short,16,428880.42,
+PROP_62_2004,62,2004,,1143,CA1121,matched,title_short,380,8079667.05,
+PROP_63_2004,63,2004,,1147,CA1125,matched,title_short,10226,11849662.71,
+PROP_64_2004,64,2004,,1149,CA1127,matched,title_short,1233,21760536.44,
+PROP_65_2004,65,2004,,1142,CA1120,matched,title_short,15,26000.0,
+PROP_66_2004,66,2004,,1144,CA1122,matched,title_short,133,2851822.5,
+PROP_67_2004,67,2004,,1140,CA1118,matched,title_short,127,5133830.27,
+PROP_68_2004,68,2004,,1138,CA1116,matched,title_short,488,169375588.67,
+PROP_69_2004,69,2004,,1151,CA1129,matched,title_short,29,332804.89,
+PROP_70_2004,70,2004,,1139,CA1117,matched,title_short,23,20802555.96,
+PROP_71_2004,71,2004,,1150,CA1128,matched,title_short,1511,81371419.3,
+PROP_72_2004,72,2004,,1145,CA1123,matched,title_short,7253,60746752.62,
+PROP_127_2005,127,2005,,,,missing,,12,180720.0,no measures-DB record
+PROP_73_2005,73,2005,,1165,CA1143,matched,title_short,5120,13837985.97,
+PROP_74_2005,74,2005,,1163,CA1141,matched,title_short,1856,36810682.32,
+PROP_75_2005,75,2005,,1164,CA1142,matched,title_short,7498,158532461.4,
+PROP_76_2005,76,2005,,1159,CA1137,matched,title_short,2160,78177775.27,
+PROP_77_2005,77,2005,,1161,CA1139,matched,title_short,1248,40849982.2,
+PROP_78_2005,78,2005,,1162,CA1140,matched,title_short,84,27498345.56,
+PROP_79_2005,79,2005,,1160,CA1138,matched,title_short,2022,2480281.71,
+PROP_80_2005,80,2005,,1158,CA1136,matched,title_short,3399,5892700.27,
+PROP_0_2006,0,2006,,,,missing,,9,120.34,no measures-DB record
+PROP_127_2006,127,2006,,,,missing,,27,132721.88,no measures-DB record
+PROP_1A_2006,1A,2006,,1180,CA1158,matched,title_short,1320,52314244.7,
+PROP_1C_2006,1C,2006,,1176,CA1154,matched,title_short,941,5999434.8,
+PROP_1D_2006,1D,2006,,1175,CA1153,matched,title_short,657,24059097.82,
+PROP_1E_2006,1E,2006,,1178,CA1156,matched,title_short,20,274857.43,
+PROP_54_2006,54,2006,,,,missing,,3,19000.0,no measures-DB record
+PROP_66_2006,66,2006,,,,missing,,45,44084.9,no measures-DB record
+PROP_73_2006,73,2006,,,,missing,,486,76034.0,no measures-DB record
+PROP_74_2006,74,2006,,,,missing,,642,99584.0,no measures-DB record
+PROP_75_2006,75,2006,,,,missing,,486,76034.0,no measures-DB record
+PROP_76_2006,76,2006,,,,missing,,486,76034.0,no measures-DB record
+PROP_77_2006,77,2006,,,,missing,,501,370034.0,no measures-DB record
+PROP_78_2006,78,2006,,,,missing,,486,76034.0,no measures-DB record
+PROP_79_2006,79,2006,,,,missing,,480,74984.0,no measures-DB record
+PROP_80_2006,80,2006,,,,missing,,480,74984.0,no measures-DB record
+PROP_81_2006,81,2006,,1171,CA1149,matched,title_short,564,1114323.78,
+PROP_82_2006,82,2006,,1168,CA1146,matched,title_short,602,14716608.21,
+PROP_83_2006,83,2006,,1179,CA1157,matched,title_short,970,4005288.79,
+PROP_84_2006,84,2006,,1174,CA1152,matched,title_short,62,3321330.34,
+PROP_85_2006,85,2006,,1170,CA1148,matched,title_short,6595,19963020.36,
+PROP_86_2006,86,2006,,1173,CA1151,matched,title_short,975,236036615.17,
+PROP_87_2006,87,2006,,1169,CA1147,matched,title_short,625,235985363.99,
+PROP_88_2006,88,2006,,1166,CA1144,matched,title_short,138,3553958.07,
+PROP_89_2006,89,2006,,1167,CA1145,matched,title_short,1778,20311793.62,
+PROP_90_2006,90,2006,,1172,CA1150,matched,title_short,885,19923741.48,
+PROP_98_2006,98,2006,,,,missing,,29,27800.0,no measures-DB record
+PROP_0_2008,0,2008,,,,missing,,12,104.46,no measures-DB record
+PROP_10_2008,10,2008,,1184,CA1162,matched,title_short,80,27963645.06,
+PROP_11_2008,11,2008,,1190,CA1168,matched,title_short,3380,49972230.95,
+PROP_1A_2008,1A,2008,,1192,CA1170,matched,title_short,162,3084458.5,
+PROP_2_2008,2,2008,,1200,CA1178,matched,title_short,934,24665199.83,
+PROP_3_2008,3,2008,,1194,CA1172,matched,title_short,50,7547450.36,
+PROP_4_2008,4,2008,,1189,CA1167,matched,title_short,5090,19249556.67,
+PROP_5_2008,5,2008,,1185,CA1163,matched,title_short,630,15620424.94,
+PROP_6_2008,6,2008,,1181,CA1159,matched,title_short,144,3877241.72,
+PROP_7_2008,7,2008,,1182,CA1160,matched,title_short,55,116258180.66,
+PROP_8_2008,8,2008,,1191,CA1169,matched,title_short,110907,91422313.68,
+PROP_9_2008,9,2008,,1193,CA1171,matched,title_short,13,115267.41,
+PROP_92_2008,92,2008,,1187,CA1165,matched,title_short,1789,7593599.17,
+PROP_93_2008,93,2008,,1188,CA1166,matched,title_short,34,2392260.8,
+PROP_94_2008,94,2008,,1197,CA1175,matched,title_short,149,183169942.76,
+PROP_98_2008,98,2008,,1183,CA1161,matched,title_short,3075,6767151.47,
+PROP_99_2008,99,2008,,1199,CA1177,matched,title_short,680,10642592.58,
+PROP_1A_2009,1A,2009,,1204,CA1182,matched,title_short,4863,75781696.12,
+PROP_1B_2009,1B,2009,,1206,CA1184,matched,title_short,41,12907742.12,
+PROP_1C_2009,1C,2009,,1205,CA1183,matched,title_short,29,2388000.0,
+PROP_1D_2009,1D,2009,,1203,CA1181,matched,title_short,412,1236778.97,
+PROP_1E_2009,1E,2009,,1202,CA1180,matched,title_short,7,122350.0,
+PROP_92_2009,92,2009,,,,missing,,1,772.01,no measures-DB record
+PROP_14_2010,14,2010,,1217,CA1195,matched,title_short,254,10820214.41,
+PROP_15_2010,15,2010,,1211,CA1189,matched,title_short,1010,550384.28,
+PROP_16_2010,16,2010,,1214,CA1192,matched,title_short,294,125305913.83,
+PROP_17_2010,17,2010,,1215,CA1193,matched,title_short,136,31300388.86,
+PROP_19_2010,19,2010,,1213,CA1191,matched,title_short,1549,1984240.92,
+PROP_1A_2010,1A,2010,,,,missing,,18,333045.01,no measures-DB record
+PROP_20_2010,20,2010,,1220,CA1198,matched,title_short,945,74360909.02,
+PROP_21_2010,21,2010,,1212,CA1190,matched,title_short,1095,26104838.18,
+PROP_22_2010,22,2010,,1219,CA1197,matched,title_short,2050,23457954.98,
+PROP_23_2010,23,2010,,1208,CA1186,matched,title_short,3168,96082311.59,
+PROP_24_2010,24,2010,,1210,CA1188,matched,title_short,859,65072476.45,
+PROP_25_2010,25,2010,,1218,CA1196,matched,title_short,1980,29727320.78,
+PROP_26_2010,26,2010,,1216,CA1194,matched,title_short,1255,92962792.1,
+PROP_27_2010,27,2010,,1209,CA1187,matched,title_short,3034,58450075.95,
+PROP_4_2010,4,2010,,,,missing,,1427,702409.5,no measures-DB record
+PROP_1A_2012,1A,2012,,,,missing,,43,97633.99,no measures-DB record
+PROP_28_2012,28,2012,,1231,CA1209,matched,title_short,10,556000.0,
+PROP_29_2012,29,2012,,1228,CA1206,matched,title_short,1335,97771705.65,
+PROP_30_2012,30,2012,,1229,CA1207,matched,title_short,4763,88683879.46,
+PROP_31_2012,31,2012,,1223,CA1201,matched,title_short,318,7461460.81,
+PROP_32_2012,32,2012,,1224,CA1202,matched,title_short,2405,447098537.29,
+PROP_33_2012,33,2012,,1225,CA1203,matched,title_short,705,27540551.52,
+PROP_34_2012,34,2012,,1227,CA1205,matched,title_short,6695,17426128.76,
+PROP_35_2012,35,2012,,1234,CA1212,matched,title_short,428,11950916.72,
+PROP_36_2012,36,2012,,1232,CA1210,matched,title_short,581,7969997.86,
+PROP_37_2012,37,2012,,1226,CA1204,matched,title_short,5573,136738491.4,
+PROP_38_2012,38,2012,,1222,CA1200,matched,title_short,336,50740088.98,
+PROP_39_2012,39,2012,,1230,CA1208,matched,title_short,359,10679025.19,
+PROP_4_2012,4,2012,,,,missing,,632,214444.1,no measures-DB record
+PROP_40_2012,40,2012,,1233,CA1211,matched,title_short,646,12315438.5,
+PROP_1_2014,1,2014,,1356,Proposition 1,matched,mid_long,215,2667670.86,resolved by id-match preference; 1 title-only candidate(s) treated as soft duplicate
+PROP_12P_2014,12P,2014,,,,missing,,5,110423.0,no measures-DB record
+PROP_2_2014,2,2014,,1323,Proposition 2,matched,mid_long,5,1400.0,resolved by id-match preference; 1 title-only candidate(s) treated as soft duplicate
+PROP_41_2014,41,2014,,1352,Proposition 41,matched,mid_long,85,325879.0,resolved by id-match preference; 1 title-only candidate(s) treated as soft duplicate
+PROP_42_2014,42,2014,,1355,Proposition 42,matched,mid_long,7,388450.72,resolved by id-match preference; 1 title-only candidate(s) treated as soft duplicate
+PROP_45_2014,45,2014,,1358,Proposition 45,matched,mid_long,256,13133583.18,resolved by id-match preference; 1 title-only candidate(s) treated as soft duplicate
+PROP_46_2014,46,2014,,1360,Proposition 46,matched,mid_long,6503,115123049.08,resolved by id-match preference; 1 title-only candidate(s) treated as soft duplicate
+PROP_47_2014,47,2014,,1362,Proposition 47,matched,mid_long,745,21218381.66,resolved by id-match preference; 1 title-only candidate(s) treated as soft duplicate
+PROP_48_2014,48,2014,,1363,Proposition 48,matched,mid_long,134,20721355.59,resolved by id-match preference; 1 title-only candidate(s) treated as soft duplicate
+PROP_103_2016,103,2016,,,,missing,,3,1000000.0,no measures-DB record
+PROP_4_2016,4,2016,,,,missing,,276,53109.6,no measures-DB record
+PROP_40_2016,40,2016,,,,missing,,39,1226070.74,no measures-DB record
+PROP_51_2016,51,2016,,1290,Proposition 51,matched,mid_long,911,10274061.28,resolved by id-match preference; 1 title-only candidate(s) treated as soft duplicate
+PROP_52_2016,52,2016,,1293,Proposition 52,matched,mid_long,111,3118501.49,resolved by id-match preference; 1 title-only candidate(s) treated as soft duplicate
+PROP_53_2016,53,2016,,1295,Proposition 53,matched,mid_long,97,10704624.87,resolved by id-match preference; 1 title-only candidate(s) treated as soft duplicate
+PROP_54_2016,54,2016,,1298,Proposition 54,matched,mid_long,43,25461038.45,resolved by id-match preference; 1 title-only candidate(s) treated as soft duplicate
+PROP_55_2016,55,2016,,1299,Proposition 55,matched,mid_long,921,112483891.5,resolved by id-match preference; 1 title-only candidate(s) treated as soft duplicate
+PROP_56_2016,56,2016,,1300,Proposition 56,matched,mid_long,389,170114139.22,resolved by id-match preference; 1 title-only candidate(s) treated as soft duplicate
+PROP_57_2016,57,2016,,1303,Proposition 57,matched,mid_long,256,7702504.59,resolved by id-match preference; 1 title-only candidate(s) treated as soft duplicate
+PROP_58_2016,58,2016,,1304,Proposition 58,matched,mid_long,145,4712282.08,resolved by id-match preference; 1 title-only candidate(s) treated as soft duplicate
+PROP_59_2016,59,2016,,1305,Proposition 59,matched,mid_long,85,34322.82,resolved by id-match preference; 1 title-only candidate(s) treated as soft duplicate
+PROP_60_2016,60,2016,,1306,Proposition 60,matched,mid_long,199,5126330.45,resolved by id-match preference; 1 title-only candidate(s) treated as soft duplicate
+PROP_61_2016,61,2016,,1307,Proposition 61,matched,mid_long,800,89784313.28,resolved by id-match preference; 1 title-only candidate(s) treated as soft duplicate
+PROP_62_2016,62,2016,,1309,Proposition 62,matched,mid_long,5459,8354461.08,resolved by id-match preference; 1 title-only candidate(s) treated as soft duplicate
+PROP_63_2016,63,2016,,1310,Proposition 63,matched,mid_long,14134,3153215.47,resolved by id-match preference; 1 title-only candidate(s) treated as soft duplicate
+PROP_64_2016,64,2016,,1311,Proposition 64,matched,mid_long,1126,47423180.69,resolved by id-match preference; 1 title-only candidate(s) treated as soft duplicate
+PROP_65_2016,65,2016,,1314,Proposition 65,matched,mid_long,2,15000.0,resolved by id-match preference; 1 title-only candidate(s) treated as soft duplicate
+PROP_66_2016,66,2016,,1316,Proposition 66,matched,mid_long,80,1168379.46,resolved by id-match preference; 1 title-only candidate(s) treated as soft duplicate
+PROP_67_2016,67,2016,,1317,Proposition 67,matched,mid_long,3119,2171410.22,resolved by id-match preference; 1 title-only candidate(s) treated as soft duplicate
+PROP_10_2018,10,2018,,1270,Proposition 10,matched,mid_long,17276,315366687.52,
+PROP_11_2018,11,2018,,1274,Proposition 11,matched,mid_long,8,23275795.96,
+PROP_12_2018,12,2018,,1286,Proposition 12,matched,mid_long,2645,34443548.67,
+PROP_3_2018,3,2018,,1261,Proposition 3,matched,mid_long,517,4401375.02,
+PROP_4_2018,4,2018,,1279,Proposition 4,matched,mid_long,282,5935640.13,
+PROP_5_2018,5,2018,,1266,Proposition 5,matched,mid_long,52,4459541.55,
+PROP_6_2018,6,2018,,1281,Proposition 6,matched,mid_long,32430,180983196.54,
+PROP_68_2018,68,2018,,,,missing,,629,21799887.76,no measures-DB record
+PROP_69_2018,69,2018,,,,missing,,28,2890000.0,no measures-DB record
+PROP_70_2018,70,2018,,,,missing,,48,45278.18,no measures-DB record
+PROP_8_2018,8,2018,,1267,Proposition 8,matched,mid_long,109,220172074.61,
+PROP_1_2020,1,2020,,,,missing,,1,2500.0,no measures-DB record
+PROP_13_2020,13,2020,3,10924,PROP_13,matched,short_form,292,14495812.62,
+PROP_14_2020,14,2020,,10925,PROP_14,matched,short_form,353,19572328.78,
+PROP_15_2020,15,2020,,10926,PROP_15,matched,short_form,8919,284299385.82,
+PROP_16_2020,16,2020,,10927,PROP_16,matched,short_form,2492,48270305.95,
+PROP_17_2020,17,2020,,10928,PROP_17,matched,short_form,796,2988614.3,
+PROP_18_2020,18,2020,,10929,PROP_18,matched,short_form,677,1998449.0,
+PROP_19_2020,19,2020,,10930,PROP_19,matched,short_form,550,63489141.33,
+PROP_20_2020,20,2020,,10931,PROP_20,matched,short_form,162,19609720.93,
+PROP_21_2020,21,2020,,10932,PROP_21,matched,short_form,8283,174169633.45,
+PROP_22_2020,22,2020,,10933,PROP_22,matched,short_form,1272,371604388.42,
+PROP_23_2020,23,2020,,10934,PROP_23,matched,short_form,64,42148565.92,
+PROP_24_2020,24,2020,,10935,PROP_24,matched,short_form,88,3200577.4,
+PROP_25_2020,25,2020,,10936,PROP_25,matched,short_form,982,29822569.63,
+PROP_1_2021,1,2021,,,,missing,,2,37246.21,no measures-DB record
+PROP_1_2022,1,2022,,10937,PROP_1,matched,short_form,1675,3086930.55,
+PROP_22A_2022,22A,2022,,,,missing,,3,2250000.0,no measures-DB record
+PROP_26_2022,26,2022,,10938,PROP_26,matched,short_form,18,50568.0,
+PROP_27_2022,27,2022,,10939,PROP_27,matched,short_form,322,471138798.74,
+PROP_28_2022,28,2022,,10940,PROP_28,matched,short_form,348,5326657.57,
+PROP_29_2022,29,2022,,10941,PROP_29,matched,short_form,5,29055.1,
+PROP_30_2022,30,2022,,10942,PROP_30,matched,short_form,840,221589569.92,
+PROP_31_2022,31,2022,,10943,PROP_31,matched,short_form,289,61206740.19,
+PROP_1_2024,1,2024,3,10944,PROP_1,matched,short_form,419,26519849.32,
+PROP_2_2024,2,2024,,10945,PROP_2,matched,short_form,466,11212390.66,
+PROP_3_2024,3,2024,,10951,PROP_3,matched,short_form,31,112079.96,
+PROP_32_2024,32,2024,,10946,PROP_32,matched,short_form,66,839905.32,
+PROP_33_2024,33,2024,,10947,PROP_33,matched,short_form,2075,218222667.31,
+PROP_34_2024,34,2024,,10948,PROP_34,matched,short_form,137,75811168.04,
+PROP_35_2024,35,2024,,10949,PROP_35,matched,short_form,767,133426232.41,
+PROP_36_2024,36,2024,,10950,PROP_36,matched,short_form,3171,46483259.51,
+PROP_4_2024,4,2024,,10952,PROP_4,matched,short_form,351,27077952.76,
+PROP_5_2024,5,2024,,10953,PROP_5,matched,short_form,737,58689238.4,
+PROP_6_2024,6,2024,,10954,PROP_6,matched,short_form,262,4647617.98,
+PROP_50_2025,50,2025,,10955,PROP_50,matched,short_form,269178,176483579.4,
+PROP_25_2026,25,2026,,,,missing,,596,133274.91,no measures-DB record

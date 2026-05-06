@@ -49,14 +49,18 @@ class WebsiteGenerator:
         # Generate HTML
         html = self._generate_html(measures_data, stats, topics, recommendations)
         
-        # Save to file
+        # Save to the deployable copy (root of repo, served by GitHub Pages).
         self.output_path.write_text(html, encoding='utf-8')
         logger.info(f"Website generated: {self.output_path}")
-        
-        # Also save to index.html in parent directory for GitHub Pages
-        index_path = BASE_DIR.parent / 'index.html'
-        index_path.write_text(html, encoding='utf-8')
-        logger.info(f"Also saved to: {index_path}")
+
+        # Also save a scraper-local copy at scraper/index.html for local
+        # testing (per scraper/Makefile). Only write if it would actually be a
+        # second location — avoid overwriting the deploy copy when output_path
+        # has already been pointed at scraper/index.html explicitly.
+        scraper_local = BASE_DIR / 'index.html'
+        if scraper_local.resolve() != self.output_path.resolve():
+            scraper_local.write_text(html, encoding='utf-8')
+            logger.info(f"Also saved to: {scraper_local}")
         
         return html
     
@@ -378,18 +382,29 @@ class WebsiteGenerator:
             logger.info("Finance DB not found, skipping finance data")
             return {}
 
+        # v2 schema is keyed on finance_campaign_id (e.g. PROP_16_2020). The
+        # client-side lookup is by measure_db_id (integer FK), since the bare
+        # measure_id ("PROP_1") is no longer unique across cycles. Output dict
+        # is keyed on str(measure_db_id) so it serializes cleanly into the
+        # JSON blob shipped to the page.
         try:
             fdb = FinanceDatabase(FINANCE_DB_PATH)
             result = {}
-            for mid in fdb.get_all_measure_ids():
-                result[mid] = {
-                    'summary': fdb.get_finance_summary(mid),
-                    'donors': fdb.get_top_donors(mid),
-                    'timeline': fdb.get_finance_timeline(mid),
-                    'breakdown': fdb.get_contribution_breakdown(mid),
+            for campaign in fdb.get_all_campaigns():
+                cid = campaign["finance_campaign_id"]
+                measure_db_id = campaign.get("measure_db_id")
+                if measure_db_id is None:
+                    continue
+                result[str(measure_db_id)] = {
+                    "finance_campaign_id": cid,
+                    "election_year": campaign.get("election_year"),
+                    "summary": fdb.get_finance_summary(cid),
+                    "donors": fdb.get_top_donors(cid, limit=20),
+                    "timeline": fdb.get_finance_timeline(cid),
+                    "breakdown": fdb.get_contribution_breakdown(cid),
                 }
             fdb.close()
-            logger.info(f"Loaded finance data for {len(result)} measures")
+            logger.info(f"Loaded finance data for {len(result)} matched campaigns")
             return result
         except Exception as e:
             logger.warning(f"Could not load finance data: {e}")
@@ -447,6 +462,8 @@ class WebsiteGenerator:
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/topojson-client@3/dist/topojson-client.min.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
     <style>
         {self._get_css()}
     </style>
@@ -626,8 +643,8 @@ class WebsiteGenerator:
                         <h2>What California ballot measures reveal</h2>
                         <p>
                             A reported-analysis view of the full CalBallot dataset: what voters approve,
-                            where the ballot is busiest, which rules change outcomes, and where campaign
-                            money reshapes statewide fights.
+                            where the ballot is busiest, which rules turn majorities into losses, and where
+                            campaign money does and doesn&rsquo;t decide statewide fights.
                         </p>
                     </div>
                     <div class="insights-method-card">
@@ -647,7 +664,6 @@ class WebsiteGenerator:
                         <a href="#insightsTypesPanel">Measure Types</a>
                         <a href="#insightsGeographyPanel">Geography</a>
                         <a href="#insightsRulesPanel">Rules</a>
-                        <a href="#insightsClosePanel">Close Calls</a>
                         <a href="#insightsFinanceSection">Finance</a>
                         <a href="#insightsMethodologySection">Methodology</a>
                     </nav>
@@ -661,10 +677,20 @@ class WebsiteGenerator:
                         <div class="insights-carousel-track" id="insightsCarouselTrack">
                 <section class="insights-carousel-slide insights-anchor-target" id="insightsOverview">
                     <div class="insights-metrics" id="insightsMetrics"></div>
+                    <div class="insights-overview-composition" id="insightsComposition"></div>
+                    <div class="insights-overview-sparkline" id="insightsSparkline">
+                        <div class="insights-overview-sparkline-header">
+                            <h4>Activity over time</h4>
+                            <button class="overview-jump-btn" onclick="jumpToInsightsPanel('insightsTrendPanel')">Open trend &rarr;</button>
+                        </div>
+                        <div class="chart-wrap"><canvas id="insightsOverviewSparkChart"></canvas></div>
+                    </div>
+                    <div class="insights-overview-tops" id="insightsOverviewTops"></div>
+                    <div class="insights-overview-coverage" id="insightsCoverage"></div>
                 </section>
 
-                <section class="insights-carousel-slide insights-anchor-target" id="insightsKeyFindings">
-                    <div class="insights-findings" id="insightsFindings"></div>
+                <section class="insights-carousel-slide insights-anchor-target insights-key-findings" id="insightsKeyFindings">
+                    <div class="key-findings-article" id="insightsFindings"></div>
                 </section>
 
                     <article class="insight-panel insight-panel-wide insights-carousel-slide insights-anchor-target" id="insightsTrendPanel">
@@ -673,7 +699,6 @@ class WebsiteGenerator:
                                 <span class="panel-eyebrow">Trend</span>
                                 <h3>Ballot activity rises and falls with election cycles</h3>
                             </div>
-                            <span class="confidence-badge">High confidence</span>
                         </div>
                         <p class="panel-deck">Annual counts, decade composition, and election-cycle patterns show when California voters faced the heaviest measure load.</p>
                         <div id="trendInsightSummary" class="mini-callouts"></div>
@@ -683,12 +708,22 @@ class WebsiteGenerator:
                                 <div class="chart-wrap"><canvas id="insightsYearChart"></canvas></div>
                             </div>
                             <div class="chart-module">
-                                <h4>Local vs. statewide by decade</h4>
-                                <div class="chart-wrap compact"><canvas id="insightsDecadeChart"></canvas></div>
+                                <h4>Local measures per year (5-yr avg)</h4>
+                                <div class="chart-wrap compact"><canvas id="insightsLocalTrendChart"></canvas></div>
+                                <p class="chart-footnote">Shown from 1990 forward; CEDA local coverage begins in the 1990s. See the Annual chart above for the full historical arc.</p>
                             </div>
                             <div class="chart-module">
-                                <h4>Election-cycle load</h4>
+                                <h4>Statewide measures per year (5-yr avg)</h4>
+                                <div class="chart-wrap compact"><canvas id="insightsStatewideTrendChart"></canvas></div>
+                                <p class="chart-footnote">Shown from 1990 forward to align with local. Statewide propositions are tracked back to 1911 in the Annual chart above.</p>
+                            </div>
+                            <div class="chart-module">
+                                <h4>Avg. measures per year by cycle</h4>
                                 <div class="chart-wrap compact"><canvas id="insightsElectionCycleChart"></canvas></div>
+                            </div>
+                            <div class="chart-module">
+                                <h4>Pass rate by cycle</h4>
+                                <div class="chart-wrap compact"><canvas id="insightsElectionCyclePassRateChart"></canvas></div>
                             </div>
                         </div>
                         <p class="method-note">Method: active records by election year. Trend fits are descriptive and not coverage-adjusted.</p>
@@ -701,19 +736,16 @@ class WebsiteGenerator:
                                 <h3>The issue mix is broad, but unevenly classified</h3>
                             </div>
                         </div>
-                        <p class="panel-deck">CEDA supplies many local records with reliable measure types but sparse topical text.</p>
+                        <p class="panel-deck">How the issue mix has shifted over time across the most consistently classified topic categories.</p>
                         <div class="analysis-chart-grid single-column">
-                            <div class="chart-module">
-                                <h4>Overall topic mix</h4>
-                                <div class="chart-wrap compact"><canvas id="insightsTopicChart"></canvas></div>
-                            </div>
                             <div class="chart-module">
                                 <h4>Topic share by decade</h4>
                                 <div class="chart-wrap compact"><canvas id="insightsTopicTrendChart"></canvas></div>
                             </div>
                         </div>
-                        <div id="topicTrendSummary" class="compact-list"></div>
-                        <p class="method-note">Method: consolidated display topics. Treat large Other counts as a data limitation, not a substantive topic.</p>
+                        <div id="topicEraStrip" class="topic-era-strip"></div>
+                        <div id="topicPassRateRankings" class="topic-pass-rate-rankings"></div>
+                        <p class="method-note">Method: shares and rankings use topic-classified records only (Other is excluded). Local CEDA records are better analyzed by measure type.</p>
                     </article>
 
                     <article class="insight-panel insights-carousel-slide insights-anchor-target" id="insightsTypesPanel">
@@ -732,11 +764,16 @@ class WebsiteGenerator:
                             <div class="chart-module">
                                 <h4>Fiscal share over time</h4>
                                 <div class="chart-wrap compact"><canvas id="insightsFiscalTrendChart"></canvas></div>
+                                <p class="chart-footnote">Shown from 1990 forward. Bond, sales tax, and property tax are local-ballot instruments tracked through CEDA; pre-1990 the dataset is statewide-only and these labels do not apply.</p>
                             </div>
                         </div>
-                        <div id="typeInsightSummary" class="mini-callouts"></div>
-                        <div id="typeRankingsList" class="compact-list"></div>
-                        <p class="method-note">Method: normalized category type from source records.</p>
+                        <div class="type-insights-stack">
+                            <section class="type-insights-section" id="typeModernAnatomy"></section>
+                            <section class="type-insights-section" id="typeFiscalProfiles"></section>
+                            <section class="type-insights-section" id="typeThresholdProfiles"></section>
+                            <section class="type-insights-section" id="typeRecallCallout"></section>
+                        </div>
+                        <p class="method-note">Method: normalized category type from source records. Threshold mixes use derived threshold fields.</p>
                     </article>
 
                     <article class="insight-panel insight-panel-wide insights-carousel-slide insights-anchor-target" id="insightsGeographyPanel">
@@ -745,15 +782,21 @@ class WebsiteGenerator:
                                 <span class="panel-eyebrow">Geography</span>
                                 <h3>The map of ballot activity is not evenly distributed</h3>
                             </div>
-                            <span class="confidence-badge">Raw counts</span>
                         </div>
                         <p class="panel-deck">County totals reflect local-government density and source coverage. They are not population adjusted.</p>
+                        <div class="geography-anchor-cards" id="regionInsightSummary"></div>
+                        <div class="geography-toolbar">
+                            <div class="toolbar-group" role="group" aria-label="Color by">
+                                <span class="toolbar-label">Color by</span>
+                                <button class="toolbar-btn active" data-geo-color="count" onclick="setGeographyColor('count')">Count</button>
+                                <button class="toolbar-btn" data-geo-color="passRate" onclick="setGeographyColor('passRate')">Pass rate</button>
+                            </div>
+                        </div>
                         <div class="county-map-layout">
                             <div id="californiaCountyMap" class="county-map"></div>
                             <div class="county-map-side">
                                 <h4>Busiest counties</h4>
                                 <div id="countyLeaderboard"></div>
-                                <div id="regionInsightSummary" class="mini-callouts mini-callouts-single"></div>
                             </div>
                         </div>
                         <p class="method-note">Method: active local records grouped by normalized county name. Map geometry loads from the public us-atlas county topology.</p>
@@ -766,41 +809,70 @@ class WebsiteGenerator:
                                 <h3>Thresholds can turn majorities into losses</h3>
                             </div>
                         </div>
-                        <p class="panel-deck">Simple-majority elections are not the same world as 55% or two-thirds contests.</p>
-                        <div class="chart-wrap compact"><canvas id="insightsThresholdChart"></canvas></div>
-                        <div id="thresholdCallouts" class="mini-callouts"></div>
-                        <div id="thresholdStatsSummary" class="compact-list"></div>
-                        <p class="method-note">Method: pass/fail codes and vote-threshold fields; known edge cases remain under review.</p>
-                    </article>
-
-                    <article class="insight-panel insights-carousel-slide insights-anchor-target" id="insightsClosePanel">
-                        <div class="panel-heading">
-                            <div>
-                                <span class="panel-eyebrow">Close Calls</span>
-                                <h3>Many outcomes are decided near 50%</h3>
-                            </div>
+                        <p class="panel-deck">A 55% or two-thirds contest is a different world than a simple-majority one. Same yes share, very different legal outcome.</p>
+                        <div class="rules-hero" id="rulesHero"></div>
+                        <div class="rules-chart-wrap">
+                            <h4 class="rules-section-h">Outcome share by threshold</h4>
+                            <div class="chart-wrap"><canvas id="insightsThresholdChart"></canvas></div>
+                            <p class="chart-footnote">Each bar runs from 0% to 100% of decided records at that threshold. The grey segment is normal failures (didn&rsquo;t reach majority); the red segment is measures that crossed 50% yes but still failed under the higher rule.</p>
                         </div>
-                        <p class="panel-deck">The closest races are a useful quality check and an editorial trailhead.</p>
-                        <div id="closeCallSummary" class="mini-callouts"></div>
-                        <div id="closeMeasuresList" class="compact-list"></div>
-                        <p class="method-note">Method: records with valid percent yes; margin shown around 50%, not legal threshold.</p>
+                        <div id="rulesThresholdTable"></div>
+                        <div id="rulesLandmarks"></div>
+                        <div id="rulesPlainEnglish"></div>
+                        <div id="rulesBridge"></div>
+                        <p class="method-note">Method: pass/fail codes and derived vote-threshold fields. Threshold assignment is selected (mostly by instrument), not random &mdash; so rate gaps below describe the contests, not voter mood. Known edge cases remain under review.</p>
                     </article>
 
                     <article class="insight-panel insight-panel-wide insights-carousel-slide insights-anchor-target" id="insightsFinanceSection">
                         <div class="panel-heading">
                             <div>
                                 <span class="panel-eyebrow">Campaign Finance</span>
-                                <h3>Statewide propositions can become billion-dollar fights</h3>
+                                <h3>Statewide proposition campaigns have drawn billions</h3>
                             </div>
                             <span class="confidence-badge">Statewide only</span>
                         </div>
-                        <p class="panel-deck">Finance coverage is intentionally scoped to matched statewide propositions from CalAccess.</p>
+                        <p class="panel-deck">Finance coverage is intentionally scoped to matched statewide propositions from CalAccess. Each campaign is keyed by election cycle, so receipts attributed to the 2020 PROP_16 are the 2020 measure&rsquo;s, not the 2010 reuse of the same proposition number.</p>
+
                         <div id="financeInsightSummary" class="mini-callouts finance-summary-callouts"></div>
-                        <div class="finance-insights-grid">
-                            <div class="chart-wrap compact"><canvas id="insightsFinanceChart"></canvas></div>
-                            <div id="financeTopMeasures" class="compact-list"></div>
-                        </div>
-                        <p class="method-note">Method: pre-aggregated finance_statewide.db summaries by measure and stance.</p>
+
+                        <section class="finance-module">
+                            <div class="finance-module-header">
+                                <h4>How much money has flowed</h4>
+                                <p>Total receipts grouped by election cycle. Bars include both support and oppose receipts.</p>
+                            </div>
+                            <div class="chart-wrap finance-arc-chart"><canvas id="financeAnnualChart"></canvas></div>
+                        </section>
+
+                        <section class="finance-module">
+                            <div class="finance-module-header">
+                                <h4>The donors who showed up</h4>
+                                <p>The single most absent thing on the old panel: the names. Both lists below aggregate the per-campaign top-donor reports &mdash; not every transaction, but the donors big enough to land in a campaign&rsquo;s top-20.</p>
+                            </div>
+                            <div class="finance-donors-grid">
+                                <div>
+                                    <h5 class="finance-subhead">Top 15 by aggregated receipts</h5>
+                                    <p class="finance-subdeck">Donors with the largest total dollars across all campaigns where they appeared in the top-20.</p>
+                                    <ol id="financeTopDonors" class="finance-donor-list"></ol>
+                                </div>
+                                <div>
+                                    <h5 class="finance-subhead">Repeat players</h5>
+                                    <p class="finance-subdeck">Donors that landed in the top-20 of 3+ campaigns with $1M+ aggregate &mdash; the policy actors, not the one-off industry fights.</p>
+                                    <ol id="financeRepeatDonors" class="finance-donor-list"></ol>
+                                </div>
+                            </div>
+                        </section>
+
+                        <section class="finance-module">
+                            <div class="finance-module-header">
+                                <h4>Three fights, three industries</h4>
+                                <p>Curated case studies across gig work, gambling, and healthcare. Top 5 donors per side; concentration line below each card.</p>
+                            </div>
+                            <div id="financeMarqueeFights" class="finance-marquee-grid"></div>
+                        </section>
+
+                        <p class="finance-bridge">Money matters but isn&rsquo;t decisive: the better-funded side wins about 65% of the time and loses the other 35%. And this is the visible top of the iceberg &mdash; California&rsquo;s local ballot has tens of thousands of measures with no comparable donor data.</p>
+
+                        <p class="method-note">Method: per-(prop_num, election_year) aggregates from finance_statewide_v2.db, rebuilt 2026-05-04 with row-level date hygiene + exact-row dedupe + minimal donor alias normalization. Donor lists aggregate the per-campaign top-20 reports, not all transactions &mdash; a donor below the top-20 cutoff in every campaign won&rsquo;t appear here. Donor canonicalization is partial; some entities still appear under multiple legal-entity variants.</p>
                     </article>
 
                 <details class="insights-methodology insights-carousel-slide insights-anchor-target" id="insightsMethodologySection">
@@ -813,7 +885,7 @@ class WebsiteGenerator:
                         <span aria-hidden="true">&rsaquo;</span>
                     </button>
                 </div>
-                <div class="insights-carousel-status" id="insightsCarouselStatus">1 / 10</div>
+                <div class="insights-carousel-status" id="insightsCarouselStatus">1 / 9</div>
                     </div>
                 </div>
             </section>
@@ -1359,7 +1431,7 @@ class WebsiteGenerator:
                             <div id="modalFinanceContent" class="measure-detail-finance"></div>
                         </div>
                         <div id="modalFinanceEmpty" class="measure-detail-section" style="display:none;">
-                            <p style="color:var(--text-tertiary);font-style:italic;">No campaign finance data available for this measure yet.</p>
+                            <p style="color:var(--text-tertiary);font-style:italic;">No campaign finance data available for this measure. (Finance coverage is statewide-only; local measures aren&rsquo;t in CAL-ACCESS.)</p>
                         </div>
                     </div>
                 </div>
@@ -5766,6 +5838,386 @@ class WebsiteGenerator:
             color: var(--text-secondary);
             font-size: 0.78rem;
         }
+        /* Overview enhancements (composition bars, sparkline, top-3 cards, coverage) */
+        .insights-overview-composition {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 0.85rem;
+            margin-bottom: 1.2rem;
+        }
+        .composition-block {
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: white;
+            padding: 0.85rem 0.95rem;
+        }
+        .composition-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            gap: 0.5rem;
+            margin-bottom: 0.55rem;
+        }
+        .composition-header h4 {
+            margin: 0;
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+        .composition-bar {
+            display: flex;
+            height: 12px;
+            border-radius: 4px;
+            overflow: hidden;
+            background: #f3f1ec;
+            margin-bottom: 0.55rem;
+        }
+        .composition-bar-segment {
+            height: 100%;
+        }
+        .composition-legend {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+        .composition-legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            font-size: 0.78rem;
+            color: var(--text-secondary);
+        }
+        .composition-legend-item strong {
+            color: var(--text-primary);
+            font-weight: 700;
+            min-width: 5.5rem;
+        }
+        .composition-legend-swatch {
+            width: 10px;
+            height: 10px;
+            border-radius: 2px;
+            flex-shrink: 0;
+        }
+        .insights-overview-sparkline {
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: white;
+            padding: 0.85rem 1rem;
+            margin-bottom: 1.2rem;
+        }
+        .insights-overview-sparkline-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            margin-bottom: 0.4rem;
+        }
+        .insights-overview-sparkline-header h4 {
+            margin: 0;
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+        .insights-overview-sparkline .chart-wrap {
+            height: 90px;
+        }
+        .insights-overview-tops {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 0.85rem;
+            margin-bottom: 1.2rem;
+        }
+        .overview-top-card {
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: white;
+            padding: 0.85rem 0.95rem;
+        }
+        .overview-top-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            margin-bottom: 0.6rem;
+        }
+        .overview-top-card-header h4 {
+            margin: 0;
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+        .overview-top-list {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 0.45rem;
+        }
+        .overview-top-list li {
+            display: grid;
+            grid-template-columns: 1.2rem 1fr auto;
+            align-items: baseline;
+            gap: 0.5rem;
+            font-size: 0.85rem;
+        }
+        .overview-top-rank {
+            color: var(--text-tertiary);
+            font-weight: 700;
+        }
+        .overview-top-name {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+        .overview-top-meta {
+            color: var(--text-secondary);
+            font-size: 0.75rem;
+            text-align: right;
+        }
+        .insights-overview-coverage {
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: white;
+            padding: 0.85rem 1rem;
+        }
+        .overview-coverage-row {
+            display: flex;
+            align-items: baseline;
+            flex-wrap: wrap;
+            gap: 1.5rem;
+        }
+        .overview-coverage-item {
+            display: flex;
+            flex-direction: column;
+            gap: 0.15rem;
+        }
+        .overview-coverage-item strong {
+            font-size: 1.15rem;
+            font-weight: 800;
+            color: var(--text-primary);
+        }
+        .overview-coverage-item span {
+            font-size: 0.78rem;
+            color: var(--text-secondary);
+        }
+        .overview-coverage-item small {
+            color: var(--text-tertiary);
+            font-size: 0.7rem;
+            margin-left: 0.2rem;
+        }
+        .overview-jump-btn {
+            background: none;
+            border: none;
+            padding: 0;
+            color: #174ea6;
+            font-size: 0.78rem;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+        }
+        .overview-jump-btn:hover {
+            text-decoration: underline;
+        }
+        @media (max-width: 1024px) {
+            .insights-overview-composition,
+            .insights-overview-tops {
+                grid-template-columns: 1fr;
+            }
+        }
+        /* Key Findings (prose-flow article) */
+        .key-findings-article {
+            max-width: 760px;
+            margin: 0 auto 1.25rem;
+            color: var(--text-primary);
+            font-size: 0.97rem;
+            line-height: 1.65;
+        }
+        .key-findings-article p {
+            margin: 0 0 0.9rem;
+        }
+        .kf-lede {
+            font-size: 1.05rem;
+            line-height: 1.6;
+            color: var(--text-primary);
+            font-style: italic;
+            border-left: 3px solid #7A1F2A;
+            padding: 0.2rem 0 0.2rem 1rem;
+            margin-bottom: 1.6rem !important;
+        }
+        .kf-disclaimer {
+            font-size: 0.78rem;
+            line-height: 1.5;
+            color: var(--text-tertiary);
+            background: #f8f5ee;
+            border: 1px dashed var(--border);
+            border-radius: 4px;
+            padding: 0.55rem 0.85rem;
+            margin: 0 0 1.2rem !important;
+        }
+        .kf-disclaimer strong {
+            color: var(--text-secondary);
+            font-weight: 700;
+        }
+        .kf-kicker {
+            border-top: 1px solid var(--border);
+            padding-top: 1rem;
+            margin-top: 1.6rem;
+            color: var(--text-secondary);
+            font-size: 0.92rem;
+        }
+        .kf-finding {
+            margin: 0 0 1.7rem;
+        }
+        .kf-finding h3 {
+            font-size: 1.08rem;
+            line-height: 1.35;
+            margin: 0 0 0.55rem;
+            display: flex;
+            gap: 0.7rem;
+            align-items: baseline;
+            color: var(--text-primary);
+        }
+        .kf-num {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 1.55rem;
+            height: 1.55rem;
+            border-radius: 50%;
+            background: #7A1F2A;
+            color: white;
+            font-size: 0.78rem;
+            font-weight: 800;
+            flex-shrink: 0;
+        }
+        .kf-finding p {
+            color: var(--text-primary);
+            margin-bottom: 0.85rem;
+        }
+        .kf-jump {
+            display: inline-block;
+            margin-top: 0.2rem;
+            font-size: 0.82rem;
+        }
+        .kf-mini-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 0.4rem 0 0.95rem;
+            font-size: 0.85rem;
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            overflow: hidden;
+        }
+        .kf-mini-table thead th {
+            background: #f8f5ee;
+            color: var(--text-secondary);
+            font-weight: 700;
+            font-size: 0.74rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            padding: 0.45rem 0.7rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+        .kf-mini-table tbody th {
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+        .kf-mini-table tbody td,
+        .kf-mini-table tbody th {
+            padding: 0.45rem 0.7rem;
+            border-bottom: 1px solid #f0ece4;
+        }
+        .kf-mini-table tbody tr:last-child td,
+        .kf-mini-table tbody tr:last-child th {
+            border-bottom: none;
+        }
+        .kf-decade-strip {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 0.7rem;
+            margin: 0.4rem 0 0.95rem;
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 0.85rem 0.9rem;
+        }
+        .kf-decade-cell {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.3rem;
+            min-height: 120px;
+            justify-content: flex-end;
+        }
+        .kf-decade-bar {
+            width: 60%;
+            background: linear-gradient(180deg, #C9A03B, #7A1F2A);
+            border-radius: 3px 3px 0 0;
+            min-height: 4px;
+        }
+        .kf-decade-value {
+            font-size: 0.85rem;
+            font-weight: 800;
+            color: var(--text-primary);
+        }
+        .kf-decade-label {
+            font-size: 0.72rem;
+            color: var(--text-tertiary);
+            font-weight: 700;
+        }
+        .kf-region-bars {
+            margin: 0.4rem 0 0.95rem;
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 0.7rem 0.9rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.55rem;
+        }
+        .kf-region-row {
+            display: grid;
+            grid-template-columns: 11rem 1fr auto;
+            align-items: center;
+            gap: 0.7rem;
+            font-size: 0.83rem;
+        }
+        .kf-region-name {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+        .kf-region-track {
+            background: #f3f1ec;
+            height: 10px;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+        .kf-region-fill {
+            height: 100%;
+            border-radius: 3px;
+        }
+        .kf-region-meta {
+            color: var(--text-secondary);
+            font-size: 0.78rem;
+            white-space: nowrap;
+        }
+        .kf-region-meta strong {
+            color: var(--text-primary);
+            font-weight: 800;
+        }
+        @media (max-width: 720px) {
+            .kf-region-row {
+                grid-template-columns: 1fr;
+                gap: 0.25rem;
+            }
+            .kf-decade-strip {
+                grid-template-columns: repeat(4, minmax(0, 1fr));
+                padding: 0.6rem 0.5rem;
+            }
+            .kf-finding h3 {
+                font-size: 1rem;
+            }
+        }
         .insights-findings {
             display: grid;
             grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -5889,25 +6341,409 @@ class WebsiteGenerator:
             font-size: 0.82rem;
             margin: 0 0 0.55rem;
         }
-        .county-map-layout,
+        .chart-footnote {
+            margin: 0.4rem 0 0;
+            font-size: 0.7rem;
+            color: var(--text-tertiary);
+            line-height: 1.4;
+        }
+        /* Geography panel layout: cards on the left (2-col), map on the right.
+           California is taller than wide, so the map gets the vertical real estate. */
+        .county-map-layout {
+            display: grid;
+            grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+            grid-template-areas: "cards map";
+            gap: 1rem;
+            align-items: start;
+        }
+        .county-map-side {
+            grid-area: cards;
+            margin-top: 0;
+        }
+        #countyLeaderboard {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 0.65rem;
+            margin-top: 0.4rem;
+        }
+        #countyLeaderboard .leader-row {
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            background: white;
+            padding: 0.65rem 0.8rem;
+        }
+        @media (max-width: 1024px) {
+            /* Layout collapses to single column on tablet/phone; map first, then cards. */
+            .county-map-layout {
+                grid-template-columns: 1fr;
+                grid-template-areas: "map" "cards";
+            }
+            #countyLeaderboard {
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+            }
+        }
+        @media (max-width: 720px) {
+            #countyLeaderboard {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+        @media (max-width: 480px) {
+            #countyLeaderboard {
+                grid-template-columns: 1fr;
+            }
+        }
         .finance-insights-grid {
             display: grid;
             grid-template-columns: minmax(0, 1fr) 320px;
             gap: 1rem;
-            align-items: stretch;
+            align-items: start;
+        }
+        .finance-module {
+            margin-top: 1.75rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid #e5e7eb;
+        }
+        .finance-module-header {
+            margin-bottom: 0.85rem;
+        }
+        .finance-module-header h4 {
+            margin: 0 0 0.25rem;
+            font-size: 1rem;
+            font-weight: 600;
+            color: #0f172a;
+            letter-spacing: -0.01em;
+        }
+        .finance-module-header p {
+            margin: 0;
+            font-size: 0.85rem;
+            color: #475569;
+            line-height: 1.5;
+        }
+        .finance-arc-chart {
+            position: relative;
+            height: 280px;
+        }
+        .finance-donors-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+            gap: 1.75rem;
+        }
+        .finance-subhead {
+            margin: 0 0 0.5rem;
+            font-size: 0.78rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: #475569;
+        }
+        .finance-subdeck {
+            margin: 0 0 0.75rem;
+            font-size: 0.8rem;
+            color: #64748b;
+            line-height: 1.5;
+        }
+        .finance-donor-list {
+            list-style: none;
+            counter-reset: donor;
+            margin: 0;
+            padding: 0;
+        }
+        .finance-donor-row {
+            counter-increment: donor;
+            display: grid;
+            grid-template-columns: 1.6rem minmax(0, 1fr) auto;
+            gap: 0.6rem;
+            align-items: baseline;
+            padding: 0.4rem 0;
+            border-bottom: 1px solid #f1f5f9;
+            font-size: 0.85rem;
+        }
+        .finance-donor-row::before {
+            content: counter(donor) '.';
+            color: #94a3b8;
+            font-variant-numeric: tabular-nums;
+            font-size: 0.78rem;
+            text-align: right;
+        }
+        .finance-donor-name {
+            color: #0f172a;
+            font-weight: 500;
+            overflow-wrap: anywhere;
+        }
+        .finance-donor-meta {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 0.1rem;
+            white-space: nowrap;
+        }
+        .finance-donor-amount {
+            font-variant-numeric: tabular-nums;
+            font-weight: 600;
+            color: #0f172a;
+        }
+        .finance-donor-count {
+            font-size: 0.72rem;
+            color: #64748b;
+        }
+        .finance-marquee-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 1rem;
+        }
+        .finance-fight-card {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 0.95rem 1rem 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+        .finance-fight-header {
+            border-bottom: 1px solid #f1f5f9;
+            padding-bottom: 0.65rem;
+        }
+        .finance-fight-eyebrow {
+            font-size: 0.72rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: #7A1F2A;
+        }
+        .finance-fight-headline {
+            margin: 0.2rem 0 0.35rem;
+            font-size: 0.98rem;
+            font-weight: 600;
+            color: #0f172a;
+            line-height: 1.3;
+        }
+        .finance-fight-outcome {
+            font-size: 0.78rem;
+            color: #475569;
+        }
+        .finance-fight-sides {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.6rem;
+        }
+        .finance-fight-side {
+            background: #f8fafc;
+            border: 1px solid transparent;
+            border-radius: 6px;
+            padding: 0.55rem 0.6rem 0.65rem;
+        }
+        .finance-fight-won-badge {
+            display: inline-block;
+            margin-left: 0.4rem;
+            padding: 0.05rem 0.35rem;
+            font-size: 0.62rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: #475569;
+            background: #e2e8f0;
+            border-radius: 3px;
+            vertical-align: 1px;
+        }
+        .finance-fight-side-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            gap: 0.4rem;
+            margin-bottom: 0.15rem;
+        }
+        .finance-fight-side-label {
+            font-size: 0.72rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: #475569;
+        }
+        .finance-fight-side-total {
+            font-variant-numeric: tabular-nums;
+            font-weight: 600;
+            color: #0f172a;
+            font-size: 0.85rem;
+        }
+        .finance-fight-side-share {
+            font-size: 0.7rem;
+            color: #64748b;
+            margin-bottom: 0.35rem;
+        }
+        .finance-fight-donors {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            font-size: 0.74rem;
+            line-height: 1.45;
+        }
+        .finance-fight-donors li {
+            display: flex;
+            justify-content: space-between;
+            gap: 0.4rem;
+            padding: 0.12rem 0;
+        }
+        .finance-fight-donor {
+            color: #1e293b;
+            overflow-wrap: anywhere;
+        }
+        .finance-fight-amount {
+            font-variant-numeric: tabular-nums;
+            color: #475569;
+            white-space: nowrap;
+        }
+        .finance-fight-takeaway {
+            margin: 0;
+            padding-top: 0.5rem;
+            border-top: 1px solid #f1f5f9;
+            font-size: 0.82rem;
+            color: #1e293b;
+            line-height: 1.5;
+        }
+        .finance-bridge {
+            margin: 1.5rem 0 0.75rem;
+            padding: 1rem 1.1rem;
+            background: #fef3c7;
+            border-left: 3px solid #f59e0b;
+            border-radius: 4px;
+            font-size: 0.88rem;
+            color: #1e293b;
+            line-height: 1.55;
         }
         .county-map {
-            min-height: 520px;
+            grid-area: map;
             border: 1px solid #e5e7eb;
             border-radius: 8px;
-            background: #f8fafc;
+            background: #ffffff;
             position: relative;
-            overflow: hidden;
+            height: 640px;
+            width: 100%;
         }
-        .county-map svg {
-            display: block;
+        @media (max-width: 1024px) {
+            .county-map {
+                height: 480px;
+            }
+        }
+        .county-map .leaflet-container {
             width: 100%;
             height: 100%;
+            border-radius: 8px;
+            background: #ffffff;
+            font-family: inherit;
+        }
+        .county-map .leaflet-tooltip.county-leaflet-tooltip {
+            background: rgba(15, 23, 42, 0.92);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 0.4rem 0.55rem;
+            font-size: 0.78rem;
+            line-height: 1.35;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+        }
+        .county-map .leaflet-tooltip.county-leaflet-tooltip::before {
+            display: none;
+        }
+        .county-map .leaflet-control-attribution {
+            font-size: 0.62rem;
+            background: rgba(255,255,255,0.85);
+        }
+        .county-map .geo-legend {
+            background: rgba(255,255,255,0.95);
+            padding: 0.45rem 0.6rem;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            font-size: 0.7rem;
+            line-height: 1.3;
+            color: var(--text-secondary);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+        }
+        .county-map .geo-legend-title {
+            display: block;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 0.25rem;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+        .county-map .geo-legend-bar {
+            display: flex;
+            height: 8px;
+            width: 140px;
+            border-radius: 3px;
+            overflow: hidden;
+            margin-bottom: 0.2rem;
+        }
+        .county-map .geo-legend-bar > span {
+            flex: 1 1 auto;
+        }
+        .county-map .geo-legend-scale {
+            display: flex;
+            justify-content: space-between;
+            color: var(--text-tertiary);
+        }
+        .geography-anchor-cards {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 0.7rem;
+            margin: 0.4rem 0 0.85rem;
+        }
+        .geography-anchor-cards .mini-callout {
+            min-height: 86px;
+        }
+        @media (max-width: 900px) {
+            .geography-anchor-cards {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+        @media (max-width: 540px) {
+            .geography-anchor-cards {
+                grid-template-columns: 1fr;
+            }
+        }
+        .geography-toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.7rem 1.4rem;
+            align-items: center;
+            margin: 0.4rem 0 0.85rem;
+        }
+        .geography-toolbar .toolbar-group {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 0.25rem 0.45rem;
+        }
+        .geography-toolbar .toolbar-label {
+            color: var(--text-tertiary);
+            font-size: 0.72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            padding-right: 0.25rem;
+        }
+        .geography-toolbar .toolbar-btn {
+            background: transparent;
+            border: none;
+            border-radius: 4px;
+            padding: 0.3rem 0.7rem;
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: background 0.12s, color 0.12s;
+        }
+        .geography-toolbar .toolbar-btn:hover {
+            color: var(--text-primary);
+        }
+        .geography-toolbar .toolbar-btn.active {
+            background: #7A1F2A;
+            color: white;
         }
         .county-map-side h4 {
             margin: 0 0 0.7rem;
@@ -5975,6 +6811,282 @@ class WebsiteGenerator:
             letter-spacing: 0.05em;
             margin-top: 0.9rem;
             text-transform: uppercase;
+        }
+        /* Topic era strip + pass-rate rankings */
+        .topic-era-strip {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 0.6rem;
+            margin: 1rem 0 0.4rem;
+        }
+        .topic-era-card {
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 0.65rem 0.75rem;
+        }
+        .topic-era-card-decade {
+            font-size: 0.95rem;
+            font-weight: 800;
+            color: var(--text-primary);
+            margin-bottom: 0.05rem;
+        }
+        .topic-era-card-meta {
+            font-size: 0.7rem;
+            color: var(--text-tertiary);
+            margin-bottom: 0.45rem;
+        }
+        .topic-era-card-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            font-size: 0.8rem;
+            line-height: 1.3;
+            margin-bottom: 0.2rem;
+        }
+        .topic-era-card-row span {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+        .topic-era-card-row strong {
+            color: var(--text-secondary);
+            font-weight: 700;
+            font-size: 0.85rem;
+        }
+        .topic-pass-rate-rankings {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 0.85rem;
+            margin: 0.9rem 0 0.4rem;
+        }
+        .topic-rank-block {
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 0.7rem 0.85rem;
+        }
+        .topic-rank-heading {
+            font-size: 0.72rem;
+            font-weight: 800;
+            color: var(--text-tertiary);
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            margin-bottom: 0.5rem;
+        }
+        .topic-rank-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            font-size: 0.83rem;
+            padding: 0.32rem 0;
+            border-bottom: 1px solid #f0ece4;
+        }
+        .topic-rank-row:last-child {
+            border-bottom: none;
+        }
+        .topic-rank-row-name {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+        .topic-rank-row-pct {
+            color: var(--text-secondary);
+            font-weight: 700;
+        }
+        .topic-rank-row-pct small {
+            color: var(--text-tertiary);
+            font-weight: 500;
+            margin-left: 0.3rem;
+        }
+        @media (max-width: 720px) {
+            .topic-era-strip,
+            .topic-pass-rate-rankings {
+                grid-template-columns: 1fr;
+            }
+        }
+        /* Measure Types panel sub-sections */
+        .type-insights-stack {
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+            margin-top: 1rem;
+        }
+        .type-insights-section h4.type-section-h {
+            margin: 0 0 0.35rem;
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+        .type-insights-section .type-section-deck {
+            margin: 0 0 0.7rem;
+            font-size: 0.88rem;
+            line-height: 1.5;
+            color: var(--text-secondary);
+        }
+        .type-insights-section .type-section-footnote {
+            margin: 0.45rem 0 0;
+            font-size: 0.7rem;
+            color: var(--text-tertiary);
+            line-height: 1.4;
+        }
+        .type-anatomy-strip {
+            display: grid;
+            grid-template-columns: repeat(6, minmax(0, 1fr));
+            gap: 0.55rem;
+        }
+        .type-anatomy-cell {
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 0.55rem 0.45rem;
+            text-align: center;
+        }
+        .type-anatomy-num {
+            font-size: 1.1rem;
+            font-weight: 800;
+            color: var(--text-primary);
+            line-height: 1;
+        }
+        .type-anatomy-name {
+            margin-top: 0.3rem;
+            font-size: 0.74rem;
+            color: var(--text-secondary);
+            line-height: 1.25;
+        }
+        .type-profile-table {
+            width: 100%;
+        }
+        .type-profile-table tbody td:last-child {
+            color: var(--text-secondary);
+            font-size: 0.78rem;
+        }
+        @media (max-width: 720px) {
+            .type-anatomy-strip {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+            .type-profile-table thead {
+                display: none;
+            }
+            .type-profile-table tbody tr {
+                display: grid;
+                grid-template-columns: 1fr;
+                padding: 0.5rem 0;
+                border-bottom: 1px solid #f0ece4;
+            }
+            .type-profile-table tbody td,
+            .type-profile-table tbody th {
+                padding: 0.15rem 0;
+                border-bottom: none;
+            }
+        }
+        /* Rules panel layout */
+        .rules-hero {
+            background: white;
+            border: 1px solid var(--border);
+            border-left: 4px solid #B5302F;
+            border-radius: 6px;
+            padding: 1rem 1.2rem;
+            margin: 1rem 0 1.2rem;
+        }
+        .rules-hero-num {
+            font-size: 2rem;
+            font-weight: 800;
+            color: #B5302F;
+            line-height: 1;
+        }
+        .rules-hero-headline {
+            margin-top: 0.35rem;
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            line-height: 1.4;
+        }
+        .rules-hero-sub {
+            margin-top: 0.3rem;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+        .rules-chart-wrap {
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 0.85rem 1rem 0.7rem;
+            margin-bottom: 1.1rem;
+        }
+        .rules-chart-wrap .chart-wrap {
+            height: 220px;
+        }
+        .rules-section-h {
+            margin: 0 0 0.5rem;
+            font-size: 0.92rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+        #rulesThresholdTable {
+            margin-bottom: 1.1rem;
+        }
+        .rules-landmarks {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 0.7rem;
+            margin-bottom: 1.1rem;
+        }
+        .rules-landmark-card {
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 0.8rem 0.95rem;
+        }
+        .rules-landmark-yes {
+            font-size: 1.45rem;
+            font-weight: 800;
+            color: #B5302F;
+            line-height: 1;
+        }
+        .rules-landmark-tag {
+            margin-top: 0.4rem;
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+        .rules-landmark-meta {
+            margin-top: 0.18rem;
+            font-size: 0.78rem;
+            color: var(--text-secondary);
+            line-height: 1.45;
+        }
+        .rules-plain-english {
+            background: #fbf7f0;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 0.85rem 1rem;
+            margin-bottom: 1.1rem;
+            font-size: 0.92rem;
+            line-height: 1.55;
+            color: var(--text-primary);
+        }
+        .rules-plain-english strong {
+            color: #B5302F;
+        }
+        .rules-plain-english .rules-plain-caveat {
+            display: block;
+            margin-top: 0.4rem;
+            font-size: 0.78rem;
+            color: var(--text-tertiary);
+        }
+        .rules-bridge {
+            font-size: 0.92rem;
+            line-height: 1.6;
+            color: var(--text-primary);
+            margin-bottom: 0.6rem;
+        }
+        .rules-bridge p {
+            margin: 0 0 0.5rem;
+        }
+        @media (max-width: 720px) {
+            .rules-landmarks {
+                grid-template-columns: 1fr;
+            }
         }
         .insights-methodology {
             margin-top: 1rem;
@@ -6059,8 +7171,16 @@ class WebsiteGenerator:
             }
             .insights-hero,
             .county-map-layout,
-            .finance-insights-grid {
+            .finance-insights-grid,
+            .finance-donors-grid {
                 grid-template-columns: 1fr;
+            }
+            .finance-marquee-grid,
+            .finance-fight-sides {
+                grid-template-columns: 1fr;
+            }
+            .finance-arc-chart {
+                height: 240px;
             }
             .analysis-chart-grid {
                 grid-template-columns: 1fr;
@@ -9155,8 +10275,12 @@ class WebsiteGenerator:
             }}
 
             renderInsightsMetrics();
+            renderInsightsComposition();
+            renderInsightsOverviewTops();
+            renderInsightsCoverage();
             renderInsightsFindings();
             renderInsightsCharts();
+            renderInsightsSparkline();
             renderTrendSummary();
             renderTopicTrendSummary();
             renderTypeInsights();
@@ -9165,7 +10289,6 @@ class WebsiteGenerator:
             renderCountyMap();
             renderThresholdCallouts();
             renderStatisticalComparisons();
-            renderCloseMeasures();
             renderFinanceInsights();
             renderInsightsMethodology();
             initializeInsightsNav();
@@ -9281,39 +10404,427 @@ class WebsiteGenerator:
             }}
         }}
 
+        function jumpToInsightsPanel(panelId) {{
+            const slides = getInsightsSlides();
+            const idx = slides.findIndex(s => s.id === panelId);
+            if (isInsightsCarouselDesktop() && idx >= 0) {{
+                setInsightsSlide(idx);
+            }} else {{
+                const target = document.getElementById(panelId);
+                if (target) target.scrollIntoView({{ behavior: 'smooth', block: 'start' }});
+            }}
+        }}
+
         function renderInsightsMetrics() {{
             const overview = insightsData.overview || {{}};
+            const margin = (insightsData.margin_stats && insightsData.margin_stats.close_counts) || {{}};
+            const yearSpan = (overview.year_max && overview.year_min)
+                ? (overview.year_max - overview.year_min + 1) : null;
+            const localShare = overview.local_share;
+            const statewideShare = (localShare !== null && localShare !== undefined)
+                ? (100 - localShare) : null;
+
             const metrics = [
-                ['Active measures', overview.active_measures, `${{overview.year_min}}–${{overview.year_max}}`],
-                ['Pass rate', formatInsightPct(overview.pass_rate), 'decided records'],
-                ['Local share', formatInsightPct(overview.local_share), `${{formatInsightNumber(overview.local_measures)}} local measures`],
-                ['With vote data', overview.vote_data_measures, 'valid yes/no totals']
+                ['Active measures', formatInsightNumber(overview.active_measures),
+                    `${{overview.year_min}}–${{overview.year_max}}${{yearSpan ? ' · ' + yearSpan + ' yrs' : ''}}`],
+                ['Pass rate', formatInsightPct(overview.pass_rate),
+                    `${{formatInsightNumber(overview.decided_measures)}} decided`],
+                ['Passed / failed',
+                    `${{formatInsightNumber(overview.passed)}} / ${{formatInsightNumber(overview.failed)}}`,
+                    'of decided records'],
+                ['With vote data', formatInsightNumber(overview.vote_data_measures), 'valid yes/no totals'],
+                ['Local measures', formatInsightNumber(overview.local_measures),
+                    `${{formatInsightPct(localShare)}} of dataset`],
+                ['Statewide measures', formatInsightNumber(overview.statewide_measures),
+                    `${{formatInsightPct(statewideShare)}} of dataset`],
+                ['Counties covered', `${{overview.county_count || '—'}} of 58`, 'every CA county'],
+                ['Close calls', formatInsightNumber(margin.under_5), 'decided by < 5 points']
             ];
             const target = document.getElementById('insightsMetrics');
             if (!target) return;
             target.innerHTML = metrics.map(([label, value, note]) => `
                 <div class="insight-metric">
                     <span>${{escapeHtml(label)}}</span>
-                    <strong>${{formatInsightNumber(value)}}</strong>
+                    <strong>${{value}}</strong>
                     <small>${{escapeHtml(note || '')}}</small>
                 </div>
             `).join('');
         }}
 
+        function renderInsightsComposition() {{
+            const target = document.getElementById('insightsComposition');
+            if (!target) return;
+            const overview = insightsData.overview || {{}};
+            const cycles = insightsData.election_cycle_stats || [];
+
+            const total = overview.active_measures || 0;
+            const local = overview.local_measures || 0;
+            const statewide = overview.statewide_measures || 0;
+            const passed = overview.passed || 0;
+            const failed = overview.failed || 0;
+            const decided = overview.decided_measures || 0;
+            const pending = Math.max(total - decided, 0);
+
+            const cycleTotal = cycles.reduce((s, c) => s + (c.total || 0), 0);
+            const cycleColors = ['#3B5BDB', '#8B5CF6', '#F59E0B'];
+            const cycleSegments = cycles.map((c, i) => ({{
+                label: c.cycle,
+                value: c.total || 0,
+                pct: cycleTotal ? (100 * (c.total || 0) / cycleTotal) : 0,
+                color: cycleColors[i % cycleColors.length]
+            }}));
+
+            const renderBar = (title, segments, jumpTo, jumpLabel) => {{
+                const bar = segments.map(s => `
+                    <div class="composition-bar-segment"
+                        style="width: ${{s.pct.toFixed(2)}}%; background: ${{s.color}}"
+                        title="${{escapeAttr(s.label + ': ' + formatInsightNumber(s.value) + ' (' + s.pct.toFixed(1) + '%)')}}">
+                    </div>
+                `).join('');
+                const legend = segments.map(s => `
+                    <div class="composition-legend-item">
+                        <span class="composition-legend-swatch" style="background:${{s.color}}"></span>
+                        <strong>${{escapeHtml(s.label)}}</strong>
+                        <span>${{formatInsightNumber(s.value)}} &middot; ${{s.pct.toFixed(1)}}%</span>
+                    </div>
+                `).join('');
+                const jumpButton = jumpTo
+                    ? `<button class="overview-jump-btn" onclick="jumpToInsightsPanel('${{jumpTo}}')">${{escapeHtml(jumpLabel || 'Open panel')}} &rarr;</button>`
+                    : '';
+                return `
+                    <div class="composition-block">
+                        <div class="composition-header">
+                            <h4>${{escapeHtml(title)}}</h4>
+                            ${{jumpButton}}
+                        </div>
+                        <div class="composition-bar">${{bar}}</div>
+                        <div class="composition-legend">${{legend}}</div>
+                    </div>
+                `;
+            }};
+
+            const whereSegments = [
+                {{label: 'Local', value: local, pct: total ? 100 * local / total : 0, color: '#7A1F2A'}},
+                {{label: 'Statewide', value: statewide, pct: total ? 100 * statewide / total : 0, color: '#C9A03B'}}
+            ];
+            const outcomeSegments = [
+                {{label: 'Passed', value: passed, pct: total ? 100 * passed / total : 0, color: '#2D9D78'}},
+                {{label: 'Failed', value: failed, pct: total ? 100 * failed / total : 0, color: '#E54D4D'}},
+                {{label: 'Pending', value: pending, pct: total ? 100 * pending / total : 0, color: '#9CA3AF'}}
+            ];
+
+            target.innerHTML =
+                renderBar('Where measures appear', whereSegments, 'insightsGeographyPanel', 'Open geography') +
+                renderBar('How they ended', outcomeSegments, null, null) +
+                renderBar('When they are voted on', cycleSegments, 'insightsTrendPanel', 'Open trend');
+        }}
+
+        function renderInsightsSparkline() {{
+            const ts = insightsData.time_series || [];
+            const rows = ts.filter(r => r.year && r.total > 0);
+            createInsightChart('insightsOverviewSparkChart', {{
+                type: 'bar',
+                data: {{
+                    labels: rows.map(r => r.year),
+                    datasets: [{{
+                        data: rows.map(r => r.total),
+                        backgroundColor: '#7A1F2A',
+                        borderRadius: 1
+                    }}]
+                }},
+                options: {{
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {{
+                        legend: {{ display: false }},
+                        tooltip: {{
+                            callbacks: {{
+                                title: items => items[0].label,
+                                label: item => formatInsightNumber(item.parsed.y) + ' measures'
+                            }}
+                        }}
+                    }},
+                    scales: {{
+                        x: {{ ticks: {{ maxTicksLimit: 8, font: {{ size: 10 }} }}, grid: {{ display: false }} }},
+                        y: {{ display: false, beginAtZero: true }}
+                    }}
+                }}
+            }});
+        }}
+
+        function renderInsightsOverviewTops() {{
+            const target = document.getElementById('insightsOverviewTops');
+            if (!target) return;
+            const topics = (insightsData.topic_stats || [])
+                .filter(t => t.topic && t.topic !== 'Other')
+                .sort((a, b) => (b.total || 0) - (a.total || 0))
+                .slice(0, 3);
+            const types = (insightsData.category_type_stats || [])
+                .filter(t => t.category_type && t.category_type !== 'Other')
+                .sort((a, b) => (b.total || 0) - (a.total || 0))
+                .slice(0, 3);
+            const counties = (insightsData.county_stats || [])
+                .filter(c => c.county && c.county !== 'Statewide')
+                .sort((a, b) => (b.total || 0) - (a.total || 0))
+                .slice(0, 3);
+
+            const card = (title, rows, jumpId, jumpLabel) => `
+                <div class="overview-top-card">
+                    <div class="overview-top-card-header">
+                        <h4>${{escapeHtml(title)}}</h4>
+                        <button class="overview-jump-btn" onclick="jumpToInsightsPanel('${{jumpId}}')">${{escapeHtml(jumpLabel)}} &rarr;</button>
+                    </div>
+                    <ol class="overview-top-list">
+                        ${{rows.map((r, i) => `
+                            <li>
+                                <span class="overview-top-rank">${{i + 1}}</span>
+                                <span class="overview-top-name">${{escapeHtml(r.name)}}</span>
+                                <span class="overview-top-meta">${{formatInsightNumber(r.count)}} &middot; ${{formatInsightPct(r.passRate)}} pass</span>
+                            </li>
+                        `).join('')}}
+                    </ol>
+                </div>
+            `;
+
+            target.innerHTML =
+                card('Top topics',
+                    topics.map(t => ({{name: t.topic, count: t.total, passRate: t.pass_rate}})),
+                    'insightsTopicsPanel', 'Open topics') +
+                card('Top measure types',
+                    types.map(t => ({{name: t.category_type, count: t.total, passRate: t.pass_rate}})),
+                    'insightsTypesPanel', 'Open types') +
+                card('Busiest counties',
+                    counties.map(c => ({{name: c.county, count: c.total, passRate: c.pass_rate}})),
+                    'insightsGeographyPanel', 'Open geography');
+        }}
+
+        function renderInsightsCoverage() {{
+            const target = document.getElementById('insightsCoverage');
+            if (!target) return;
+            const overview = insightsData.overview || {{}};
+            const total = overview.active_measures || 0;
+            const decided = overview.decided_measures || 0;
+            const withVote = overview.vote_data_measures || 0;
+            const withSummary = overview.summary_measures || 0;
+            const pct = n => total ? (100 * n / total).toFixed(1) + '%' : '—';
+
+            target.innerHTML = `
+                <div class="overview-coverage-row">
+                    <div class="overview-coverage-item">
+                        <strong>${{formatInsightNumber(decided)}}</strong>
+                        <span>decided <small>(${{pct(decided)}})</small></span>
+                    </div>
+                    <div class="overview-coverage-item">
+                        <strong>${{formatInsightNumber(withVote)}}</strong>
+                        <span>with vote % <small>(${{pct(withVote)}})</small></span>
+                    </div>
+                    <div class="overview-coverage-item">
+                        <strong>${{formatInsightNumber(withSummary)}}</strong>
+                        <span>with AI summary <small>(${{pct(withSummary)}})</small></span>
+                    </div>
+                    <button class="overview-jump-btn" onclick="jumpToInsightsPanel('insightsMethodologySection')">Methodology &rarr;</button>
+                </div>
+            `;
+        }}
+
         function renderInsightsFindings() {{
             const target = document.getElementById('insightsFindings');
             if (!target) return;
-            target.innerHTML = (insightsData.featured_findings || []).map(finding => `
-                <article class="finding-card">
-                    <div class="finding-meta">
-                        <span>${{escapeHtml(finding.confidence || 'Reviewed')}} confidence</span>
-                        <strong>${{escapeHtml(finding.metric || '')}}</strong>
+
+            const overview = insightsData.overview || {{}};
+            const thresholdStats = insightsData.threshold_stats || [];
+            const thresholdInsights = insightsData.threshold_insights || {{}};
+            const typeTrends = insightsData.type_trends || [];
+            const finance = insightsData.finance || {{}};
+            const cycles = insightsData.election_cycle_stats || [];
+            const regions = insightsData.region_stats || [];
+            const geographyInsights = insightsData.geography_insights || {{}};
+
+            const byThreshold = name => thresholdStats.find(t => t.threshold === name) || {{}};
+            const t50 = byThreshold('50%');
+            const t66 = byThreshold('66.67%');
+
+            const byDecade = year => typeTrends.find(t => t.decade === year) || {{}};
+            const fiscal1990s = byDecade(1990).fiscal_share;
+            const fiscal2020s = byDecade(2020).fiscal_share;
+
+            const byCycle = name => cycles.find(c => c.cycle === name) || {{}};
+            const presYear = byCycle('Presidential year');
+            const midterm = byCycle('Midterm year');
+            const oddYear = byCycle('Odd year');
+
+            const sortedRegions = [...regions].sort((a, b) => (b.pass_rate || 0) - (a.pass_rate || 0));
+            const topRegion = sortedRegions[0] || {{}};
+            const bottomRegion = sortedRegions[sortedRegions.length - 1] || {{}};
+            const overallPassRate = overview.pass_rate;
+
+            const losses = (finance.better_funded_losses || []).slice(0, 3);
+            const lossLabels = losses.map(l => {{
+                const num = (l.measure_id || '').replace('PROP_', 'Prop ');
+                return `${{num}} (${{l.year}})`;
+            }});
+
+            const fmtMoneyB = v => (v == null) ? '—' : '$' + (v / 1e9).toFixed(1) + 'B';
+
+            const renderThresholdTable = () => {{
+                const rows = thresholdStats.filter(r => r.threshold);
+                return `
+                    <table class="kf-mini-table" aria-label="Pass rate by legal threshold">
+                        <thead><tr><th scope="col">Threshold</th><th scope="col">Decided</th><th scope="col">Pass rate</th><th scope="col">Majority but failed</th></tr></thead>
+                        <tbody>
+                            ${{rows.map(r => `
+                                <tr>
+                                    <th scope="row">${{escapeHtml(r.threshold)}}</th>
+                                    <td>${{formatInsightNumber(r.total)}}</td>
+                                    <td><strong>${{formatInsightPct(r.pass_rate)}}</strong></td>
+                                    <td>${{formatInsightNumber(r.majority_failed)}}</td>
+                                </tr>
+                            `).join('')}}
+                        </tbody>
+                    </table>
+                `;
+            }};
+
+            const renderDecadeStrip = () => {{
+                const decades = [1990, 2000, 2010, 2020].map(d => byDecade(d)).filter(r => r.decade);
+                const max = Math.max(...decades.map(r => r.fiscal_share || 0), 1);
+                return `
+                    <div class="kf-decade-strip" aria-label="Fiscal share by decade">
+                        ${{decades.map(r => `
+                            <div class="kf-decade-cell">
+                                <div class="kf-decade-bar" style="height: ${{Math.round(((r.fiscal_share || 0) / max) * 100)}}%"></div>
+                                <div class="kf-decade-value">${{formatInsightPct(r.fiscal_share)}}</div>
+                                <div class="kf-decade-label">${{r.decade}}s</div>
+                            </div>
+                        `).join('')}}
                     </div>
-                    <h3>${{escapeHtml(finding.title || '')}}</h3>
-                    <p>${{escapeHtml(finding.deck || '')}}</p>
-                    <small>${{escapeHtml(finding.caveat || '')}}</small>
+                `;
+            }};
+
+            const renderRegionBars = () => {{
+                const items = [
+                    {{name: topRegion.region, rate: topRegion.pass_rate, decided: topRegion.decided, color: '#2D9D78'}},
+                    {{name: 'Statewide + local overall', rate: overallPassRate, decided: overview.decided_measures, color: '#9CA3AF'}},
+                    {{name: bottomRegion.region, rate: bottomRegion.pass_rate, decided: bottomRegion.decided, color: '#E54D4D'}}
+                ];
+                return `
+                    <div class="kf-region-bars" aria-label="Pass rate: top region vs bottom region vs overall">
+                        ${{items.map(it => `
+                            <div class="kf-region-row">
+                                <span class="kf-region-name">${{escapeHtml(it.name || 'n/a')}}</span>
+                                <div class="kf-region-track"><div class="kf-region-fill" style="width: ${{Math.round((it.rate || 0))}}%; background: ${{it.color}}"></div></div>
+                                <span class="kf-region-meta"><strong>${{formatInsightPct(it.rate)}}</strong> &middot; ${{formatInsightNumber(it.decided)}} decided</span>
+                            </div>
+                        `).join('')}}
+                    </div>
+                `;
+            }};
+
+            const renderCycleTable = () => {{
+                const rows = [presYear, midterm, oddYear].filter(r => r.cycle);
+                return `
+                    <table class="kf-mini-table" aria-label="Volume and pass rate by election cycle">
+                        <thead><tr><th scope="col">Cycle</th><th scope="col">Avg measures / year</th><th scope="col">Pass rate</th></tr></thead>
+                        <tbody>
+                            ${{rows.map(r => `
+                                <tr>
+                                    <th scope="row">${{escapeHtml(r.cycle)}}</th>
+                                    <td><strong>${{formatInsightNumber(r.avg_measures_per_year)}}</strong></td>
+                                    <td>${{formatInsightPct(r.pass_rate)}}</td>
+                                </tr>
+                            `).join('')}}
+                        </tbody>
+                    </table>
+                `;
+            }};
+
+            const renderJump = (panelId, label) =>
+                `<button class="overview-jump-btn kf-jump" onclick="jumpToInsightsPanel('${{panelId}}')">Dig in: ${{escapeHtml(label)}} &rarr;</button>`;
+
+            target.innerHTML = `
+                <p class="kf-disclaimer">
+                    <strong>Note:</strong> This section was drafted by AI; usual caveats apply. I plan to rewrite it myself &mdash; ideally net of the existing published research on direct democracy in California &mdash; once time allows.
+                </p>
+                <p class="kf-lede">
+                    The dataset does not show one California ballot. It shows several: a statewide proposition arena where money can be enormous,
+                    a much larger local ballot where taxes and bonds dominate, and a rulebook where a majority is sometimes not enough.
+                    The findings below are descriptive, not predictive &mdash; but they point to where voter power, fiscal need, geography,
+                    and legal thresholds most visibly collide.
+                </p>
+
+                <article class="kf-finding">
+                    <h3><span class="kf-num">1</span>California voters say yes by default &mdash; but the rules decide which yes votes count.</h3>
+                    <p>
+                        Across decided measures, ${{formatInsightPct(overallPassRate)}} pass. That headline hides a fault line.
+                        On simple-majority contests, the pass rate climbs to ${{formatInsightPct(t50.pass_rate)}}. On two-thirds contests,
+                        it falls to ${{formatInsightPct(t66.pass_rate)}}, and ${{formatInsightNumber(t66.majority_failed)}} measures
+                        crossed 50% yes only to fail under the higher threshold. Across the full dataset,
+                        ${{formatInsightNumber(thresholdInsights.majority_failure_count)}} decided measures since
+                        ${{overview.year_min || '1911'}} got a majority but did not pass &mdash; almost all of them in the supermajority bucket.
+                    </p>
+                    ${{renderThresholdTable()}}
+                    ${{renderJump('insightsRulesPanel', 'Rules')}}
                 </article>
-            `).join('');
+
+                <article class="kf-finding">
+                    <h3><span class="kf-num">2</span>The modern ballot is increasingly a local fiscal instrument.</h3>
+                    <p>
+                        ${{formatInsightPct(overview.local_share)}} of active records are local measures, and a majority of those fall into
+                        fiscal categories &mdash; bonds, sales taxes, charter amendments tied to revenue. That share has been rising.
+                        In the 1990s, ${{formatInsightPct(fiscal1990s)}} of measures were fiscal. In the 2020s so far, the figure is
+                        ${{formatInsightPct(fiscal2020s)}}. The state ballot most voters remember from television is a small slice of
+                        what they actually face on election day.
+                    </p>
+                    ${{renderDecadeStrip()}}
+                    ${{renderJump('insightsTypesPanel', 'Measure Types')}}
+                </article>
+
+                <article class="kf-finding">
+                    <h3><span class="kf-num">3</span>Campaign money matters &mdash; but it is not destiny.</h3>
+                    <p>
+                        The finance database links ${{formatInsightNumber(finance.measure_count)}} statewide propositions to
+                        ${{fmtMoneyB(finance.total_receipts)}} in committee receipts. The better-funded side won
+                        ${{formatInsightNumber(finance.better_funded_won)}} of those races, or ${{formatInsightPct(finance.better_funded_win_rate)}}
+                        &mdash; meaningful, but a long way from determinative. Recent better-funded campaigns that lost include some of
+                        the largest contests in the dataset:
+                        ${{lossLabels.length ? escapeHtml(lossLabels.join(', ')) : 'none on record'}}.
+                    </p>
+                    ${{renderJump('insightsFinanceSection', 'Finance')}}
+                </article>
+
+                <article class="kf-finding">
+                    <h3><span class="kf-num">4</span>The Bay Area is not just busier &mdash; measures there pass more often.</h3>
+                    <p>
+                        ${{escapeHtml(topRegion.region || 'The top region')}} measures pass at ${{formatInsightPct(topRegion.pass_rate)}},
+                        well above the ${{formatInsightPct(overallPassRate)}} statewide-and-local average.
+                        ${{escapeHtml(bottomRegion.region || 'The bottom region')}} sits at the other end at
+                        ${{formatInsightPct(bottomRegion.pass_rate)}} &mdash; a ${{formatInsightNumber(geographyInsights.region_pass_rate_gap)}}-point spread.
+                        The county-level gap is wider still, and not explained by population alone.
+                    </p>
+                    ${{renderRegionBars()}}
+                    ${{renderJump('insightsGeographyPanel', 'Geography')}}
+                </article>
+
+                <article class="kf-finding">
+                    <h3><span class="kf-num">5</span>Election timing changes the load far more than it changes the outcome.</h3>
+                    <p>
+                        Presidential years average ${{formatInsightNumber(presYear.avg_measures_per_year)}} measures per year, more than double
+                        the ${{formatInsightNumber(oddYear.avg_measures_per_year)}} of odd-year cycles. Pass rates barely move:
+                        ${{formatInsightPct(presYear.pass_rate)}} in presidential years, ${{formatInsightPct(midterm.pass_rate)}} in midterms,
+                        and ${{formatInsightPct(oddYear.pass_rate)}} in odd years. Volume is a turnout-sensitive thing; outcomes are not,
+                        at least not on the headline metric.
+                    </p>
+                    ${{renderCycleTable()}}
+                    ${{renderJump('insightsTrendPanel', 'Trend')}}
+                </article>
+
+                <p class="kf-kicker">
+                    The strongest pattern is not that voters are anti-tax, anti-government, or reflexively pro-measure.
+                    It is that ballot outcomes depend heavily on the institutional setting &mdash; local versus statewide, simple majority
+                    versus supermajority, presidential year versus off-year, and whether a campaign is fighting in the expensive statewide
+                    proposition market. The dedicated tabs above unpack each of these.
+                </p>
+            `;
         }}
 
         function createInsightChart(canvasId, config) {{
@@ -9365,33 +10876,91 @@ class WebsiteGenerator:
                 }}
             }});
 
-            const decades = insightsData.decade_series || [];
-            createInsightChart('insightsDecadeChart', {{
-                type: 'bar',
+            const tsAll = insightsData.time_series || [];
+            // Trim to 1990+: local CEDA coverage starts then; the headline chart up top covers the full arc.
+            const ts = tsAll.filter(r => r.year && r.year >= 1990 && r.year <= (insightsData.overview && insightsData.overview.year_max || 2026));
+            const tsYears = ts.map(r => r.year);
+            const localValues = ts.map(r => r.local || 0);
+            const statewideValues = ts.map(r => r.statewide || 0);
+
+            const rollingAvg = (values, window) => {{
+                const half = Math.floor(window / 2);
+                return values.map((_, i) => {{
+                    const start = Math.max(0, i - half);
+                    const end = Math.min(values.length, i + half + 1);
+                    const slice = values.slice(start, end);
+                    if (slice.length === 0) return null;
+                    return slice.reduce((a, b) => a + b, 0) / slice.length;
+                }});
+            }};
+
+            const localRolling = rollingAvg(localValues, 5);
+            const statewideRolling = rollingAvg(statewideValues, 5);
+            const localMasked = localRolling;
+
+            createInsightChart('insightsLocalTrendChart', {{
+                type: 'line',
                 data: {{
-                    labels: decades.map(row => row.decade + 's'),
-                    datasets: [
-                        {{
-                            label: 'Local',
-                            data: decades.map(row => row.local || 0),
-                            backgroundColor: '#254E70',
-                            borderRadius: 3
-                        }},
-                        {{
-                            label: 'Statewide',
-                            data: decades.map(row => row.statewide || 0),
-                            backgroundColor: '#D4A62A',
-                            borderRadius: 3
-                        }}
-                    ]
+                    labels: tsYears,
+                    datasets: [{{
+                        label: 'Local measures (5-yr avg)',
+                        data: localMasked,
+                        borderColor: '#254E70',
+                        backgroundColor: 'rgba(37, 78, 112, 0.12)',
+                        tension: 0.25,
+                        fill: true,
+                        pointRadius: 0,
+                        spanGaps: false
+                    }}]
                 }},
                 options: {{
                     responsive: true,
                     maintainAspectRatio: false,
-                    plugins: {{ legend: {{ position: 'bottom' }} }},
+                    plugins: {{
+                        legend: {{ display: false }},
+                        tooltip: {{
+                            callbacks: {{
+                                title: items => items[0].label,
+                                label: item => item.parsed.y == null ? 'No data' : item.parsed.y.toFixed(0) + ' / yr'
+                            }}
+                        }}
+                    }},
                     scales: {{
-                        x: {{ stacked: true, ticks: {{ maxRotation: 0 }} }},
-                        y: {{ stacked: true, beginAtZero: true }}
+                        x: {{ ticks: {{ maxTicksLimit: 8, font: {{ size: 10 }} }}, grid: {{ display: false }} }},
+                        y: {{ beginAtZero: true, title: {{ display: true, text: 'Measures / year' }} }}
+                    }}
+                }}
+            }});
+
+            createInsightChart('insightsStatewideTrendChart', {{
+                type: 'line',
+                data: {{
+                    labels: tsYears,
+                    datasets: [{{
+                        label: 'Statewide measures (5-yr avg)',
+                        data: statewideRolling,
+                        borderColor: '#7A1F2A',
+                        backgroundColor: 'rgba(122, 31, 42, 0.12)',
+                        tension: 0.25,
+                        fill: true,
+                        pointRadius: 0
+                    }}]
+                }},
+                options: {{
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {{
+                        legend: {{ display: false }},
+                        tooltip: {{
+                            callbacks: {{
+                                title: items => items[0].label,
+                                label: item => item.parsed.y == null ? 'No data' : item.parsed.y.toFixed(1) + ' / yr'
+                            }}
+                        }}
+                    }},
+                    scales: {{
+                        x: {{ ticks: {{ maxTicksLimit: 8, font: {{ size: 10 }} }}, grid: {{ display: false }} }},
+                        y: {{ beginAtZero: true, title: {{ display: true, text: 'Measures / year' }} }}
                     }}
                 }}
             }});
@@ -9401,68 +10970,77 @@ class WebsiteGenerator:
                 type: 'bar',
                 data: {{
                     labels: cycles.map(row => row.cycle),
-                    datasets: [
-                        {{
-                            type: 'bar',
-                            label: 'Avg. measures per year',
-                            data: cycles.map(row => row.avg_measures_per_year || 0),
-                            backgroundColor: '#7A1F2A',
-                            borderRadius: 4,
-                            yAxisID: 'y'
-                        }},
-                        {{
-                            type: 'line',
-                            label: 'Pass rate',
-                            data: cycles.map(row => row.pass_rate),
-                            borderColor: '#2D9D78',
-                            backgroundColor: '#2D9D78',
-                            tension: 0.25,
-                            yAxisID: 'y1'
-                        }}
-                    ]
-                }},
-                options: {{
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {{ legend: {{ position: 'bottom' }} }},
-                    scales: {{
-                        y: {{ beginAtZero: true, title: {{ display: true, text: 'Measures/year' }} }},
-                        y1: {{ beginAtZero: true, max: 100, position: 'right', grid: {{ drawOnChartArea: false }}, title: {{ display: true, text: 'Pass rate' }} }}
-                    }}
-                }}
-            }});
-
-            const topics = (insightsData.topic_stats || []).slice(0, 9);
-            createInsightChart('insightsTopicChart', {{
-                type: 'bar',
-                data: {{
-                    labels: topics.map(row => row.topic),
                     datasets: [{{
-                        label: 'Measures',
-                        data: topics.map(row => row.total),
-                        backgroundColor: topics.map(row => row.topic === 'Other' ? '#B8B0A5' : '#7A1F2A'),
+                        label: 'Avg. measures per year',
+                        data: cycles.map(row => row.avg_measures_per_year || 0),
+                        backgroundColor: '#7A1F2A',
                         borderRadius: 4
                     }}]
                 }},
                 options: {{
-                    indexAxis: 'y',
                     responsive: true,
                     maintainAspectRatio: false,
                     plugins: {{ legend: {{ display: false }} }},
-                    scales: {{ x: {{ beginAtZero: true }} }}
+                    scales: {{
+                        y: {{ beginAtZero: true, title: {{ display: true, text: 'Measures/year' }} }}
+                    }}
+                }}
+            }});
+
+            createInsightChart('insightsElectionCyclePassRateChart', {{
+                type: 'bar',
+                data: {{
+                    labels: cycles.map(row => row.cycle),
+                    datasets: [{{
+                        label: 'Pass rate (%)',
+                        data: cycles.map(row => row.pass_rate),
+                        backgroundColor: '#2D9D78',
+                        borderRadius: 4
+                    }}]
+                }},
+                options: {{
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {{ legend: {{ display: false }} }},
+                    scales: {{
+                        y: {{ beginAtZero: true, max: 100, title: {{ display: true, text: 'Pass rate (%)' }} }}
+                    }}
                 }}
             }});
 
             const topicTrends = insightsData.topic_trends || {{}};
             const topicTrendRows = topicTrends.decade_shares || [];
             const topicPalette = ['#7A1F2A', '#254E70', '#2D9D78', '#D4A62A', '#8B5CF6', '#E4572E'];
+
+            // Renormalize each decade's shares against classified-only denominator
+            // (excluding 'Other' / unclassified). Keeps lines meaningful when CEDA
+            // local volume floods the dataset starting in the 1990s.
+            const decadeTopicCounts = {{}};
+            (insightsData.topic_decade_matrix || []).forEach(row => {{
+                decadeTopicCounts[String(row.decade)] = row.topics || {{}};
+            }});
+            const renormalizedRows = topicTrendRows.map(row => {{
+                const counts = decadeTopicCounts[String(row.decade)] || {{}};
+                let classifiedSum = 0;
+                Object.entries(counts).forEach(([t, n]) => {{
+                    if (t !== 'Other') classifiedSum += (n || 0);
+                }});
+                const newShares = {{}};
+                if (classifiedSum > 0) {{
+                    Object.entries(counts).forEach(([t, n]) => {{
+                        if (t !== 'Other') newShares[t] = (n / classifiedSum) * 100;
+                    }});
+                }}
+                return {{ decade: row.decade, shares: newShares }};
+            }});
+
             createInsightChart('insightsTopicTrendChart', {{
                 type: 'line',
                 data: {{
-                    labels: topicTrendRows.map(row => row.decade + 's'),
+                    labels: renormalizedRows.map(row => row.decade + 's'),
                     datasets: (topicTrends.tracked_topics || []).map((topic, i) => ({{
                         label: topic,
-                        data: topicTrendRows.map(row => (row.shares || {{}})[topic]),
+                        data: renormalizedRows.map(row => (row.shares || {{}})[topic]),
                         borderColor: topicPalette[i % topicPalette.length],
                         backgroundColor: topicPalette[i % topicPalette.length],
                         pointRadius: 2,
@@ -9473,7 +11051,7 @@ class WebsiteGenerator:
                     responsive: true,
                     maintainAspectRatio: false,
                     plugins: {{ legend: {{ position: 'bottom' }} }},
-                    scales: {{ y: {{ beginAtZero: true, title: {{ display: true, text: 'Share of records (%)' }} }} }}
+                    scales: {{ y: {{ beginAtZero: true, title: {{ display: true, text: 'Share of classified topics (%)' }} }} }}
                 }}
             }});
 
@@ -9498,7 +11076,10 @@ class WebsiteGenerator:
                 }}
             }});
 
-            const typeTrendRows = insightsData.type_trends || [];
+            // Trim to 1990+: pre-1990 dataset is statewide-only, and the Bond / Sales Tax / Property Tax
+            // category-type vocabulary is essentially a local-ballot construct (CEDA). Showing decades of
+            // zero-line ahead of that misrepresents categorization absence as instrument absence.
+            const typeTrendRows = (insightsData.type_trends || []).filter(row => (row.decade || 0) >= 1990);
             createInsightChart('insightsFiscalTrendChart', {{
                 type: 'line',
                 data: {{
@@ -9536,51 +11117,32 @@ class WebsiteGenerator:
             }});
 
             const thresholds = insightsData.threshold_stats || [];
+            // Horizontal 100%-stacked: each row sums to 100% so the threshold *effect* is
+            // legible (52% of the volume is at 50% threshold but tells you nothing about
+            // the threshold itself; the proportional view shows what the rule does).
+            const segShare = (n, total) => total ? (100 * n / total) : 0;
             createInsightChart('insightsThresholdChart', {{
                 type: 'bar',
                 data: {{
-                    labels: thresholds.map(row => row.threshold),
+                    labels: thresholds.map(row => row.threshold + ' threshold'),
                     datasets: [
                         {{
                             label: 'Passed',
-                            data: thresholds.map(row => row.passed),
+                            data: thresholds.map(row => segShare(row.passed, row.total)),
                             backgroundColor: '#2D9D78',
-                            borderRadius: 4
+                            borderWidth: 0
                         }},
                         {{
-                            label: 'Majority-backed failures',
-                            data: thresholds.map(row => row.majority_failed),
-                            backgroundColor: '#E54D4D',
-                            borderRadius: 4
-                        }}
-                    ]
-                }},
-                options: {{
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {{ legend: {{ position: 'bottom' }} }},
-                    scales: {{ x: {{ stacked: true }}, y: {{ stacked: true, beginAtZero: true }} }}
-                }}
-            }});
-
-            const finance = insightsData.finance || {{}};
-            const financeRows = (finance.top_measures || []).slice(0, 8).reverse();
-            createInsightChart('insightsFinanceChart', {{
-                type: 'bar',
-                data: {{
-                    labels: financeRows.map(row => row.measure_id + ' (' + row.year + ')'),
-                    datasets: [
-                        {{
-                            label: 'Support receipts',
-                            data: financeRows.map(row => row.support_receipts || 0),
-                            backgroundColor: '#2D9D78',
-                            borderRadius: 4
+                            label: 'Failed below majority',
+                            data: thresholds.map(row => segShare((row.total || 0) - (row.passed || 0) - (row.majority_failed || 0), row.total)),
+                            backgroundColor: '#9CA3AF',
+                            borderWidth: 0
                         }},
                         {{
-                            label: 'Oppose receipts',
-                            data: financeRows.map(row => row.oppose_receipts || 0),
+                            label: 'Majority but failed',
+                            data: thresholds.map(row => segShare(row.majority_failed, row.total)),
                             backgroundColor: '#E54D4D',
-                            borderRadius: 4
+                            borderWidth: 0
                         }}
                     ]
                 }},
@@ -9590,9 +11152,68 @@ class WebsiteGenerator:
                     maintainAspectRatio: false,
                     plugins: {{
                         legend: {{ position: 'bottom' }},
-                        tooltip: {{ callbacks: {{ label: context => context.dataset.label + ': ' + formatDollars(context.parsed.x || 0) }} }}
+                        tooltip: {{
+                            callbacks: {{
+                                label: (ctx) => {{
+                                    const row = thresholds[ctx.dataIndex] || {{}};
+                                    const total = row.total || 0;
+                                    const counts = [
+                                        row.passed || 0,
+                                        Math.max((row.total || 0) - (row.passed || 0) - (row.majority_failed || 0), 0),
+                                        row.majority_failed || 0
+                                    ];
+                                    const raw = counts[ctx.datasetIndex] || 0;
+                                    return `${{ctx.dataset.label}}: ${{ctx.parsed.x.toFixed(1)}}% (${{raw.toLocaleString()}} of ${{total.toLocaleString()}})`;
+                                }}
+                            }}
+                        }}
                     }},
-                    scales: {{ x: {{ stacked: true, ticks: {{ callback: value => formatDollars(value) }} }}, y: {{ stacked: true }} }}
+                    scales: {{
+                        x: {{
+                            stacked: true,
+                            min: 0,
+                            max: 100,
+                            ticks: {{ callback: v => v + '%' }}
+                        }},
+                        y: {{ stacked: true }}
+                    }}
+                }}
+            }});
+
+            const finance = insightsData.finance || {{}};
+            const annualRows = finance.annual_receipts || [];
+            createInsightChart('financeAnnualChart', {{
+                type: 'bar',
+                data: {{
+                    labels: annualRows.map(row => row.year),
+                    datasets: [
+                        {{
+                            label: 'Total receipts',
+                            data: annualRows.map(row => row.total_receipts || 0),
+                            backgroundColor: '#7A1F2A',
+                            borderRadius: 3
+                        }}
+                    ]
+                }},
+                options: {{
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {{
+                        legend: {{ display: false }},
+                        tooltip: {{
+                            callbacks: {{
+                                label: ctx => formatDollars(ctx.parsed.y || 0),
+                                afterLabel: ctx => {{
+                                    const row = annualRows[ctx.dataIndex];
+                                    return row ? row.n_campaigns + ' campaign' + (row.n_campaigns === 1 ? '' : 's') : '';
+                                }}
+                            }}
+                        }}
+                    }},
+                    scales: {{
+                        x: {{ ticks: {{ maxTicksLimit: 14 }} }},
+                        y: {{ beginAtZero: true, ticks: {{ callback: value => formatDollars(value) }} }}
+                    }}
                 }}
             }});
         }}
@@ -9602,71 +11223,267 @@ class WebsiteGenerator:
             if (!target) return;
             const trend = insightsData.trend_insights || {{}};
             const busiestDecade = trend.busiest_decade || {{}};
-            const busiestYear = (trend.busiest_years || [])[0] || {{}};
-            const volumeTrend = trend.annual_volume_trend || {{}};
-            const recentPassTrend = trend.recent_pass_rate_trend || {{}};
+            const busiestYears = trend.busiest_years || [];
+            const busiestYear = busiestYears[0] || {{}};
+            const secondBusiest = busiestYears[1] || {{}};
+
+            const decades = insightsData.decade_series || [];
+            const byDecade = year => decades.find(d => d.decade === year) || {{}};
+            const dec1990 = byDecade(1990);
+            const dec2010 = byDecade(2010);
+            const passShift = (dec1990.pass_rate != null && dec2010.pass_rate != null)
+                ? (dec2010.pass_rate - dec1990.pass_rate)
+                : null;
+            const passShiftLabel = passShift == null
+                ? 'n/a'
+                : (passShift > 0 ? '+' : '') + passShift.toFixed(1) + ' pts';
+
             target.innerHTML = `
                 <div class="mini-callout"><strong>${{busiestDecade.decade ? busiestDecade.decade + 's' : 'n/a'}}</strong><span>busiest complete decade, with ${{formatInsightNumber(busiestDecade.total || 0)}} records</span></div>
                 <div class="mini-callout"><strong>${{busiestYear.year || 'n/a'}}</strong><span>busiest single year, with ${{formatInsightNumber(busiestYear.total || 0)}} records</span></div>
-                <div class="mini-callout"><strong>${{volumeTrend.slope == null ? 'n/a' : volumeTrend.slope.toFixed(1)}}</strong><span>additional records per year in descriptive annual-volume fit</span></div>
-                <div class="mini-callout"><strong>${{recentPassTrend.slope == null ? 'n/a' : recentPassTrend.slope.toFixed(2)}}</strong><span>percentage-point pass-rate slope per year since 2000</span></div>
+                <div class="mini-callout"><strong>${{formatInsightNumber(secondBusiest.total || 0)}}</strong><span>measures in ${{secondBusiest.year || 'n/a'}} &mdash; second-busiest year, behind only ${{busiestYear.year || ''}} (${{formatInsightNumber(busiestYear.total || 0)}})</span></div>
+                <div class="mini-callout"><strong>${{passShiftLabel}}</strong><span>pass-rate shift from the 1990s (${{formatInsightPct(dec1990.pass_rate)}}) to the 2010s (${{formatInsightPct(dec2010.pass_rate)}})</span></div>
             `;
         }}
 
         function renderTopicTrendSummary() {{
-            const target = document.getElementById('topicTrendSummary');
-            if (!target) return;
-            const trend = insightsData.topic_trends || {{}};
-            const rows = (trend.share_trends || []).slice(0, 4);
-            target.innerHTML = `
-                <div class="compact-list-heading">Largest decade-share movements</div>
-                ${{rows.map(row => `
-                    <div class="compact-row">
-                        <div><strong>${{escapeHtml(row.topic)}}</strong><span>${{formatInsightNumber(row.n)}} decade observations</span></div>
-                        <em>${{row.slope == null ? 'n/a' : row.slope.toFixed(2)}} pts/decade</em>
+            // Era anchor strip + pass-rate rankings (replaces the old slope list).
+            // Both modules read from the precomputed `topic_insights` payload, which
+            // uses the classified-only denominator that the on-page chart also uses.
+            const insights = insightsData.topic_insights || {{}};
+
+            const eraTarget = document.getElementById('topicEraStrip');
+            if (eraTarget) {{
+                const anchors = insights.era_anchors || [];
+                eraTarget.innerHTML = anchors.map(era => {{
+                    const top = era.top || [];
+                    const rows = top.length
+                        ? top.map(t => `
+                            <div class="topic-era-card-row">
+                                <span>${{escapeHtml(t.topic)}}</span>
+                                <strong>${{formatInsightPct(t.share)}}</strong>
+                            </div>
+                        `).join('')
+                        : `<div class="topic-era-card-row"><span style="color:var(--text-tertiary)">No classified records</span></div>`;
+                    return `
+                        <div class="topic-era-card">
+                            <div class="topic-era-card-decade">${{era.decade}}s</div>
+                            <div class="topic-era-card-meta">n = ${{formatInsightNumber(era.classified_n)}} classified</div>
+                            ${{rows}}
+                        </div>
+                    `;
+                }}).join('');
+            }}
+
+            const rankTarget = document.getElementById('topicPassRateRankings');
+            if (rankTarget) {{
+                const rankings = insights.pass_rate_rankings || {{}};
+                const renderBlock = (heading, items) => `
+                    <div class="topic-rank-block">
+                        <div class="topic-rank-heading">${{escapeHtml(heading)}}</div>
+                        ${{(items || []).map(it => `
+                            <div class="topic-rank-row">
+                                <span class="topic-rank-row-name">${{escapeHtml(it.topic)}}</span>
+                                <span class="topic-rank-row-pct">${{formatInsightPct(it.pass_rate)}}<small>n = ${{formatInsightNumber(it.decided)}}</small></span>
+                            </div>
+                        `).join('')}}
                     </div>
-                `).join('')}}
-            `;
+                `;
+                rankTarget.innerHTML =
+                    renderBlock('Clears voters more often', rankings.high) +
+                    renderBlock('Struggles more often', rankings.low);
+            }}
         }}
 
         function renderTypeInsights() {{
-            const summary = insightsData.type_insights || {{}};
-            const panel = document.getElementById('typeInsightSummary');
-            const list = document.getElementById('typeRankingsList');
-            if (panel) {{
-                const stats = (insightsData.statistical_comparisons || {{}}).fiscal_vs_non_fiscal || {{}};
-                panel.innerHTML = `
-                    <div class="mini-callout"><strong>${{formatInsightPct(summary.fiscal_share)}}</strong><span>of active records are tax, bond, or spending-limit measures</span></div>
-                    <div class="mini-callout"><strong>${{formatInsightPct(summary.fiscal_pass_rate)}}</strong><span>pass rate for fiscal measure types</span></div>
-                    <div class="mini-callout"><strong>${{stats.odds_ratio == null ? 'n/a' : stats.odds_ratio + 'x'}}</strong><span>descriptive fiscal vs. non-fiscal pass odds ratio</span></div>
-                `;
-            }}
-            if (list) {{
-                const highRows = (summary.highest_pass_rate_types || []).slice(0, 3).map(row => `
-                    <div class="compact-row">
-                        <div><strong>${{escapeHtml(row.category_type || 'Measure type')}}</strong><span>${{formatInsightNumber(row.decided)}} decided records</span></div>
-                        <em>${{formatInsightPct(row.pass_rate)}} passed</em>
+            // Four narrative modules below the chart row (Codex-recommended):
+            //   1. Modern-year ballot anatomy (1990+, per-year averages by instrument)
+            //   2. Fiscal instrument profiles (table with typical-use copy)
+            //   3. Type x threshold profiles (Bond / Property Tax / Sales Tax)
+            //   4. Recall callout
+            // All four read from the precomputed `type_insights` payload.
+            const ti = insightsData.type_insights || {{}};
+
+            // 1. Modern year anatomy
+            const anatomy = ti.modern_year_anatomy || {{}};
+            const instruments = anatomy.instruments || [];
+            const anatomyTarget = document.getElementById('typeModernAnatomy');
+            if (anatomyTarget) {{
+                const totalPerYear = instruments.reduce((s, it) => s + (it.per_year_avg || 0), 0);
+                const cells = instruments.map(it => `
+                    <div class="type-anatomy-cell">
+                        <div class="type-anatomy-num">${{formatInsightNumber(Math.round(it.per_year_avg || 0))}}</div>
+                        <div class="type-anatomy-name">${{escapeHtml(it.category_type)}}</div>
                     </div>
                 `).join('');
-                const lowRows = (summary.lowest_pass_rate_types || []).slice(0, 3).map(row => `
-                    <div class="compact-row">
-                        <div><strong>${{escapeHtml(row.category_type || 'Measure type')}}</strong><span>${{formatInsightNumber(row.decided)}} decided records</span></div>
-                        <em>${{formatInsightPct(row.pass_rate)}} passed</em>
-                    </div>
-                `).join('');
-                list.innerHTML = `
-                    <div class="compact-list-heading">Highest pass rates among common types</div>
-                    ${{highRows}}
-                    <div class="compact-list-heading">Lowest pass rates among common types</div>
-                    ${{lowRows}}
+                anatomyTarget.innerHTML = `
+                    <h4 class="type-section-h">A typical California ballot year is mostly local fiscal machinery</h4>
+                    <p class="type-section-deck">Since ${{anatomy.modern_start || 1990}}, voters have faced an average of about <strong>${{Math.round(totalPerYear)}} measures per year</strong> across the instruments below. Most of what shows up on a ballot is borrowing or taxing.</p>
+                    <div class="type-anatomy-strip">${{cells}}</div>
+                    <p class="type-section-footnote">Records since ${{anatomy.modern_start || 1990}} (${{anatomy.years_covered || ''}} years), where local category types are consistently populated.</p>
                 `;
             }}
+
+            // 2. Fiscal instrument profiles
+            const profiles = ti.fiscal_instrument_profiles || [];
+            const fiscalTarget = document.getElementById('typeFiscalProfiles');
+            if (fiscalTarget) {{
+                fiscalTarget.innerHTML = `
+                    <h4 class="type-section-h">The fiscal ballot is not one thing</h4>
+                    <p class="type-section-deck">A single &ldquo;fiscal pass rate&rdquo; flattens real differences across instruments. Business taxes clear voters at very different rates than property taxes; bonds are common but only moderately successful.</p>
+                    <table class="kf-mini-table type-profile-table" aria-label="Fiscal instrument profiles">
+                        <thead><tr><th scope="col">Instrument</th><th scope="col">Decided</th><th scope="col">Pass rate</th><th scope="col">What it usually means</th></tr></thead>
+                        <tbody>
+                            ${{profiles.map(p => `
+                                <tr>
+                                    <th scope="row">${{escapeHtml(p.category_type)}}</th>
+                                    <td>${{formatInsightNumber(p.decided)}}</td>
+                                    <td><strong>${{formatInsightPct(p.pass_rate)}}</strong></td>
+                                    <td>${{escapeHtml(p.typical_use)}}</td>
+                                </tr>
+                            `).join('')}}
+                        </tbody>
+                    </table>
+                `;
+            }}
+
+            // 3. Type x threshold
+            const tps = ti.type_threshold_profiles || [];
+            const thresholdTarget = document.getElementById('typeThresholdProfiles');
+            if (thresholdTarget) {{
+                const formatMix = (mix) => {{
+                    const order = ['50%', '55%', '66.67%'];
+                    return order
+                        .filter(t => mix[t] != null)
+                        .map(t => `${{t}} (${{Math.round(mix[t])}}%)`)
+                        .join(' / ');
+                }};
+                thresholdTarget.innerHTML = `
+                    <h4 class="type-section-h">Some low pass rates are rule stories, not voter mood</h4>
+                    <p class="type-section-deck">Property tax measures pass less often largely because most need a two-thirds supermajority. Sales tax mixes simple-majority and supermajority contests; school bonds mostly need 55%.</p>
+                    <table class="kf-mini-table type-profile-table" aria-label="Threshold mix by fiscal instrument">
+                        <thead><tr><th scope="col">Instrument</th><th scope="col">Decided</th><th scope="col">Pass rate</th><th scope="col">Threshold mix</th><th scope="col">Majority but failed</th></tr></thead>
+                        <tbody>
+                            ${{tps.map(p => `
+                                <tr>
+                                    <th scope="row">${{escapeHtml(p.category_type)}}</th>
+                                    <td>${{formatInsightNumber(p.decided)}}</td>
+                                    <td><strong>${{formatInsightPct(p.pass_rate)}}</strong></td>
+                                    <td>${{escapeHtml(formatMix(p.threshold_mix || {{}}))}}</td>
+                                    <td>${{formatInsightNumber(p.majority_failed)}}</td>
+                                </tr>
+                            `).join('')}}
+                        </tbody>
+                    </table>
+                    <p class="type-section-footnote">Thresholds derived from available threshold and type fields. The Rules panel has the deep dive.</p>
+                `;
+            }}
+
+            // 4. Recall callout
+            const rp = ti.recall_profile || {{}};
+            const recallTarget = document.getElementById('typeRecallCallout');
+            if (recallTarget && rp.total) {{
+                recallTarget.innerHTML = `
+                    <h4 class="type-section-h">Recalls are rare &mdash; but once they reach the ballot they usually pass</h4>
+                    <p class="type-section-deck"><strong>${{formatInsightNumber(rp.total)}}</strong> recall measures across <strong>${{formatInsightNumber(rp.county_count)}}</strong> California counties. Of those that reached a vote, <strong>${{formatInsightPct(rp.pass_rate)}}</strong> passed &mdash; a striking ballot-stage success rate for what voters perceive as exceptional.</p>
+                    <p class="type-section-footnote">Recall measures that reached the ballot, not all attempted recalls.</p>
+                `;
+            }}
+        }}
+
+        // Geography panel state (count vs pass rate). Counties-only for now;
+        // a Regions toggle was removed because the underlying spatial pattern
+        // closely mirrors the county view. Tracked for future revisit.
+        const geographyState = {{ colorMode: 'count' }};
+        // Cache the loaded county features so the color toggle doesn't re-fetch the topojson.
+        let cachedCountyFeatures = null;
+        // Persistent Leaflet map + layer references so toggling color mode just re-styles the
+        // existing layer instead of re-creating the whole map.
+        let leafletCountyMap = null;
+        let leafletCountyLayer = null;
+        let leafletLegendControl = null;
+
+        function setGeographyColor(mode) {{
+            if (mode === geographyState.colorMode) return;
+            geographyState.colorMode = mode;
+            document.querySelectorAll('[data-geo-color]').forEach(b => {{
+                b.classList.toggle('active', b.dataset.geoColor === mode);
+            }});
+            // Just restyle the existing Leaflet layer; no full re-render needed.
+            applyCountyMapStyle();
+        }}
+
+        function buildCountyColorScale() {{
+            const isPassRate = geographyState.colorMode === 'passRate';
+            const stats = (insightsData.county_stats || []);
+            if (isPassRate) {{
+                const allValues = stats.map(r => r.pass_rate).filter(v => v != null);
+                const lo = Math.min(...allValues, 50);
+                const hi = Math.max(...allValues, 80);
+                return {{
+                    isPassRate: true,
+                    fn: d3.scaleSequential([lo, hi], d3.interpolateRdYlGn),
+                    domain: [lo, hi]
+                }};
+            }}
+            const allValues = stats.map(r => r.total).filter(v => v != null);
+            const maxTotal = Math.max(...allValues, 1);
+            return {{
+                isPassRate: false,
+                fn: d3.scaleSequentialSqrt([0, maxTotal], d3.interpolateBlues),
+                domain: [0, maxTotal]
+            }};
+        }}
+
+        function applyCountyMapStyle() {{
+            if (!leafletCountyLayer) return;
+            const scale = buildCountyColorScale();
+            const countyByFips = new Map((insightsData.county_stats || []).map(row => [String(row.fips), row]));
+            leafletCountyLayer.setStyle((feature) => {{
+                const row = countyByFips.get(String(feature.id).padStart(5, '0'));
+                const v = row ? (scale.isPassRate ? row.pass_rate : row.total) : null;
+                return {{
+                    fillColor: v == null ? '#EEE9E2' : scale.fn(v),
+                    weight: 0.7,
+                    color: '#FFFFFF',
+                    fillOpacity: 1
+                }};
+            }});
+            updateCountyMapLegend(scale);
+        }}
+
+        function updateCountyMapLegend(scale) {{
+            if (!leafletCountyMap) return;
+            if (leafletLegendControl) {{
+                leafletCountyMap.removeControl(leafletLegendControl);
+                leafletLegendControl = null;
+            }}
+            leafletLegendControl = L.control({{ position: 'bottomright' }});
+            leafletLegendControl.onAdd = () => {{
+                const div = L.DomUtil.create('div', 'geo-legend');
+                const stops = 5;
+                const swatches = [];
+                for (let i = 0; i < stops; i++) {{
+                    const t = i / (stops - 1);
+                    const v = scale.domain[0] + t * (scale.domain[1] - scale.domain[0]);
+                    swatches.push(`<span style="background:${{scale.fn(v)}}"></span>`);
+                }}
+                const fmtLo = scale.isPassRate ? scale.domain[0].toFixed(0) + '%' : '0';
+                const fmtHi = scale.isPassRate ? scale.domain[1].toFixed(0) + '%' : formatInsightNumber(scale.domain[1]);
+                div.innerHTML = `
+                    <span class="geo-legend-title">${{scale.isPassRate ? 'Pass rate' : 'Measures'}}</span>
+                    <div class="geo-legend-bar">${{swatches.join('')}}</div>
+                    <div class="geo-legend-scale"><span>${{fmtLo}}</span><span>${{fmtHi}}</span></div>
+                `;
+                return div;
+            }};
+            leafletLegendControl.addTo(leafletCountyMap);
         }}
 
         function renderCountyLeaderboard() {{
             const target = document.getElementById('countyLeaderboard');
             if (!target) return;
-            const rows = (insightsData.county_stats || []).slice(0, 10);
+            const rows = (insightsData.county_stats || []).slice(0, 12);
             const maxTotal = Math.max(...rows.map(row => row.total || 0), 1);
             target.innerHTML = rows.map(row => `
                 <div class="leader-row">
@@ -9681,103 +11498,257 @@ class WebsiteGenerator:
         }}
 
         function renderGeographyInsights() {{
+            // Four anchor cards above the map (visible in both Counties and Regions views):
+            //   1. Top-5 county concentration
+            //   2. Top region (with volume + pass rate)
+            //   3. Bottom region (with volume + pass rate)
+            //   4. County pass-rate spread
             const target = document.getElementById('regionInsightSummary');
             if (!target) return;
             const geo = insightsData.geography_insights || {{}};
+
+            // Card 1: top-5 county share of all local measures (computed from county_stats so
+            // we don't accidentally include Statewide rows).
+            const allCounties = [...(insightsData.county_stats || [])]
+                .filter(c => c.county && c.county !== 'Statewide')
+                .sort((a, b) => (b.total || 0) - (a.total || 0));
+            const top5 = allCounties.slice(0, 5);
+            const top5Sum = top5.reduce((s, c) => s + (c.total || 0), 0);
+            const allLocalSum = allCounties.reduce((s, c) => s + (c.total || 0), 0);
+            const top5Pct = allLocalSum ? (100 * top5Sum / allLocalSum) : null;
+            const top5Names = top5.map(c => c.county).join(', ');
+
             const highRegion = (geo.highest_pass_rate_regions || [])[0];
             const lowRegion = (geo.lowest_pass_rate_regions || [])[0];
+
+            const fmtRegion = r => r
+                ? `${{formatInsightPct(r.pass_rate)}} pass &middot; ${{formatInsightNumber(r.total)}} measures`
+                : '';
+
             target.innerHTML = `
-                <div class="mini-callout"><strong>${{formatInsightPct(geo.county_pass_rate_gap)}}</strong><span>gap between highest- and lowest-pass-rate counties with enough decided records</span></div>
-                <div class="mini-callout"><strong>${{highRegion ? escapeHtml(highRegion.region) : 'n/a'}}</strong><span>highest regional pass rate${{highRegion ? ' at ' + formatInsightPct(highRegion.pass_rate) : ''}}</span></div>
-                <div class="mini-callout"><strong>${{lowRegion ? escapeHtml(lowRegion.region) : 'n/a'}}</strong><span>lowest regional pass rate${{lowRegion ? ' at ' + formatInsightPct(lowRegion.pass_rate) : ''}}</span></div>
+                <div class="mini-callout">
+                    <strong>${{top5Pct == null ? '—' : Math.round(top5Pct) + '%'}}</strong>
+                    <span>of measures from 5 counties &mdash; ${{escapeHtml(top5Names)}}</span>
+                </div>
+                <div class="mini-callout">
+                    <strong>${{highRegion ? escapeHtml(highRegion.region) : 'n/a'}}</strong>
+                    <span>highest regional pass rate &mdash; ${{escapeHtml(fmtRegion(highRegion))}}</span>
+                </div>
+                <div class="mini-callout">
+                    <strong>${{lowRegion ? escapeHtml(lowRegion.region) : 'n/a'}}</strong>
+                    <span>lowest regional pass rate &mdash; ${{escapeHtml(fmtRegion(lowRegion))}}</span>
+                </div>
+                <div class="mini-callout">
+                    <strong>${{formatInsightPct(geo.county_pass_rate_gap)}}</strong>
+                    <span>spread between fastest- and slowest-passing counties (n &ge; 50 decided)</span>
+                </div>
             `;
         }}
 
         function renderCountyMap() {{
+            // Leaflet-based choropleth. The user controls pan/zoom themselves so we don't
+            // have to nail an exact pixel size. We still load the topojson via d3 + topojson-client
+            // because that's how us-atlas counties-10m is shipped; Leaflet consumes the resulting
+            // GeoJSON via L.geoJSON().
             const target = document.getElementById('californiaCountyMap');
-            if (!target || !window.d3 || !window.topojson) return;
-            target.innerHTML = '';
-            const width = target.clientWidth || 640;
-            const height = Math.max(420, Math.round(width * 0.78));
+            if (!target || !window.L || !window.d3 || !window.topojson) return;
+
             const countyByFips = new Map((insightsData.county_stats || []).map(row => [String(row.fips), row]));
-            const maxTotal = Math.max(...(insightsData.county_stats || []).map(row => row.total || 0), 1);
-            const color = d3.scaleSequentialSqrt([0, maxTotal], d3.interpolateBlues);
-            const tooltip = d3.select('body').append('div').attr('class', 'county-tooltip').style('display', 'none');
 
-            d3.json('https://cdn.jsdelivr.net/npm/us-atlas@3/counties-10m.json').then(us => {{
-                const counties = topojson.feature(us, us.objects.counties).features
-                    .filter(feature => String(feature.id).padStart(5, '0').startsWith('06'));
+            const drawMap = (counties) => {{
+                // Initialize the map only once. Subsequent calls (e.g., from the color toggle)
+                // just re-style the layer.
+                if (!leafletCountyMap) {{
+                    target.innerHTML = '';
+                    leafletCountyMap = L.map(target, {{
+                        zoomControl: true,
+                        attributionControl: false,
+                        scrollWheelZoom: false,
+                        worldCopyJump: false,
+                        minZoom: 5,
+                        maxZoom: 9
+                    }});
+                }} else if (leafletCountyLayer) {{
+                    leafletCountyLayer.remove();
+                    leafletCountyLayer = null;
+                }}
+
                 const collection = {{ type: 'FeatureCollection', features: counties }};
-                const projection = d3.geoIdentity().reflectY(true).fitSize([width, height], collection);
-                const path = d3.geoPath(projection);
-                const svg = d3.select(target).append('svg')
-                    .attr('viewBox', `0 0 ${{width}} ${{height}}`)
-                    .attr('role', 'img')
-                    .attr('aria-label', 'California county map colored by ballot-measure count');
-
-                svg.selectAll('path')
-                    .data(counties)
-                    .join('path')
-                    .attr('d', path)
-                    .attr('fill', d => {{
-                        const row = countyByFips.get(String(d.id).padStart(5, '0'));
-                        return row ? color(row.total || 0) : '#EEE9E2';
-                    }})
-                    .attr('stroke', '#FFFFFF')
-                    .attr('stroke-width', 0.7)
-                    .on('mousemove', (event, d) => {{
-                        const row = countyByFips.get(String(d.id).padStart(5, '0'));
+                leafletCountyLayer = L.geoJSON(collection, {{
+                    style: () => ({{ fillColor: '#EEE9E2', weight: 0.7, color: '#FFFFFF', fillOpacity: 1 }}),
+                    onEachFeature: (feature, layer) => {{
+                        const row = countyByFips.get(String(feature.id).padStart(5, '0'));
                         if (!row) return;
-                        tooltip.style('display', 'block')
-                            .style('left', (event.clientX + 12) + 'px')
-                            .style('top', (event.clientY + 12) + 'px')
-                            .html(`<strong>${{escapeHtml(row.county)}}</strong><br>${{formatInsightNumber(row.total)}} measures<br>${{formatInsightPct(row.pass_rate)}} passed`);
-                    }})
-                    .on('mouseleave', () => tooltip.style('display', 'none'));
+                        const html = `<strong>${{escapeHtml(row.county)}}</strong><br>` +
+                                     `${{formatInsightNumber(row.total)}} measures &middot; ${{formatInsightPct(row.pass_rate)}} passed`;
+                        layer.bindTooltip(html, {{
+                            sticky: true,
+                            className: 'county-leaflet-tooltip',
+                            direction: 'top',
+                            offset: [0, -4]
+                        }});
+                        layer.on({{
+                            mouseover: (e) => e.target.setStyle({{ weight: 1.6, color: '#0F172A' }}),
+                            mouseout: (e) => leafletCountyLayer.resetStyle(e.target)
+                        }});
+                    }}
+                }}).addTo(leafletCountyMap);
+
+                leafletCountyMap.fitBounds(leafletCountyLayer.getBounds(), {{ padding: [10, 10] }});
+                leafletCountyMap.setMaxBounds(leafletCountyLayer.getBounds().pad(0.5));
+
+                applyCountyMapStyle();
                 countyMapRendered = true;
+            }};
+
+            // The Leaflet container needs to be visible (have a size) before the map is created;
+            // when this function runs from an offscreen carousel slide on initial render, sizes are
+            // fine because the panel is in the DOM. But to be safe, invalidate after a tick.
+            const ensureSized = () => {{
+                if (leafletCountyMap) leafletCountyMap.invalidateSize();
+            }};
+
+            if (cachedCountyFeatures) {{
+                drawMap(cachedCountyFeatures);
+                setTimeout(ensureSized, 0);
+                return;
+            }}
+            d3.json('https://cdn.jsdelivr.net/npm/us-atlas@3/counties-10m.json').then(us => {{
+                cachedCountyFeatures = topojson.feature(us, us.objects.counties).features
+                    .filter(feature => String(feature.id).padStart(5, '0').startsWith('06'));
+                drawMap(cachedCountyFeatures);
+                setTimeout(ensureSized, 0);
             }}).catch(() => {{
                 target.innerHTML = '<div class="empty-state"><p>County map could not load. The leaderboard still shows county totals.</p></div>';
             }});
         }}
 
         function renderThresholdCallouts() {{
-            const target = document.getElementById('thresholdCallouts');
-            if (!target) return;
-            const thresholdInsight = insightsData.threshold_insights || {{}};
-            const topFailure = (thresholdInsight.highest_yes_failures || [])[0];
-            target.innerHTML = (insightsData.threshold_stats || []).map(row => `
-                <div class="mini-callout">
-                    <strong>${{escapeHtml(row.threshold)}}</strong>
-                    <span>${{formatInsightPct(row.pass_rate)}} pass rate · ${{formatInsightNumber(row.majority_failed)}} majority-backed failures</span>
-                </div>
-            `).join('');
-            if (topFailure) {{
-                target.innerHTML += `
-                    <div class="mini-callout">
-                        <strong>${{formatInsightPct(topFailure.percent_yes)}} yes, failed</strong>
-                        <span>${{escapeHtml((topFailure.year || '') + ' - ' + (topFailure.title || topFailure.measure_id || 'Measure'))}}</span>
+            // Renamed conceptually to "renderRulesPanel" — the function ID stays the same
+            // so the renderInsights() call list doesn't need to change. Renders the entire
+            // Rules panel below the chart: hero, threshold table, two near-miss landmark
+            // cards, plain-English comparison block, and the bridge to Measure Types.
+            const ti = insightsData.threshold_insights || {{}};
+            const ts = insightsData.threshold_stats || [];
+            const tt = (insightsData.type_insights && insightsData.type_insights.type_threshold_profiles) || [];
+
+            // Hero
+            const heroTarget = document.getElementById('rulesHero');
+            if (heroTarget) {{
+                const count = ti.majority_failure_count;
+                const share = ti.majority_failure_share_higher_thresholds;
+                const higherDecided = ti.higher_threshold_decided;
+                heroTarget.innerHTML = `
+                    <div class="rules-hero-num">${{count == null ? '—' : count.toLocaleString()}}</div>
+                    <div class="rules-hero-headline">measures got more yes votes than no &mdash; and still failed.</div>
+                    <div class="rules-hero-sub">
+                        That is about <strong>${{share == null ? '—' : share.toFixed(0) + '%'}}</strong> of decided contests at the 55% or two-thirds threshold (${{higherDecided == null ? '—' : higherDecided.toLocaleString()}} records). Almost none come from simple-majority elections, where a majority is enough by definition.
                     </div>
+                `;
+            }}
+
+            // Threshold table — 5 columns
+            const tableTarget = document.getElementById('rulesThresholdTable');
+            if (tableTarget) {{
+                tableTarget.innerHTML = `
+                    <table class="kf-mini-table" aria-label="Outcomes by legal threshold">
+                        <thead><tr><th scope="col">Threshold</th><th scope="col">Decided</th><th scope="col">Pass rate</th><th scope="col">Failed below majority</th><th scope="col">Majority but failed</th></tr></thead>
+                        <tbody>
+                            ${{ts.map(row => {{
+                                const total = row.total || 0;
+                                const passed = row.passed || 0;
+                                const majFail = row.majority_failed || 0;
+                                const belowMaj = Math.max(total - passed - majFail, 0);
+                                return `
+                                    <tr>
+                                        <th scope="row">${{escapeHtml(row.threshold)}}</th>
+                                        <td>${{formatInsightNumber(total)}}</td>
+                                        <td><strong>${{formatInsightPct(row.pass_rate)}}</strong></td>
+                                        <td>${{formatInsightNumber(belowMaj)}}</td>
+                                        <td><strong>${{formatInsightNumber(majFail)}}</strong></td>
+                                    </tr>
+                                `;
+                            }}).join('')}}
+                        </tbody>
+                    </table>
+                `;
+            }}
+
+            // Landmark near-misses (use curated `landmark_near_misses` from the JSON,
+            // not raw highest_yes_failures or closest_to_legal_threshold).
+            const landTarget = document.getElementById('rulesLandmarks');
+            if (landTarget) {{
+                const landmarks = (ti.landmark_near_misses || []).slice(0, 2);
+                if (landmarks.length === 0) {{
+                    landTarget.innerHTML = '';
+                }} else {{
+                    landTarget.classList.add('rules-landmarks');
+                    landTarget.innerHTML = landmarks.map(m => {{
+                        const where = m.county || 'Unknown';
+                        const year = m.year ? String(m.year) : '';
+                        const cat = m.category_type || '';
+                        const topic = m.topic || '';
+                        const subtitle = [year, cat, topic].filter(Boolean).join(' &middot; ');
+                        const tail = m.threshold ? `failed under the ${{escapeHtml(m.threshold)}} threshold` : 'failed';
+                        return `
+                            <div class="rules-landmark-card">
+                                <div class="rules-landmark-yes">${{m.percent_yes == null ? '—' : m.percent_yes.toFixed(2) + '%'}} yes</div>
+                                <div class="rules-landmark-tag">${{escapeHtml(where)}}</div>
+                                <div class="rules-landmark-meta">${{subtitle}} &mdash; ${{tail}}.</div>
+                            </div>
+                        `;
+                    }}).join('');
+                }}
+            }}
+
+            // Plain-English replacement for the odds-ratio block.
+            const peTarget = document.getElementById('rulesPlainEnglish');
+            if (peTarget) {{
+                const diffs = ti.threshold_pp_diffs || [];
+                const fmtDiff = d => {{
+                    const sign = d.pp_vs_simple_majority >= 0 ? '+' : '−';
+                    const mag = Math.abs(d.pp_vs_simple_majority).toFixed(1);
+                    return `<strong>${{sign}}${{mag}} pts</strong>`;
+                }};
+                const diff55 = diffs.find(d => d.threshold === '55%');
+                const diff66 = diffs.find(d => d.threshold === '66.67%');
+                if (diff55 || diff66) {{
+                    peTarget.innerHTML = `
+                        <div>
+                            On <strong>55%</strong> contests, voters approve at about ${{diff55 ? fmtDiff(diff55) : '—'}} relative to simple-majority elections.
+                            On <strong>two-thirds</strong> contests, the rate falls ${{diff66 ? fmtDiff(diff66) : '—'}}.
+                        </div>
+                        <span class="rules-plain-caveat">Threshold assignment is selected (mostly by instrument), not random &mdash; so these gaps describe the contests, not voter mood.</span>
+                    `;
+                }} else {{
+                    peTarget.innerHTML = '';
+                }}
+            }}
+
+            // Bridge to Measure Types panel — instrument-first, prop-history second.
+            const bridgeTarget = document.getElementById('rulesBridge');
+            if (bridgeTarget) {{
+                const byType = name => tt.find(p => p.category_type === name) || {{}};
+                const bondFails = byType('Bond').majority_failed;
+                const propFails = byType('Property Tax').majority_failed;
+                const salesFails = byType('Sales Tax').majority_failed;
+                const fmt = n => n == null ? '—' : formatInsightNumber(n);
+                bridgeTarget.innerHTML = `
+                    <p>
+                        Threshold rules aren&rsquo;t randomly assigned &mdash; they attach to instrument. Most two-thirds contests are
+                        property-tax measures (<strong>${{fmt(propFails)}}</strong> majority-backed failures); 55% is mostly school bonds
+                        (<strong>${{fmt(bondFails)}}</strong>); sales-tax measures sit in the simple-majority world but still produced
+                        <strong>${{fmt(salesFails)}}</strong> majority-backed failures where a higher rule applied. The legal scaffolding here
+                        is Prop 13 (1978), Prop 218 (1996), and Prop 39 (2000).
+                        <button class="overview-jump-btn" onclick="jumpToInsightsPanel('insightsTypesPanel')">See the type breakdown &rarr;</button>
+                    </p>
                 `;
             }}
         }}
 
         function renderStatisticalComparisons() {{
-            const target = document.getElementById('thresholdStatsSummary');
-            if (!target) return;
-            const stats = insightsData.statistical_comparisons || {{}};
-            const rows = stats.threshold_vs_simple_majority || [];
-            target.innerHTML = `
-                <div class="compact-list-heading">Descriptive odds ratio vs. simple-majority measures</div>
-                ${{rows.map(row => `
-                    <div class="compact-row">
-                        <div>
-                            <strong>${{escapeHtml(row.threshold + ' threshold')}}</strong>
-                            <span>${{formatInsightNumber(row.decided)}} decided records; ${{formatInsightPct(row.pass_rate)}} pass rate</span>
-                        </div>
-                        <em>${{row.odds_ratio == null ? 'n/a' : row.odds_ratio + 'x'}} (${{row.ci_low == null ? 'n/a' : row.ci_low}}-${{row.ci_high == null ? 'n/a' : row.ci_high}})</em>
-                    </div>
-                `).join('')}}
-            `;
+            // Folded into renderThresholdCallouts; no-op kept so the renderInsights call list
+            // doesn't need to change.
         }}
 
         function renderCloseMeasures() {{
@@ -9832,51 +11803,181 @@ class WebsiteGenerator:
             `;
         }}
 
+        // Title-case a donor name. CalAccess donor strings are mostly ALL CAPS;
+        // rendering them shouty crowds the panel. We title-case ALL-CAPS inputs
+        // and leave already-mixed-case inputs alone, with three escape hatches:
+        // a brand-display map (DaVita, FanDuel), an acronym allow-list (PAC,
+        // SEIU), and a lowercase-connective list (of, and, for) for grammar.
+        const FINANCE_ACRONYMS = new Set([
+            'PAC','PACS','SEIU','AFSCME','AFT','UFCW','CTA','AHF','AIDS',
+            'PG&E','DBA','D/B/A','LLC','LLP','LP','INC','INC.','CO',
+            'CO.','CORP','USA','US','U.S.','UAE','UK','TV','EV','EVS','II',
+            'III','IV','VI','VII','JR','JR.','SR','SR.','NAACP','ACLU',
+            'NRA','AARP','ALG','CAHHS','CCPOA','CSEA','SD','LA','SF','OC',
+            'CA','BAC','PACE','COPE','HHS','SF','DC'
+        ]);
+        const FINANCE_LOWER_WORDS = new Set([
+            'of','for','and','the','in','on','to','at','by','with','a','an',
+            'as','vs','de','la','el','los','las'
+        ]);
+        const FINANCE_BRAND_DISPLAY = {{
+            'DAVITA': 'DaVita',
+            'FANDUEL': 'FanDuel',
+            'DRAFTKINGS': 'DraftKings',
+            'JPMORGAN': 'JPMorgan',
+            'YOUTUBE': 'YouTube',
+            'EBAY': 'eBay',
+        }};
+        function formatDonorName(raw) {{
+            if (!raw) return '';
+            // Strip a trailing parenthetical "(SPONSORED BY ...)" suffix.
+            let name = String(raw).replace(/\\s*\\(SPONSORED BY[^)]*\\)\\s*$/i, '').trim();
+            // Person names: "LAST, FIRST [MIDDLE]" → "First Last"
+            const personMatch = name.match(/^([A-Z][A-Z'\\.\\-]+),\\s+([A-Z][A-Z' \\.\\-]+)$/);
+            if (personMatch) {{
+                name = personMatch[2] + ' ' + personMatch[1];
+            }}
+            // Only title-case if input is fully ALL-CAPS — preserves nicely-
+            // cased entries like "California Teachers Association Issues PAC".
+            if (/[a-z]/.test(name)) return name;
+
+            const tokens = name.split(/(\\s+|[\\-/])/);
+            const wordIdxs = [];
+            tokens.forEach((t, i) => {{
+                if (/[A-Z]/.test(t) && t !== '-' && t !== '/') wordIdxs.push(i);
+            }});
+            const firstWordIdx = wordIdxs[0];
+            const lastWordIdx = wordIdxs[wordIdxs.length - 1];
+
+            return tokens.map((tok, idx) => {{
+                if (!tok || /^\\s+$/.test(tok) || tok === '-' || tok === '/') return tok;
+                const m = tok.match(/^([^A-Z0-9&]*)([A-Z0-9&.''\\-]+)([^A-Z0-9&]*)$/);
+                if (!m) return tok;
+                const [, lead, core, trail] = m;
+                const upperKey = core.replace(/[.,;:]+$/, '').toUpperCase();
+                if (FINANCE_BRAND_DISPLAY[upperKey]) {{
+                    return lead + FINANCE_BRAND_DISPLAY[upperKey] + trail;
+                }}
+                if (FINANCE_ACRONYMS.has(upperKey)) {{
+                    return lead + core.toUpperCase() + trail;
+                }}
+                if (idx !== firstWordIdx && idx !== lastWordIdx
+                    && FINANCE_LOWER_WORDS.has(core.toLowerCase())) {{
+                    return lead + core.toLowerCase() + trail;
+                }}
+                const lower = core.toLowerCase();
+                return lead + lower.charAt(0).toUpperCase() + lower.slice(1) + trail;
+            }}).join('');
+        }}
+
+        function formatFinanceMeasureNumber(measureId) {{
+            if (!measureId) return '';
+            // Turn "PROP_22" into "Prop 22" for display.
+            return String(measureId)
+                .replace(/^PROP_/i, 'Prop ')
+                .replace(/^MEASURE_/i, 'Measure ')
+                .replace(/_/g, ' ');
+        }}
+
         function renderFinanceInsights() {{
             const finance = insightsData.finance || {{}};
+
+            // Module 1 — Hero anchor
             const panel = document.getElementById('financeInsightSummary');
-            const list = document.getElementById('financeTopMeasures');
             if (panel) {{
+                const losses = (finance.better_funded_known || 0) - (finance.better_funded_won || 0);
+                const lossPct = finance.better_funded_known
+                    ? Math.round((losses / finance.better_funded_known) * 100 * 10) / 10
+                    : null;
                 panel.innerHTML = `
-                    <div class="mini-callout"><strong>${{formatDollars(finance.total_receipts || 0)}}</strong><span>linked statewide receipts</span></div>
-                    <div class="mini-callout"><strong>${{formatInsightNumber(finance.measure_count || 0)}}</strong><span>matched proposition IDs</span></div>
+                    <div class="mini-callout"><strong>${{formatDollars(finance.total_receipts || 0)}}</strong><span>linked statewide receipts (${{formatInsightNumber(finance.measure_count || 0)}} campaigns)</span></div>
                     <div class="mini-callout"><strong>${{formatInsightPct(finance.better_funded_win_rate)}}</strong><span>better-funded side win rate</span></div>
+                    <div class="mini-callout"><strong>${{formatInsightNumber(losses)}}</strong><span>times the better-funded side lost (${{lossPct != null ? lossPct + '%' : 'n/a'}})</span></div>
                 `;
             }}
-            if (list) {{
-                list.innerHTML = (finance.top_measures || []).slice(0, 6).map(row => `
-                    <div class="compact-row">
-                        <div>
-                            <strong>${{escapeHtml(row.measure_id + ' · ' + row.year)}}</strong>
-                            <span>${{escapeHtml((row.title || '').replace(/^California\\s+/, ''))}}</span>
+
+            // Module 3a — Top 15 donors overall
+            const topDonors = document.getElementById('financeTopDonors');
+            if (topDonors) {{
+                const rows = finance.top_donors_overall || [];
+                topDonors.innerHTML = rows.map(d => `
+                    <li class="finance-donor-row">
+                        <div class="finance-donor-name">${{escapeHtml(formatDonorName(d.name))}}</div>
+                        <div class="finance-donor-meta">
+                            <span class="finance-donor-amount">${{formatDollars(d.total_amount || 0)}}</span>
+                            <span class="finance-donor-count">${{d.n_campaigns}} campaign${{d.n_campaigns === 1 ? '' : 's'}}</span>
                         </div>
-                        <em>${{formatDollars(row.total_receipts || 0)}}</em>
-                    </div>
+                    </li>
                 `).join('');
-                const topRows = (finance.top_measures || []).slice(0, 4).map(row => `
-                    <div class="compact-row">
-                        <div>
-                            <strong>${{escapeHtml(row.measure_id + ' - ' + row.year)}}</strong>
-                            <span>${{escapeHtml((row.title || '').replace(/^California\\s+/, ''))}}</span>
+            }}
+
+            // Module 3b — Repeat players (3+ campaigns, ≥$1M)
+            const repeats = document.getElementById('financeRepeatDonors');
+            if (repeats) {{
+                const rows = finance.repeat_donors || [];
+                repeats.innerHTML = rows.map(d => `
+                    <li class="finance-donor-row">
+                        <div class="finance-donor-name">${{escapeHtml(formatDonorName(d.name))}}</div>
+                        <div class="finance-donor-meta">
+                            <span class="finance-donor-amount">${{d.n_campaigns}} campaigns</span>
+                            <span class="finance-donor-count">${{formatDollars(d.total_amount || 0)}} aggregate</span>
                         </div>
-                        <em>${{formatDollars(row.total_receipts || 0)}}</em>
-                    </div>
+                    </li>
                 `).join('');
-                const upsetRows = (finance.better_funded_losses || []).slice(0, 4).map(row => `
-                    <div class="compact-row">
-                        <div>
-                            <strong>${{escapeHtml(row.measure_id + ' - ' + row.year)}}</strong>
-                            <span>${{escapeHtml((row.title || '').replace(/^California\\s+/, ''))}}</span>
-                        </div>
-                        <em>${{escapeHtml(row.better_funded_side || 'better funded')}} lost</em>
-                    </div>
-                `).join('');
-                list.innerHTML = `
-                    <div class="compact-list-heading">Largest linked campaigns</div>
-                    ${{topRows}}
-                    <div class="compact-list-heading">Better-funded side lost</div>
-                    ${{upsetRows}}
-                `;
+            }}
+
+            // Module 4 — Marquee fights (3 cards)
+            const marqueeWrap = document.getElementById('financeMarqueeFights');
+            if (marqueeWrap) {{
+                const fights = finance.marquee_fights || [];
+                marqueeWrap.innerHTML = fights.map(fight => {{
+                    const winSide = fight.passed === 1 ? 'support' : (fight.passed === 0 ? 'oppose' : null);
+                    const outcomeLabel = fight.passed === 1
+                        ? `Passed &mdash; support side won`
+                        : (fight.passed === 0 ? `Failed &mdash; oppose side won` : `Outcome not recorded`);
+                    const supportTopShare = fight.support_top5_share != null
+                        ? Math.round(fight.support_top5_share) + '% from top 5'
+                        : null;
+                    const opposeTopShare = fight.oppose_top5_share != null
+                        ? Math.round(fight.oppose_top5_share) + '% from top 5'
+                        : null;
+                    const renderSide = (label, total, donors, topShare, isWinner) => {{
+                        const donorRows = (donors || []).slice(0, 5).map(d => `
+                            <li>
+                                <span class="finance-fight-donor">${{escapeHtml(formatDonorName(d.name))}}</span>
+                                <span class="finance-fight-amount">${{formatDollars(d.total_amount || 0)}}</span>
+                            </li>
+                        `).join('');
+                        // Neutral "Won" badge instead of color-tinting the panel —
+                        // tint reads as endorsing the winning money side, which
+                        // we don't want on a money-vs-outcome panel.
+                        const wonBadge = isWinner ? '<span class="finance-fight-won-badge">Won</span>' : '';
+                        return `
+                            <div class="finance-fight-side">
+                                <div class="finance-fight-side-head">
+                                    <span class="finance-fight-side-label">${{label}}${{wonBadge}}</span>
+                                    <span class="finance-fight-side-total">${{formatDollars(total || 0)}}</span>
+                                </div>
+                                ${{topShare ? `<div class="finance-fight-side-share">${{topShare}}</div>` : ''}}
+                                <ol class="finance-fight-donors">${{donorRows}}</ol>
+                            </div>
+                        `;
+                    }};
+                    return `
+                        <article class="finance-fight-card">
+                            <header class="finance-fight-header">
+                                <div class="finance-fight-eyebrow">${{escapeHtml(formatFinanceMeasureNumber(fight.measure_id))}} &middot; ${{fight.election_year}}</div>
+                                <h5 class="finance-fight-headline">${{escapeHtml(fight.headline || '')}}</h5>
+                                <div class="finance-fight-outcome">${{outcomeLabel}}</div>
+                            </header>
+                            <div class="finance-fight-sides">
+                                ${{renderSide('Support', fight.support_receipts, fight.support_top_donors, supportTopShare, winSide === 'support')}}
+                                ${{renderSide('Oppose', fight.oppose_receipts, fight.oppose_top_donors, opposeTopShare, winSide === 'oppose')}}
+                            </div>
+                            <p class="finance-fight-takeaway">${{escapeHtml(fight.takeaway || '')}}</p>
+                        </article>
+                    `;
+                }}).join('');
             }}
         }}
 
@@ -10605,7 +12706,9 @@ class WebsiteGenerator:
             // Money & Coalition section
             const financeSection = document.getElementById('modalFinanceSection');
             const financeContent = document.getElementById('modalFinanceContent');
-            const fd = financeData[measure.measure_id];
+            // v2 finance keyed on measure_db_id (str of measure.id) since
+            // bare measure_id ("PROP_1") isn't unique across cycles.
+            const fd = financeData[String(measure.id)];
             if (fd) {{
                 financeContent.innerHTML = buildFinanceHTML(fd);
                 financeSection.style.display = 'block';
