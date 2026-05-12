@@ -1084,8 +1084,6 @@ def build_finance_insights(measures_by_db_id):
             return None
 
     campaigns_out = []
-    better_funded_known = 0
-    better_funded_won = 0
     support_total = 0
     oppose_total = 0
 
@@ -1105,9 +1103,10 @@ def build_finance_insights(measures_by_db_id):
         if support or oppose:
             better_side = "support" if support >= oppose else "oppose"
             if passed in (0, 1):
-                better_funded_known += 1
-                better_won = (better_side == "support" and passed == 1) or (better_side == "oppose" and passed == 0)
-                better_funded_won += 1 if better_won else 0
+                better_won = (
+                    (better_side == "support" and passed == 1)
+                    or (better_side == "oppose" and passed == 0)
+                )
 
         smaller_side = min(support, oppose)
         larger_side = max(support, oppose)
@@ -1118,6 +1117,7 @@ def build_finance_insights(measures_by_db_id):
             "measure_id": meta.get("measure_id"),
             "election_year": meta.get("election_year"),
             "year": meta.get("election_year"),  # alias for back-compat with consumers
+            "measure_db_id": meta.get("measure_db_id"),
             "title": linked.get("title") if linked else (meta.get("measure_id") or cid),
             "passed": passed,
             "support_receipts": round(support, 2),
@@ -1129,6 +1129,39 @@ def build_finance_insights(measures_by_db_id):
             "support_top5_share": clean_float((sides.get("support") or {}).get("top5_share")),
             "oppose_top5_share": clean_float((sides.get("oppose") or {}).get("top5_share")),
         })
+
+    # Measure-level rollup for the headline counters. Multiple finance
+    # campaigns (e.g. PROP_4_2008 on-cycle + PROP_4_2010 late-filing recovery)
+    # can map to one measure_db_id; counting them as separate "measures"
+    # mislabels what the panel surfaces. Sum receipts across campaigns per
+    # measure, then determine better_funded once at the measure level.
+    by_measure: dict[int, dict] = {}
+    for c in campaigns_out:
+        db_id = c.get("measure_db_id")
+        if db_id is None:
+            continue
+        agg = by_measure.setdefault(db_id, {
+            "measure_db_id": db_id,
+            "support": 0.0,
+            "oppose": 0.0,
+            "passed": None,
+        })
+        agg["support"] += float(c.get("support_receipts") or 0)
+        agg["oppose"] += float(c.get("oppose_receipts") or 0)
+        if agg["passed"] is None and c.get("passed") in (0, 1):
+            agg["passed"] = c["passed"]
+
+    better_funded_known = 0
+    better_funded_won = 0
+    for m in by_measure.values():
+        support, oppose, passed = m["support"], m["oppose"], m["passed"]
+        if not (support or oppose):
+            continue
+        better_side = "support" if support >= oppose else "oppose"
+        if passed in (0, 1):
+            better_funded_known += 1
+            if (better_side == "support" and passed == 1) or (better_side == "oppose" and passed == 0):
+                better_funded_won += 1
 
     better_funded_losses = [
         row for row in campaigns_out
@@ -1145,7 +1178,11 @@ def build_finance_insights(measures_by_db_id):
 
     return {
         "available": True,
-        "measure_count": len(by_campaign),
+        # measure_count counts DISTINCT measure_db_ids, not campaigns —
+        # Bucket A year-offset recoveries create multiple campaigns per
+        # measure (e.g. PROP_4_2008 + PROP_4_2010 both map to one measure).
+        "measure_count": len(by_measure),
+        "campaign_count": len(by_campaign),  # exposed for transparency
         "support_receipts": round(support_total, 2),
         "oppose_receipts": round(oppose_total, 2),
         "total_receipts": round(support_total + oppose_total, 2),

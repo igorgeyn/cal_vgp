@@ -6,10 +6,13 @@ finance_campaign_id) for the synthesis prompt.
 Covers statewide propositions only. The briefing spec requires real names
 (not 'Not yet available') and named donors when available; this is the
 data path that makes that requirement satisfiable for statewide measures
-without scraping anything per-measure. Resolution from a measure record to
-the right finance campaign is handled by `get_campaign_for_measure()` in
-`src.finance.operations`, which prefers measure_db_id (always unambiguous)
-over (measure_id, year).
+without scraping anything per-measure.
+
+Uses FinanceDatabase.aggregate_for_measure(measure_db_id) so the briefing
+sees the full measure-level picture rather than just one of the campaigns
+linked to that measure — important for Bucket A year-offset recoveries
+where on-cycle + late-filing money are split across two finance_campaign_id
+rows that both point at the same measure_db_id.
 """
 import logging
 from typing import Dict, Optional
@@ -40,24 +43,28 @@ def get_finance_facts(measure: Dict) -> Optional[Dict]:
         return None
 
     try:
-        from src.finance.operations import FinanceDatabase, get_campaign_for_measure
+        from src.finance.operations import FinanceDatabase
     except ImportError as e:
         logger.debug("Finance module unavailable: %s", e)
         return None
 
+    measure_db_id = measure.get('id')
+    if measure_db_id is None:
+        return None
+
     db = FinanceDatabase()
     try:
-        # v2 lookup: resolve the finance_campaign_id from the measure record
-        # (uses measure.id when available, falls back to measure_id+year).
-        campaign_id = get_campaign_for_measure(db, measure)
-        if not campaign_id:
+        # Roll up all matched campaigns for this measure (handles Bucket A
+        # year-offset collisions where on-cycle + late-filing money sit
+        # under separate finance_campaign_id rows linked to the same
+        # measure_db_id).
+        rollup = db.aggregate_for_measure(int(measure_db_id), donor_limit=10)
+        if not rollup:
             return None
-
-        summary_rows = db.get_finance_summary(campaign_id)
+        summary_rows = rollup['summary']
         if not summary_rows:
             return None
-
-        top_donors = db.get_top_donors(campaign_id, limit=10)
+        top_donors = rollup['donors']
     finally:
         db.close()
 

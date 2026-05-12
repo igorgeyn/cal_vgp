@@ -98,20 +98,42 @@ checks pass; Phase F manual checklist signed off via browser spot-check).
       CalAccess year or the actual election year. $1.91M of recovered $
       now in v2 summaries; sentinels still pass.
 
-      **Two small follow-ups discovered post-impl:**
+      **Codex round-4 follow-ups — RESOLVED 2026-05-12:**
 
-      - [ ] Annual-receipts attribution: recoveries get counted in their
-            CalAccess year (e.g. PROP_4_2010 in the 2010 bar of the
-            spending-arc chart) instead of the actual election year (2008).
-            $1.9M total spread across 5 years — small. Either reattribute
-            in `build_finance_insights` or accept as a known quirk.
-      - [ ] Modal-lookup determinism: each recovery shares a `measure_db_id`
-            with the corresponding exact-year campaign. `_load_finance_data`
-            keys by `str(measure_db_id)` so one campaign overwrites the
-            other; on-cycle currently happens to win via SQLite insertion
-            order, but this is brittle. Add `ORDER BY election_year` to
-            `get_all_campaigns` and `resolve_campaign` to lock in the
-            on-cycle-wins behavior.
+      - [x] ~~Modal + briefing collision rollup~~ — new
+            `FinanceDatabase.aggregate_for_measure(measure_db_id)` rolls
+            campaigns sharing a measure_db_id into a single measure-level
+            view (sums receipts per stance, unions donors with merged
+            amounts, unions timeline weeks with recomputed cumulative,
+            recomputes top5_share + HHI against the merged donor list).
+            `_load_finance_data` and `src/research/sources/finance.py`
+            both use it; modal now exposes recovered late-filing $ that
+            previously got shadowed.
+      - [x] ~~Insights measure_count mislabeling~~ — `build_finance_insights`
+            now counts distinct measure_db_ids (181 not 193) and rolls up
+            better_funded counters at the measure level (117/64.6% not
+            126/65.3%). Adds `campaign_count` field for transparency.
+      - [x] ~~ORDER BY determinism~~ — `resolve_campaign` and
+            `get_all_campaigns` now sort by `election_year ASC` so the
+            on-cycle (earliest year) campaign wins collisions independent
+            of SQLite insertion order.
+      - [x] ~~Audit-note preservation in resolve_pair~~ — when neighbor-
+            year lookback bails on ambiguity, the ambiguity reason now
+            surfaces in the missing row's `notes` instead of being
+            overwritten with the generic "no measures-DB record".
+
+      **Annual-receipts year attribution** (still open, low priority):
+      recoveries get counted in their CalAccess year (e.g. PROP_4_2010
+      in the 2010 bar of the spending-arc chart) instead of the actual
+      election year (2008). $1.9M total spread across 5 years — small.
+
+      **Tests added 2026-05-12:** `tests/test_finance_crosswalk.py` (8
+      tests covering lookback recovery, ambiguity bail, max-offset bound,
+      audit-note preservation, id-preference within recovery);
+      `tests/test_finance_db.py` (14 tests covering `_actual_election_year`,
+      `resolve_campaign` collision determinism, `aggregate_for_measure`
+      rollup semantics including donor union, top5/HHI recomputation, and
+      timeline week-union with cumulative recompute). 22/22 pass.
 
       **Remaining ~$1.81M of expected Bucket A recovery is dropping at
       the stance gate** (PROP_4_2010 alone has 1,427 unknown_stance rows

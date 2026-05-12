@@ -12,6 +12,7 @@ measure_id without a year that matches multiple active campaigns will get
 a ValueError; pass `measure_db_id` or year to disambiguate.
 """
 import sqlite3
+from collections import defaultdict
 from pathlib import Path
 from typing import Iterable, List, Dict, Optional
 
@@ -43,9 +44,16 @@ class FinanceDatabase:
         Returns None if no matched campaign is found.
         """
         if measure_db_id is not None:
+            # ORDER BY election_year ASC so the on-cycle (earlier) campaign
+            # wins over any year-offset recoveries that share this
+            # measure_db_id — locks in deterministic behavior that previously
+            # depended on SQLite insertion order. Most callers should now
+            # prefer aggregate_for_measure() to see all campaigns; this is
+            # kept for backwards-compat with single-id consumers.
             row = self.conn.execute(
                 "SELECT finance_campaign_id FROM finance_campaign "
-                "WHERE measure_db_id = ? AND status = 'matched'",
+                "WHERE measure_db_id = ? AND status = 'matched' "
+                "ORDER BY election_year ASC, finance_campaign_id ASC",
                 (measure_db_id,),
             ).fetchone()
             return row[0] if row else None
@@ -86,12 +94,20 @@ class FinanceDatabase:
         return [row[0] for row in cursor.fetchall()]
 
     def get_all_campaigns(self) -> List[Dict]:
-        """Full metadata rows for every matched campaign."""
+        """Full metadata rows for every matched campaign.
+
+        Ordered so on-cycle campaigns come last for each measure_db_id — that
+        way callers like `_load_finance_data` that key by measure_db_id and
+        overwrite duplicates end up with the on-cycle campaign winning,
+        regardless of SQLite insertion order. (Cleaner callers should use
+        `aggregate_for_measure()` instead of overwriting.)
+        """
         cursor = self.conn.execute(
             "SELECT finance_campaign_id, prop_num, election_year, election_month, "
             "       measure_db_id, measure_id, status, match_via "
             "FROM finance_campaign "
-            "WHERE status = 'matched' ORDER BY election_year DESC, prop_num"
+            "WHERE status = 'matched' "
+            "ORDER BY measure_db_id, election_year DESC, finance_campaign_id"
         )
         return [dict(row) for row in cursor.fetchall()]
 
@@ -157,6 +173,150 @@ class FinanceDatabase:
             "medium": {"count": 0, "total": 0},
             "large": {"count": 0, "total": 0},
             "mega": {"count": 0, "total": 0},
+        }
+
+    # ---- Per-measure rollup (handles year-offset recovery collisions) ------
+
+    def aggregate_for_measure(
+        self,
+        measure_db_id: int,
+        donor_limit: int = 10,
+    ) -> Optional[Dict]:
+        """Roll up *all* matched finance campaigns linked to a single
+        measure_db_id into one measure-level view. Necessary because the
+        Bucket A year-lookback recovery (see `build_finance_crosswalk.py`)
+        creates multiple finance_campaign_id rows that share a measure_db_id
+        (e.g. PROP_4_2008 on-cycle + PROP_4_2010 late filings → both link
+        to measure_db_id 1189). Per-campaign queries miss one side or the
+        other; this rolls them together.
+
+        Aggregation rules:
+        - summary.total_receipts: SUM across campaigns per stance
+        - summary.n_committees: SUM (best-effort; may double-count committees
+          that filed across both campaigns, acceptable for display)
+        - summary.top5_share + hhi: recomputed against the merged donor list
+        - donors: union by donor_name_canon, summing total_amount, re-ranked
+          top-N per stance
+        - timeline: union weeks, summed weekly_receipts, cumulative recomputed
+        - finance_campaign_id: returns the on-cycle (earliest-year) cid as the
+          canonical primary; full list available in `all_campaign_ids`
+
+        Returns None if no matched campaigns are linked to the measure_db_id.
+        """
+        rows = self.conn.execute(
+            "SELECT finance_campaign_id FROM finance_campaign "
+            "WHERE measure_db_id = ? AND status = 'matched' "
+            "ORDER BY election_year ASC, finance_campaign_id ASC",
+            (measure_db_id,),
+        ).fetchall()
+        if not rows:
+            return None
+        campaign_ids = [r[0] for r in rows]
+        primary_cid = campaign_ids[0]
+        placeholders = ",".join("?" for _ in campaign_ids)
+
+        # 1. Merged donor list per stance (used for both summary recomputation
+        #    and the top-donors output).
+        donor_rows = self.conn.execute(
+            f"""
+            SELECT stance, donor_name_canon, donor_type,
+                   SUM(total_amount) AS total_amount
+            FROM finance_top_donors
+            WHERE finance_campaign_id IN ({placeholders})
+            GROUP BY stance, donor_name_canon, donor_type
+            """,
+            campaign_ids,
+        ).fetchall()
+        donors_by_stance: Dict[str, List[Dict]] = defaultdict(list)
+        for d in donor_rows:
+            donors_by_stance[d["stance"]].append({
+                "donor_name_canon": d["donor_name_canon"],
+                "donor_type": d["donor_type"],
+                "total_amount": float(d["total_amount"] or 0),
+            })
+        # Sort each stance by amount desc with canonical-name tiebreak.
+        for stance, lst in donors_by_stance.items():
+            lst.sort(key=lambda d: (-d["total_amount"], d["donor_name_canon"]))
+
+        # 2. Summary: sum receipts + committee counts per stance; recompute
+        #    concentration metrics against the merged donor list.
+        raw_summary = self.conn.execute(
+            f"""
+            SELECT stance,
+                   SUM(total_receipts) AS total_receipts,
+                   SUM(n_committees) AS n_committees
+            FROM finance_summary
+            WHERE finance_campaign_id IN ({placeholders})
+            GROUP BY stance
+            """,
+            campaign_ids,
+        ).fetchall()
+        summary: List[Dict] = []
+        for r in raw_summary:
+            stance = r["stance"]
+            stance_donors = donors_by_stance.get(stance, [])
+            total = float(r["total_receipts"] or 0)
+            top5_share: Optional[float] = None
+            hhi: Optional[float] = None
+            if total > 0 and stance_donors:
+                top5_amount = sum(d["total_amount"] for d in stance_donors[:5])
+                top5_share = (top5_amount / total) * 100
+                # HHI = sum of (share% squared) across all donors. Capped at
+                # 10000 by definition (one donor with 100% share -> 100^2).
+                hhi = sum(
+                    ((d["total_amount"] / total) * 100) ** 2
+                    for d in stance_donors
+                )
+            summary.append({
+                "stance": stance,
+                "total_receipts": total,
+                "n_committees": int(r["n_committees"] or 0),
+                "top5_share": top5_share,
+                "hhi": hhi,
+            })
+
+        # 3. Top donors per stance (after merging across campaigns).
+        top_donors: List[Dict] = []
+        for stance, ranked in donors_by_stance.items():
+            for d in ranked[:donor_limit]:
+                top_donors.append({
+                    "stance": stance,
+                    "donor_name_canon": d["donor_name_canon"],
+                    "donor_type": d["donor_type"],
+                    "total_amount": d["total_amount"],
+                })
+
+        # 4. Timeline: union weeks, sum weekly_receipts, recompute cumulative.
+        week_rows = self.conn.execute(
+            f"""
+            SELECT stance, week_start, SUM(weekly_receipts) AS weekly_receipts
+            FROM finance_timeline_weekly
+            WHERE finance_campaign_id IN ({placeholders})
+            GROUP BY stance, week_start
+            ORDER BY stance, week_start
+            """,
+            campaign_ids,
+        ).fetchall()
+        timeline: List[Dict] = []
+        cumulative: Dict[str, float] = defaultdict(float)
+        for r in week_rows:
+            stance = r["stance"]
+            weekly = float(r["weekly_receipts"] or 0)
+            cumulative[stance] += weekly
+            timeline.append({
+                "stance": stance,
+                "week_start": r["week_start"],
+                "weekly_receipts": weekly,
+                "cumulative_receipts": cumulative[stance],
+            })
+
+        return {
+            "finance_campaign_id": primary_cid,
+            "all_campaign_ids": campaign_ids,
+            "summary": summary,
+            "donors": top_donors,
+            "timeline": timeline,
+            "breakdown": self.get_contribution_breakdown(primary_cid),
         }
 
     # ---- Cross-campaign aggregations ---------------------------------------

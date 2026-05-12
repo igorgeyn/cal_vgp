@@ -221,6 +221,7 @@ def resolve_pair(
     if candidates:
         return _resolve_from_candidates(candidates, year_offset=0)
 
+    ambiguity_note = None
     for offset in range(1, MAX_YEAR_LOOKBACK + 1):
         neighbor = measures_index.get((prop_num, year - offset), [])
         if not neighbor:
@@ -231,6 +232,10 @@ def resolve_pair(
         # we can't tell which one CalAccess meant; bail to missing.
         if result["status"] == "matched":
             return result
+        # Surface the ambiguity reason in the final missing row's notes so
+        # future audits can see *why* we refused a match (rather than
+        # rendering as a generic "no measures-DB record").
+        ambiguity_note = result.get("notes") or None
         break  # stop on first non-empty offset to avoid further guessing
 
     return {
@@ -239,7 +244,7 @@ def resolve_pair(
         "measure_id": None,
         "election_month": None,
         "match_via": None,
-        "notes": "no measures-DB record",
+        "notes": ambiguity_note or "no measures-DB record",
     }
 
 

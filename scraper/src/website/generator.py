@@ -370,7 +370,15 @@ class WebsiteGenerator:
             return {}
 
     def _load_finance_data(self) -> Dict:
-        """Load finance data from the finance DB if it exists."""
+        """Load finance data from the finance DB if it exists.
+
+        Rolls up by measure_db_id rather than finance_campaign_id so the
+        Bucket A year-offset recoveries (multiple campaigns linked to one
+        measure) merge into a single measure-level view in the modal.
+        Otherwise the late-filing recovery campaign would silently shadow
+        the on-cycle campaign on output. See aggregate_for_measure() in
+        src/finance/operations.py for the merge semantics.
+        """
         try:
             from src.finance.schema import FINANCE_DB_PATH
             from src.finance.operations import FinanceDatabase
@@ -382,29 +390,35 @@ class WebsiteGenerator:
             logger.info("Finance DB not found, skipping finance data")
             return {}
 
-        # v2 schema is keyed on finance_campaign_id (e.g. PROP_16_2020). The
-        # client-side lookup is by measure_db_id (integer FK), since the bare
-        # measure_id ("PROP_1") is no longer unique across cycles. Output dict
-        # is keyed on str(measure_db_id) so it serializes cleanly into the
-        # JSON blob shipped to the page.
         try:
             fdb = FinanceDatabase(FINANCE_DB_PATH)
-            result = {}
+            # Collect distinct measure_db_ids across all matched campaigns,
+            # then aggregate per measure. The output is keyed on
+            # str(measure_db_id) so the client-side lookup
+            # `financeData[String(measure.id)]` resolves cleanly.
+            seen_measure_ids: set = set()
             for campaign in fdb.get_all_campaigns():
-                cid = campaign["finance_campaign_id"]
-                measure_db_id = campaign.get("measure_db_id")
-                if measure_db_id is None:
+                mid = campaign.get("measure_db_id")
+                if mid is not None:
+                    seen_measure_ids.add(int(mid))
+            result: Dict[str, Dict] = {}
+            for mid in seen_measure_ids:
+                rollup = fdb.aggregate_for_measure(mid, donor_limit=20)
+                if not rollup:
                     continue
-                result[str(measure_db_id)] = {
-                    "finance_campaign_id": cid,
-                    "election_year": campaign.get("election_year"),
-                    "summary": fdb.get_finance_summary(cid),
-                    "donors": fdb.get_top_donors(cid, limit=20),
-                    "timeline": fdb.get_finance_timeline(cid),
-                    "breakdown": fdb.get_contribution_breakdown(cid),
+                result[str(mid)] = {
+                    "finance_campaign_id": rollup["finance_campaign_id"],
+                    "all_campaign_ids": rollup["all_campaign_ids"],
+                    "summary": rollup["summary"],
+                    "donors": rollup["donors"],
+                    "timeline": rollup["timeline"],
+                    "breakdown": rollup["breakdown"],
                 }
             fdb.close()
-            logger.info(f"Loaded finance data for {len(result)} matched campaigns")
+            logger.info(
+                f"Loaded finance data for {len(result)} measures "
+                f"(rolled up from {sum(len(r['all_campaign_ids']) for r in result.values())} campaigns)"
+            )
             return result
         except Exception as e:
             logger.warning(f"Could not load finance data: {e}")

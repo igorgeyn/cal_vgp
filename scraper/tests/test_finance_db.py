@@ -1,0 +1,302 @@
+"""
+Tests for FinanceDatabase: resolve_campaign determinism under measure_db_id
+collisions, aggregate_for_measure rollup semantics, and the
+_actual_election_year helper in rebuild_finance_db.
+
+These tests build a minimal v2-shaped SQLite DB in memory so they're hermetic
+(no dependency on whether the real finance_statewide_v2.db is built).
+"""
+import sqlite3
+import sys
+from pathlib import Path
+
+import pytest
+
+SCRAPER_ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(SCRAPER_ROOT))
+
+from src.finance.operations import FinanceDatabase  # noqa: E402
+from scripts.rebuild_finance_db import _actual_election_year  # noqa: E402
+
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+V2_SCHEMA = """
+CREATE TABLE finance_campaign (
+    finance_campaign_id TEXT PRIMARY KEY,
+    prop_num TEXT NOT NULL,
+    election_year INTEGER NOT NULL,
+    election_month INTEGER,
+    measure_db_id INTEGER,
+    measure_id TEXT,
+    status TEXT NOT NULL,
+    match_via TEXT,
+    csv_row_count INTEGER,
+    csv_total_amount REAL,
+    notes TEXT
+);
+CREATE TABLE finance_summary (
+    finance_campaign_id TEXT NOT NULL,
+    stance TEXT NOT NULL,
+    total_receipts REAL NOT NULL,
+    n_committees INTEGER NOT NULL,
+    top5_share REAL,
+    hhi REAL,
+    PRIMARY KEY (finance_campaign_id, stance)
+);
+CREATE TABLE finance_top_donors (
+    finance_campaign_id TEXT NOT NULL,
+    stance TEXT NOT NULL,
+    donor_name_canon TEXT NOT NULL,
+    donor_type TEXT,
+    total_amount REAL NOT NULL,
+    PRIMARY KEY (finance_campaign_id, stance, donor_name_canon)
+);
+CREATE TABLE finance_timeline_weekly (
+    finance_campaign_id TEXT NOT NULL,
+    stance TEXT NOT NULL,
+    week_start TEXT NOT NULL,
+    weekly_receipts REAL NOT NULL,
+    cumulative_receipts REAL NOT NULL,
+    PRIMARY KEY (finance_campaign_id, stance, week_start)
+);
+"""
+
+
+@pytest.fixture
+def fdb(tmp_path):
+    """A FinanceDatabase backed by a fresh on-disk SQLite file (in-memory
+    connections can't easily be shared with the FinanceDatabase wrapper)."""
+    db_path = tmp_path / "test_finance.db"
+    raw = sqlite3.connect(str(db_path))
+    raw.executescript(V2_SCHEMA)
+    raw.commit()
+    raw.close()
+    db = FinanceDatabase(db_path)
+    yield db
+    db.close()
+
+
+def insert_campaign(db, cid, prop_num, year, measure_db_id, match_via="short_form"):
+    db.conn.execute(
+        "INSERT INTO finance_campaign "
+        "(finance_campaign_id, prop_num, election_year, measure_db_id, measure_id, status, match_via) "
+        "VALUES (?, ?, ?, ?, ?, 'matched', ?)",
+        (cid, prop_num, year, measure_db_id, f"PROP_{prop_num}", match_via),
+    )
+
+
+def insert_summary(db, cid, stance, total_receipts, n_committees=1, top5_share=None, hhi=None):
+    db.conn.execute(
+        "INSERT INTO finance_summary "
+        "(finance_campaign_id, stance, total_receipts, n_committees, top5_share, hhi) "
+        "VALUES (?, ?, ?, ?, ?, ?)",
+        (cid, stance, total_receipts, n_committees, top5_share, hhi),
+    )
+
+
+def insert_donor(db, cid, stance, donor, amount, donor_type="committee"):
+    db.conn.execute(
+        "INSERT INTO finance_top_donors "
+        "(finance_campaign_id, stance, donor_name_canon, donor_type, total_amount) "
+        "VALUES (?, ?, ?, ?, ?)",
+        (cid, stance, donor, donor_type, amount),
+    )
+
+
+def insert_week(db, cid, stance, week_start, weekly, cumulative):
+    db.conn.execute(
+        "INSERT INTO finance_timeline_weekly "
+        "(finance_campaign_id, stance, week_start, weekly_receipts, cumulative_receipts) "
+        "VALUES (?, ?, ?, ?, ?)",
+        (cid, stance, week_start, weekly, cumulative),
+    )
+
+
+# ---------------------------------------------------------------------------
+# _actual_election_year helper
+# ---------------------------------------------------------------------------
+
+def test_actual_election_year_exact_match_no_offset():
+    """match_via with no year_offset_ prefix → actual == CalAccess."""
+    row = {"election_year": 2020, "match_via": "short_form"}
+    assert _actual_election_year(row) == 2020
+
+
+def test_actual_election_year_offset_1():
+    row = {"election_year": 2006, "match_via": "year_offset_1_title_short"}
+    assert _actual_election_year(row) == 2005
+
+
+def test_actual_election_year_offset_2():
+    row = {"election_year": 2010, "match_via": "year_offset_2_title_short"}
+    assert _actual_election_year(row) == 2008
+
+
+def test_actual_election_year_handles_none_match_via():
+    row = {"election_year": 2020, "match_via": None}
+    assert _actual_election_year(row) == 2020
+
+
+def test_actual_election_year_handles_empty_match_via():
+    row = {"election_year": 2020, "match_via": ""}
+    assert _actual_election_year(row) == 2020
+
+
+def test_actual_election_year_unrelated_match_via_passes_through():
+    row = {"election_year": 2020, "match_via": "some_other_via"}
+    assert _actual_election_year(row) == 2020
+
+
+# ---------------------------------------------------------------------------
+# resolve_campaign collision determinism
+# ---------------------------------------------------------------------------
+
+def test_resolve_campaign_returns_oncycle_when_collision(fdb):
+    """When two campaigns share a measure_db_id, resolve_campaign returns
+    the earlier-year (on-cycle) one. ORDER BY election_year ASC guarantees
+    this regardless of SQLite insertion order.
+    """
+    # Insert in reverse order: the recovery first, then the on-cycle.
+    insert_campaign(fdb, "PROP_4_2010", "4", 2010, measure_db_id=1189,
+                    match_via="year_offset_2_title_short")
+    insert_campaign(fdb, "PROP_4_2008", "4", 2008, measure_db_id=1189,
+                    match_via="title_short")
+    fdb.conn.commit()
+    assert fdb.resolve_campaign(measure_db_id=1189) == "PROP_4_2008"
+
+
+def test_resolve_campaign_no_match_returns_none(fdb):
+    assert fdb.resolve_campaign(measure_db_id=9999) is None
+
+
+def test_resolve_campaign_by_measure_id_and_year(fdb):
+    """The (measure_id, year) lookup path is unchanged and shouldn't be
+    affected by collision logic."""
+    insert_campaign(fdb, "PROP_22_2020", "22", 2020, measure_db_id=500)
+    fdb.conn.commit()
+    assert fdb.resolve_campaign(measure_id="PROP_22", year=2020) == "PROP_22_2020"
+
+
+# ---------------------------------------------------------------------------
+# aggregate_for_measure rollup
+# ---------------------------------------------------------------------------
+
+def test_aggregate_for_measure_returns_none_when_no_match(fdb):
+    assert fdb.aggregate_for_measure(9999) is None
+
+
+def test_aggregate_for_measure_non_collision_passthrough(fdb):
+    """Non-collision case: a single campaign rolls up to itself."""
+    insert_campaign(fdb, "PROP_22_2020", "22", 2020, measure_db_id=500)
+    insert_summary(fdb, "PROP_22_2020", "support", 100.0, n_committees=2)
+    insert_summary(fdb, "PROP_22_2020", "oppose", 50.0, n_committees=1)
+    insert_donor(fdb, "PROP_22_2020", "support", "UBER", 60.0)
+    insert_donor(fdb, "PROP_22_2020", "support", "LYFT", 40.0)
+    insert_donor(fdb, "PROP_22_2020", "oppose", "SEIU", 50.0)
+    fdb.conn.commit()
+
+    agg = fdb.aggregate_for_measure(500)
+    assert agg is not None
+    assert agg["finance_campaign_id"] == "PROP_22_2020"
+    assert agg["all_campaign_ids"] == ["PROP_22_2020"]
+    by_stance = {s["stance"]: s for s in agg["summary"]}
+    assert by_stance["support"]["total_receipts"] == 100.0
+    assert by_stance["oppose"]["total_receipts"] == 50.0
+
+
+def test_aggregate_for_measure_sums_across_collision(fdb):
+    """Two campaigns linked to one measure_db_id roll up: receipts sum,
+    donors union with merged amounts.
+    """
+    # On-cycle and recovery share measure_db_id=1189
+    insert_campaign(fdb, "PROP_4_2008", "4", 2008, measure_db_id=1189)
+    insert_campaign(fdb, "PROP_4_2010", "4", 2010, measure_db_id=1189,
+                    match_via="year_offset_2_title_short")
+    # Per-campaign summaries
+    insert_summary(fdb, "PROP_4_2008", "oppose", 6000000.0, n_committees=5)
+    insert_summary(fdb, "PROP_4_2010", "oppose", 800000.0, n_committees=1)
+    insert_summary(fdb, "PROP_4_2008", "support", 1000000.0, n_committees=1)
+    # Donors split across the two campaigns
+    insert_donor(fdb, "PROP_4_2008", "oppose", "PLANNED PARENTHOOD CA", 4000000.0)
+    insert_donor(fdb, "PROP_4_2008", "oppose", "CTA", 2000000.0)
+    insert_donor(fdb, "PROP_4_2010", "oppose", "PLANNED PARENTHOOD CA", 500000.0)
+    insert_donor(fdb, "PROP_4_2010", "oppose", "ACLU", 300000.0)
+    insert_donor(fdb, "PROP_4_2008", "support", "KNIGHTS OF COLUMBUS", 1000000.0)
+    fdb.conn.commit()
+
+    agg = fdb.aggregate_for_measure(1189)
+    assert agg is not None
+    # On-cycle (2008) is the canonical primary cid
+    assert agg["finance_campaign_id"] == "PROP_4_2008"
+    assert set(agg["all_campaign_ids"]) == {"PROP_4_2008", "PROP_4_2010"}
+
+    by_stance = {s["stance"]: s for s in agg["summary"]}
+    # Oppose: 6M + 0.8M = 6.8M; n_committees: 5 + 1 = 6
+    assert by_stance["oppose"]["total_receipts"] == pytest.approx(6800000.0)
+    assert by_stance["oppose"]["n_committees"] == 6
+    # Support unchanged
+    assert by_stance["support"]["total_receipts"] == pytest.approx(1000000.0)
+
+    # Donor union: PLANNED PARENTHOOD CA = 4M + 0.5M = 4.5M (merged)
+    pp_donors = [d for d in agg["donors"] if d["donor_name_canon"] == "PLANNED PARENTHOOD CA"]
+    assert len(pp_donors) == 1
+    assert pp_donors[0]["total_amount"] == pytest.approx(4500000.0)
+    # Donor ranking sorted desc within stance
+    oppose_donors = [d for d in agg["donors"] if d["stance"] == "oppose"]
+    assert oppose_donors[0]["donor_name_canon"] == "PLANNED PARENTHOOD CA"
+    assert oppose_donors[1]["donor_name_canon"] == "CTA"
+
+
+def test_aggregate_for_measure_top5_share_recomputed_on_merged_donors(fdb):
+    """top5_share is recomputed against the merged donor list, not summed
+    from per-campaign top5_share fields."""
+    insert_campaign(fdb, "PROP_X_2008", "X", 2008, measure_db_id=42)
+    insert_campaign(fdb, "PROP_X_2010", "X", 2010, measure_db_id=42)
+    # Per-campaign summaries have stale top5_share values; rollup should ignore them
+    insert_summary(fdb, "PROP_X_2008", "support", 100.0, n_committees=1, top5_share=99.0)
+    insert_summary(fdb, "PROP_X_2010", "support", 100.0, n_committees=1, top5_share=99.0)
+    # Six equal donors of $33.33 each across the two campaigns → top5 = ~83%, not 99%.
+    for i in range(3):
+        insert_donor(fdb, "PROP_X_2008", "support", f"DONOR_{i}", 33.33)
+        insert_donor(fdb, "PROP_X_2010", "support", f"DONOR_{i+3}", 33.33)
+    fdb.conn.commit()
+
+    agg = fdb.aggregate_for_measure(42)
+    sup = next(s for s in agg["summary"] if s["stance"] == "support")
+    # Top 5 of 6 equal donors = 5/6 of total = ~83.3%
+    assert 80 <= sup["top5_share"] <= 86, (
+        f"Expected ~83% top5, got {sup['top5_share']} — should be recomputed not inherited"
+    )
+
+
+def test_aggregate_for_measure_timeline_unions_weeks(fdb):
+    """Timeline weeks union across campaigns, weekly_receipts sum per
+    (stance, week_start), cumulative recomputed correctly."""
+    insert_campaign(fdb, "PROP_4_2008", "4", 2008, measure_db_id=1189)
+    insert_campaign(fdb, "PROP_4_2010", "4", 2010, measure_db_id=1189)
+    insert_summary(fdb, "PROP_4_2008", "oppose", 100.0, n_committees=1)
+    insert_summary(fdb, "PROP_4_2010", "oppose", 50.0, n_committees=1)
+    # Overlapping week 2008-10-06: 30 on cycle, 20 from recovery → sum 50
+    insert_week(fdb, "PROP_4_2008", "oppose", "2008-10-06", 30.0, 30.0)
+    insert_week(fdb, "PROP_4_2010", "oppose", "2008-10-06", 20.0, 20.0)
+    # Non-overlapping weeks
+    insert_week(fdb, "PROP_4_2008", "oppose", "2008-10-13", 70.0, 100.0)
+    insert_week(fdb, "PROP_4_2010", "oppose", "2010-01-04", 30.0, 50.0)
+    fdb.conn.commit()
+
+    agg = fdb.aggregate_for_measure(1189)
+    timeline = agg["timeline"]
+    # 3 distinct weeks expected after union (2008-10-06 merged, 2008-10-13, 2010-01-04)
+    weeks = {(t["week_start"], t["weekly_receipts"]) for t in timeline}
+    assert ("2008-10-06", 50.0) in weeks  # 30 + 20 merged
+    assert ("2008-10-13", 70.0) in weeks
+    assert ("2010-01-04", 30.0) in weeks
+
+    # Cumulative recomputes in order: 50 → 120 → 150
+    by_week = {t["week_start"]: t for t in timeline}
+    assert by_week["2008-10-06"]["cumulative_receipts"] == pytest.approx(50.0)
+    assert by_week["2008-10-13"]["cumulative_receipts"] == pytest.approx(120.0)
+    assert by_week["2010-01-04"]["cumulative_receipts"] == pytest.approx(150.0)
