@@ -14,7 +14,7 @@
     "county_count": 58,
     "year_min": 1911,
     "year_max": 2026,
-    "generated_at": "2026-05-12T11:36:06"
+    "generated_at": "2026-05-12T11:50:06"
   },
   "featured_findings": [
     {
@@ -4196,10 +4196,10 @@
   "finance": {
     "available": true,
     "measure_count": 181,
-    "campaign_count": 193,
+    "campaign_count": 194,
     "support_receipts": 1867201124.69,
-    "oppose_receipts": 1450402801.91,
-    "total_receipts": 3317603926.6,
+    "oppose_receipts": 1450673910.91,
+    "total_receipts": 3317875035.6,
     "better_funded_known": 181,
     "better_funded_won": 117,
     "better_funded_win_rate": 64.6,
@@ -4718,7 +4718,7 @@
       },
       {
         "year": 2008,
-        "total_receipts": 266596103.68,
+        "total_receipts": 266867212.68,
         "n_measures": 16
       },
       {
@@ -4830,8 +4830,8 @@
       },
       {
         "year": 2010,
-        "total_receipts": 237026178.23,
-        "n_measures": 14
+        "total_receipts": 237297287.23,
+        "n_measures": 15
       },
       {
         "year": 2012,

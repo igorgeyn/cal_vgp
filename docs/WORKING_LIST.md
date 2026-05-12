@@ -204,8 +204,24 @@ checks pass; Phase F manual checklist signed off via browser spot-check).
       brand-display map beyond DaVita/FanDuel/DraftKings/JPMorgan/YouTube/
       eBay.
 
-- [ ] **Stance recovery for residual 42 rows / $7K** (Chico Chamber, etc.).
-      Tiny dollars, low priority.
+- [x] ~~**Stance recovery**~~ **DONE 2026-05-12.** Item promoted from
+      "residual 42 rows / $7K" to ~1,500 rows / $0.75M after matcher v2
+      exposed PROP_4_2010's late-filed Planned Parenthood committees.
+      Authoritative source check via CalAccess "Ballot Measure Committees
+      linked to this Ballot Measure" view confirmed Planned Parenthood
+      Affiliates of California at $8.83M oppose on Prop 4 (2008).
+      Broadened the existing PROP_4_2008 override substring from
+      "PLANNED PARENTHOOD ADVOCACY PROJECT LOS ANGELES COUNTY" to just
+      "PLANNED PARENTHOOD" + added parallel PROP_4_2010 entry. Result:
+      unknown_stance dropped 1,514 → 87 rows (94% reduction); PROP_4
+      measure-level oppose rolled up $6.79M → $7.06M (+$0.27M); the
+      remaining $0.43M of formerly-unknown was exact-duplicate rows
+      previously hidden by the unknown_stance gate firing first. 8 new
+      tests cover override fires on both campaign ids, per-campaign
+      scoping prevents cross-campaign matches, regex patterns still
+      work, ambiguous yes/no names stay unrecovered. Residual 87 rows
+      / $0.05M (PROP_66_2006 F.A.C.T. sentencing campaign, Chico Chamber)
+      stay quarantined — not worth per-case research.
 
 - [ ] **Rewrite `scripts/evaluate_data_quality.py` for v2 schema.**
       Currently still pointing at legacy DB with TODO marker.

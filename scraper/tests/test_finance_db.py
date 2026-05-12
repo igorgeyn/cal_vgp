@@ -16,7 +16,10 @@ SCRAPER_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(SCRAPER_ROOT))
 
 from src.finance.operations import FinanceDatabase  # noqa: E402
-from scripts.rebuild_finance_db import _actual_election_year  # noqa: E402
+from scripts.rebuild_finance_db import (  # noqa: E402
+    _actual_election_year,
+    recover_stance_from_committee,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -118,6 +121,102 @@ def insert_week(db, cid, stance, week_start, weekly, cumulative):
 # ---------------------------------------------------------------------------
 # _actual_election_year helper
 # ---------------------------------------------------------------------------
+
+# ---------------------------------------------------------------------------
+# recover_stance_from_committee — overrides + regex patterns
+# ---------------------------------------------------------------------------
+
+def test_stance_override_planned_parenthood_prop4_2008():
+    """The broadened PROP_4_2008 / 'PLANNED PARENTHOOD' override fires for
+    any PP affiliate (LA County, San Diego, Mar Monte, etc.) — not just the
+    LA County name the original override was scoped to."""
+    stance, label = recover_stance_from_committee(
+        "PLANNED PARENTHOOD ADVOCACY PROJECT LOS ANGELES COUNTY",
+        campaign_id="PROP_4_2008",
+    )
+    assert stance == "oppose"
+    assert label and label.startswith("override:")
+
+    stance, _ = recover_stance_from_committee(
+        "Planned Parenthood Mar Monte",
+        campaign_id="PROP_4_2008",
+    )
+    assert stance == "oppose"
+
+
+def test_stance_override_planned_parenthood_prop4_2010_recovered_campaign():
+    """Matcher v2 routes late PP filings (CalAccess year 2010) to a separate
+    finance_campaign_id PROP_4_2010 — the override must fire for that
+    campaign_id too, not just PROP_4_2008. Otherwise the 1,427 PP rows the
+    matcher recovered would all sit in unknown_stance."""
+    stance, _ = recover_stance_from_committee(
+        "PLANNED PARENTHOOD ADVOCACY PROJECT LOS ANGELES COUNTY",
+        campaign_id="PROP_4_2010",
+    )
+    assert stance == "oppose"
+
+
+def test_stance_override_scoped_per_campaign_no_global_match():
+    """The override table is campaign-scoped. PP committees filing on a
+    hypothetical OTHER campaign must not auto-recover oppose just because
+    of the PROP_4 override — they could legitimately support that measure."""
+    stance, label = recover_stance_from_committee(
+        "PLANNED PARENTHOOD MAR MONTE",
+        campaign_id="PROP_1_2024",  # different campaign, no override
+    )
+    # Neither the override (different campaign) nor regex (no stance keyword
+    # in name) should fire. Stays None → caller quarantines as unknown.
+    assert stance is None
+    assert label is None
+
+
+def test_stance_recovery_regex_explicit_no():
+    """Existing regex patterns continue to fire — 'NO ON PROPOSITION 4' etc."""
+    stance, label = recover_stance_from_committee(
+        "NO ON PROPOSITION 4",
+        campaign_id="PROP_4_2008",
+    )
+    assert stance == "oppose"
+    assert label == "explicit_no"
+
+
+def test_stance_recovery_regex_defeat():
+    stance, label = recover_stance_from_committee(
+        "CREDO VICTORY FUND TO DEFEAT PROPOSITION 4",
+        campaign_id="PROP_4_2008",
+    )
+    assert stance == "oppose"
+    assert label == "verb_stop_or_defeat"
+
+
+def test_stance_recovery_ambiguous_yes_and_no_returns_none():
+    """Committees containing both YES ON and NO ON language (rare; usually
+    oppositional reframing) are deliberately left ambiguous to avoid
+    false-positive recovery."""
+    stance, label = recover_stance_from_committee(
+        "YES ON 4 AND NO ON 5 COALITION",
+        campaign_id="PROP_4_2008",
+    )
+    assert stance is None
+    assert label is None
+
+
+def test_stance_recovery_no_stance_keyword_returns_none():
+    """A committee with no clear stance keyword and no override should leave
+    its stance unrecovered — caller quarantines the row."""
+    stance, _ = recover_stance_from_committee(
+        "Chico Chamber Of Commerce PAC",
+        campaign_id="PROP_82_2006",
+    )
+    assert stance is None
+
+
+def test_stance_recovery_no_committee_name_returns_none():
+    stance, _ = recover_stance_from_committee("", campaign_id="PROP_4_2008")
+    assert stance is None
+    stance, _ = recover_stance_from_committee(None, campaign_id="PROP_4_2008")
+    assert stance is None
+
 
 def test_actual_election_year_exact_match_no_offset():
     """match_via with no year_offset_ prefix → actual == CalAccess."""

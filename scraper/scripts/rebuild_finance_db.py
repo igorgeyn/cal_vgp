@@ -188,8 +188,23 @@ COMMITTEE_STANCE_OVERRIDES: list[tuple[str, str, str, str]] = [
      "Pro-death-penalty committee opposing Prop 62 (death-penalty repeal)"),
     ("PROP_35_2000", "TAXPAYERS FOR FAIR COMPETITION", "support",
      "Pro-private-bidding committee supporting Prop 35 (opens state engineering bidding)"),
-    ("PROP_4_2008", "PLANNED PARENTHOOD ADVOCACY PROJECT LOS ANGELES COUNTY", "oppose",
-     "Planned Parenthood committee opposing Prop 4 (parental notification before minor abortion)"),
+    # PP committees on Prop 4 (parental notification before minor abortion, 2008).
+    # Authoritative source: CalAccess "Ballot Measure Committees linked to this
+    # Ballot Measure" view shows Planned Parenthood Affiliates of California
+    # at $8.83M oppose. The smaller chapter committees (Advocacy Project LA
+    # County, etc.) likewise opposed. Substring is broadened from the original
+    # "PLANNED PARENTHOOD ADVOCACY PROJECT LOS ANGELES COUNTY" to just
+    # "PLANNED PARENTHOOD" so future Mar Monte / San Diego / Shasta Diablo /
+    # etc. filings get caught without further code changes. Scoped per-campaign
+    # so PP filings for *other* measures (where they might support) are unaffected.
+    ("PROP_4_2008", "PLANNED PARENTHOOD", "oppose",
+     "PP committees opposing Prop 4 (parental notification, 2008)"),
+    # The same committees filed late in 2010, which matcher v2 routes to a
+    # separate finance_campaign_id (PROP_4_2010) even though it links to the
+    # 2008 prop's measure_db_id. Stance override needs both campaign ids to
+    # fire — recover_stance_from_committee runs before the rollup.
+    ("PROP_4_2010", "PLANNED PARENTHOOD", "oppose",
+     "PP committees' late filings (CalAccess year 2010) opposing 2008 Prop 4"),
 ]
 
 
