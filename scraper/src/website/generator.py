@@ -6527,6 +6527,31 @@ class WebsiteGenerator:
             color: #0f172a;
             font-weight: 500;
             overflow-wrap: anywhere;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 0.4rem;
+        }
+        .finance-donor-name-text {
+            display: inline;
+        }
+        .finance-sector-chip {
+            display: inline-block;
+            padding: 0.08rem 0.5rem;
+            font-size: 0.68rem;
+            font-weight: 500;
+            line-height: 1.35;
+            color: #475569;
+            background: #e2e8f0;
+            border-radius: 999px;
+            white-space: nowrap;
+            vertical-align: 1px;
+        }
+        /* Marquee-fight donor rows are tighter; smaller chip variant. */
+        .finance-fight-donors .finance-sector-chip {
+            font-size: 0.62rem;
+            padding: 0.05rem 0.4rem;
+            margin-left: 0.3rem;
         }
         .finance-donor-meta {
             display: flex;
@@ -11986,6 +12011,18 @@ class WebsiteGenerator:
             }}).join('');
         }}
 
+        function renderSectorChip(sector) {{
+            // Small neutral pill rendered next to donor names when the
+            // hand-curated sector lookup hits. Returns '' for null sector
+            // so unclassified donors render without any chip.
+            if (!sector) return '';
+            // Compact CSS-friendly handle for sector-specific colors later
+            // (slugged: lowercase, non-alphanum → '-'). Empty class for now;
+            // the .finance-sector-chip styling is neutral grey.
+            const slug = String(sector).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+            return `<span class="finance-sector-chip" data-sector="${{slug}}">${{escapeHtml(sector)}}</span>`;
+        }}
+
         function formatFinanceMeasureNumber(measureId) {{
             if (!measureId) return '';
             // Turn "PROP_22" into "Prop 22" for display.
@@ -12018,7 +12055,10 @@ class WebsiteGenerator:
                 const rows = finance.top_donors_overall || [];
                 topDonors.innerHTML = rows.map(d => `
                     <li class="finance-donor-row">
-                        <div class="finance-donor-name">${{escapeHtml(formatDonorName(d.name))}}</div>
+                        <div class="finance-donor-name">
+                            <span class="finance-donor-name-text">${{escapeHtml(formatDonorName(d.name))}}</span>
+                            ${{renderSectorChip(d.donor_sector)}}
+                        </div>
                         <div class="finance-donor-meta">
                             <span class="finance-donor-amount">${{formatDollars(d.total_amount || 0)}}</span>
                             <span class="finance-donor-count">${{d.n_campaigns}} campaign${{d.n_campaigns === 1 ? '' : 's'}}</span>
@@ -12033,7 +12073,10 @@ class WebsiteGenerator:
                 const rows = finance.repeat_donors || [];
                 repeats.innerHTML = rows.map(d => `
                     <li class="finance-donor-row">
-                        <div class="finance-donor-name">${{escapeHtml(formatDonorName(d.name))}}</div>
+                        <div class="finance-donor-name">
+                            <span class="finance-donor-name-text">${{escapeHtml(formatDonorName(d.name))}}</span>
+                            ${{renderSectorChip(d.donor_sector)}}
+                        </div>
                         <div class="finance-donor-meta">
                             <span class="finance-donor-amount">${{d.n_campaigns}} campaigns</span>
                             <span class="finance-donor-count">${{formatDollars(d.total_amount || 0)}} aggregate</span>
@@ -12060,7 +12103,7 @@ class WebsiteGenerator:
                     const renderSide = (label, total, donors, topShare, isWinner) => {{
                         const donorRows = (donors || []).slice(0, 5).map(d => `
                             <li>
-                                <span class="finance-fight-donor">${{escapeHtml(formatDonorName(d.name))}}</span>
+                                <span class="finance-fight-donor">${{escapeHtml(formatDonorName(d.name))}}${{renderSectorChip(d.donor_sector)}}</span>
                                 <span class="finance-fight-amount">${{formatDollars(d.total_amount || 0)}}</span>
                             </li>
                         `).join('');

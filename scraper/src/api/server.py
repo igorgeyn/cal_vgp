@@ -866,9 +866,26 @@ async def get_finance_top_donors(
     rows = finance_db.get_top_donors(cid)
     if not rows:
         raise HTTPException(status_code=404, detail=f"No finance data for {cid}")
-    # donor_sector is unpopulated in the v2 build; surface as None.
-    support = [FinanceDonorEntry(donor_name=r["donor_name_canon"], donor_type=r["donor_type"], donor_sector=None, total_amount=r["total_amount"]) for r in rows if r["stance"] == "support"]
-    oppose = [FinanceDonorEntry(donor_name=r["donor_name_canon"], donor_type=r["donor_type"], donor_sector=None, total_amount=r["total_amount"]) for r in rows if r["stance"] == "oppose"]
+    # `get_top_donors` attaches donor_sector per row from the hand-curated
+    # lookup in src/finance/donor_sectors.py; None for unclassified donors.
+    support = [
+        FinanceDonorEntry(
+            donor_name=r["donor_name_canon"],
+            donor_type=r["donor_type"],
+            donor_sector=r.get("donor_sector"),
+            total_amount=r["total_amount"],
+        )
+        for r in rows if r["stance"] == "support"
+    ]
+    oppose = [
+        FinanceDonorEntry(
+            donor_name=r["donor_name_canon"],
+            donor_type=r["donor_type"],
+            donor_sector=r.get("donor_sector"),
+            total_amount=r["total_amount"],
+        )
+        for r in rows if r["stance"] == "oppose"
+    ]
     return FinanceTopDonorsResponse(measure_id=measure_id, support=support, oppose=oppose)
 
 

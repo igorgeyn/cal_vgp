@@ -15,6 +15,11 @@ import pytest
 SCRAPER_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(SCRAPER_ROOT))
 
+from src.finance.donor_sectors import (  # noqa: E402
+    DONOR_SECTORS,
+    SECTORS,
+    get_donor_sector,
+)
 from src.finance.operations import FinanceDatabase  # noqa: E402
 from scripts.rebuild_finance_db import (  # noqa: E402
     _actual_election_year,
@@ -122,6 +127,104 @@ def insert_week(db, cid, stance, week_start, weekly, cumulative):
 # ---------------------------------------------------------------------------
 # _actual_election_year helper
 # ---------------------------------------------------------------------------
+
+# ---------------------------------------------------------------------------
+# donor_sectors — hand-curated sector lookup
+# ---------------------------------------------------------------------------
+
+class TestDonorSectorLookup:
+    """Sector lookup: known donors return expected sector, unknown returns
+    None, all curated entries are in the recognized sector taxonomy."""
+
+    @pytest.mark.parametrize("donor,expected_sector", [
+        ("California Teachers Association Issues PAC", "Labor"),
+        ("Lyft, Inc", "Gig Economy"),
+        ("San Manuel Band of Mission Indians", "Tribal Gaming"),
+        ("FanDuel Sportsbook (Betfair Interactive US)", "Commercial Gambling"),
+        ("DaVita", "Healthcare"),
+        ("California Apartment Association Issues Committee", "Real Estate"),
+        ("Philip Morris USA Inc", "Tobacco"),
+        ("PACIFIC GAS AND ELECTRIC COMPANY", "Utilities"),
+        ("CHEVRON CORPORATION", "Energy"),
+        ("Charles T. Munger, Jr.", "Individual"),
+        ("CONGRESSIONAL LEADERSHIP FUND", "Party / Political org"),
+        ("CALIFORNIA BUSINESS ROUNDTABLE ISSUES PAC", "Other"),
+    ])
+    def test_known_donor_returns_expected_sector(self, donor, expected_sector):
+        assert get_donor_sector(donor) == expected_sector
+
+    def test_unknown_donor_returns_none(self):
+        assert get_donor_sector("Some Unclassified Donor LLC") is None
+
+    def test_empty_donor_returns_none(self):
+        assert get_donor_sector("") is None
+        assert get_donor_sector(None) is None
+
+    def test_all_dict_values_are_recognized_sectors(self):
+        """No typos in sector labels — every value in DONOR_SECTORS must
+        match one of the recognized SECTORS in the taxonomy."""
+        for donor, sector in DONOR_SECTORS.items():
+            assert sector in SECTORS, (
+                f"Donor {donor!r} has sector {sector!r} not in SECTORS taxonomy"
+            )
+
+    def test_pg_e_variants_all_classified_as_utilities(self):
+        """PG&E shows up under 7 spelling variants in the DB; the lookup
+        must classify each as Utilities so the sector chip fires regardless
+        of which variant the row carries."""
+        pge_variants = [
+            "PACIFIC GAS AND ELECTRIC COMPANY",
+            "PACIFIC GAS & ELECTRIC COMPANY",
+            "PG&E CORPORATION AND AFFILIATED ENTITIES",
+            "PG&E CORPORATION",
+        ]
+        for variant in pge_variants:
+            assert get_donor_sector(variant) == "Utilities", (
+                f"PG&E variant {variant!r} should classify as Utilities"
+            )
+
+    def test_tribal_gaming_distinct_from_commercial_gambling(self):
+        """Tribal-government casinos (San Manuel etc.) get Tribal Gaming,
+        not Commercial Gambling. Future aggregation can roll both into a
+        broader gambling category if narrative work needs it."""
+        assert get_donor_sector("San Manuel Band of Mission Indians") == "Tribal Gaming"
+        assert get_donor_sector("FanDuel Sportsbook (Betfair Interactive US)") == "Commercial Gambling"
+
+
+# ---------------------------------------------------------------------------
+# Donor sector flows through aggregate_for_measure + get_top_donors
+# ---------------------------------------------------------------------------
+
+class TestDonorSectorFlowThrough:
+    """Sector data must reach every consumer (modal, briefing, API). Tests
+    the API-shape contracts that get_top_donors and aggregate_for_measure
+    now attach donor_sector to every row."""
+
+    def test_get_top_donors_attaches_sector(self, fdb):
+        """A row whose donor_name_canon is in the lookup must come back
+        with donor_sector populated; unknown donor returns None."""
+        insert_campaign(fdb, "PROP_22_2020", "22", 2020, measure_db_id=500)
+        insert_summary(fdb, "PROP_22_2020", "support", 100.0, n_committees=2)
+        # Known donor (Lyft → Gig Economy)
+        insert_donor(fdb, "PROP_22_2020", "support", "Lyft, Inc", 60.0)
+        # Unknown donor
+        insert_donor(fdb, "PROP_22_2020", "support", "Random Unknown LLC", 40.0)
+        fdb.conn.commit()
+
+        donors = fdb.get_top_donors("PROP_22_2020")
+        by_name = {d["donor_name_canon"]: d for d in donors}
+        assert by_name["Lyft, Inc"]["donor_sector"] == "Gig Economy"
+        assert by_name["Random Unknown LLC"]["donor_sector"] is None
+
+    def test_aggregate_for_measure_attaches_sector_to_donors(self, fdb):
+        insert_campaign(fdb, "PROP_22_2020", "22", 2020, measure_db_id=500)
+        insert_summary(fdb, "PROP_22_2020", "support", 100.0, n_committees=1)
+        insert_donor(fdb, "PROP_22_2020", "support", "Lyft, Inc", 100.0)
+        fdb.conn.commit()
+        agg = fdb.aggregate_for_measure(500)
+        assert agg is not None
+        assert agg["donors"][0]["donor_sector"] == "Gig Economy"
+
 
 # ---------------------------------------------------------------------------
 # canonicalize_donor — alias pattern expansion (Codex round-6 audit)

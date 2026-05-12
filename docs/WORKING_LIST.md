@@ -159,11 +159,37 @@ checks pass; Phase F manual checklist signed off via browser spot-check).
       stale-committee patterns don't pollute the `status='missing'`
       bucket. Tiny code change; makes the next audit cleaner.
 
-- [ ] **Donor-sector classification.** ~12 prominent donors hand-curated
-      lookup, or LLM pass. Sector field is currently null for all 517
-      donors in the v2 top-donors table. Enables tech / labor / gambling
-      / healthcare $ aggregation. Likely prerequisite for the
-      hot-button-donor narrative work above.
+- [x] ~~**Donor-sector classification.**~~ **DONE 2026-05-12.** Codex-
+      blessed conservative scope: hand-curated `donor_name_canon` →
+      sector lookup in `scraper/src/finance/donor_sectors.py`. 12-category
+      taxonomy (Labor / Gig Economy / Tribal Gaming / Commercial Gambling
+      / Healthcare / Real Estate / Tobacco / Utilities / Energy /
+      Individual / Party-Political-org / Other). ~80 curated entries
+      covering 100% of top-15 donors and 97% of marquee-fight donors
+      (only ALG Polling — vendor, not a sector — left blank).
+
+      Wired end-to-end (Codex round-7 catch — not just generate_insights):
+      `FinanceDatabase.get_top_donors()` + `aggregate_for_measure()` both
+      attach `donor_sector` per row; insights payloads
+      (`top_donors_overall`, `repeat_donors`, `marquee_fights`) carry it;
+      API endpoint replaces hardcoded `donor_sector=None` with real
+      lookup; briefing pipeline picks it up automatically (already
+      referenced `d.get('donor_sector')`).
+
+      Frontend renders a small neutral pill chip next to each donor name
+      in Module 3a / 3b lists and marquee-fight donor lists.
+      Unclassified donors render without any chip.
+
+      19 new tests covering: known donors return expected sectors,
+      unknown returns None, all dict values are recognized sectors, PG&E
+      variants all classify as Utilities, Tribal Gaming distinct from
+      Commercial Gambling, sector flows through get_top_donors and
+      aggregate_for_measure. 94/94 finance tests pass.
+
+      Coverage caveat documented in module docstring: top-25 covers ~43%
+      of total donor dollar volume in `finance_top_donors` per Codex
+      measurement — NOT 95% as initially claimed. The scope is "prominent
+      visible donors" not "majority of volume."
 
 - [ ] **Per-campaign transaction table** for `get_contribution_breakdown`.
       Currently returns zero-buckets because v2 doesn't have

@@ -18,6 +18,7 @@ from statistics import median
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from src.config import DB_PATH, DATA_DIR
+from src.finance.donor_sectors import get_donor_sector
 from src.finance.schema import FINANCE_DB_PATH
 from src.utils.category_type_mapping import get_display_category_type
 from src.utils.regions import CA_REGIONS, get_region_for_county
@@ -1309,6 +1310,7 @@ def _build_finance_supplements(campaigns_out, measures_by_db_id):
             "name": r["name"],
             "total_amount": round(float(r["total"]), 2),
             "n_campaigns": int(r["n_campaigns"]),
+            "donor_sector": get_donor_sector(r["name"]),
         }
         for r in top_donors_rows
     ]
@@ -1333,6 +1335,7 @@ def _build_finance_supplements(campaigns_out, measures_by_db_id):
             "name": r["name"],
             "total_amount": round(float(r["total"]), 2),
             "n_campaigns": int(r["n_campaigns"]),
+            "donor_sector": get_donor_sector(r["name"]),
         }
         for r in repeat_rows
     ]
@@ -1373,6 +1376,7 @@ def _build_finance_supplements(campaigns_out, measures_by_db_id):
             donors_by_stance[d["stance"]].append({
                 "name": d["donor_name_canon"],
                 "total_amount": round(float(d["total_amount"]), 2),
+                "donor_sector": get_donor_sector(d["donor_name_canon"]),
             })
         marquee_fights.append({
             "finance_campaign_id": cid,

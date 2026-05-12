@@ -14,7 +14,7 @@
     "county_count": 58,
     "year_min": 1911,
     "year_max": 2026,
-    "generated_at": "2026-05-12T12:09:58"
+    "generated_at": "2026-05-12T12:39:32"
   },
   "featured_findings": [
     {
@@ -4893,139 +4893,166 @@
       {
         "name": "California Teachers Association Issues PAC",
         "total_amount": 180828644.86,
-        "n_campaigns": 56
+        "n_campaigns": 56,
+        "donor_sector": "Labor"
       },
       {
         "name": "California Apartment Association Issues Committee",
         "total_amount": 96665000.0,
-        "n_campaigns": 3
+        "n_campaigns": 3,
+        "donor_sector": "Real Estate"
       },
       {
         "name": "San Manuel Band of Mission Indians",
         "total_amount": 84202936.58,
-        "n_campaigns": 6
+        "n_campaigns": 6,
+        "donor_sector": "Tribal Gaming"
       },
       {
         "name": "Philip Morris USA Inc",
         "total_amount": 78039559.0,
-        "n_campaigns": 11
+        "n_campaigns": 11,
+        "donor_sector": "Tobacco"
       },
       {
         "name": "DaVita",
         "total_amount": 70577888.92,
-        "n_campaigns": 2
+        "n_campaigns": 2,
+        "donor_sector": "Healthcare"
       },
       {
         "name": "Charles T. Munger, Jr.",
         "total_amount": 60168950.63,
-        "n_campaigns": 5
+        "n_campaigns": 5,
+        "donor_sector": "Individual"
       },
       {
         "name": "AIDS HEALTHCARE FOUNDATION",
         "total_amount": 52936246.66,
-        "n_campaigns": 5
+        "n_campaigns": 5,
+        "donor_sector": "Healthcare"
       },
       {
         "name": "Lyft, Inc",
         "total_amount": 49010201.94,
-        "n_campaigns": 2
+        "n_campaigns": 2,
+        "donor_sector": "Gig Economy"
       },
       {
         "name": "R.J. Reynolds Tobacco Company",
         "total_amount": 48634712.65,
-        "n_campaigns": 6
+        "n_campaigns": 6,
+        "donor_sector": "Tobacco"
       },
       {
         "name": "Pechanga Band of Luiseno Mission Indians",
         "total_amount": 48442694.07,
-        "n_campaigns": 9
+        "n_campaigns": 9,
+        "donor_sector": "Tribal Gaming"
       },
       {
         "name": "CONGRESSIONAL LEADERSHIP FUND",
         "total_amount": 44332904.3,
-        "n_campaigns": 1
+        "n_campaigns": 1,
+        "donor_sector": "Party / Political org"
       },
       {
         "name": "MUNGER, MOLLY",
         "total_amount": 40523847.07,
-        "n_campaigns": 2
+        "n_campaigns": 2,
+        "donor_sector": "Individual"
       },
       {
         "name": "MORONGO BAND OF MISSION INDIANS",
         "total_amount": 39846063.7,
-        "n_campaigns": 10
+        "n_campaigns": 10,
+        "donor_sector": "Tribal Gaming"
       },
       {
         "name": "FanDuel Sportsbook (Betfair Interactive US)",
         "total_amount": 36684411.5,
-        "n_campaigns": 1
+        "n_campaigns": 1,
+        "donor_sector": "Commercial Gambling"
       },
       {
         "name": "DraftKings (Crown Gaming Inc)",
         "total_amount": 35044690.44,
-        "n_campaigns": 2
+        "n_campaigns": 2,
+        "donor_sector": "Commercial Gambling"
       }
     ],
     "repeat_donors": [
       {
         "name": "California Teachers Association Issues PAC",
         "total_amount": 180828644.86,
-        "n_campaigns": 56
+        "n_campaigns": 56,
+        "donor_sector": "Labor"
       },
       {
         "name": "CALIFORNIA DEMOCRATIC PARTY",
         "total_amount": 5177545.08,
-        "n_campaigns": 31
+        "n_campaigns": 31,
+        "donor_sector": "Party / Political org"
       },
       {
         "name": "California Association of Realtors Issues Mobilization PAC",
         "total_amount": 10951250.0,
-        "n_campaigns": 17
+        "n_campaigns": 17,
+        "donor_sector": "Real Estate"
       },
       {
         "name": "CALIFORNIA HOSPITALS COMMITTEE ON ISSUES, SPONSORED BY CAHHS",
         "total_amount": 4110000.0,
-        "n_campaigns": 17
+        "n_campaigns": 17,
+        "donor_sector": "Healthcare"
       },
       {
         "name": "AFSCME",
         "total_amount": 6459200.0,
-        "n_campaigns": 16
+        "n_campaigns": 16,
+        "donor_sector": null
       },
       {
         "name": "NORTHERN CALIFORNIA CARPENTERS REGIONAL COUNCIL ISSUES PAC",
         "total_amount": 3680300.0,
-        "n_campaigns": 16
+        "n_campaigns": 16,
+        "donor_sector": "Labor"
       },
       {
         "name": "CALIFORNIA FACULTY ASSOCIATION POLITICAL ISSUES COMMITTEE",
         "total_amount": 2694622.04,
-        "n_campaigns": 16
+        "n_campaigns": 16,
+        "donor_sector": "Labor"
       },
       {
         "name": "DEMOCRATIC STATE CENTRAL COMMITTEE OF CALIFORNIA",
         "total_amount": 7422299.38,
-        "n_campaigns": 15
+        "n_campaigns": 15,
+        "donor_sector": "Party / Political org"
       },
       {
         "name": "PACE OF CALIFORNIA SCHOOL EMPLOYEES ASSOCIATION - ISSUES",
         "total_amount": 5535641.29,
-        "n_campaigns": 15
+        "n_campaigns": 15,
+        "donor_sector": "Labor"
       },
       {
         "name": "CALIFORNIA STATE COUNCIL OF SERVICE EMPLOYEES ISSUES COMMITTEE",
         "total_amount": 13966686.67,
-        "n_campaigns": 12
+        "n_campaigns": 12,
+        "donor_sector": null
       },
       {
         "name": "M. Quinn Delaney",
         "total_amount": 6771000.0,
-        "n_campaigns": 12
+        "n_campaigns": 12,
+        "donor_sector": "Individual"
       },
       {
         "name": "Philip Morris USA Inc",
         "total_amount": 78039559.0,
-        "n_campaigns": 11
+        "n_campaigns": 11,
+        "donor_sector": "Tobacco"
       }
     ],
     "marquee_fights": [
@@ -5045,45 +5072,55 @@
         "support_top_donors": [
           {
             "name": "UBER TECHNOLOGIES, INC",
-            "total_amount": 23662515.99
+            "total_amount": 23662515.99,
+            "donor_sector": "Gig Economy"
           },
           {
             "name": "DOORDASH, INC",
-            "total_amount": 18892421.06
+            "total_amount": 18892421.06,
+            "donor_sector": "Gig Economy"
           },
           {
             "name": "Lyft, Inc",
-            "total_amount": 18842717.42
+            "total_amount": 18842717.42,
+            "donor_sector": "Gig Economy"
           },
           {
             "name": "Instacart",
-            "total_amount": 17689348.28
+            "total_amount": 17689348.28,
+            "donor_sector": "Gig Economy"
           },
           {
             "name": "POSTMATES INC",
-            "total_amount": 1843523.39
+            "total_amount": 1843523.39,
+            "donor_sector": "Gig Economy"
           }
         ],
         "oppose_top_donors": [
           {
             "name": "SERVICE EMPLOYEES INTERNATIONAL UNION LOCAL 721 CTW, CLC ISSUES & INITIATIVES",
-            "total_amount": 1639957.24
+            "total_amount": 1639957.24,
+            "donor_sector": "Labor"
           },
           {
             "name": "INTERNATIONAL BROTHERHOOD OF TEAMSTERS",
-            "total_amount": 1500000.0
+            "total_amount": 1500000.0,
+            "donor_sector": "Labor"
           },
           {
             "name": "SERVICE EMPLOYEES INTERNATIONAL UNION UNITED HEALTH CARE WORKERS WEST POLITICAL ISSUES COMMITTEE",
-            "total_amount": 1000000.0
+            "total_amount": 1000000.0,
+            "donor_sector": "Labor"
           },
           {
             "name": "UNITED FOOD & COMMERCIAL WORKERS LOCAL 770",
-            "total_amount": 1000000.0
+            "total_amount": 1000000.0,
+            "donor_sector": "Labor"
           },
           {
             "name": "UNITED FOOD AND COMMERCIAL WORKERS INTERNATIONAL UNION CLC",
-            "total_amount": 1000000.0
+            "total_amount": 1000000.0,
+            "donor_sector": "Labor"
           }
         ]
       },
@@ -5103,45 +5140,55 @@
         "support_top_donors": [
           {
             "name": "FanDuel Sportsbook (Betfair Interactive US)",
-            "total_amount": 36684411.5
+            "total_amount": 36684411.5,
+            "donor_sector": "Commercial Gambling"
           },
           {
             "name": "DraftKings (Crown Gaming Inc)",
-            "total_amount": 35032190.44
+            "total_amount": 35032190.44,
+            "donor_sector": "Commercial Gambling"
           },
           {
             "name": "FBG ENTERPRISES OPCO, LLC(RESPONSIBLE OFFICER: ARI BOROD)",
-            "total_amount": 12500000.0
+            "total_amount": 12500000.0,
+            "donor_sector": "Commercial Gambling"
           },
           {
             "name": "PENN INTERACTIVE VENTURES, LLC(RESPONSIBLE OFFICER: JON KAPLOWITZ)",
-            "total_amount": 12500000.0
+            "total_amount": 12500000.0,
+            "donor_sector": "Commercial Gambling"
           },
           {
             "name": "BETMGM LLC(RESPONSIBLE OFFICER: ANDREW HAGOPIAN)",
-            "total_amount": 8333000.0
+            "total_amount": 8333000.0,
+            "donor_sector": "Commercial Gambling"
           }
         ],
         "oppose_top_donors": [
           {
             "name": "San Manuel Band of Mission Indians",
-            "total_amount": 75031675.97
+            "total_amount": 75031675.97,
+            "donor_sector": "Tribal Gaming"
           },
           {
             "name": "CALIFORNIANS FOR COMMUNITY SAFETY, EQUALITY AND REINVESTMENT, SPONSORED BY TRIBAL ORGANIZATIONS",
-            "total_amount": 750000.0
+            "total_amount": 750000.0,
+            "donor_sector": "Tribal Gaming"
           },
           {
             "name": "ALG POLLING INC",
-            "total_amount": 219800.0
+            "total_amount": 219800.0,
+            "donor_sector": null
           },
           {
             "name": "PALA CASINO RESORT SPA",
-            "total_amount": 43000.0
+            "total_amount": 43000.0,
+            "donor_sector": "Tribal Gaming"
           },
           {
             "name": "PALA BAND OF MISSION INDIANS",
-            "total_amount": 28131.18
+            "total_amount": 28131.18,
+            "donor_sector": "Tribal Gaming"
           }
         ]
       },
@@ -5161,45 +5208,55 @@
         "support_top_donors": [
           {
             "name": "SERVICE EMPLOYEES INTERNATIONAL UNION, UNITED HEALTHCARE WORKERS WEST (NONPROFIT 501(C)(5)) - CALIFORNIANS FOR KIDNEY DIALYSIS PATIENT PROTECTION AND CALIFORNIANS CARE",
-            "total_amount": 11387341.0
+            "total_amount": 11387341.0,
+            "donor_sector": "Labor"
           },
           {
             "name": "SERVICE EMPLOYEES INTERNATIONAL UNION, UNITED HEALTHCARE WORKERS WEST (NONPROFIT 501(C)(5)) - YES ON 8 - CALIFORNIANS FOR KIDNEY DIALYSIS PATIENT PROTECTION",
-            "total_amount": 11387341.0
+            "total_amount": 11387341.0,
+            "donor_sector": "Labor"
           },
           {
             "name": "CA STATE COUNCIL OF SERVICE EMPLOYEES ISSUES COMMITTEE",
-            "total_amount": 1000000.0
+            "total_amount": 1000000.0,
+            "donor_sector": "Labor"
           },
           {
             "name": "CALIFORNIA DEMOCRATIC PARTY",
-            "total_amount": 52971.14
+            "total_amount": 52971.14,
+            "donor_sector": "Party / Political org"
           },
           {
             "name": "SERVICE EMPLOYEES INTERNATIONAL UNION - UNITED HEALTHCARE WORKERS WEST",
-            "total_amount": 34308.48
+            "total_amount": 34308.48,
+            "donor_sector": "Labor"
           }
         ],
         "oppose_top_donors": [
           {
             "name": "DaVita",
-            "total_amount": 63297812.66
+            "total_amount": 63297812.66,
+            "donor_sector": "Healthcare"
           },
           {
             "name": "FRESENIUS MEDICAL CARE NORTH AMERICA",
-            "total_amount": 24308958.11
+            "total_amount": 24308958.11,
+            "donor_sector": "Healthcare"
           },
           {
             "name": "US RENAL CARE, INC",
-            "total_amount": 8176421.43
+            "total_amount": 8176421.43,
+            "donor_sector": "Healthcare"
           },
           {
             "name": "DIALYSIS CLINIC, INC",
-            "total_amount": 1215417.0
+            "total_amount": 1215417.0,
+            "donor_sector": "Healthcare"
           },
           {
             "name": "SATELLITE HEALTHCARE, INC",
-            "total_amount": 500000.0
+            "total_amount": 500000.0,
+            "donor_sector": "Healthcare"
           }
         ]
       }

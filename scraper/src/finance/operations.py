@@ -16,6 +16,7 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Iterable, List, Dict, Optional
 
+from .donor_sectors import get_donor_sector
 from .schema import FINANCE_DB_PATH
 
 
@@ -143,6 +144,10 @@ class FinanceDatabase:
         crowd out the smaller side of an imbalanced fight (e.g. PROP_1_2024's
         oppose donors vanished entirely because support outspent ~30:1).
         Window function partitions the ranking by stance.
+
+        Each row also carries a `donor_sector` field — hand-curated lookup
+        in `src/finance/donor_sectors.py`. Donors outside the lookup get
+        `donor_sector=None` and render without a sector chip in the UI.
         """
         cursor = self.conn.execute(
             """
@@ -158,7 +163,12 @@ class FinanceDatabase:
             """,
             (finance_campaign_id, limit),
         )
-        return [dict(row) for row in cursor.fetchall()]
+        rows = []
+        for row in cursor.fetchall():
+            d = dict(row)
+            d["donor_sector"] = get_donor_sector(d["donor_name_canon"])
+            rows.append(d)
+        return rows
 
     def get_contribution_breakdown(self, finance_campaign_id: str) -> Dict:
         """Contribution-size distribution. The v2 rebuild does NOT yet have
@@ -275,7 +285,9 @@ class FinanceDatabase:
                 "hhi": hhi,
             })
 
-        # 3. Top donors per stance (after merging across campaigns).
+        # 3. Top donors per stance (after merging across campaigns). Sector
+        #    lookup attached so consumers (modal, briefing, API) carry the
+        #    same sector data without re-resolving it.
         top_donors: List[Dict] = []
         for stance, ranked in donors_by_stance.items():
             for d in ranked[:donor_limit]:
@@ -283,6 +295,7 @@ class FinanceDatabase:
                     "stance": stance,
                     "donor_name_canon": d["donor_name_canon"],
                     "donor_type": d["donor_type"],
+                    "donor_sector": get_donor_sector(d["donor_name_canon"]),
                     "total_amount": d["total_amount"],
                 })
 
