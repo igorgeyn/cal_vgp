@@ -175,6 +175,23 @@ DONOR_ALIAS_PATTERNS: list[tuple[re.Pattern, str]] = [
     # Instacart (same company, two naming layers).
     (re.compile(r"^MAPLEBEAR\s+INC\.?,?\s+DBA\s+INSTACART$"),
      "Instacart"),
+
+    # SEIU-UHW Nonprofit 501(c)(5) — same legal entity filing under
+    # multiple campaign-context suffixes ("- YES ON 8 - CALIFORNIANS FOR
+    # KIDNEY DIALYSIS PATIENT PROTECTION", "- CALIFORNIANS FOR KIDNEY
+    # DIALYSIS PATIENT PROTECTION AND CALIFORNIANS CARE", "- YES ON 23 -
+    # ...", etc.) in CalAccess filings. The PROP_8_2018 audit (2026-05-12)
+    # revealed CalAccess double-reports the same transaction under
+    # different suffix labels — e.g., a $11,387,341 transfer on 2018-08-21
+    # appears as two source rows with the same date / amount / filer_id /
+    # stance but different donor-name suffixes. Collapsing the variants
+    # lets the rebuild's exact_duplicate gate catch the doubles. Kept
+    # distinct from the SEIU UHW PAC and the bare-union "SEIU - UHW"
+    # variants since those are different legal entities.
+    (re.compile(r"^SERVICE EMPLOYEES INTERNATIONAL UNION,?\s+UNITED HEALTHCARE WORKERS WEST\s*[-\s]?\s*\(NONPROFIT 501\(C\)\(5\)\).*$"),
+     "SEIU-UHW Nonprofit 501(c)(5)"),
+    (re.compile(r"^SERVICE EMPLOYEES INTERNATIONAL UNION,?\s+UNITED HEALTHCARE WORKERS WEST\s+NONPROFIT 501\(C\)\(5\)$"),
+     "SEIU-UHW Nonprofit 501(c)(5)"),
 ]
 
 
@@ -604,11 +621,22 @@ def ingest_rows(conn: sqlite3.Connection, lookup: dict) -> dict:
 
             # Gate 7: exact-duplicate dedupe. The CalAccess clean CSV contains
             # extensive exact-row repetition (PROP_22 / PROP_27 inflated 60-75%
-            # without this gate). Key on the full (campaign, stance, date,
-            # amount, donor, donor_type, committee) tuple.
+            # without this gate). Key on (campaign, stance, date, amount,
+            # canonicalized donor, donor_type, committee).
+            #
+            # NOTE 2026-05-12: switched the donor element from `donor_raw` to
+            # `canonicalize_donor(donor_raw)`. CalAccess sometimes records
+            # the same transaction under two donor-name suffix variants
+            # (PROP_8_2018 SEIU-UHW pair: $11,387,341 on the same day, same
+            # filer, distinct suffix labels). Raw-name keying missed these;
+            # canon-name keying catches them because the aliases collapse to
+            # one canonical. Strictly improves dedup coverage — canonicalize
+            # only fires on explicit aliases, so unrelated donors stay
+            # distinct.
+            donor_canon = canonicalize_donor(donor_raw)
             dup_key = (
                 campaign_id, stance, txn_date.isoformat(), amount,
-                donor_raw, donor_type or "", committee,
+                donor_canon, donor_type or "", committee,
             )
             if dup_key in seen_keys:
                 quarantine(idx, prop_num, year, txn_date, txn_year, campaign_id,
@@ -617,7 +645,6 @@ def ingest_rows(conn: sqlite3.Connection, lookup: dict) -> dict:
             seen_keys.add(dup_key)
 
             # Accept the row — accumulate.
-            donor_canon = canonicalize_donor(donor_raw)
 
             acc = by_campaign_stance[(campaign_id, stance)]
             acc["total"] += amount

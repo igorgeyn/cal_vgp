@@ -374,6 +374,48 @@ class TestDonorCanonicalizationInstacart:
         assert canonicalize_donor("MAPLEBEAR INC., DBA INSTACART") == "Instacart"
 
 
+class TestDonorCanonicalizationSEIUUHW:
+    """SEIU-UHW Nonprofit 501(c)(5): same legal entity filing under
+    multiple campaign-context suffix labels. Verified 2026-05-12 audit:
+    CalAccess double-records the same transactions under these variants;
+    canonicalization lets the rebuild's dedup gate catch them."""
+
+    @pytest.mark.parametrize("variant", [
+        "SERVICE EMPLOYEES INTERNATIONAL UNION, UNITED HEALTHCARE WORKERS WEST (NONPROFIT 501(C)(5))",
+        "SERVICE EMPLOYEES INTERNATIONAL UNION, UNITED HEALTHCARE WORKERS WEST (NONPROFIT 501(C)(5)) - YES ON 8 - CALIFORNIANS FOR KIDNEY DIALYSIS PATIENT PROTECTION",
+        "SERVICE EMPLOYEES INTERNATIONAL UNION, UNITED HEALTHCARE WORKERS WEST (NONPROFIT 501(C)(5)) - CALIFORNIANS FOR KIDNEY DIALYSIS PATIENT PROTECTION AND CALIFORNIANS CARE",
+        "SERVICE EMPLOYEES INTERNATIONAL UNION, UNITED HEALTHCARE WORKERS WEST (NONPROFIT 501(C)(5)) - YES ON 23- CALIFORNIANS FOR KIDNEY DIALYSIS PATIENT PROTECTION",
+        "SERVICE EMPLOYEES INTERNATIONAL UNION, UNITED HEALTHCARE WORKERS WEST NONPROFIT 501(C)(5)",
+    ])
+    def test_seiu_uhw_nonprofit_variants_merge(self, variant):
+        assert canonicalize_donor(variant) == "SEIU-UHW Nonprofit 501(c)(5)"
+
+    @pytest.mark.parametrize("distinct_entity", [
+        # Bare-union name — different legal entity, different filer
+        "SERVICE EMPLOYEES INTERNATIONAL UNION - UNITED HEALTHCARE WORKERS WEST",
+        # PAC — separately registered, different filer
+        "SEIU UNITED HEALTHCARE WORKERS WEST PAC",
+        # Political Issues Committee — yet another sub-entity
+        "SERVICE EMPLOYEES INTERNATIONAL UNION UNITED HEALTHCARE WORKERS WEST POLITICAL ISSUES COMMITTEE",
+    ])
+    def test_other_seiu_uhw_entities_stay_distinct(self, distinct_entity):
+        """The Nonprofit 501(c)(5) pattern must NOT capture the bare union,
+        the PAC, or the Political Issues Committee — different legal
+        entities with separate CalAccess filer IDs."""
+        assert canonicalize_donor(distinct_entity) != "SEIU-UHW Nonprofit 501(c)(5)"
+
+
+class TestDonorCanonicalizationDoorDash:
+    @pytest.mark.parametrize("variant", [
+        "DOORDASH, INC",
+        "DOORDASH, INC.",
+    ])
+    def test_doordash_variants(self, variant):
+        # DoorDash doesn't have a backend canonical (uses frontend brand
+        # display). Just verify the canonicalize function doesn't drop it.
+        assert "DOORDASH" in canonicalize_donor(variant).upper()
+
+
 class TestDonorCanonicalizationConservativeBounds:
     """End-to-end check that the patterns added in round 2 don't over-merge.
     Codex-blessed scope: legal-entity-level only, no parent-org grouping."""

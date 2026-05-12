@@ -85,9 +85,13 @@ DONOR_SECTORS: dict[str, str] = {
     "UNITED FOOD AND COMMERCIAL WORKERS LOCAL 770": "Labor",
     "UNITED FOOD AND COMMERCIAL WORKERS INTERNATIONAL UNION CLC": "Labor",
     "UNITED FOOD AND COMMERCIAL WORKERS WESTERN STATES ISSUES PAC": "Labor",
-    # SEIU UHW variants on PROP_8_2018 (the same legal entity filing under
-    # multiple ballot-committee names; merge candidate flagged for future
-    # canonicalization work, but classified the same regardless).
+    # SEIU UHW Nonprofit 501(c)(5) — multiple suffix variants now collapse
+    # via canonicalize_donor to "SEIU-UHW Nonprofit 501(c)(5)" (audit
+    # 2026-05-12 found CalAccess double-records the same transaction
+    # under different suffix labels). The new canonical is what the v2
+    # data carries; the older suffix-specific keys below are kept as
+    # defense-in-depth for any data refresh that hasn't been re-rebuilt.
+    "SEIU-UHW Nonprofit 501(c)(5)": "Labor",
     "SERVICE EMPLOYEES INTERNATIONAL UNION, UNITED HEALTHCARE WORKERS WEST (NONPROFIT 501(C)(5)) - YES ON 8 - CALIFORNIANS FOR KIDNEY DIALYSIS PATIENT PROTECTION": "Labor",
     "SERVICE EMPLOYEES INTERNATIONAL UNION, UNITED HEALTHCARE WORKERS WEST (NONPROFIT 501(C)(5)) - CALIFORNIANS FOR KIDNEY DIALYSIS PATIENT PROTECTION AND CALIFORNIANS CARE": "Labor",
     "SERVICE EMPLOYEES INTERNATIONAL UNION, UNITED HEALTHCARE WORKERS WEST (NONPROFIT 501(C)(5)) - YES ON 23- CALIFORNIANS FOR KIDNEY DIALYSIS PATIENT PROTECTION": "Labor",

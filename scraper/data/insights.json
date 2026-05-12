@@ -14,7 +14,7 @@
     "county_count": 58,
     "year_min": 1911,
     "year_max": 2026,
-    "generated_at": "2026-05-12T12:39:32"
+    "generated_at": "2026-05-12T13:58:09"
   },
   "featured_findings": [
     {
@@ -70,8 +70,8 @@
     {
       "id": "finance-lopsided",
       "title": "Statewide proposition campaigns are often big-money contests.",
-      "deck": "The finance database links 181 statewide proposition IDs and $3.3B in receipts.",
-      "metric": "$3.3B",
+      "deck": "The finance database links 181 statewide proposition IDs and $3.2B in receipts.",
+      "metric": "$3.2B",
       "metric_label": "linked receipts",
       "confidence": "Medium",
       "method": "CalAccess-derived statewide proposition finance summaries.",
@@ -4197,29 +4197,29 @@
     "available": true,
     "measure_count": 181,
     "campaign_count": 194,
-    "support_receipts": 1867201124.69,
-    "oppose_receipts": 1450673910.91,
-    "total_receipts": 3317875035.6,
+    "support_receipts": 1790510683.29,
+    "oppose_receipts": 1449782515.25,
+    "total_receipts": 3240293198.54,
     "better_funded_known": 181,
-    "better_funded_won": 117,
-    "better_funded_win_rate": 64.6,
+    "better_funded_won": 118,
+    "better_funded_win_rate": 65.2,
     "top_measures": [
       {
-        "finance_campaign_id": "PROP_27_2022",
-        "measure_id": "PROP_27",
-        "election_year": 2022,
-        "year": 2022,
-        "measure_db_id": 10939,
-        "title": "California Proposition 27, Legalize Sports Betting and Revenue for Homelessness Prevention Fund Initiative (2022)",
-        "passed": 0,
-        "support_receipts": 105078245.42,
-        "oppose_receipts": 76083877.51,
-        "total_receipts": 181162122.93,
+        "finance_campaign_id": "PROP_50_2025",
+        "measure_id": "PROP_50",
+        "election_year": 2025,
+        "year": 2025,
+        "measure_db_id": 10955,
+        "title": "California Proposition 50, Use of Legislative Congressional Redistricting Map Amendment (2025)",
+        "passed": 1,
+        "support_receipts": 108162430.24,
+        "oppose_receipts": 56648694.82,
+        "total_receipts": 164811125.06,
         "better_funded_side": "support",
-        "better_funded_won": false,
-        "funding_ratio": 1.4,
-        "support_top5_share": 99.97,
-        "oppose_top5_share": 99.99
+        "better_funded_won": true,
+        "funding_ratio": 1.9,
+        "support_top5_share": 32.37,
+        "oppose_top5_share": 92.36
       },
       {
         "finance_campaign_id": "PROP_32_2012",
@@ -4229,31 +4229,31 @@
         "measure_db_id": 1224,
         "title": "Proposition 32",
         "passed": 0,
-        "support_receipts": 124082475.59,
-        "oppose_receipts": 55951747.75,
-        "total_receipts": 180034223.34,
+        "support_receipts": 104007710.59,
+        "oppose_receipts": 55939316.45,
+        "total_receipts": 159947027.04,
         "better_funded_side": "support",
         "better_funded_won": false,
-        "funding_ratio": 2.2,
-        "support_top5_share": 91.73,
-        "oppose_top5_share": 61.25
+        "funding_ratio": 1.9,
+        "support_top5_share": 90.13,
+        "oppose_top5_share": 61.26
       },
       {
-        "finance_campaign_id": "PROP_50_2025",
-        "measure_id": "PROP_50",
-        "election_year": 2025,
-        "year": 2025,
-        "measure_db_id": 10955,
-        "title": "California Proposition 50, Use of Legislative Congressional Redistricting Map Amendment (2025)",
-        "passed": 1,
-        "support_receipts": 108162530.24,
-        "oppose_receipts": 56648694.82,
-        "total_receipts": 164811225.06,
-        "better_funded_side": "support",
+        "finance_campaign_id": "PROP_27_2022",
+        "measure_id": "PROP_27",
+        "election_year": 2022,
+        "year": 2022,
+        "measure_db_id": 10939,
+        "title": "California Proposition 27, Legalize Sports Betting and Revenue for Homelessness Prevention Fund Initiative (2022)",
+        "passed": 0,
+        "support_receipts": 69775050.7,
+        "oppose_receipts": 76083877.51,
+        "total_receipts": 145858928.21,
+        "better_funded_side": "oppose",
         "better_funded_won": true,
-        "funding_ratio": 1.9,
-        "support_top5_share": 32.37,
-        "oppose_top5_share": 92.36
+        "funding_ratio": 1.1,
+        "support_top5_share": 99.96,
+        "oppose_top5_share": 99.99
       },
       {
         "finance_campaign_id": "PROP_94_2008",
@@ -4280,13 +4280,13 @@
         "measure_db_id": 1267,
         "title": "Limiting Dialysis Revenue and Requiring Refund to Patients or Insurers Initiative",
         "passed": 0,
-        "support_receipts": 23864907.9,
+        "support_receipts": 12477566.9,
         "oppose_receipts": 97632340.2,
-        "total_receipts": 121497248.1,
+        "total_receipts": 110109907.1,
         "better_funded_side": "oppose",
         "better_funded_won": true,
-        "funding_ratio": 4.1,
-        "support_top5_share": 99.99,
+        "funding_ratio": 7.8,
+        "support_top5_share": 100.0,
         "oppose_top5_share": 99.86
       },
       {
@@ -4315,8 +4315,8 @@
         "title": "California Proposition 15, Tax on Commercial and Industrial Properties for Education and Local Government Funding Initiative (2020)",
         "passed": 0,
         "support_receipts": 55890183.04,
-        "oppose_receipts": 31493144.93,
-        "total_receipts": 87383327.97,
+        "oppose_receipts": 31491898.47,
+        "total_receipts": 87382081.51,
         "better_funded_side": "support",
         "better_funded_won": false,
         "funding_ratio": 1.8,
@@ -4383,8 +4383,8 @@
         "title": "California Proposition 33, Prohibit State Limitations on Local Rent Control Initiative (2024)",
         "passed": 0,
         "support_receipts": 0.0,
-        "oppose_receipts": 73057631.32,
-        "total_receipts": 73057631.32,
+        "oppose_receipts": 73057161.32,
+        "total_receipts": 73057161.32,
         "better_funded_side": "oppose",
         "better_funded_won": true,
         "funding_ratio": null,
@@ -4411,23 +4411,6 @@
     ],
     "better_funded_losses": [
       {
-        "finance_campaign_id": "PROP_27_2022",
-        "measure_id": "PROP_27",
-        "election_year": 2022,
-        "year": 2022,
-        "measure_db_id": 10939,
-        "title": "California Proposition 27, Legalize Sports Betting and Revenue for Homelessness Prevention Fund Initiative (2022)",
-        "passed": 0,
-        "support_receipts": 105078245.42,
-        "oppose_receipts": 76083877.51,
-        "total_receipts": 181162122.93,
-        "better_funded_side": "support",
-        "better_funded_won": false,
-        "funding_ratio": 1.4,
-        "support_top5_share": 99.97,
-        "oppose_top5_share": 99.99
-      },
-      {
         "finance_campaign_id": "PROP_32_2012",
         "measure_id": "CA1202",
         "election_year": 2012,
@@ -4435,14 +4418,14 @@
         "measure_db_id": 1224,
         "title": "Proposition 32",
         "passed": 0,
-        "support_receipts": 124082475.59,
-        "oppose_receipts": 55951747.75,
-        "total_receipts": 180034223.34,
+        "support_receipts": 104007710.59,
+        "oppose_receipts": 55939316.45,
+        "total_receipts": 159947027.04,
         "better_funded_side": "support",
         "better_funded_won": false,
-        "funding_ratio": 2.2,
-        "support_top5_share": 91.73,
-        "oppose_top5_share": 61.25
+        "funding_ratio": 1.9,
+        "support_top5_share": 90.13,
+        "oppose_top5_share": 61.26
       },
       {
         "finance_campaign_id": "PROP_15_2020",
@@ -4453,8 +4436,8 @@
         "title": "California Proposition 15, Tax on Commercial and Industrial Properties for Education and Local Government Funding Initiative (2020)",
         "passed": 0,
         "support_receipts": 55890183.04,
-        "oppose_receipts": 31493144.93,
-        "total_receipts": 87383327.97,
+        "oppose_receipts": 31491898.47,
+        "total_receipts": 87382081.51,
         "better_funded_side": "support",
         "better_funded_won": false,
         "funding_ratio": 1.8,
@@ -4520,14 +4503,14 @@
         "measure_db_id": 1191,
         "title": "Proposition 8",
         "passed": 1,
-        "support_receipts": 42919.88,
-        "oppose_receipts": 37770474.53,
-        "total_receipts": 37813394.41,
+        "support_receipts": 42819.88,
+        "oppose_receipts": 37481547.54,
+        "total_receipts": 37524367.42,
         "better_funded_side": "oppose",
         "better_funded_won": false,
-        "funding_ratio": 880.0,
-        "support_top5_share": 32.62,
-        "oppose_top5_share": 35.8
+        "funding_ratio": 875.3,
+        "support_top5_share": 32.7,
+        "oppose_top5_share": 36.08
       },
       {
         "finance_campaign_id": "PROP_24_2010",
@@ -4545,6 +4528,23 @@
         "funding_ratio": 3.2,
         "support_top5_share": 53.18,
         "oppose_top5_share": 73.29
+      },
+      {
+        "finance_campaign_id": "PROP_78_2005",
+        "measure_id": "CA1140",
+        "election_year": 2005,
+        "year": 2005,
+        "measure_db_id": 1162,
+        "title": "Proposition 78",
+        "passed": 0,
+        "support_receipts": 27498345.56,
+        "oppose_receipts": 0.0,
+        "total_receipts": 27498345.56,
+        "better_funded_side": "support",
+        "better_funded_won": false,
+        "funding_ratio": null,
+        "support_top5_share": 100.0,
+        "oppose_top5_share": null
       }
     ],
     "largest_imbalances": [
@@ -4641,31 +4641,14 @@
         "measure_db_id": 1191,
         "title": "Proposition 8",
         "passed": 1,
-        "support_receipts": 42919.88,
-        "oppose_receipts": 37770474.53,
-        "total_receipts": 37813394.41,
+        "support_receipts": 42819.88,
+        "oppose_receipts": 37481547.54,
+        "total_receipts": 37524367.42,
         "better_funded_side": "oppose",
         "better_funded_won": false,
-        "funding_ratio": 880.0,
-        "support_top5_share": 32.62,
-        "oppose_top5_share": 35.8
-      },
-      {
-        "finance_campaign_id": "PROP_16_2020",
-        "measure_id": "PROP_16",
-        "election_year": 2020,
-        "year": 2020,
-        "measure_db_id": 10927,
-        "title": "California Proposition 16, Repeal Proposition 209 Affirmative Action Amendment (2020)",
-        "passed": 0,
-        "support_receipts": 18491317.78,
-        "oppose_receipts": 23743.84,
-        "total_receipts": 18515061.62,
-        "better_funded_side": "support",
-        "better_funded_won": false,
-        "funding_ratio": 778.8,
-        "support_top5_share": 52.84,
-        "oppose_top5_share": 63.17
+        "funding_ratio": 875.3,
+        "support_top5_share": 32.7,
+        "oppose_top5_share": 36.08
       },
       {
         "finance_campaign_id": "PROP_27_2010",
@@ -4675,35 +4658,52 @@
         "measure_db_id": 1209,
         "title": "Proposition 27",
         "passed": 0,
-        "support_receipts": 15636212.19,
+        "support_receipts": 15636012.19,
         "oppose_receipts": 20516.0,
-        "total_receipts": 15656728.19,
+        "total_receipts": 15656528.19,
         "better_funded_side": "support",
         "better_funded_won": false,
         "funding_ratio": 762.1,
         "support_top5_share": 24.32,
         "oppose_top5_share": 100.0
+      },
+      {
+        "finance_campaign_id": "PROP_16_2020",
+        "measure_id": "PROP_16",
+        "election_year": 2020,
+        "year": 2020,
+        "measure_db_id": 10927,
+        "title": "California Proposition 16, Repeal Proposition 209 Affirmative Action Amendment (2020)",
+        "passed": 0,
+        "support_receipts": 15491242.78,
+        "oppose_receipts": 23743.84,
+        "total_receipts": 15514986.62,
+        "better_funded_side": "support",
+        "better_funded_won": false,
+        "funding_ratio": 652.4,
+        "support_top5_share": 43.71,
+        "oppose_top5_share": 63.17
       }
     ],
     "annual_receipts": [
       {
         "year": 2000,
-        "total_receipts": 165519633.97,
+        "total_receipts": 165302537.97,
         "n_measures": 19
       },
       {
         "year": 2002,
-        "total_receipts": 48630113.43,
+        "total_receipts": 48627613.43,
         "n_measures": 10
       },
       {
         "year": 2003,
-        "total_receipts": 6728174.85,
+        "total_receipts": 6512708.85,
         "n_measures": 2
       },
       {
         "year": 2004,
-        "total_receipts": 158956071.41,
+        "total_receipts": 152105357.75,
         "n_measures": 16
       },
       {
@@ -4713,62 +4713,62 @@
       },
       {
         "year": 2006,
-        "total_receipts": 217433881.78,
+        "total_receipts": 217433781.78,
         "n_measures": 14
       },
       {
         "year": 2008,
-        "total_receipts": 266867212.68,
+        "total_receipts": 266578185.69,
         "n_measures": 16
       },
       {
         "year": 2009,
-        "total_receipts": 27033853.01,
+        "total_receipts": 26979639.1,
         "n_measures": 5
       },
       {
         "year": 2010,
-        "total_receipts": 236700733.22,
+        "total_receipts": 236641359.81,
         "n_measures": 13
       },
       {
         "year": 2012,
-        "total_receipts": 431823949.79,
+        "total_receipts": 411732983.25,
         "n_measures": 13
       },
       {
         "year": 2014,
-        "total_receipts": 63190117.3,
+        "total_receipts": 63189787.26,
         "n_measures": 8
       },
       {
         "year": 2016,
-        "total_receipts": 227173050.04,
+        "total_receipts": 227169521.71,
         "n_measures": 17
       },
       {
         "year": 2018,
-        "total_receipts": 293305148.14,
+        "total_receipts": 281911672.14,
         "n_measures": 8
       },
       {
         "year": 2020,
-        "total_receipts": 360631583.56,
+        "total_receipts": 357530302.1,
         "n_measures": 13
       },
       {
         "year": 2022,
-        "total_receipts": 288541417.23,
+        "total_receipts": 253238222.51,
         "n_measures": 7
       },
       {
         "year": 2024,
-        "total_receipts": 208687122.9,
+        "total_receipts": 208686652.9,
         "n_measures": 11
       },
       {
         "year": 2025,
-        "total_receipts": 164811225.06,
+        "total_receipts": 164811125.06,
         "n_measures": 1
       }
     ],
@@ -4780,7 +4780,7 @@
       },
       {
         "year": 2000,
-        "total_receipts": 161045559.72,
+        "total_receipts": 160828463.72,
         "n_measures": 18
       },
       {
@@ -4790,17 +4790,17 @@
       },
       {
         "year": 2002,
-        "total_receipts": 44718402.23,
+        "total_receipts": 44715902.23,
         "n_measures": 11
       },
       {
         "year": 2003,
-        "total_receipts": 10644665.16,
+        "total_receipts": 10429199.16,
         "n_measures": 7
       },
       {
         "year": 2004,
-        "total_receipts": 151040070.04,
+        "total_receipts": 144189356.38,
         "n_measures": 15
       },
       {
@@ -4810,7 +4810,7 @@
       },
       {
         "year": 2006,
-        "total_receipts": 219436064.1,
+        "total_receipts": 219435964.1,
         "n_measures": 16
       },
       {
@@ -4820,22 +4820,22 @@
       },
       {
         "year": 2008,
-        "total_receipts": 211517521.72,
+        "total_receipts": 211228494.73,
         "n_measures": 16
       },
       {
         "year": 2009,
-        "total_receipts": 26710806.18,
+        "total_receipts": 26656592.27,
         "n_measures": 8
       },
       {
         "year": 2010,
-        "total_receipts": 237297287.23,
+        "total_receipts": 237237913.82,
         "n_measures": 15
       },
       {
         "year": 2012,
-        "total_receipts": 431160793.17,
+        "total_receipts": 411069826.63,
         "n_measures": 13
       },
       {
@@ -4845,22 +4845,22 @@
       },
       {
         "year": 2014,
-        "total_receipts": 63190117.3,
+        "total_receipts": 63189787.26,
         "n_measures": 8
       },
       {
         "year": 2016,
-        "total_receipts": 226692563.34,
+        "total_receipts": 226689035.01,
         "n_measures": 17
       },
       {
         "year": 2017,
-        "total_receipts": 932578.64,
+        "total_receipts": 927748.64,
         "n_measures": 3
       },
       {
         "year": 2018,
-        "total_receipts": 292853056.2,
+        "total_receipts": 281464410.2,
         "n_measures": 8
       },
       {
@@ -4870,22 +4870,22 @@
       },
       {
         "year": 2020,
-        "total_receipts": 360372083.56,
+        "total_receipts": 357270802.1,
         "n_measures": 13
       },
       {
         "year": 2022,
-        "total_receipts": 288541417.23,
+        "total_receipts": 253238222.51,
         "n_measures": 7
       },
       {
         "year": 2024,
-        "total_receipts": 208687122.9,
+        "total_receipts": 208686652.9,
         "n_measures": 11
       },
       {
         "year": 2025,
-        "total_receipts": 164811225.06,
+        "total_receipts": 164811125.06,
         "n_measures": 1
       }
     ],
@@ -4921,12 +4921,6 @@
         "donor_sector": "Healthcare"
       },
       {
-        "name": "Charles T. Munger, Jr.",
-        "total_amount": 60168950.63,
-        "n_campaigns": 5,
-        "donor_sector": "Individual"
-      },
-      {
         "name": "AIDS HEALTHCARE FOUNDATION",
         "total_amount": 52936246.66,
         "n_campaigns": 5,
@@ -4946,7 +4940,7 @@
       },
       {
         "name": "Pechanga Band of Luiseno Mission Indians",
-        "total_amount": 48442694.07,
+        "total_amount": 48242694.07,
         "n_campaigns": 9,
         "donor_sector": "Tribal Gaming"
       },
@@ -4963,22 +4957,28 @@
         "donor_sector": "Individual"
       },
       {
+        "name": "Charles T. Munger, Jr.",
+        "total_amount": 40094185.63,
+        "n_campaigns": 5,
+        "donor_sector": "Individual"
+      },
+      {
         "name": "MORONGO BAND OF MISSION INDIANS",
         "total_amount": 39846063.7,
         "n_campaigns": 10,
         "donor_sector": "Tribal Gaming"
       },
       {
-        "name": "FanDuel Sportsbook (Betfair Interactive US)",
-        "total_amount": 36684411.5,
-        "n_campaigns": 1,
-        "donor_sector": "Commercial Gambling"
+        "name": "CALIFORNIA ASSOCIATION OF REALTORS",
+        "total_amount": 30450000.0,
+        "n_campaigns": 2,
+        "donor_sector": "Real Estate"
       },
       {
-        "name": "DraftKings (Crown Gaming Inc)",
-        "total_amount": 35044690.44,
-        "n_campaigns": 2,
-        "donor_sector": "Commercial Gambling"
+        "name": "ROBERT W. BAIRD & CO. INC",
+        "total_amount": 29977400.26,
+        "n_campaigns": 1,
+        "donor_sector": "Other"
       }
     ],
     "repeat_donors": [
@@ -5044,7 +5044,7 @@
       },
       {
         "name": "M. Quinn Delaney",
-        "total_amount": 6771000.0,
+        "total_amount": 3771000.0,
         "n_campaigns": 12,
         "donor_sector": "Individual"
       },
@@ -5132,20 +5132,20 @@
         "headline": "Online sports betting vs tribal gaming",
         "takeaway": "The largest two-sided fight in the data ($181M). FanDuel and DraftKings spent $105M for; tribal coalitions led by San Manuel spent $76M against. Voters rejected it 17-83.",
         "passed": 0,
-        "support_receipts": 105078245.42,
+        "support_receipts": 69775050.7,
         "oppose_receipts": 76083877.51,
-        "total_receipts": 181162122.93,
-        "support_top5_share": 99.97,
+        "total_receipts": 145858928.21,
+        "support_top5_share": 99.96,
         "oppose_top5_share": 99.99,
         "support_top_donors": [
           {
             "name": "FanDuel Sportsbook (Betfair Interactive US)",
-            "total_amount": 36684411.5,
+            "total_amount": 18343561.5,
             "donor_sector": "Commercial Gambling"
           },
           {
             "name": "DraftKings (Crown Gaming Inc)",
-            "total_amount": 35032190.44,
+            "total_amount": 18072245.72,
             "donor_sector": "Commercial Gambling"
           },
           {
@@ -5200,19 +5200,14 @@
         "headline": "Dialysis profit caps vs the dialysis industry",
         "takeaway": "DaVita and Fresenius spent $97M to defeat a SEIU-backed $24M effort to cap dialysis-clinic revenue. The industry side outspent the labor coalition about four-to-one \u2014 and won.",
         "passed": 0,
-        "support_receipts": 23864907.9,
+        "support_receipts": 12477566.9,
         "oppose_receipts": 97632340.2,
-        "total_receipts": 121497248.1,
-        "support_top5_share": 99.99,
+        "total_receipts": 110109907.1,
+        "support_top5_share": 100.0,
         "oppose_top5_share": 99.86,
         "support_top_donors": [
           {
-            "name": "SERVICE EMPLOYEES INTERNATIONAL UNION, UNITED HEALTHCARE WORKERS WEST (NONPROFIT 501(C)(5)) - CALIFORNIANS FOR KIDNEY DIALYSIS PATIENT PROTECTION AND CALIFORNIANS CARE",
-            "total_amount": 11387341.0,
-            "donor_sector": "Labor"
-          },
-          {
-            "name": "SERVICE EMPLOYEES INTERNATIONAL UNION, UNITED HEALTHCARE WORKERS WEST (NONPROFIT 501(C)(5)) - YES ON 8 - CALIFORNIANS FOR KIDNEY DIALYSIS PATIENT PROTECTION",
+            "name": "SEIU-UHW Nonprofit 501(c)(5)",
             "total_amount": 11387341.0,
             "donor_sector": "Labor"
           },
@@ -5230,6 +5225,11 @@
             "name": "SERVICE EMPLOYEES INTERNATIONAL UNION - UNITED HEALTHCARE WORKERS WEST",
             "total_amount": 34308.48,
             "donor_sector": "Labor"
+          },
+          {
+            "name": "SEIU UNITED HEALTHCARE WORKERS WEST PAC",
+            "total_amount": 2796.28,
+            "donor_sector": null
           }
         ],
         "oppose_top_donors": [
