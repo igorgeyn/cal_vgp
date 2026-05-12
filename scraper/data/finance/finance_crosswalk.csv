@@ -21,7 +21,7 @@ PROP_38_2000,38,2000,,1097,CA1075,matched,title_short,3908,233379191.3,
 PROP_39_2000,39,2000,,1106,CA1084,matched,title_short,22628,5500770.55,
 PROP_1_2001,1,2001,,,,missing,,9,129500.0,no measures-DB record
 PROP_0_2002,0,2002,,,,missing,,21,213.15,no measures-DB record
-PROP_39_2002,39,2002,,,,missing,,17,1002082.53,no measures-DB record
+PROP_39_2002,39,2002,,1106,CA1084,matched,year_offset_2_title_short,17,1002082.53,recovered via 2-year lookback: CalAccess year is 2y after the actual election year
 PROP_40_2002,40,2002,,1129,CA1107,matched,title_short,678,25705296.95,
 PROP_41_2002,41,2002,,1126,CA1104,matched,title_short,9,162003.09,
 PROP_42_2002,42,2002,,1132,CA1110,matched,title_short,1053,8175638.36,
@@ -32,7 +32,7 @@ PROP_49_2002,49,2002,,1128,CA1106,matched,title_short,1967,17617468.02,
 PROP_50_2002,50,2002,,1127,CA1105,matched,title_short,607,12429051.8,
 PROP_51_2002,51,2002,,1124,CA1102,matched,title_short,347,6322121.96,
 PROP_52_2002,52,2002,,1123,CA1101,matched,title_short,227,27754504.21,
-PROP_49_2003,49,2003,,,,missing,,22,711073.0,no measures-DB record
+PROP_49_2003,49,2003,,1128,CA1106,matched,year_offset_1_title_short,22,711073.0,recovered via 1-year lookback: CalAccess year is 1y after the actual election year
 PROP_53_2003,53,2003,,1137,CA1115,matched,title_short,78,522566.0,
 PROP_54_2003,54,2003,,1136,CA1114,matched,title_short,1099,12041111.13,
 PROP_0_2004,0,2004,,,,missing,,12,216.48,no measures-DB record
@@ -68,15 +68,15 @@ PROP_1C_2006,1C,2006,,1176,CA1154,matched,title_short,941,5999434.8,
 PROP_1D_2006,1D,2006,,1175,CA1153,matched,title_short,657,24059097.82,
 PROP_1E_2006,1E,2006,,1178,CA1156,matched,title_short,20,274857.43,
 PROP_54_2006,54,2006,,,,missing,,3,19000.0,no measures-DB record
-PROP_66_2006,66,2006,,,,missing,,45,44084.9,no measures-DB record
-PROP_73_2006,73,2006,,,,missing,,486,76034.0,no measures-DB record
-PROP_74_2006,74,2006,,,,missing,,642,99584.0,no measures-DB record
-PROP_75_2006,75,2006,,,,missing,,486,76034.0,no measures-DB record
-PROP_76_2006,76,2006,,,,missing,,486,76034.0,no measures-DB record
-PROP_77_2006,77,2006,,,,missing,,501,370034.0,no measures-DB record
-PROP_78_2006,78,2006,,,,missing,,486,76034.0,no measures-DB record
-PROP_79_2006,79,2006,,,,missing,,480,74984.0,no measures-DB record
-PROP_80_2006,80,2006,,,,missing,,480,74984.0,no measures-DB record
+PROP_66_2006,66,2006,,1144,CA1122,matched,year_offset_2_title_short,45,44084.9,recovered via 2-year lookback: CalAccess year is 2y after the actual election year
+PROP_73_2006,73,2006,,1165,CA1143,matched,year_offset_1_title_short,486,76034.0,recovered via 1-year lookback: CalAccess year is 1y after the actual election year
+PROP_74_2006,74,2006,,1163,CA1141,matched,year_offset_1_title_short,642,99584.0,recovered via 1-year lookback: CalAccess year is 1y after the actual election year
+PROP_75_2006,75,2006,,1164,CA1142,matched,year_offset_1_title_short,486,76034.0,recovered via 1-year lookback: CalAccess year is 1y after the actual election year
+PROP_76_2006,76,2006,,1159,CA1137,matched,year_offset_1_title_short,486,76034.0,recovered via 1-year lookback: CalAccess year is 1y after the actual election year
+PROP_77_2006,77,2006,,1161,CA1139,matched,year_offset_1_title_short,501,370034.0,recovered via 1-year lookback: CalAccess year is 1y after the actual election year
+PROP_78_2006,78,2006,,1162,CA1140,matched,year_offset_1_title_short,486,76034.0,recovered via 1-year lookback: CalAccess year is 1y after the actual election year
+PROP_79_2006,79,2006,,1160,CA1138,matched,year_offset_1_title_short,480,74984.0,recovered via 1-year lookback: CalAccess year is 1y after the actual election year
+PROP_80_2006,80,2006,,1158,CA1136,matched,year_offset_1_title_short,480,74984.0,recovered via 1-year lookback: CalAccess year is 1y after the actual election year
 PROP_81_2006,81,2006,,1171,CA1149,matched,title_short,564,1114323.78,
 PROP_82_2006,82,2006,,1168,CA1146,matched,title_short,602,14716608.21,
 PROP_83_2006,83,2006,,1179,CA1157,matched,title_short,970,4005288.79,
@@ -110,13 +110,13 @@ PROP_1B_2009,1B,2009,,1206,CA1184,matched,title_short,41,12907742.12,
 PROP_1C_2009,1C,2009,,1205,CA1183,matched,title_short,29,2388000.0,
 PROP_1D_2009,1D,2009,,1203,CA1181,matched,title_short,412,1236778.97,
 PROP_1E_2009,1E,2009,,1202,CA1180,matched,title_short,7,122350.0,
-PROP_92_2009,92,2009,,,,missing,,1,772.01,no measures-DB record
+PROP_92_2009,92,2009,,1187,CA1165,matched,year_offset_1_title_short,1,772.01,recovered via 1-year lookback: CalAccess year is 1y after the actual election year
 PROP_14_2010,14,2010,,1217,CA1195,matched,title_short,254,10820214.41,
 PROP_15_2010,15,2010,,1211,CA1189,matched,title_short,1010,550384.28,
 PROP_16_2010,16,2010,,1214,CA1192,matched,title_short,294,125305913.83,
 PROP_17_2010,17,2010,,1215,CA1193,matched,title_short,136,31300388.86,
 PROP_19_2010,19,2010,,1213,CA1191,matched,title_short,1549,1984240.92,
-PROP_1A_2010,1A,2010,,,,missing,,18,333045.01,no measures-DB record
+PROP_1A_2010,1A,2010,,1204,CA1182,matched,year_offset_1_title_short,18,333045.01,recovered via 1-year lookback: CalAccess year is 1y after the actual election year
 PROP_20_2010,20,2010,,1220,CA1198,matched,title_short,945,74360909.02,
 PROP_21_2010,21,2010,,1212,CA1190,matched,title_short,1095,26104838.18,
 PROP_22_2010,22,2010,,1219,CA1197,matched,title_short,2050,23457954.98,
@@ -125,7 +125,7 @@ PROP_24_2010,24,2010,,1210,CA1188,matched,title_short,859,65072476.45,
 PROP_25_2010,25,2010,,1218,CA1196,matched,title_short,1980,29727320.78,
 PROP_26_2010,26,2010,,1216,CA1194,matched,title_short,1255,92962792.1,
 PROP_27_2010,27,2010,,1209,CA1187,matched,title_short,3034,58450075.95,
-PROP_4_2010,4,2010,,,,missing,,1427,702409.5,no measures-DB record
+PROP_4_2010,4,2010,,1189,CA1167,matched,year_offset_2_title_short,1427,702409.5,recovered via 2-year lookback: CalAccess year is 2y after the actual election year
 PROP_1A_2012,1A,2012,,,,missing,,43,97633.99,no measures-DB record
 PROP_28_2012,28,2012,,1231,CA1209,matched,title_short,10,556000.0,
 PROP_29_2012,29,2012,,1228,CA1206,matched,title_short,1335,97771705.65,

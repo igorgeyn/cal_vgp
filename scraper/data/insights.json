@@ -14,7 +14,7 @@
     "county_count": 58,
     "year_min": 1911,
     "year_max": 2026,
-    "generated_at": "2026-05-04T17:44:30"
+    "generated_at": "2026-05-12T10:40:58"
   },
   "featured_findings": [
     {
@@ -70,7 +70,7 @@
     {
       "id": "finance-lopsided",
       "title": "Statewide proposition campaigns are often big-money contests.",
-      "deck": "The finance database links 181 statewide proposition IDs and $3.3B in receipts.",
+      "deck": "The finance database links 193 statewide proposition IDs and $3.3B in receipts.",
       "metric": "$3.3B",
       "metric_label": "linked receipts",
       "confidence": "Medium",
@@ -4195,13 +4195,13 @@
   },
   "finance": {
     "available": true,
-    "measure_count": 181,
-    "support_receipts": 1865882429.15,
-    "oppose_receipts": 1449811252.9,
-    "total_receipts": 3315693682.05,
-    "better_funded_known": 181,
-    "better_funded_won": 117,
-    "better_funded_win_rate": 64.6,
+    "measure_count": 193,
+    "support_receipts": 1867201124.69,
+    "oppose_receipts": 1450402801.91,
+    "total_receipts": 3317603926.6,
+    "better_funded_known": 193,
+    "better_funded_won": 126,
+    "better_funded_win_rate": 65.3,
     "top_measures": [
       {
         "finance_campaign_id": "PROP_27_2022",
@@ -4664,13 +4664,13 @@
       },
       {
         "year": 2002,
-        "total_receipts": 48369040.43,
-        "n_campaigns": 10
+        "total_receipts": 49371122.96,
+        "n_campaigns": 11
       },
       {
         "year": 2003,
-        "total_receipts": 6728174.85,
-        "n_campaigns": 2
+        "total_receipts": 6989247.85,
+        "n_campaigns": 3
       },
       {
         "year": 2004,
@@ -4684,8 +4684,8 @@
       },
       {
         "year": 2006,
-        "total_receipts": 217433881.78,
-        "n_campaigns": 14
+        "total_receipts": 217754653.78,
+        "n_campaigns": 22
       },
       {
         "year": 2008,
@@ -4694,13 +4694,13 @@
       },
       {
         "year": 2009,
-        "total_receipts": 26708308.0,
-        "n_campaigns": 5
+        "total_receipts": 26709080.01,
+        "n_campaigns": 6
       },
       {
         "year": 2010,
-        "total_receipts": 236700733.22,
-        "n_campaigns": 13
+        "total_receipts": 237026278.23,
+        "n_campaigns": 14
       },
       {
         "year": 2012,
@@ -4872,13 +4872,13 @@
         "n_campaigns": 11
       },
       {
-        "name": "CALIFORNIA FEDERATION OF TEACHERS COPE PROP/BALLOT COMMITTEE",
-        "total_amount": 2081990.62,
+        "name": "MERRILL LYNCH",
+        "total_amount": 11101904.95,
         "n_campaigns": 11
       },
       {
-        "name": "CALIFORNIA PROFESSIONAL FIREFIGHTERS BALLOT ISSUES COMMITTEE",
-        "total_amount": 1851218.29,
+        "name": "CALIFORNIA FEDERATION OF TEACHERS COPE PROP/BALLOT COMMITTEE",
+        "total_amount": 2081990.62,
         "n_campaigns": 11
       }
     ],

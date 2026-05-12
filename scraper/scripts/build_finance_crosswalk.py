@@ -189,7 +189,14 @@ def parse_election_month(election_date: str | None) -> int | None:
     return None
 
 
-def resolve_pair(prop_num: str, year: int, candidates: list) -> dict:
+MAX_YEAR_LOOKBACK = 2
+
+
+def resolve_pair(
+    prop_num: str,
+    year: int,
+    measures_index: dict,
+) -> dict:
     """Decide on a single measure_db_id for this (prop_num, year). Returns a
     dict with status, measure_db_id (or None), election_month, and a note.
 
@@ -201,16 +208,53 @@ def resolve_pair(prop_num: str, year: int, candidates: list) -> dict:
     whose title happens to be 'Proposition 46'). The first is canonical;
     the second should be treated as a soft duplicate that the dedup flags
     missed.
+
+    Year-lookback (Bucket A recovery): if exact-year lookup misses, try
+    `year - 1` and `year - 2`. CalAccess often attributes late committee
+    filings to a "reporting year" 1-2y after the actual election (the
+    Schwarzenegger 2005 specials show up as 2006 in CalAccess; the 2008
+    Prop 4 has filings dated 2010 and 2012). Conservative recovery: take
+    a neighbor-year match only if it's unambiguous (one id-preferred
+    candidate). Skip on ambiguity rather than guess.
     """
-    if not candidates:
-        return {
-            "status": "missing",
-            "measure_db_id": None,
-            "measure_id": None,
-            "election_month": None,
-            "match_via": None,
-            "notes": "no measures-DB record",
-        }
+    candidates = measures_index.get((prop_num, year), [])
+    if candidates:
+        return _resolve_from_candidates(candidates, year_offset=0)
+
+    for offset in range(1, MAX_YEAR_LOOKBACK + 1):
+        neighbor = measures_index.get((prop_num, year - offset), [])
+        if not neighbor:
+            continue
+        result = _resolve_from_candidates(neighbor, year_offset=offset)
+        # Only accept neighbor-year recoveries that resolve to a single
+        # measure unambiguously. Duplicates inside the neighbor year mean
+        # we can't tell which one CalAccess meant; bail to missing.
+        if result["status"] == "matched":
+            return result
+        break  # stop on first non-empty offset to avoid further guessing
+
+    return {
+        "status": "missing",
+        "measure_db_id": None,
+        "measure_id": None,
+        "election_month": None,
+        "match_via": None,
+        "notes": "no measures-DB record",
+    }
+
+
+def _resolve_from_candidates(candidates: list, year_offset: int = 0) -> dict:
+    """Single/multi-candidate resolution logic, factored out so resolve_pair
+    can call it for both exact-year and neighbor-year candidate pools.
+    `year_offset` is how many years back from the CalAccess year we found
+    the match — 0 means exact, 1/2 means lookback recovery.
+    """
+    offset_note = ""
+    if year_offset > 0:
+        offset_note = (
+            f" [recovered via {year_offset}-year lookback: CalAccess year is "
+            f"{year_offset}y after the actual election year]"
+        )
 
     # Filter to id-based matches if any exist; otherwise keep all.
     id_based = [c for c in candidates if c["match_via"] in ("short_form", "mid_long")]
@@ -219,21 +263,44 @@ def resolve_pair(prop_num: str, year: int, candidates: list) -> dict:
 
     if len(pool) == 1:
         c = pool[0]
-        notes = ""
+        notes_parts = []
         if pool_was_filtered:
             n_dropped = len(candidates) - len(pool)
-            notes = f"resolved by id-match preference; {n_dropped} title-only candidate(s) treated as soft duplicate"
+            notes_parts.append(
+                f"resolved by id-match preference; {n_dropped} title-only "
+                "candidate(s) treated as soft duplicate"
+            )
+        match_via = c["match_via"]
+        if year_offset > 0:
+            match_via = f"year_offset_{year_offset}_{match_via}"
+            notes_parts.append(offset_note.strip().lstrip("[").rstrip("]"))
         return {
             "status": "matched",
             "measure_db_id": c["measure_db_id"],
             "measure_id": c["measure_id"],
             "election_month": parse_election_month(c["election_date"]),
-            "match_via": c["match_via"],
-            "notes": notes,
+            "match_via": match_via,
+            "notes": "; ".join(notes_parts),
         }
 
     # Multiple candidates remain even after preferring id-based matches.
-    # Try to disambiguate by election month (March vs November 2020 case).
+    # If we got here via year lookback, refuse to guess — bail to missing
+    # at the caller. (Returning a sentinel here keeps the contract that
+    # year-lookback matches are only ever 1:1.)
+    if year_offset > 0:
+        return {
+            "status": "missing",
+            "measure_db_id": None,
+            "measure_id": None,
+            "election_month": None,
+            "match_via": None,
+            "notes": (
+                f"year-lookback candidate set was ambiguous ({len(pool)} candidates "
+                f"in {year_offset}-year-prior pool); refusing to guess"
+            ),
+        }
+
+    # Exact-year duplicates: disambiguate by election month if possible.
     by_month: dict[int | None, list] = defaultdict(list)
     for c in pool:
         by_month[parse_election_month(c["election_date"])].append(c)
@@ -284,8 +351,7 @@ def main() -> None:
     unmatched_amount = 0.0
 
     for (prop_num, year), info in sorted(pairs.items(), key=lambda kv: (kv[0][1], kv[0][0])):
-        candidates = measures_index.get((prop_num, year), [])
-        resolution = resolve_pair(prop_num, year, candidates)
+        resolution = resolve_pair(prop_num, year, measures_index)
 
         finance_campaign_id = f"PROP_{prop_num}_{year}"
 

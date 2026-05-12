@@ -261,8 +261,31 @@ def week_start_iso(d: date) -> str:
     return (d - timedelta(days=d.weekday())).isoformat()
 
 
+_YEAR_OFFSET_MATCH_VIA_RE = re.compile(r"^year_offset_(\d+)_")
+
+
+def _actual_election_year(crosswalk_row: dict) -> int:
+    """For Bucket A recoveries (crosswalk match_via like 'year_offset_1_...'),
+    the CalAccess `election_year` is offset from the *actual* election year
+    by 1 or 2 years. The date-off-cycle gate needs to compare transaction
+    dates against the actual election year, not the CalAccess reporting
+    year, or it would drop legitimately-on-cycle transactions for the
+    recovered campaign. Returns the CalAccess year minus the lookback
+    offset; falls back to the CalAccess year when no offset is encoded.
+    """
+    cal_year = int(crosswalk_row["election_year"])
+    m = _YEAR_OFFSET_MATCH_VIA_RE.match(crosswalk_row.get("match_via") or "")
+    if m:
+        return cal_year - int(m.group(1))
+    return cal_year
+
+
 def load_crosswalk() -> dict[tuple[str, int], dict]:
-    """Build (prop_num, year) -> crosswalk_row dict from the CSV."""
+    """Build (prop_num, year) -> crosswalk_row dict from the CSV. Each row
+    is augmented with `actual_election_year` so the date-off-cycle gate
+    can use the real election year (not the CalAccess reporting year)
+    when a campaign was recovered via year lookback.
+    """
     lookup: dict[tuple[str, int], dict] = {}
     with CROSSWALK_CSV.open("r", encoding="utf-8", newline="") as f:
         reader = csv.DictReader(f)
@@ -272,6 +295,7 @@ def load_crosswalk() -> dict[tuple[str, int], dict]:
                 # for the matched-only build. The CSV stays as audit artifact.
                 continue
             key = (row["prop_num"].upper(), int(row["election_year"]))
+            row["actual_election_year"] = _actual_election_year(row)
             lookup[key] = row
     return lookup
 
@@ -484,11 +508,22 @@ def ingest_rows(conn: sqlite3.Connection, lookup: dict) -> dict:
 
             campaign_id = cw["finance_campaign_id"]
 
-            # Gate 5: row-level date hygiene (Codex's blocker)
-            if txn_year is not None and abs(txn_year - year) > 1:
-                quarantine(idx, prop_num, year, txn_date, txn_year, campaign_id,
-                           "date_off_cycle", amount, committee, donor_raw)
-                continue
+            # Gate 5: row-level date hygiene (Codex's blocker).
+            # Keep transactions within 1y of EITHER the CalAccess reporting
+            # year OR the actual election year (they only differ for Bucket A
+            # year-offset recoveries). Both windows are legitimate for the
+            # recovered campaign: the actual-year window covers on-cycle
+            # contributions; the CalAccess-year window covers post-election
+            # late filings the committee made under that reporting year.
+            # For exact-year matches the two windows are identical, so the
+            # gate collapses to the original |txn_year - year| <= 1 rule.
+            if txn_year is not None:
+                cal_off = abs(txn_year - year)
+                actual_off = abs(txn_year - cw["actual_election_year"])
+                if min(cal_off, actual_off) > 1:
+                    quarantine(idx, prop_num, year, txn_date, txn_year, campaign_id,
+                               "date_off_cycle", amount, committee, donor_raw)
+                    continue
 
             # Stance gate with recovery: if source stance is empty/invalid,
             # try (1) explicit overrides for known high-dollar committees,
