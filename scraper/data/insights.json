@@ -14,7 +14,7 @@
     "county_count": 58,
     "year_min": 1911,
     "year_max": 2026,
-    "generated_at": "2026-05-12T11:21:51"
+    "generated_at": "2026-05-12T11:36:06"
   },
   "featured_findings": [
     {
@@ -4754,6 +4754,123 @@
       {
         "year": 2020,
         "total_receipts": 360631583.56,
+        "n_measures": 13
+      },
+      {
+        "year": 2022,
+        "total_receipts": 288541417.23,
+        "n_measures": 7
+      },
+      {
+        "year": 2024,
+        "total_receipts": 208687122.9,
+        "n_measures": 11
+      },
+      {
+        "year": 2025,
+        "total_receipts": 164811225.06,
+        "n_measures": 1
+      }
+    ],
+    "calendar_year_receipts": [
+      {
+        "year": 1999,
+        "total_receipts": 1624167.41,
+        "n_measures": 5
+      },
+      {
+        "year": 2000,
+        "total_receipts": 161045559.72,
+        "n_measures": 18
+      },
+      {
+        "year": 2001,
+        "total_receipts": 6500545.04,
+        "n_measures": 8
+      },
+      {
+        "year": 2002,
+        "total_receipts": 44718402.23,
+        "n_measures": 11
+      },
+      {
+        "year": 2003,
+        "total_receipts": 10644665.16,
+        "n_measures": 7
+      },
+      {
+        "year": 2004,
+        "total_receipts": 151040070.04,
+        "n_measures": 15
+      },
+      {
+        "year": 2005,
+        "total_receipts": 153972034.82,
+        "n_measures": 15
+      },
+      {
+        "year": 2006,
+        "total_receipts": 219436064.1,
+        "n_measures": 16
+      },
+      {
+        "year": 2007,
+        "total_receipts": 55204297.93,
+        "n_measures": 8
+      },
+      {
+        "year": 2008,
+        "total_receipts": 211517521.72,
+        "n_measures": 16
+      },
+      {
+        "year": 2009,
+        "total_receipts": 26710806.18,
+        "n_measures": 8
+      },
+      {
+        "year": 2010,
+        "total_receipts": 237026178.23,
+        "n_measures": 14
+      },
+      {
+        "year": 2012,
+        "total_receipts": 431160793.17,
+        "n_measures": 13
+      },
+      {
+        "year": 2013,
+        "total_receipts": 663156.62,
+        "n_measures": 3
+      },
+      {
+        "year": 2014,
+        "total_receipts": 63190117.3,
+        "n_measures": 8
+      },
+      {
+        "year": 2016,
+        "total_receipts": 226692563.34,
+        "n_measures": 17
+      },
+      {
+        "year": 2017,
+        "total_receipts": 932578.64,
+        "n_measures": 3
+      },
+      {
+        "year": 2018,
+        "total_receipts": 292853056.2,
+        "n_measures": 8
+      },
+      {
+        "year": 2019,
+        "total_receipts": 259500.0,
+        "n_measures": 1
+      },
+      {
+        "year": 2020,
+        "total_receipts": 360372083.56,
         "n_measures": 13
       },
       {

@@ -852,7 +852,19 @@ class WebsiteGenerator:
                         <section class="finance-module">
                             <div class="finance-module-header">
                                 <h4>How much money has flowed</h4>
-                                <p>Total receipts grouped by election cycle. Bars include both support and oppose receipts.</p>
+                                <p id="financeArcSubdeck">Total receipts grouped by election cycle. Bars include both support and oppose receipts.</p>
+                            </div>
+                            <div class="finance-arc-toggle" role="tablist" aria-label="Spending arc view">
+                                <button type="button"
+                                        class="finance-arc-mode is-active"
+                                        data-mode="election"
+                                        role="tab"
+                                        aria-selected="true">By election cycle</button>
+                                <button type="button"
+                                        class="finance-arc-mode"
+                                        data-mode="calendar"
+                                        role="tab"
+                                        aria-selected="false">By calendar year</button>
                             </div>
                             <div class="chart-wrap finance-arc-chart"><canvas id="financeAnnualChart"></canvas></div>
                         </section>
@@ -886,7 +898,7 @@ class WebsiteGenerator:
 
                         <p class="finance-bridge">Money matters but isn&rsquo;t decisive: the better-funded side wins about 65% of the time and loses the other 35%. And this is the visible top of the iceberg &mdash; California&rsquo;s local ballot has tens of thousands of measures with no comparable donor data.</p>
 
-                        <p class="method-note">Method: per-(prop_num, election_year) aggregates from finance_statewide_v2.db, rebuilt 2026-05-04 with row-level date hygiene + exact-row dedupe + minimal donor alias normalization. Donor lists aggregate the per-campaign top-20 reports, not all transactions &mdash; a donor below the top-20 cutoff in every campaign won&rsquo;t appear here. Donor canonicalization is partial; some entities still appear under multiple legal-entity variants.</p>
+                        <p class="method-note">Method: per-(prop_num, election_year) aggregates from finance_statewide_v2.db, rebuilt 2026-05-04 with row-level date hygiene + exact-row dedupe + minimal donor alias normalization. The spending-arc chart offers two lenses: election-cycle (totals per measure&rsquo;s actual election year, the substantive frame for ballot-measure campaigns) and calendar-year (totals per Monday-of-week bucket of accepted weekly receipts, useful for cash-flow timing). The calendar view groups boundary weeks by their week-start year, so a transaction in the week of 2007-12-31 is attributed to 2007 even though it&rsquo;s for the 2008 cycle. Donor lists aggregate the per-campaign top-20 reports, not all transactions &mdash; a donor below the top-20 cutoff in every campaign won&rsquo;t appear here. Donor canonicalization is partial; some entities still appear under multiple legal-entity variants.</p>
                     </article>
 
                 <details class="insights-methodology insights-carousel-slide insights-anchor-target" id="insightsMethodologySection">
@@ -6437,6 +6449,38 @@ class WebsiteGenerator:
             position: relative;
             height: 280px;
         }
+        .finance-arc-toggle {
+            display: inline-flex;
+            gap: 0.25rem;
+            padding: 0.2rem;
+            background: #f1f5f9;
+            border-radius: 999px;
+            margin-bottom: 0.75rem;
+        }
+        .finance-arc-mode {
+            appearance: none;
+            border: none;
+            background: transparent;
+            color: #475569;
+            font-size: 0.78rem;
+            font-weight: 600;
+            line-height: 1;
+            padding: 0.4rem 0.85rem;
+            border-radius: 999px;
+            cursor: pointer;
+            transition: background-color 120ms ease, color 120ms ease;
+        }
+        .finance-arc-mode:hover {
+            color: #0f172a;
+        }
+        .finance-arc-mode.is-active {
+            background: #0f172a;
+            color: #ffffff;
+        }
+        .finance-arc-mode:focus-visible {
+            outline: 2px solid #7A1F2A;
+            outline-offset: 2px;
+        }
         .finance-donors-grid {
             display: grid;
             grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
@@ -11194,18 +11238,61 @@ class WebsiteGenerator:
                 }}
             }});
 
+            // Spending-arc chart with toggle between election-cycle and
+            // calendar-year aggregations. The bound `onclick` (assignment,
+            // not addEventListener) is idempotent — renderInsightsCharts()
+            // can run multiple times on view switches without piling up
+            // duplicate handlers.
+            renderFinanceArcChart('election');
+            const arcToggleButtons = document.querySelectorAll('.finance-arc-mode');
+            arcToggleButtons.forEach(btn => {{
+                btn.onclick = () => {{
+                    const mode = btn.dataset.mode;
+                    arcToggleButtons.forEach(b => {{
+                        const isActive = b === btn;
+                        b.classList.toggle('is-active', isActive);
+                        b.setAttribute('aria-selected', isActive ? 'true' : 'false');
+                    }});
+                    renderFinanceArcChart(mode);
+                }};
+            }});
+        }}
+
+        // Configs (subdeck text + tooltip label per mode) live with the
+        // renderer so adding a third mode later only touches one spot.
+        const FINANCE_ARC_MODES = {{
+            election: {{
+                rowsKey: 'annual_receipts',
+                subdeck: 'Total receipts grouped by each measure&rsquo;s actual election year. Bars include both support and oppose receipts.',
+                tooltipLabel: row => row.n_measures + ' active campaign' + (row.n_measures === 1 ? '' : 's'),
+            }},
+            calendar: {{
+                rowsKey: 'calendar_year_receipts',
+                subdeck: 'Accepted weekly receipts grouped by calendar year (week of transaction). Measures with multi-year spending appear in multiple bars; boundary-week receipts are attributed to the week-start year.',
+                tooltipLabel: row => row.n_measures + ' measure' + (row.n_measures === 1 ? '' : 's') + ' with accepted receipts in this year',
+            }},
+        }};
+
+        function renderFinanceArcChart(mode) {{
             const finance = insightsData.finance || {{}};
-            const annualRows = finance.annual_receipts || [];
+            const config = FINANCE_ARC_MODES[mode] || FINANCE_ARC_MODES.election;
+            const rows = finance[config.rowsKey] || [];
+
+            // Update the sub-deck copy on every toggle (in addition to the
+            // chart). Codex round-5 caution: keep both updating together.
+            const subdeck = document.getElementById('financeArcSubdeck');
+            if (subdeck) subdeck.innerHTML = config.subdeck;
+
             createInsightChart('financeAnnualChart', {{
                 type: 'bar',
                 data: {{
-                    labels: annualRows.map(row => row.year),
+                    labels: rows.map(row => row.year),
                     datasets: [
                         {{
                             label: 'Total receipts',
-                            data: annualRows.map(row => row.total_receipts || 0),
+                            data: rows.map(row => row.total_receipts || 0),
                             backgroundColor: '#7A1F2A',
-                            borderRadius: 3
+                            borderRadius: 3,
                         }}
                     ]
                 }},
@@ -11218,8 +11305,8 @@ class WebsiteGenerator:
                             callbacks: {{
                                 label: ctx => formatDollars(ctx.parsed.y || 0),
                                 afterLabel: ctx => {{
-                                    const row = annualRows[ctx.dataIndex];
-                                    return row ? row.n_measures + ' measure' + (row.n_measures === 1 ? '' : 's') : '';
+                                    const row = rows[ctx.dataIndex];
+                                    return row ? config.tooltipLabel(row) : '';
                                 }}
                             }}
                         }}

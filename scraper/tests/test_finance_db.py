@@ -272,6 +272,104 @@ def test_aggregate_for_measure_top5_share_recomputed_on_merged_donors(fdb):
     )
 
 
+# ---------------------------------------------------------------------------
+# get_calendar_year_receipts — Codex round-5 tests
+# ---------------------------------------------------------------------------
+
+def test_calendar_year_receipts_totals_equal_sum_of_weekly_receipts(fdb):
+    """The calendar-year aggregation must not drop any weekly rows: SUM of
+    calendar bucket totals == SUM of finance_timeline_weekly.weekly_receipts
+    for matched campaigns. (Codex caution: tests that the aggregation is
+    lossless.)"""
+    insert_campaign(fdb, "PROP_22_2020", "22", 2020, measure_db_id=500)
+    insert_campaign(fdb, "PROP_4_2008", "4", 2008, measure_db_id=1189)
+    insert_campaign(fdb, "PROP_4_2010", "4", 2010, measure_db_id=1189,
+                    match_via="year_offset_2_title_short")
+    # Mix of years and stances so SUM is non-trivial
+    insert_week(fdb, "PROP_22_2020", "support", "2020-06-29", 50.0, 50.0)
+    insert_week(fdb, "PROP_22_2020", "support", "2020-10-26", 30.0, 80.0)
+    insert_week(fdb, "PROP_22_2020", "oppose", "2020-10-19", 20.0, 20.0)
+    insert_week(fdb, "PROP_4_2008", "oppose", "2008-10-06", 100.0, 100.0)
+    insert_week(fdb, "PROP_4_2010", "oppose", "2010-01-04", 15.0, 15.0)
+    fdb.conn.commit()
+
+    raw_total = fdb.conn.execute(
+        "SELECT SUM(weekly_receipts) FROM finance_timeline_weekly t "
+        "JOIN finance_campaign c USING (finance_campaign_id) "
+        "WHERE c.status = 'matched'"
+    ).fetchone()[0]
+    rows = fdb.get_calendar_year_receipts()
+    agg_total = sum(r["total_receipts"] for r in rows)
+    assert agg_total == pytest.approx(raw_total), (
+        f"Calendar aggregation lost rows: raw={raw_total} agg={agg_total}"
+    )
+
+
+def test_calendar_year_receipts_collision_counts_one_measure(fdb):
+    """When two campaigns sharing a measure_db_id both contribute to the
+    same calendar year, n_measures must count 1 (not 2). Real-world case:
+    PROP_4_2008 + PROP_4_2010 both link to db_id 1189; if both have
+    weekly rows in 2010, the 2010 bucket sees one measure with the summed
+    receipts. (Codex caution: tests measure-level rollup semantics.)"""
+    insert_campaign(fdb, "PROP_4_2008", "4", 2008, measure_db_id=1189)
+    insert_campaign(fdb, "PROP_4_2010", "4", 2010, measure_db_id=1189,
+                    match_via="year_offset_2_title_short")
+    # Both campaigns have receipts in 2010 (the on-cycle has late filings;
+    # the recovery has its primary activity)
+    insert_week(fdb, "PROP_4_2008", "oppose", "2010-03-01", 50.0, 50.0)
+    insert_week(fdb, "PROP_4_2010", "oppose", "2010-04-05", 30.0, 30.0)
+    fdb.conn.commit()
+
+    rows = fdb.get_calendar_year_receipts()
+    bucket_2010 = next((r for r in rows if r["year"] == 2010), None)
+    assert bucket_2010 is not None
+    assert bucket_2010["total_receipts"] == pytest.approx(80.0)
+    assert bucket_2010["n_measures"] == 1, (
+        f"Expected 1 distinct measure_db_id in 2010 bucket (PROP_4 collision), "
+        f"got {bucket_2010['n_measures']}"
+    )
+
+
+def test_calendar_year_receipts_groups_by_week_start_year(fdb):
+    """Weeks whose week_start falls in calendar year X go into bucket X,
+    even if the week extends into year X+1. Codex's specific caveat: a
+    transaction in the week of 2007-12-31 lands in the 2007 bucket."""
+    insert_campaign(fdb, "PROP_X_2008", "X", 2008, measure_db_id=42)
+    # The week starting Mon 2007-12-31 extends through Sun 2008-01-06.
+    insert_week(fdb, "PROP_X_2008", "support", "2007-12-31", 200.0, 200.0)
+    # A normal mid-2008 week for contrast.
+    insert_week(fdb, "PROP_X_2008", "support", "2008-06-30", 100.0, 300.0)
+    fdb.conn.commit()
+
+    rows = fdb.get_calendar_year_receipts()
+    by_year = {r["year"]: r for r in rows}
+    assert 2007 in by_year, "Boundary week of 2007-12-31 must produce a 2007 bucket"
+    assert by_year[2007]["total_receipts"] == pytest.approx(200.0)
+    assert by_year[2008]["total_receipts"] == pytest.approx(100.0)
+
+
+def test_calendar_year_receipts_skips_unmatched_campaigns(fdb):
+    """Only status='matched' campaigns contribute. Missing/junk crosswalk
+    rows aren't in finance_campaign at all, but defense in depth: even if
+    they were, the JOIN filter excludes them."""
+    insert_campaign(fdb, "PROP_22_2020", "22", 2020, measure_db_id=500)
+    # Insert an unmatched campaign manually
+    fdb.conn.execute(
+        "INSERT INTO finance_campaign "
+        "(finance_campaign_id, prop_num, election_year, measure_db_id, measure_id, status) "
+        "VALUES ('PROP_99_2020', '99', 2020, 999, 'PROP_99', 'missing')"
+    )
+    # Weekly rows for both — but only the matched one should aggregate
+    insert_week(fdb, "PROP_22_2020", "support", "2020-06-29", 50.0, 50.0)
+    insert_week(fdb, "PROP_99_2020", "support", "2020-06-29", 999.0, 999.0)
+    fdb.conn.commit()
+
+    rows = fdb.get_calendar_year_receipts()
+    bucket_2020 = next((r for r in rows if r["year"] == 2020), None)
+    assert bucket_2020 is not None
+    assert bucket_2020["total_receipts"] == pytest.approx(50.0)
+
+
 def test_aggregate_for_measure_timeline_unions_weeks(fdb):
     """Timeline weeks union across campaigns, weekly_receipts sum per
     (stance, week_start), cumulative recomputed correctly."""

@@ -171,9 +171,19 @@ checks pass; Phase F manual checklist signed off via browser spot-check).
       [`scraper/src/finance/operations.py:147`](../scraper/src/finance/operations.py#L147)
       docstring. Future v2 data-layer extension.
 
-- [ ] **Calendar-year aggregation view of the spending arc.** Alternative
-      cut to election-year. Defer until per-week attribution is trusted
-      (Codex catch from Module 2).
+- [x] ~~**Calendar-year aggregation view of the spending arc.**~~ **DONE
+      2026-05-12.** Pill toggle in Module 2 switches between "By election
+      cycle" (default) and "By calendar year." SQL lives in
+      `FinanceDatabase.get_calendar_year_receipts()` for testability;
+      reconciles exactly to election-year totals ($3.32B either lens).
+      Codex round-5 review caveats addressed: copy describes data as
+      "accepted weekly receipts," method note warns about week-boundary
+      attribution (2007 / 2012 visibly affected), tooltip uses dynamic
+      "active campaigns" / "measures with accepted receipts in this year"
+      labels per mode, toggle handlers wired via `onclick =` (idempotent
+      across re-renders). 4 new tests added: aggregation losslessness,
+      collision-counts-one-measure, week-start-year boundary, status-
+      filter defense in depth.
 
 - [x] ~~**Pre-2010 statewide finance backfill.**~~ **RESOLVED BY AUDIT
       2026-05-12.** Post-matcher-v2 pre-2010 coverage is at 103 matched

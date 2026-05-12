@@ -1172,9 +1172,13 @@ def build_finance_insights(measures_by_db_id):
         if row.get("funding_ratio") is not None and row.get("total_receipts", 0) > 0
     ]
 
-    annual_receipts, top_donors_overall, repeat_donors, marquee_fights = _build_finance_supplements(
-        campaigns_out, measures_by_db_id
-    )
+    (
+        annual_receipts,
+        calendar_year_receipts,
+        top_donors_overall,
+        repeat_donors,
+        marquee_fights,
+    ) = _build_finance_supplements(campaigns_out, measures_by_db_id)
 
     return {
         "available": True,
@@ -1193,6 +1197,7 @@ def build_finance_insights(measures_by_db_id):
         "better_funded_losses": sorted(better_funded_losses, key=lambda x: x["total_receipts"], reverse=True)[:8],
         "largest_imbalances": sorted(lopsided, key=lambda x: x["funding_ratio"], reverse=True)[:8],
         "annual_receipts": annual_receipts,
+        "calendar_year_receipts": calendar_year_receipts,
         "top_donors_overall": top_donors_overall,
         "repeat_donors": repeat_donors,
         "marquee_fights": marquee_fights,
@@ -1269,6 +1274,23 @@ def _build_finance_supplements(campaigns_out, measures_by_db_id):
         for r in annual
         if r["actual_year"] is not None
     ]
+
+    # 1b. Calendar-year receipts: same data sliced by transaction-week year
+    #    rather than election year. SQL lives in FinanceDatabase so the
+    #    aggregation behavior is testable in isolation; see
+    #    `get_calendar_year_receipts()` docstring for the boundary-week
+    #    caveat and the n_measures (DISTINCT measure_db_id) semantics.
+    from src.finance.operations import FinanceDatabase  # local import for testability
+    _fdb = FinanceDatabase(FINANCE_DB_PATH)
+    calendar_year_receipts = [
+        {
+            "year": row["year"],
+            "total_receipts": round(row["total_receipts"], 2),
+            "n_measures": row["n_measures"],
+        }
+        for row in _fdb.get_calendar_year_receipts()
+    ]
+    _fdb.close()
 
     # 2. Top donors overall — aggregate across all matched campaigns
     top_donors_rows = conn.execute(
@@ -1370,7 +1392,13 @@ def _build_finance_supplements(campaigns_out, measures_by_db_id):
         })
 
     conn.close()
-    return annual_receipts, top_donors_overall, repeat_donors, marquee_fights
+    return (
+        annual_receipts,
+        calendar_year_receipts,
+        top_donors_overall,
+        repeat_donors,
+        marquee_fights,
+    )
 
 
 def build_featured_findings(

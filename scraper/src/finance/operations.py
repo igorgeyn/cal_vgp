@@ -319,6 +319,50 @@ class FinanceDatabase:
             "breakdown": self.get_contribution_breakdown(primary_cid),
         }
 
+    # ---- Year-axis aggregates for the spending-arc chart ------------------
+
+    def get_calendar_year_receipts(self) -> List[Dict]:
+        """Sum `finance_timeline_weekly` receipts by the year of each week's
+        Monday bucket (`week_start`). Used as the alternative lens in the
+        spending-arc chart — counterpart to election-year aggregates.
+
+        n_measures counts DISTINCT `measure_db_id`s so the Bucket A
+        year-offset collisions (e.g. PROP_4_2008 + PROP_4_2010 both linked
+        to measure_db_id 1189) collapse to one measure per calendar year.
+
+        Reconciles to the election-year totals: SUM(total_receipts) across
+        all calendar-year rows equals SUM(weekly_receipts) across the
+        finance_timeline_weekly table (no rows dropped during aggregation).
+
+        Caveat for callers/users: boundary weeks crossing Dec 31 are
+        attributed to the week-start year (e.g. a transaction in the week
+        of 2007-12-31 lands in the 2007 bucket even though the week
+        extends into 2008). Real impact in the current DB: ~$18.8M at
+        2007-12-31, ~$8.2M at 2012-12-31.
+        """
+        cursor = self.conn.execute(
+            """
+            SELECT
+                CAST(substr(t.week_start, 1, 4) AS INTEGER) AS year,
+                SUM(t.weekly_receipts) AS total_receipts,
+                COUNT(DISTINCT c.measure_db_id) AS n_measures
+            FROM finance_timeline_weekly t
+            JOIN finance_campaign c USING (finance_campaign_id)
+            WHERE c.status = 'matched'
+            GROUP BY year
+            ORDER BY year
+            """
+        )
+        return [
+            {
+                "year": int(row["year"]),
+                "total_receipts": float(row["total_receipts"] or 0),
+                "n_measures": int(row["n_measures"] or 0),
+            }
+            for row in cursor.fetchall()
+            if row["year"] is not None
+        ]
+
     # ---- Cross-campaign aggregations ---------------------------------------
 
     def iter_summary_rows(self) -> Iterable[Dict]:
