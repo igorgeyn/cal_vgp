@@ -1,8 +1,12 @@
 # CalBallot Working List
 
-> Snapshot: **2026-05-06**. Branch: `main`. Last shipped: commit `fcd1345`
-> (Finance v2 rebuild + Insights Finance panel redesign + cleanups), pushed
-> to `origin/main` on 2026-05-04.
+> Snapshot: **2026-05-12**. Branch: `main`. Last shipped locally: commit
+> `9fb9dc0` (SEIU UHW + canonical-dedup gate fix). Pushed-to-origin marker
+> is `fcd1345` (Finance v2 rebuild + Insights Finance panel redesign +
+> cleanups, 2026-05-04). Local commits ahead of origin: 11 (matcher v2,
+> rollup + tests, small-tier sweep, calendar-year aggregation, stance
+> recovery, donor canonicalization, donor sectors, card redesign v2,
+> sanity-check polish, evaluate_data_quality v2 rewrite, dedup gate).
 >
 > This is the canonical resume point. Memory in `.claude/projects/...` is
 > per-machine and won't follow you — start here when picking up on a new
@@ -147,6 +151,21 @@ checks pass; Phase F manual checklist signed off via browser spot-check).
       Captured under the stance-recovery item below — now meaningfully
       bigger scope than the "residual 42 rows" framing implied.
 
+- [ ] **Audit Prop 27 (2022) coverage gap.** Online sports betting (Yes
+      side: DraftKings/FanDuel/etc. vs. tribes). Public reporting puts the
+      support side around **$160–170M**; v2 post-dedup shows **$69.8M
+      support / $76.1M oppose**. Donor list looks structurally clean
+      (sportsbook cos. on yes, San Manuel + Pala on no), but the absolute
+      numbers are well under the historical record — suggesting one or
+      more sportsbook PACs aren't year-attributed to 2022 in the crosswalk
+      (Bucket A pattern), or the crosswalk is missing committees entirely
+      (coverage). Confirmed via screenshot spot-check 2026-05-12. Probable
+      fix: inspect CalAccess for Prop 27 committee filings, cross-reference
+      against `finance_row_quarantine`, and check whether the existing
+      ±2-year matcher v2 catches them or if they need a manual nudge.
+      Likely sibling case: PROP_26_2022 (tribal counter-prop on same
+      ballot) which would be expected to have ~$100M+ oppose-side spend.
+
 - [ ] **Backfill June 2018 statewide props (Bucket B).** Manually add
       PROP_68_2018 (Parks/Water Bond), PROP_69_2018 (Transportation
       lockbox), PROP_70_2018, and any other June 2018 props CalAccess
@@ -238,10 +257,19 @@ checks pass; Phase F manual checklist signed off via browser spot-check).
       (other Delaneys, Mungers, parent CAR + National Realtors stay
       distinct, SEIU locals stay distinct). 75/75 finance tests pass.
 
-      **SEIU deferred** — the PROP_8_2018 UHW pair looks like a candidate
-      single-entity merge but dollar verification (whether the two
-      $11.387M strings are double-reported or genuinely distinct) needed
-      before touching. Punted to a future follow-up.
+      **SEIU UHW + structural dedup-gate fix — DONE 2026-05-12 (`9fb9dc0`).**
+      Investigation of the PROP_8_2018 UHW pair revealed Gate 7 was keyed
+      on `donor_raw` rather than the canonical name — donor canonicalization
+      patterns were running but the dedup gate bypassed them. Added
+      SEIU-UHW Nonprofit 501(c)(5) suffix-variant canonicalization and
+      switched Gate 7 to key on `canonicalize_donor(donor_raw)`. Cascade
+      caught additional CalAccess reporting-duplicates already covered by
+      existing canonicalization: PROP_27_2022 DraftKings/FanDuel casing
+      (−$35M), PROP_32_2012 Munger Jr name variants (−$20M), PROP_8_2018
+      SEIU UHW (−$11.4M), Cal Apt Assn paired entries, etc. Total receipts
+      $3.32B → $3.24B (−$78M); win rate 64.6 → 65.2%. Sentinels still pass.
+      10 new tests (118/118 finance tests pass). Added SEIU-UHW Nonprofit
+      501(c)(5) → Labor to `donor_sectors.py`.
 
 - [x] ~~**Stance recovery**~~ **DONE 2026-05-12.** Item promoted from
       "residual 42 rows / $7K" to ~1,500 rows / $0.75M after matcher v2
@@ -286,6 +314,19 @@ checks pass; Phase F manual checklist signed off via browser spot-check).
 
 - [ ] **Reconsider marquee fights placement** — keep in Finance panel vs
       promote to Key Findings #6. Open question from redesign plan.
+
+### FEATURE
+
+- [ ] **Per-card deep-link URLs.** Add hash routing so each measure modal
+      has a unique URL (e.g. `index.html#measure=PROP_27_2022`, optionally
+      `&tab=finance`). On page load, parse hash → open the matching modal
+      and set the requested tab. On modal open/close, `history.replaceState`
+      to keep URL in sync. Cards get `id="measure-{db_id}"` anchors for
+      scroll-linking. Pure client-side; works on GitHub Pages. **Effort:
+      ~30-60 min** (90 if polished with back-button state restore).
+      Unlocks: shareable measure links, briefing prose deep-linking to
+      modals, working-list items pointing at specific cards, faster
+      "go look at this prop" chat workflow.
 
 ### DATA HYGIENE
 
