@@ -32,6 +32,7 @@ import re
 import sqlite3
 from collections import Counter, defaultdict
 from pathlib import Path
+from typing import Optional
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 SOURCE_CSV = REPO_ROOT / "scraper" / "data" / "finance" / "calaccess_raw" / "ballot_measure_receipts_clean.csv"
@@ -190,6 +191,48 @@ def parse_election_month(election_date: str | None) -> int | None:
 
 
 MAX_YEAR_LOOKBACK = 2
+
+# Bucket C junk classification: known patterns of non-real-campaign tuples
+# that shouldn't pollute the `status='missing'` bucket. See the audit notes
+# in docs/WORKING_LIST.md (FINANCE section) for the 37-missing decomposition.
+#
+# Tunable; bumped on each calendar rollover.
+CURRENT_ELECTION_YEAR = 2026
+
+
+def classify_bucket_c_junk(prop_num: str, year: int, total_amount: float) -> Optional[str]:
+    """If this (prop_num, year) tuple matches a known junk pattern, return a
+    human-readable reason; otherwise None. Called after `resolve_pair`
+    returns 'missing' to retag tuples that shouldn't have been on the
+    missing-list radar in the first place.
+
+    Three patterns:
+    - prop_num == '0'    — CalAccess placeholder for "no proposition number"
+                           filings (e.g. recall petitions filed under a
+                           ballot-measure form). Not a real prop.
+    - year > current     — future-cycle filings from committees that may or
+                           may not produce a qualifying measure. Defer
+                           classification until the election year arrives.
+    - total_amount == 0  — stale committee filings with no recorded
+                           contributions. Common for old committees that
+                           keep an active filing without raising new money.
+    """
+    if prop_num == "0":
+        return (
+            "placeholder_prop_num: CalAccess placeholder for filings without "
+            "a specific proposition number"
+        )
+    if year > CURRENT_ELECTION_YEAR:
+        return (
+            f"future_election: year {year} is beyond the current election "
+            "cycle; pre-qualification committee activity"
+        )
+    if total_amount == 0:
+        return (
+            "zero_amount_stale: aggregate csv_total_amount is $0; likely a "
+            "stale committee filing with no recorded contributions"
+        )
+    return None
 
 
 def resolve_pair(
@@ -358,6 +401,20 @@ def main() -> None:
     for (prop_num, year), info in sorted(pairs.items(), key=lambda kv: (kv[0][1], kv[0][0])):
         resolution = resolve_pair(prop_num, year, measures_index)
 
+        # Bucket C junk filter — applied only when resolution would otherwise
+        # be 'missing'. Retags known-junk tuples so they stay out of the
+        # "real-but-unmatched" audit bucket. Junk rows remain in the CSV for
+        # transparency but are excluded from `rebuild_finance_db.py` (which
+        # only loads status='matched').
+        if resolution["status"] == "missing":
+            junk_reason = classify_bucket_c_junk(prop_num, year, info["total_amount"])
+            if junk_reason:
+                resolution = {
+                    **resolution,
+                    "status": "junk",
+                    "notes": junk_reason,
+                }
+
         finance_campaign_id = f"PROP_{prop_num}_{year}"
 
         results.append({
@@ -411,6 +468,12 @@ def main() -> None:
     missing.sort(key=lambda r: -r["csv_total_amount"])
     for r in missing[:15]:
         print(f"  {r['finance_campaign_id']}: ${r['csv_total_amount']/1e6:>9.2f}M  ({r['csv_row_count']:,} rows)")
+
+    junk = [r for r in results if r["status"] == "junk"]
+    if junk:
+        print(f"\n=== Bucket C 'junk' tuples (audit-only, excluded from rebuild) ===")
+        for r in sorted(junk, key=lambda r: -r["csv_total_amount"]):
+            print(f"  {r['finance_campaign_id']}: ${r['csv_total_amount']/1e6:>9.2f}M  ({r['csv_row_count']:,} rows)  notes: {r['notes']}")
 
 
 if __name__ == "__main__":

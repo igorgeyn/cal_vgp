@@ -122,10 +122,16 @@ checks pass; Phase F manual checklist signed off via browser spot-check).
             surfaces in the missing row's `notes` instead of being
             overwritten with the generic "no measures-DB record".
 
-      **Annual-receipts year attribution** (still open, low priority):
-      recoveries get counted in their CalAccess year (e.g. PROP_4_2010
-      in the 2010 bar of the spending-arc chart) instead of the actual
-      election year (2008). $1.9M total spread across 5 years — small.
+      ~~**Annual-receipts year attribution**~~ **RESOLVED 2026-05-12.**
+      The annual_receipts SQL in `build_finance_supplements` now uses a
+      CASE expression on `match_via` to remap year-offset recoveries to
+      their actual election year, and counts DISTINCT measure_db_id
+      (`n_measures`) so collision pairs don't double-count. Visible
+      shifts: $1.0M moved 2002→2000 (PROP_39_2002), $0.7M moved 2003→2002
+      (PROP_49_2003), $0.33M moved 2010→2009 (PROP_1A_2010), the 8
+      Schwarzenegger 2006→2005 recoveries (~$0.32M aggregate). Tooltip
+      copy updated to "X measures" from "X campaigns" to match the rollup
+      semantics.
 
       **Tests added 2026-05-12:** `tests/test_finance_crosswalk.py` (8
       tests covering lookback recovery, ambiguity bail, max-offset bound,
@@ -169,11 +175,18 @@ checks pass; Phase F manual checklist signed off via browser spot-check).
       cut to election-year. Defer until per-week attribution is trusted
       (Codex catch from Module 2).
 
-- [ ] **Pre-2010 statewide finance backfill.** v2 coverage is thin
-      pre-2010 (1999–2008 has a handful of measures). **Narrowed by the
-      audit above:** most pre-2010 misattribution should resolve once
-      Bucket A's matcher fix lands. Genuine pre-2010 gaps (e.g. PROP_0_*
-      junk excluded) appear smaller than initially feared.
+- [x] ~~**Pre-2010 statewide finance backfill.**~~ **RESOLVED BY AUDIT
+      2026-05-12.** Post-matcher-v2 pre-2010 coverage is at 103 matched
+      campaigns (essentially complete: all of 2000's 19 props, 11 in
+      2002, the Schwarzenegger 2005 specials, 22 in 2006 including 8
+      year-offset recoveries, 16 in 2008, 5 in 2009). Remaining gap is
+      5 entries totaling $0.49M of edge cases: LA-municipal `PROP_1_2001`
+      misclassified as statewide ($0.13M); two `PROP_127` filings from
+      a non-qualifying initiative ("Life on the Ballot", $0.31M); one
+      `PROP_54_2006` late filing for 2003's Prop 54 (needs offset=3,
+      currently capped at 2; $0.02M); one mystery `PROP_98_2006` ($0.03M).
+      Bumping MAX_YEAR_LOOKBACK to 3 for the PROP_54 case alone isn't
+      worth the false-positive risk.
 
 - [ ] **Deeper donor canonicalization** + formatter edge cases. Known
       variants: M. Quinn Delaney, SEIU/hospital, DAVITA, Pechanga, Munger,

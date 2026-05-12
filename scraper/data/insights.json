@@ -14,7 +14,7 @@
     "county_count": 58,
     "year_min": 1911,
     "year_max": 2026,
-    "generated_at": "2026-05-12T11:03:37"
+    "generated_at": "2026-05-12T11:21:51"
   },
   "featured_findings": [
     {
@@ -4688,88 +4688,88 @@
     "annual_receipts": [
       {
         "year": 2000,
-        "total_receipts": 164517551.44,
-        "n_campaigns": 19
+        "total_receipts": 165519633.97,
+        "n_measures": 19
       },
       {
         "year": 2002,
-        "total_receipts": 49371122.96,
-        "n_campaigns": 11
+        "total_receipts": 48630113.43,
+        "n_measures": 10
       },
       {
         "year": 2003,
-        "total_receipts": 6989247.85,
-        "n_campaigns": 3
+        "total_receipts": 6728174.85,
+        "n_measures": 2
       },
       {
         "year": 2004,
         "total_receipts": 158956071.41,
-        "n_campaigns": 16
+        "n_measures": 16
       },
       {
         "year": 2005,
-        "total_receipts": 151520975.23,
-        "n_campaigns": 8
+        "total_receipts": 151841747.23,
+        "n_measures": 8
       },
       {
         "year": 2006,
-        "total_receipts": 217754653.78,
-        "n_campaigns": 22
+        "total_receipts": 217433881.78,
+        "n_measures": 14
       },
       {
         "year": 2008,
-        "total_receipts": 266595331.67,
-        "n_campaigns": 16
+        "total_receipts": 266596103.68,
+        "n_measures": 16
       },
       {
         "year": 2009,
-        "total_receipts": 26709080.01,
-        "n_campaigns": 6
+        "total_receipts": 27033853.01,
+        "n_measures": 5
       },
       {
         "year": 2010,
-        "total_receipts": 237026278.23,
-        "n_campaigns": 14
+        "total_receipts": 236700733.22,
+        "n_measures": 13
       },
       {
         "year": 2012,
         "total_receipts": 431823949.79,
-        "n_campaigns": 13
+        "n_measures": 13
       },
       {
         "year": 2014,
         "total_receipts": 63190117.3,
-        "n_campaigns": 8
+        "n_measures": 8
       },
       {
         "year": 2016,
         "total_receipts": 227173050.04,
-        "n_campaigns": 17
+        "n_measures": 17
       },
       {
         "year": 2018,
         "total_receipts": 293305148.14,
-        "n_campaigns": 8
+        "n_measures": 8
       },
       {
         "year": 2020,
         "total_receipts": 360631583.56,
-        "n_campaigns": 13
+        "n_measures": 13
       },
       {
         "year": 2022,
         "total_receipts": 288541417.23,
-        "n_campaigns": 7
+        "n_measures": 7
       },
       {
         "year": 2024,
         "total_receipts": 208687122.9,
-        "n_campaigns": 11
+        "n_measures": 11
       },
       {
         "year": 2025,
         "total_receipts": 164811225.06,
-        "n_campaigns": 1
+        "n_measures": 1
       }
     ],
     "top_donors_overall": [

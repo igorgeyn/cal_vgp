@@ -11219,7 +11219,7 @@ class WebsiteGenerator:
                                 label: ctx => formatDollars(ctx.parsed.y || 0),
                                 afterLabel: ctx => {{
                                     const row = annualRows[ctx.dataIndex];
-                                    return row ? row.n_campaigns + ' campaign' + (row.n_campaigns === 1 ? '' : 's') : '';
+                                    return row ? row.n_measures + ' measure' + (row.n_measures === 1 ? '' : 's') : '';
                                 }}
                             }}
                         }}

@@ -12,7 +12,9 @@ SCRAPER_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(SCRAPER_ROOT))
 
 from scripts.build_finance_crosswalk import (  # noqa: E402
+    CURRENT_ELECTION_YEAR,
     MAX_YEAR_LOOKBACK,
+    classify_bucket_c_junk,
     resolve_pair,
 )
 
@@ -141,3 +143,42 @@ def test_id_based_preference_within_recovery():
     out = resolve_pair("22", 2006, index)
     assert out["status"] == "matched"
     assert out["measure_db_id"] == 6666  # the short_form match
+
+
+# ---------------------------------------------------------------------------
+# Bucket C junk classifier
+# ---------------------------------------------------------------------------
+
+def test_bucket_c_placeholder_prop_num():
+    """prop_num='0' is the CalAccess "no proposition number" placeholder."""
+    reason = classify_bucket_c_junk("0", 2008, 0)
+    assert reason is not None
+    assert "placeholder_prop_num" in reason
+
+
+def test_bucket_c_future_election():
+    """Years beyond the current election cycle indicate pre-qualification
+    committee activity, not a real matched campaign."""
+    reason = classify_bucket_c_junk("42", CURRENT_ELECTION_YEAR + 2, 100000)
+    assert reason is not None
+    assert "future_election" in reason
+
+
+def test_bucket_c_zero_amount_stale():
+    """Zero aggregate receipts means stale committee filings."""
+    reason = classify_bucket_c_junk("42", 2010, 0)
+    assert reason is not None
+    assert "zero_amount_stale" in reason
+
+
+def test_bucket_c_real_campaign_passes_through():
+    """Real prop_num + plausible year + non-zero receipts must NOT be tagged
+    as junk — that's just a real unmatched campaign (Bucket B)."""
+    assert classify_bucket_c_junk("68", 2018, 21800000) is None
+
+
+def test_bucket_c_current_year_with_money_is_not_junk():
+    """Current-year tuple with real receipts is current-cycle activity,
+    not future-cycle junk. PROP_25_2026 = current as of 2026, has $0.13M
+    in pre-qualifying activity; should NOT be filtered."""
+    assert classify_bucket_c_junk("25", CURRENT_ELECTION_YEAR, 130000) is None

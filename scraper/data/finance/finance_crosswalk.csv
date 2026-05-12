@@ -1,5 +1,5 @@
 finance_campaign_id,prop_num,election_year,election_month,measure_db_id,measure_id,status,match_via,csv_row_count,csv_total_amount,notes
-PROP_0_2000,0,2000,,,,missing,,13,2797.28,no measures-DB record
+PROP_0_2000,0,2000,,,,junk,,13,2797.28,placeholder_prop_num: CalAccess placeholder for filings without a specific proposition number
 PROP_12_2000,12,2000,,1117,CA1095,matched,title_short,1333,20129623.36,
 PROP_13_2000,13,2000,,1119,CA1097,matched,title_short,859,3649736.44,
 PROP_14_2000,14,2000,,1111,CA1089,matched,title_short,138,178398.0,
@@ -20,7 +20,7 @@ PROP_37_2000,37,2000,,1104,CA1082,matched,title_short,147,4450636.06,
 PROP_38_2000,38,2000,,1097,CA1075,matched,title_short,3908,233379191.3,
 PROP_39_2000,39,2000,,1106,CA1084,matched,title_short,22628,5500770.55,
 PROP_1_2001,1,2001,,,,missing,,9,129500.0,no measures-DB record
-PROP_0_2002,0,2002,,,,missing,,21,213.15,no measures-DB record
+PROP_0_2002,0,2002,,,,junk,,21,213.15,placeholder_prop_num: CalAccess placeholder for filings without a specific proposition number
 PROP_39_2002,39,2002,,1106,CA1084,matched,year_offset_2_title_short,17,1002082.53,recovered via 2-year lookback: CalAccess year is 2y after the actual election year
 PROP_40_2002,40,2002,,1129,CA1107,matched,title_short,678,25705296.95,
 PROP_41_2002,41,2002,,1126,CA1104,matched,title_short,9,162003.09,
@@ -35,7 +35,7 @@ PROP_52_2002,52,2002,,1123,CA1101,matched,title_short,227,27754504.21,
 PROP_49_2003,49,2003,,1128,CA1106,matched,year_offset_1_title_short,22,711073.0,recovered via 1-year lookback: CalAccess year is 1y after the actual election year
 PROP_53_2003,53,2003,,1137,CA1115,matched,title_short,78,522566.0,
 PROP_54_2003,54,2003,,1136,CA1114,matched,title_short,1099,12041111.13,
-PROP_0_2004,0,2004,,,,missing,,12,216.48,no measures-DB record
+PROP_0_2004,0,2004,,,,junk,,12,216.48,placeholder_prop_num: CalAccess placeholder for filings without a specific proposition number
 PROP_1A_2004,1A,2004,,1157,CA1135,matched,title_short,5138,14676423.6,
 PROP_55_2004,55,2004,,1146,CA1124,matched,title_short,593,17173986.03,
 PROP_56_2004,56,2004,,1141,CA1119,matched,title_short,1873,20842997.71,
@@ -61,7 +61,7 @@ PROP_77_2005,77,2005,,1161,CA1139,matched,title_short,1248,40849982.2,
 PROP_78_2005,78,2005,,1162,CA1140,matched,title_short,84,27498345.56,
 PROP_79_2005,79,2005,,1160,CA1138,matched,title_short,2022,2480281.71,
 PROP_80_2005,80,2005,,1158,CA1136,matched,title_short,3399,5892700.27,
-PROP_0_2006,0,2006,,,,missing,,9,120.34,no measures-DB record
+PROP_0_2006,0,2006,,,,junk,,9,120.34,placeholder_prop_num: CalAccess placeholder for filings without a specific proposition number
 PROP_127_2006,127,2006,,,,missing,,27,132721.88,no measures-DB record
 PROP_1A_2006,1A,2006,,1180,CA1158,matched,title_short,1320,52314244.7,
 PROP_1C_2006,1C,2006,,1176,CA1154,matched,title_short,941,5999434.8,
@@ -88,7 +88,7 @@ PROP_88_2006,88,2006,,1166,CA1144,matched,title_short,138,3553958.07,
 PROP_89_2006,89,2006,,1167,CA1145,matched,title_short,1778,20311793.62,
 PROP_90_2006,90,2006,,1172,CA1150,matched,title_short,885,19923741.48,
 PROP_98_2006,98,2006,,,,missing,,29,27800.0,no measures-DB record
-PROP_0_2008,0,2008,,,,missing,,12,104.46,no measures-DB record
+PROP_0_2008,0,2008,,,,junk,,12,104.46,placeholder_prop_num: CalAccess placeholder for filings without a specific proposition number
 PROP_10_2008,10,2008,,1184,CA1162,matched,title_short,80,27963645.06,
 PROP_11_2008,11,2008,,1190,CA1168,matched,title_short,3380,49972230.95,
 PROP_1A_2008,1A,2008,,1192,CA1170,matched,title_short,162,3084458.5,

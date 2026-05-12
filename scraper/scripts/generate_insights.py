@@ -1235,28 +1235,39 @@ def _build_finance_supplements(campaigns_out, measures_by_db_id):
     conn = sqlite3.connect(str(FINANCE_DB_PATH))
     conn.row_factory = sqlite3.Row
 
-    # 1. Annual receipts by election year (already keyed on c.election_year, so
-    #    cross-cycle contamination is gone post-v2).
+    # 1. Annual receipts grouped by ACTUAL election year (not the CalAccess
+    #    reporting year). For Bucket A year-offset recoveries the actual year
+    #    sits 1–2y before the CalAccess year — without this remap, $1.9M of
+    #    late-filing money would be attributed to the wrong bar of the
+    #    spending arc (e.g. PROP_4_2010 contributing to 2010 when its actual
+    #    election was 2008). n_measures counts DISTINCT measure_db_ids per
+    #    year so Bucket A collisions (PROP_4_2008 + PROP_4_2010 → both link
+    #    to db_id 1189) don't double-count one measure.
     annual = conn.execute(
         """
-        SELECT c.election_year AS year,
-               SUM(s.total_receipts) AS total,
-               COUNT(DISTINCT c.finance_campaign_id) AS n_campaigns
+        SELECT
+            CASE
+                WHEN c.match_via LIKE 'year_offset_1_%' THEN c.election_year - 1
+                WHEN c.match_via LIKE 'year_offset_2_%' THEN c.election_year - 2
+                ELSE c.election_year
+            END AS actual_year,
+            SUM(s.total_receipts) AS total,
+            COUNT(DISTINCT c.measure_db_id) AS n_measures
         FROM finance_summary s
         JOIN finance_campaign c USING (finance_campaign_id)
         WHERE c.status = 'matched'
-        GROUP BY c.election_year
-        ORDER BY c.election_year
+        GROUP BY actual_year
+        ORDER BY actual_year
         """
     ).fetchall()
     annual_receipts = [
         {
-            "year": int(r["year"]),
+            "year": int(r["actual_year"]),
             "total_receipts": round(float(r["total"]), 2),
-            "n_campaigns": int(r["n_campaigns"]),
+            "n_measures": int(r["n_measures"]),
         }
         for r in annual
-        if r["year"] is not None
+        if r["actual_year"] is not None
     ]
 
     # 2. Top donors overall — aggregate across all matched campaigns
