@@ -3294,23 +3294,24 @@ class WebsiteGenerator:
             }
         }
 
-        /* Card Styles — condensed layout (2026-05-12 redesign):
-         * description cut from normal cards, header is a 3-part grid
-         * (year / result / status), title clamped to 2 lines, thin result
-         * rail at the bottom. Featured/hero variants override the
-         * normal-card clamps to allow more content. */
+        /* Card Styles — modest density pass (2026-05-12 v2):
+         * Original structure preserved (header / title / description /
+         * progress bar / meta) but with tightened whitespace. The v1 cut
+         * description from normal cards entirely; that felt stripped-down
+         * and lost too much information density. v2 keeps everything and
+         * just tightens spacing. */
         .measure-card {
             background: var(--bg-primary);
             border-radius: var(--radius);
-            padding: 0.75rem 0.85rem;
+            padding: 0.85rem 1rem;
             box-shadow: var(--shadow-sm);
             transition: all 0.2s ease;
             cursor: pointer;
             display: flex;
             flex-direction: column;
-            gap: 0.38rem;
+            gap: 0.4rem;
             border: 1px solid #E8E2D4;
-            min-height: 118px;
+            min-height: 140px;
         }
 
         .measure-card:hover {
@@ -3319,12 +3320,14 @@ class WebsiteGenerator:
             border-color: var(--primary);
         }
 
+        /* Hero / featured cards get visual distinction via gold border +
+         * background gradient, NOT via heavier internal sizing — internal
+         * layout matches normal v2 cards so the homepage reads as a
+         * unified rhythm rather than mixed densities. */
         .measure-card.hero {
             border: 2px solid var(--primary);
             box-shadow: 0 4px 12px rgba(201, 162, 60, 0.15);
             background: linear-gradient(135deg, var(--bg-primary) 0%, rgba(201, 162, 60, 0.03) 100%);
-            min-height: auto;
-            padding: 1rem 1.1rem;
         }
 
         .measure-card.hero:hover {
@@ -3334,42 +3337,39 @@ class WebsiteGenerator:
 
         .measure-card.featured {
             border-left: 4px solid var(--primary);
-            min-height: auto;
         }
 
         .card-header {
-            display: grid;
-            grid-template-columns: auto 1fr auto;
+            display: flex;
             align-items: center;
-            gap: 0.45rem;
-            margin-bottom: 0.15rem;
+            justify-content: space-between;
+            margin-bottom: 0.25rem;
         }
 
         .card-year {
-            font-size: 0.78rem;
+            font-size: 0.85rem;
             font-weight: 600;
             color: var(--text-secondary);
-            letter-spacing: 0.01em;
-        }
-
-        .card-result {
-            font-size: 0.78rem;
-            font-weight: 700;
-            color: var(--text-primary);
-            text-align: center;
-            font-variant-numeric: tabular-nums;
         }
 
         .badge {
-            padding: 0.18rem 0.42rem;
-            border-radius: 999px;
-            font-size: 0.68rem;
+            padding: 0.28rem 0.6rem;
+            border-radius: var(--radius-sm);
+            font-size: 0.72rem;
             font-weight: 600;
             text-transform: uppercase;
-            letter-spacing: 0.02em;
+            letter-spacing: 0.025em;
             display: inline-flex;
             align-items: center;
-            white-space: nowrap;
+            gap: 0.32rem;
+        }
+
+        .badge::before {
+            content: '';
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+            display: inline-block;
         }
 
         .badge-passed {
@@ -3377,18 +3377,21 @@ class WebsiteGenerator:
             color: #2D6A1E;
             border: 1px solid rgba(58, 140, 40, 0.25);
         }
+        .badge-passed::before { background: #2D6A1E; }
 
         .badge-failed {
             background: rgba(192, 57, 43, 0.12);
             color: #A0302A;
             border: 1px solid rgba(192, 57, 43, 0.25);
         }
+        .badge-failed::before { background: #C0392B; }
 
         .badge-pending {
             background: rgba(201, 162, 60, 0.15);
             color: #8A6D14;
             border: 1px solid rgba(201, 162, 60, 0.3);
         }
+        .badge-pending::before { background: #C9A23C; }
 
         .badge-neutral {
             background: var(--bg-secondary);
@@ -3410,22 +3413,16 @@ class WebsiteGenerator:
         }
 
         .card-title {
-            font-size: 0.92rem;
-            font-weight: 650;
+            font-size: 1rem;
+            font-weight: 600;
             color: var(--text-primary);
-            line-height: 1.28;
-            margin: 0 0 0.1rem 0;
+            line-height: 1.35;
+            margin: 0 0 0.15rem 0;
             display: -webkit-box;
-            -webkit-line-clamp: 2;
+            -webkit-line-clamp: 3;
             -webkit-box-orient: vertical;
             overflow: hidden;
             text-overflow: ellipsis;
-        }
-        .measure-card.featured .card-title,
-        .measure-card.hero .card-title {
-            -webkit-line-clamp: 3;
-            font-size: 1.0625rem;
-            line-height: 1.4;
         }
 
         .card-description {
@@ -3440,14 +3437,17 @@ class WebsiteGenerator:
             text-overflow: ellipsis;
         }
 
-        /* Card summary (new - replaces description when summary available) */
+        /* Card summary — the description paragraph below the title.
+         * Slightly tighter than v1 (smaller font, less vertical margin)
+         * to claw back ~15-20% of card height while keeping the info.
+         * Applied uniformly across normal / hero / featured variants. */
         .card-summary {
-            font-size: 0.875rem;
+            font-size: 0.83rem;
             color: var(--text-secondary);
-            line-height: 1.6;
-            margin: 0.75rem 0 0.5rem 0;
+            line-height: 1.45;
+            margin: 0.1rem 0 0.25rem 0;
             display: -webkit-box;
-            -webkit-line-clamp: 3;
+            -webkit-line-clamp: 2;
             -webkit-box-orient: vertical;
             overflow: hidden;
             text-overflow: ellipsis;
@@ -3485,21 +3485,18 @@ class WebsiteGenerator:
         }
         
         .card-meta {
-            font-size: 0.72rem;
+            font-size: 0.76rem;
             color: var(--text-tertiary);
-            line-height: 1.25;
-            margin-top: 0.05rem;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
+            line-height: 1.35;
+            margin-top: 0.35rem;
         }
 
         .vote-bar {
-            height: 3px;
-            background: var(--border-light);
-            border-radius: 2px;
+            height: 5px;
+            background: rgba(0, 0, 0, 0.08);
+            border-radius: 3px;
             overflow: hidden;
-            margin: 0.25rem 0 0;
+            margin: 0.4rem 0 0.1rem;
             position: relative;
         }
 
@@ -3507,25 +3504,17 @@ class WebsiteGenerator:
             height: 100%;
             background: linear-gradient(90deg, var(--success), #34a853);
             transition: width 0.3s ease;
-            border-radius: 2px;
+            border-radius: 3px;
         }
-        /* Hero / featured cards keep the heavier vote bar for emphasis. */
-        .measure-card.hero .vote-bar,
-        .measure-card.featured .vote-bar {
-            height: 6px;
-            margin: 0.5rem 0;
+        .measure-card:hover .vote-bar-fill {
+            box-shadow: 0 0 8px rgba(30, 142, 62, 0.4);
         }
 
-        /* Grid View — denser columns (Codex redesign 2026-05-12). */
+        /* Grid View — modest density gain (280px -> 260px). */
         .results-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
             gap: 0.75rem;
-        }
-        @media (max-width: 1279px) and (min-width: 900px) {
-            .results-grid {
-                grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
-            }
         }
         @media (max-width: 899px) and (min-width: 640px) {
             .results-grid {
@@ -3537,7 +3526,7 @@ class WebsiteGenerator:
                 grid-template-columns: 1fr;
             }
             .measure-card {
-                padding: 0.7rem;
+                padding: 0.75rem 0.85rem;
             }
         }
         
@@ -3855,10 +3844,6 @@ class WebsiteGenerator:
         .measure-card.featured {
             border-left: 4px solid var(--primary);
             background: linear-gradient(135deg, var(--bg-primary) 0%, rgba(201, 162, 60, 0.04) 100%);
-        }
-        
-        .measure-card.featured .card-title {
-            font-size: 1.05rem;
         }
 
         .measure-card.landmark {
@@ -12429,12 +12414,36 @@ class WebsiteGenerator:
             const passed = measure.passed;
             const isPending = isPendingMeasure(measure);
 
-            // Pending measures get special status display.
-            // Compact-card redesign (2026-05-12): drop the leading
-            // checkmark / cross from the badge label since the colored
-            // pill itself carries the outcome signal.
+            // Pending measures get special status display
             const passedClass = isPending ? 'pending' : (passed === 1 ? 'passed' : passed === 0 ? 'failed' : 'pending');
-            const passedText = isPending ? 'Upcoming' : (passed === 1 ? 'Passed' : passed === 0 ? 'Failed' : 'Pending');
+            const passedText = isPending ? '⏳ Upcoming' : (passed === 1 ? '✓ Passed' : passed === 0 ? '✗ Failed' : '• Pending');
+
+            // Description / summary preview — kept for all card variants
+            // per Igor's pushback on v1's "cut descriptions entirely"
+            // call. The v2 design tightens whitespace but keeps the
+            // info-rich card shape.
+            let summary = '';
+            if (measure.summary_text && measure.summary_text.length > 50 && !isAiRefusal(measure.summary_text) &&
+                !(isPending && isMetadataSummary(measure.summary_text))) {{
+                summary = measure.summary_text;
+            }} else if (measure.ballot_question && measure.ballot_question.length > 50) {{
+                summary = measure.ballot_question;
+            }} else if (measure.description && !(isPending && isMetadataSummary(measure.description))) {{
+                summary = measure.description;
+            }} else if (measure.generated_title && measure.original_title) {{
+                summary = measure.original_title;
+            }}
+            if (isPending && measure.historical_context && !summary) {{
+                const ctx = measure.historical_context;
+                summary = `California has voted on ${{ctx.total_similar.toLocaleString()}} similar ${{ctx.matched_topic.toLowerCase()}} measures since ${{ctx.year_range.split('-')[0]}}. They passed ${{ctx.pass_rate}}% of the time with a median YES vote of ${{ctx.median_yes}}%.`;
+            }} else if (isPending && !summary) {{
+                summary = 'Full measure details will be available closer to the election. Check back for official language, fiscal analysis, and voter guide information.';
+            }}
+            const maxLength = 200;
+            const truncatedSummary = summary.length > maxLength ? summary.substring(0, maxLength) + '...' : summary;
+            const descriptionHtml = truncatedSummary
+                ? `<div class="card-summary">${{escapeHtml(truncatedSummary)}}</div>`
+                : '';
 
             // Hide vote bar for pending measures (no vote data yet)
             const percentYes = measure.percent_yes;
@@ -12444,53 +12453,20 @@ class WebsiteGenerator:
                 </div>
             ` : '';
 
-            // Result text promoted into the header. Empty for pending measures.
-            const resultText = (percentYes != null && !isPending)
-                ? `${{Math.round(percentYes)}}% Yes`
-                : '';
-
             const topic = measure.topic_primary || measure.category_topic || '';
             const source = measure.data_source || measure.source || '';
 
-            // Determine card class. Hero/featured variants keep summaries
-            // and looser title clamps via CSS overrides.
+            // Determine card class - add pending-measure class for 2026+ measures
             let cardClass = isHero ? 'hero' : (featured ? 'featured' : '');
             if (measure.is_landmark) cardClass += ' landmark';
             if (isPending) cardClass += ' pending-measure';
 
-            // Featured/hero cards keep the summary preview. Normal cards
-            // cut the description entirely — the modal is the right place
-            // for full text per the Codex redesign plan.
-            let descriptionHtml = '';
-            if (featured || isHero) {{
-                let summary = '';
-                if (measure.summary_text && measure.summary_text.length > 50 && !isAiRefusal(measure.summary_text) &&
-                    !(isPending && isMetadataSummary(measure.summary_text))) {{
-                    summary = measure.summary_text;
-                }} else if (measure.ballot_question && measure.ballot_question.length > 50) {{
-                    summary = measure.ballot_question;
-                }} else if (measure.description && !(isPending && isMetadataSummary(measure.description))) {{
-                    summary = measure.description;
-                }} else if (measure.generated_title && measure.original_title) {{
-                    summary = measure.original_title;
-                }}
-                if (isPending && measure.historical_context && !summary) {{
-                    const ctx = measure.historical_context;
-                    summary = `California has voted on ${{ctx.total_similar.toLocaleString()}} similar ${{ctx.matched_topic.toLowerCase()}} measures since ${{ctx.year_range.split('-')[0]}}. They passed ${{ctx.pass_rate}}% of the time with a median YES vote of ${{ctx.median_yes}}%.`;
-                }} else if (isPending && !summary) {{
-                    summary = 'Full measure details will be available closer to the election. Check back for official language, fiscal analysis, and voter guide information.';
-                }}
-                const maxLength = 200;
-                const truncatedSummary = summary.length > maxLength ? summary.substring(0, maxLength) + '...' : summary;
-                if (truncatedSummary) {{
-                    descriptionHtml = `<div class="card-summary">${{escapeHtml(truncatedSummary)}}</div>`;
-                }}
-            }}
-
-            // Build meta items — topic + source + landmark flag. % Yes is
-            // now promoted into the header; do NOT duplicate it here.
+            // Build meta items - % Yes / topic / source / landmark flag.
+            // % Yes stays in the meta row (v1 had moved it to the header;
+            // that read as awkward floating text — reverted).
             const metaItems = [];
             if (measure.is_landmark) metaItems.push('⭐ Historic');
+            if (percentYes != null && !isPending) metaItems.push(`${{Math.round(percentYes)}}% Yes`);
             if (topic) metaItems.push(escapeHtml(topic));
             if (source) metaItems.push(escapeHtml(source));
             if (isPending && !metaItems.length) metaItems.push('Election pending');
@@ -12502,13 +12478,12 @@ class WebsiteGenerator:
                 <div class="measure-card ${{cardClass}}" data-midx="${{mIdx}}" onclick="viewMeasure(allMeasures[this.dataset.midx])">
                     <div class="card-header">
                         <span class="card-year">${{year}}</span>
-                        <span class="card-result">${{resultText}}</span>
                         <span class="badge badge-${{passedClass}}">${{passedText}}</span>
                     </div>
                     <h3 class="card-title">${{escapeHtml(displayTitle)}}</h3>
                     ${{descriptionHtml}}
-                    <div class="card-meta">${{metaItems.join(' · ')}}</div>
                     ${{voteBar}}
+                    <div class="card-meta">${{metaItems.join(' · ')}}</div>
                 </div>
             `;
         }}
