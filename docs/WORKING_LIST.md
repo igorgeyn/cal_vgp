@@ -262,8 +262,24 @@ checks pass; Phase F manual checklist signed off via browser spot-check).
       / $0.05M (PROP_66_2006 F.A.C.T. sentencing campaign, Chico Chamber)
       stay quarantined — not worth per-case research.
 
-- [ ] **Rewrite `scripts/evaluate_data_quality.py` for v2 schema.**
-      Currently still pointing at legacy DB with TODO marker.
+- [x] ~~**Rewrite `scripts/evaluate_data_quality.py` for v2 schema.**~~
+      **DONE 2026-05-12.** Codex-blessed rewrite of the Finance dimension
+      (other 8 dimensions left intact — they weren't broken). Path now
+      imports `FINANCE_DB_PATH` from `src/finance/schema.py` instead of
+      hardcoding legacy. v1 checks rewritten for v2 schema: coverage
+      (3 cuts — matched campaigns / distinct measures / 2000+ coverage%);
+      no negative totals; summary integrity (top5/HHI in valid ranges);
+      no orphan matched campaigns. Added Codex's dollar reconciliation
+      check (summary vs crosswalk totals — strongest observability
+      signal). Added quarantine reason distribution, stance distribution
+      (including 0-stance "matched but all gates failed" cases), Bucket A
+      recovery audit, and structured sentinel checks (per-sentinel
+      min/max year + in-year %, explicit ≥90% threshold). Transaction-
+      table-shaped checks (zero amounts, missing dates) intentionally
+      absent — labeled in the report payload as
+      "not_available_in_v2_until_per_campaign_transaction_table_exists".
+      Live run: Finance dimension scores 100/100; report identifies 1
+      matched campaign with 0 surviving stances (useful signal).
 
 - [ ] **Expand finance coverage beyond 181 statewide propositions.** Modern-
       era gaps; local-ballot finance scoped out per panel deck.

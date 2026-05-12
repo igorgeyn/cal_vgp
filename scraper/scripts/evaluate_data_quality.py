@@ -35,14 +35,35 @@ import hashlib
 SCRIPT_DIR = Path(__file__).parent
 DATA_DIR = SCRIPT_DIR.parent / "data"
 DB_PATH = DATA_DIR / "ballot_measures.db"
-# TODO: Audit logic below queries v1-only tables (measure_finance_summary,
-# transaction_record, committee) that don't exist in finance_statewide_v2.db.
-# Pointing at the legacy DB so this script keeps working against the audit-
-# only artifact; full rewrite needed before this can audit v2 (different
-# schema, finance_campaign_id keying, no transaction_record table).
-FINANCE_DB_PATH = DATA_DIR / "finance" / "finance_statewide.db"
+
+# Finance DB path is imported from src.finance.schema so the eval script
+# stays in sync with whichever DB the live consumers read (v2 today). Falls
+# back to the literal v2 path if the import fails — script is sometimes
+# run standalone before the package is on sys.path.
+try:
+    import sys as _sys
+    _sys.path.insert(0, str(SCRIPT_DIR.parent))
+    from src.finance.schema import FINANCE_DB_PATH  # noqa: E402
+except Exception:
+    FINANCE_DB_PATH = DATA_DIR / "finance" / "finance_statewide_v2.db"
+
 EMBEDDINGS_PATH = DATA_DIR / "embedding_metadata.json"
 REPORT_PATH = DATA_DIR / "data_quality_report.json"
+
+# Sentinel campaigns for the cross-cycle contamination check. Mirrors the
+# named sentinels in scripts/rebuild_finance_db.py — these are the
+# Bucket A canaries (PROP numbers that were reused across cycles and
+# would silently double-count if the matcher regressed). Eval uses an
+# explicit threshold (warn if <90% of dollars sit in the expected year)
+# rather than reproducing rebuild's exact phrasing.
+SENTINEL_CAMPAIGNS = [
+    # (finance_campaign_id, expected_election_year)
+    ("PROP_16_2020", 2020),
+    ("PROP_22_2020", 2020),
+    ("PROP_32_2024", 2024),
+    ("PROP_6_2024", 2024),
+]
+SENTINEL_MIN_IN_YEAR_PCT = 90.0
 
 
 @dataclass
@@ -1029,8 +1050,43 @@ class DataQualityEvaluator:
     # =========================================================================
 
     def evaluate_finance_quality(self):
-        """Evaluate campaign finance data quality."""
-        print("8. FINANCE DATA QUALITY")
+        """Evaluate campaign finance data quality.
+
+        Rewritten 2026-05-12 against the v2 schema (`finance_statewide_v2.db`).
+        Codex-blessed framing: this script's job is **observability** over
+        time (does anything new show up after each rebuild?) rather than
+        re-running `rebuild_finance_db.py`'s 8 acceptance gates + 7
+        validation checks.
+
+        Checks (in order):
+
+        Invariant (regression detectors — should always pass):
+        1. Required v2 tables exist
+        2. Negative total_receipts (the `non_positive_amount` rebuild gate
+           should make this always 0)
+        3. Summary integrity (top5_share in [0,100], hhi in [0,10000])
+        4. Matched campaigns all have measure_db_id (no orphans)
+        5. Dollar reconciliation: SUM(finance_summary.total_receipts) vs
+           SUM(finance_campaign.csv_total_amount WHERE status='matched').
+           Codex's recommended addition — strongest single observability
+           signal for stance-gate drift, duplicate behavior, quarantine
+           movement.
+
+        Distributional / longitudinal (track changes between runs):
+        6. Coverage — three apples-to-apples cuts (campaigns / distinct
+           measures / coverage% against statewide 2000+ measures)
+        7. Quarantine reason distribution
+        8. Stance distribution (both vs single-side)
+        9. Bucket A recovery audit (count + dollars recovered via lookback)
+        10. Sentinel cross-cycle contamination checks (per-sentinel
+            structured data + explicit threshold)
+
+        Transaction-table-shaped checks (zero-amount rows, missing dates)
+        are intentionally absent — v2 doesn't carry a transaction-level
+        table. See the per-campaign transaction table item in the working
+        list for the future-work pointer.
+        """
+        print("8. FINANCE DATA QUALITY (v2)")
         print("-" * 40)
 
         if not self.finance_conn:
@@ -1042,98 +1098,328 @@ class DataQualityEvaluator:
                 issues_count=0,
                 critical_issues=0,
                 warnings=0,
-                details={'status': 'not_available'}
+                details={'status': 'not_available'},
             ))
             print()
             return
 
         issues_found = 0
-        finance_checks = {}
-
-        # Check 1: Measure coverage
-        cursor = self.finance_conn.execute("""
-            SELECT COUNT(DISTINCT measure_id) FROM measure_finance_summary
-        """)
-        measures_with_finance = cursor.fetchone()[0]
-
-        cursor = self.conn.execute("""
-            SELECT COUNT(*) FROM measures
-            WHERE is_active = 1 AND county = 'Statewide' AND year >= 2016
-        """)
-        statewide_recent = cursor.fetchone()[0]
-
-        finance_checks['coverage'] = {
-            'measures_with_finance': measures_with_finance,
-            'statewide_since_2016': statewide_recent,
-            'coverage_pct': round(measures_with_finance / statewide_recent * 100, 1) if statewide_recent > 0 else 0
+        warnings_count = 0
+        criticals_count = 0
+        checks: Dict[str, Any] = {
+            "schema_version": "v2",
+            "db_path": str(FINANCE_DB_PATH),
+            "transaction_level_checks": (
+                "not_available_in_v2_until_per_campaign_transaction_table_exists"
+            ),
         }
 
-        # Check 2: Transaction data
-        cursor = self.finance_conn.execute("""
-            SELECT COUNT(*) as total,
-                   SUM(CASE WHEN amount IS NULL OR amount = 0 THEN 1 ELSE 0 END) as zero_amounts,
-                   SUM(CASE WHEN date IS NULL THEN 1 ELSE 0 END) as missing_dates
-            FROM transaction_record
-        """)
-        row = cursor.fetchone()
-        finance_checks['transactions'] = {
-            'total': row['total'],
-            'zero_amounts': row['zero_amounts'],
-            'missing_dates': row['missing_dates']
-        }
+        # ===== Invariant checks (regression detectors) =====
 
-        # Check 3: Committee data
-        cursor = self.finance_conn.execute("""
-            SELECT COUNT(*) as total,
-                   SUM(CASE WHEN name IS NULL OR name = '' THEN 1 ELSE 0 END) as missing_names
-            FROM committee
-        """)
-        row = cursor.fetchone()
-        finance_checks['committees'] = {
-            'total': row['total'],
-            'missing_names': row['missing_names']
+        # Check 1: required v2 tables exist
+        required_tables = {
+            "finance_campaign",
+            "finance_summary",
+            "finance_top_donors",
+            "finance_timeline_weekly",
+            "finance_row_quarantine",
         }
+        cursor = self.finance_conn.execute(
+            "SELECT name FROM sqlite_master WHERE type='table'"
+        )
+        present_tables = {r[0] for r in cursor.fetchall()}
+        missing_tables = sorted(required_tables - present_tables)
+        checks["required_tables_present"] = sorted(required_tables - set(missing_tables))
+        checks["missing_tables"] = missing_tables
+        if missing_tables:
+            self.add_issue('finance_quality', 'critical', 'schema',
+                          f"Missing v2 tables: {missing_tables}", len(missing_tables))
+            criticals_count += 1
+            issues_found += 1
+            # Bail before queries that reference missing tables.
+            self.scores.append(QualityScore(
+                dimension='finance_quality',
+                score=0.0,
+                weight=0.05,
+                issues_count=issues_found,
+                critical_issues=criticals_count,
+                warnings=warnings_count,
+                details=checks,
+            ))
+            return
 
-        # Check 4: Summary data integrity
-        cursor = self.finance_conn.execute("""
-            SELECT measure_id, stance, total_receipts
-            FROM measure_finance_summary
-            WHERE total_receipts < 0
-        """)
-        negative_totals = cursor.fetchall()
-        finance_checks['data_integrity'] = {
-            'negative_totals': len(negative_totals)
-        }
-        if negative_totals:
+        # Check 2: no negative total_receipts (non_positive_amount gate
+        # in rebuild should make this always 0)
+        cursor = self.finance_conn.execute(
+            "SELECT COUNT(*) FROM finance_summary WHERE total_receipts < 0"
+        )
+        negative_totals = cursor.fetchone()[0]
+        checks["negative_totals"] = negative_totals
+        if negative_totals > 0:
             self.add_issue('finance_quality', 'warning', 'total_receipts',
-                          f"Negative total receipts", len(negative_totals))
+                          "Negative total_receipts in finance_summary", negative_totals)
+            warnings_count += 1
             issues_found += 1
 
-        # Print summary
-        print(f"Measures with finance data: {measures_with_finance}")
-        print(f"Coverage of statewide (2016+): {finance_checks['coverage']['coverage_pct']}%")
-        print(f"Total transactions: {finance_checks['transactions']['total']:,}")
-        print(f"Committees: {finance_checks['committees']['total']}")
-        print(f"Data integrity issues: {finance_checks['data_integrity']['negative_totals']}")
+        # Check 3: summary integrity — top5_share in [0,100], hhi in [0,10000]
+        cursor = self.finance_conn.execute(
+            """
+            SELECT
+                SUM(CASE WHEN top5_share IS NOT NULL AND (top5_share < 0 OR top5_share > 100) THEN 1 ELSE 0 END) AS bad_top5,
+                SUM(CASE WHEN hhi IS NOT NULL AND (hhi < 0 OR hhi > 10000) THEN 1 ELSE 0 END) AS bad_hhi
+            FROM finance_summary
+            """
+        ).fetchone()
+        checks["summary_integrity"] = {
+            "top5_share_out_of_range": cursor[0] or 0,
+            "hhi_out_of_range": cursor[1] or 0,
+        }
+        if (cursor[0] or 0) + (cursor[1] or 0) > 0:
+            self.add_issue('finance_quality', 'warning', 'summary',
+                          "Summary HHI/top5_share out of valid range",
+                          (cursor[0] or 0) + (cursor[1] or 0))
+            warnings_count += 1
+            issues_found += 1
 
-        # Calculate score
-        score = 100
-        if finance_checks['transactions']['zero_amounts']:
-            score -= min(finance_checks['transactions']['zero_amounts'] / finance_checks['transactions']['total'] * 50, 20)
-        if finance_checks['data_integrity']['negative_totals']:
-            score -= 10
+        # Check 4: matched campaigns must have measure_db_id (no orphans)
+        cursor = self.finance_conn.execute(
+            "SELECT COUNT(*) FROM finance_campaign "
+            "WHERE status='matched' AND measure_db_id IS NULL"
+        )
+        orphan_count = cursor.fetchone()[0]
+        checks["matched_orphans"] = orphan_count
+        if orphan_count > 0:
+            self.add_issue('finance_quality', 'critical', 'measure_db_id',
+                          "Matched campaigns missing measure_db_id", orphan_count)
+            criticals_count += 1
+            issues_found += 1
+
+        # Check 5: dollar reconciliation — Codex's add. Compares the
+        # aggregated finance_summary totals against the source-CSV total
+        # for matched campaigns. Mismatch indicates rows being dropped
+        # post-crosswalk (stance gate, dedupe, date-off-cycle, etc.).
+        summary_total_receipts = self.finance_conn.execute(
+            "SELECT SUM(total_receipts) FROM finance_summary"
+        ).fetchone()[0] or 0.0
+        crosswalk_total = self.finance_conn.execute(
+            "SELECT SUM(csv_total_amount) FROM finance_campaign WHERE status='matched'"
+        ).fetchone()[0] or 0.0
+        reconciliation_diff = crosswalk_total - summary_total_receipts
+        reconciliation_pct_dropped = (
+            (reconciliation_diff / crosswalk_total * 100) if crosswalk_total > 0 else 0.0
+        )
+        checks["dollar_reconciliation"] = {
+            "summary_total_receipts": round(summary_total_receipts, 2),
+            "crosswalk_matched_total_amount": round(crosswalk_total, 2),
+            "diff_dropped_post_crosswalk": round(reconciliation_diff, 2),
+            "pct_dropped": round(reconciliation_pct_dropped, 2),
+        }
+
+        # ===== Distributional / longitudinal checks =====
+
+        # Check 6: coverage — three cuts
+        matched_campaigns = self.finance_conn.execute(
+            "SELECT COUNT(*) FROM finance_campaign WHERE status='matched'"
+        ).fetchone()[0]
+        distinct_matched_measures = self.finance_conn.execute(
+            "SELECT COUNT(DISTINCT measure_db_id) FROM finance_campaign "
+            "WHERE status='matched' AND measure_db_id IS NOT NULL"
+        ).fetchone()[0]
+        # Denominator: statewide measures from 2000 onward in the measures DB.
+        # 2000 is the floor because pre-2000 CalAccess data is thin (per the
+        # `pre-2010 backfill` audit-closed note).
+        statewide_2000plus = self.conn.execute(
+            "SELECT COUNT(*) FROM measures "
+            "WHERE is_active=1 AND is_duplicate=0 "
+            "AND county='Statewide' AND CAST(year AS INTEGER) >= 2000"
+        ).fetchone()[0]
+        coverage_pct = (
+            (distinct_matched_measures / statewide_2000plus * 100)
+            if statewide_2000plus > 0 else 0.0
+        )
+        checks["coverage"] = {
+            "matched_campaigns": matched_campaigns,
+            "distinct_matched_measures": distinct_matched_measures,
+            "statewide_measures_2000plus": statewide_2000plus,
+            "coverage_pct_2000plus": round(coverage_pct, 1),
+        }
+
+        # Check 7: quarantine reason distribution
+        quarantine_rows = self.finance_conn.execute(
+            """
+            SELECT quarantine_reason, COUNT(*) AS n, SUM(amount) AS total_amount
+            FROM finance_row_quarantine
+            GROUP BY quarantine_reason
+            ORDER BY total_amount DESC
+            """
+        ).fetchall()
+        checks["quarantine_distribution"] = [
+            {
+                "reason": r[0],
+                "row_count": r[1],
+                "total_amount": round(float(r[2] or 0), 2),
+            }
+            for r in quarantine_rows
+        ]
+
+        # Check 8: stance distribution. Includes a 0-stance bucket for
+        # matched campaigns whose transactions all fail downstream gates
+        # (e.g. PROP_4_2010 pre-override era) — useful "matched but no
+        # surviving data" signal.
+        stance_counts = self.finance_conn.execute(
+            """
+            SELECT n_stances, COUNT(*) AS n_campaigns
+            FROM (
+                SELECT finance_campaign_id, COUNT(DISTINCT stance) AS n_stances
+                FROM finance_summary
+                GROUP BY finance_campaign_id
+            )
+            GROUP BY n_stances
+            ORDER BY n_stances
+            """
+        ).fetchall()
+        stance_dist = {f"{r[0]}_stance_campaigns": r[1] for r in stance_counts}
+        # 0-stance count = matched - (sum of campaigns with >=1 stance)
+        with_any_stance = sum(r[1] for r in stance_counts)
+        stance_dist["0_stance_campaigns"] = max(matched_campaigns - with_any_stance, 0)
+        checks["stance_distribution"] = stance_dist
+        if stance_dist["0_stance_campaigns"] > 0:
+            self.add_issue(
+                'finance_quality', 'warning', 'stance',
+                "Matched campaigns with no surviving stance rows "
+                "(all transactions failed downstream gates)",
+                stance_dist["0_stance_campaigns"],
+            )
+            warnings_count += 1
+            issues_found += 1
+
+        # Check 9: Bucket A recovery audit
+        recovery_row = self.finance_conn.execute(
+            """
+            SELECT COUNT(*) AS n_campaigns,
+                   SUM(csv_total_amount) AS total_amount
+            FROM finance_campaign
+            WHERE status='matched' AND match_via LIKE 'year_offset_%'
+            """
+        ).fetchone()
+        recovered_count = recovery_row[0] or 0
+        recovered_amount = recovery_row[1] or 0.0
+        checks["bucket_a_recovery"] = {
+            "n_recovered_campaigns": recovered_count,
+            "total_amount_recovered_per_crosswalk": round(float(recovered_amount), 2),
+        }
+
+        # Check 10: sentinel cross-cycle contamination
+        sentinels_out = []
+        for sentinel_cid, expected_year in SENTINEL_CAMPAIGNS:
+            timeline = self.finance_conn.execute(
+                """
+                SELECT week_start, weekly_receipts
+                FROM finance_timeline_weekly
+                WHERE finance_campaign_id = ?
+                """,
+                (sentinel_cid,),
+            ).fetchall()
+            if not timeline:
+                sentinels_out.append({
+                    "campaign_id": sentinel_cid,
+                    "expected_year": expected_year,
+                    "status": "not_in_db",
+                    "total_amount": 0.0,
+                    "in_year_pct": None,
+                    "year_min": None,
+                    "year_max": None,
+                })
+                continue
+            years = [int(t[0][:4]) for t in timeline]
+            amounts = [float(t[1] or 0) for t in timeline]
+            total = sum(amounts)
+            in_year_total = sum(a for y, a in zip(years, amounts) if y == expected_year)
+            in_year_pct = (in_year_total / total * 100) if total > 0 else 0.0
+            status = "ok" if in_year_pct >= SENTINEL_MIN_IN_YEAR_PCT else "warn"
+            sentinels_out.append({
+                "campaign_id": sentinel_cid,
+                "expected_year": expected_year,
+                "status": status,
+                "total_amount": round(total, 2),
+                "in_year_pct": round(in_year_pct, 1),
+                "year_min": min(years),
+                "year_max": max(years),
+            })
+            if status == "warn":
+                self.add_issue('finance_quality', 'warning', 'sentinel',
+                              f"{sentinel_cid} only {in_year_pct:.1f}% in target year",
+                              1)
+                warnings_count += 1
+                issues_found += 1
+        checks["sentinels"] = sentinels_out
+        checks["sentinel_threshold_pct"] = SENTINEL_MIN_IN_YEAR_PCT
+
+        # ===== Print console summary =====
+        print(f"Schema version: v2  (DB: {FINANCE_DB_PATH.name})")
+        print()
+        print(f"Coverage:")
+        print(f"  Matched campaigns: {matched_campaigns}")
+        print(f"  Distinct matched measures: {distinct_matched_measures}")
+        print(f"  Coverage of statewide 2000+: {coverage_pct:.1f}% "
+              f"({distinct_matched_measures} / {statewide_2000plus})")
+        print()
+        print(f"Dollar reconciliation:")
+        print(f"  Summary total: ${summary_total_receipts/1e9:.3f}B")
+        print(f"  Crosswalk total (matched): ${crosswalk_total/1e9:.3f}B")
+        print(f"  Dropped post-crosswalk: ${reconciliation_diff/1e9:.3f}B "
+              f"({reconciliation_pct_dropped:.1f}%)")
+        print()
+        print(f"Invariants:")
+        print(f"  Negative totals: {negative_totals} (expect 0)")
+        print(f"  top5_share out of range: {checks['summary_integrity']['top5_share_out_of_range']}")
+        print(f"  HHI out of range: {checks['summary_integrity']['hhi_out_of_range']}")
+        print(f"  Matched orphans (no measure_db_id): {orphan_count}")
+        print()
+        print(f"Quarantine reasons (largest dollar volume):")
+        for q in checks["quarantine_distribution"][:5]:
+            print(f"  {q['reason']:25s}  {q['row_count']:>7,} rows  ${q['total_amount']/1e6:>9.2f}M")
+        print()
+        print(f"Stance distribution (campaigns with N stances):")
+        for k in sorted(checks["stance_distribution"].keys()):
+            v = checks["stance_distribution"][k]
+            print(f"  {k}: {v}")
+        print()
+        print(f"Bucket A recoveries: {recovered_count} campaigns, "
+              f"${recovered_amount/1e6:.2f}M per crosswalk")
+        print()
+        print(f"Sentinels (>= {SENTINEL_MIN_IN_YEAR_PCT}% in expected year):")
+        for s in sentinels_out:
+            marker = "OK " if s["status"] == "ok" else ("MISS" if s["status"] == "not_in_db" else "WARN")
+            pct = f"{s['in_year_pct']:.1f}%" if s["in_year_pct"] is not None else "n/a"
+            print(f"  [{marker}] {s['campaign_id']:15s} expected={s['expected_year']}  "
+                  f"in-year={pct}  ${s['total_amount']/1e6:.2f}M")
+
+        # ===== Calculate score =====
+        # Heuristic: start at 100, deduct for invariant failures (each is a
+        # serious schema-drift signal), softer deduct for sentinel warnings.
+        score = 100.0
+        if negative_totals > 0:
+            score -= 15
+        score -= min(checks["summary_integrity"]["top5_share_out_of_range"], 10)
+        score -= min(checks["summary_integrity"]["hhi_out_of_range"], 10)
+        if orphan_count > 0:
+            score -= min(orphan_count * 5, 20)
+        sentinel_warns = sum(1 for s in sentinels_out if s["status"] == "warn")
+        score -= sentinel_warns * 5
+        score = max(0.0, score)
 
         self.scores.append(QualityScore(
             dimension='finance_quality',
-            score=round(max(score, 0), 2),
+            score=round(score, 2),
             weight=0.05,
             issues_count=issues_found,
-            critical_issues=0,
-            warnings=issues_found,
-            details=finance_checks
+            critical_issues=criticals_count,
+            warnings=warnings_count,
+            details=checks,
         ))
-
-        print(f"\nFinance Quality Score: {score:.1f}/100")
+        print()
+        print(f"Finance Quality Score: {score:.1f}/100")
         print()
 
     # =========================================================================
