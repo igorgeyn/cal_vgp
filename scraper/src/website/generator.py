@@ -11925,6 +11925,8 @@ class WebsiteGenerator:
             'DAVITA': 'DaVita',
             'FANDUEL': 'FanDuel',
             'DRAFTKINGS': 'DraftKings',
+            'DOORDASH': 'DoorDash',
+            'INSTACART': 'Instacart',
             'JPMORGAN': 'JPMorgan',
             'YOUTUBE': 'YouTube',
             'EBAY': 'eBay',
@@ -11938,9 +11940,13 @@ class WebsiteGenerator:
             if (personMatch) {{
                 name = personMatch[2] + ' ' + personMatch[1];
             }}
-            // Only title-case if input is fully ALL-CAPS — preserves nicely-
-            // cased entries like "California Teachers Association Issues PAC".
-            if (/[a-z]/.test(name)) return name;
+            // Two modes:
+            //  - ALL-CAPS input: full title-case + brand + acronym + connectives
+            //  - Mixed-case input: leave casing alone EXCEPT lowercase the
+            //    connective words that happen to be capitalized — fixes the
+            //    "California Hospitals Committee on Issues, Sponsored By
+            //    CAHHS" case where "By" should be "by" (Codex round-5 catch).
+            const isAllCaps = !/[a-z]/.test(name);
 
             const tokens = name.split(/(\\s+|[\\-/])/);
             const wordIdxs = [];
@@ -11959,15 +11965,24 @@ class WebsiteGenerator:
                 if (FINANCE_BRAND_DISPLAY[upperKey]) {{
                     return lead + FINANCE_BRAND_DISPLAY[upperKey] + trail;
                 }}
-                if (FINANCE_ACRONYMS.has(upperKey)) {{
+                // Acronym uppercasing only kicks in for ALL-CAPS inputs.
+                // Mixed-case inputs may include "PAC" / "CAHHS" / etc. already
+                // correctly capitalized in their original case — don't disturb.
+                if (isAllCaps && FINANCE_ACRONYMS.has(upperKey)) {{
                     return lead + core.toUpperCase() + trail;
                 }}
                 if (idx !== firstWordIdx && idx !== lastWordIdx
                     && FINANCE_LOWER_WORDS.has(core.toLowerCase())) {{
                     return lead + core.toLowerCase() + trail;
                 }}
-                const lower = core.toLowerCase();
-                return lead + lower.charAt(0).toUpperCase() + lower.slice(1) + trail;
+                if (isAllCaps) {{
+                    // Title-case the token for ALL-CAPS inputs.
+                    const lower = core.toLowerCase();
+                    return lead + lower.charAt(0).toUpperCase() + lower.slice(1) + trail;
+                }}
+                // Mixed-case input: leave the token alone (it's already
+                // properly cased by whatever produced it).
+                return tok;
             }}).join('');
         }}
 

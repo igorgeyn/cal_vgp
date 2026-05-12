@@ -14,7 +14,7 @@
     "county_count": 58,
     "year_min": 1911,
     "year_max": 2026,
-    "generated_at": "2026-05-12T11:50:06"
+    "generated_at": "2026-05-12T12:09:58"
   },
   "featured_findings": [
     {
@@ -4235,7 +4235,7 @@
         "better_funded_side": "support",
         "better_funded_won": false,
         "funding_ratio": 2.2,
-        "support_top5_share": 82.35,
+        "support_top5_share": 91.73,
         "oppose_top5_share": 61.25
       },
       {
@@ -4355,7 +4355,7 @@
         "better_funded_won": true,
         "funding_ratio": 2.4,
         "support_top5_share": 95.92,
-        "oppose_top5_share": 34.41
+        "oppose_top5_share": 38.59
       },
       {
         "finance_campaign_id": "PROP_56_2016",
@@ -4441,7 +4441,7 @@
         "better_funded_side": "support",
         "better_funded_won": false,
         "funding_ratio": 2.2,
-        "support_top5_share": 82.35,
+        "support_top5_share": 91.73,
         "oppose_top5_share": 61.25
       },
       {
@@ -4664,7 +4664,7 @@
         "better_funded_side": "support",
         "better_funded_won": false,
         "funding_ratio": 778.8,
-        "support_top5_share": 49.85,
+        "support_top5_share": 52.84,
         "oppose_top5_share": 63.17
       },
       {
@@ -4911,9 +4911,14 @@
         "n_campaigns": 11
       },
       {
-        "name": "DAVITA",
-        "total_amount": 63297812.66,
-        "n_campaigns": 1
+        "name": "DaVita",
+        "total_amount": 70577888.92,
+        "n_campaigns": 2
+      },
+      {
+        "name": "Charles T. Munger, Jr.",
+        "total_amount": 60168950.63,
+        "n_campaigns": 5
       },
       {
         "name": "AIDS HEALTHCARE FOUNDATION",
@@ -4931,13 +4936,13 @@
         "n_campaigns": 6
       },
       {
-        "name": "CONGRESSIONAL LEADERSHIP FUND",
-        "total_amount": 44332904.3,
-        "n_campaigns": 1
+        "name": "Pechanga Band of Luiseno Mission Indians",
+        "total_amount": 48442694.07,
+        "n_campaigns": 9
       },
       {
-        "name": "PECHANGA BAND OF LUISENO MISSION INDIANS",
-        "total_amount": 41067880.46,
+        "name": "CONGRESSIONAL LEADERSHIP FUND",
+        "total_amount": 44332904.3,
         "n_campaigns": 1
       },
       {
@@ -4959,11 +4964,6 @@
         "name": "DraftKings (Crown Gaming Inc)",
         "total_amount": 35044690.44,
         "n_campaigns": 2
-      },
-      {
-        "name": "CALIFORNIA ASSOCIATION OF REALTORS",
-        "total_amount": 30450000.0,
-        "n_campaigns": 2
       }
     ],
     "repeat_donors": [
@@ -4976,6 +4976,11 @@
         "name": "CALIFORNIA DEMOCRATIC PARTY",
         "total_amount": 5177545.08,
         "n_campaigns": 31
+      },
+      {
+        "name": "California Association of Realtors Issues Mobilization PAC",
+        "total_amount": 10951250.0,
+        "n_campaigns": 17
       },
       {
         "name": "CALIFORNIA HOSPITALS COMMITTEE ON ISSUES, SPONSORED BY CAHHS",
@@ -5013,18 +5018,13 @@
         "n_campaigns": 12
       },
       {
+        "name": "M. Quinn Delaney",
+        "total_amount": 6771000.0,
+        "n_campaigns": 12
+      },
+      {
         "name": "Philip Morris USA Inc",
         "total_amount": 78039559.0,
-        "n_campaigns": 11
-      },
-      {
-        "name": "MERRILL LYNCH",
-        "total_amount": 11101904.95,
-        "n_campaigns": 11
-      },
-      {
-        "name": "CALIFORNIA FEDERATION OF TEACHERS COPE PROP/BALLOT COMMITTEE",
-        "total_amount": 2081990.62,
         "n_campaigns": 11
       }
     ],
@@ -5056,7 +5056,7 @@
             "total_amount": 18842717.42
           },
           {
-            "name": "MAPLEBEAR INC., DBA INSTACART",
+            "name": "Instacart",
             "total_amount": 17689348.28
           },
           {
@@ -5182,7 +5182,7 @@
         ],
         "oppose_top_donors": [
           {
-            "name": "DAVITA",
+            "name": "DaVita",
             "total_amount": 63297812.66
           },
           {

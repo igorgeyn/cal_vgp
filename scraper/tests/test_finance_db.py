@@ -18,6 +18,7 @@ sys.path.insert(0, str(SCRAPER_ROOT))
 from src.finance.operations import FinanceDatabase  # noqa: E402
 from scripts.rebuild_finance_db import (  # noqa: E402
     _actual_election_year,
+    canonicalize_donor,
     recover_stance_from_committee,
 )
 
@@ -121,6 +122,129 @@ def insert_week(db, cid, stance, week_start, weekly, cumulative):
 # ---------------------------------------------------------------------------
 # _actual_election_year helper
 # ---------------------------------------------------------------------------
+
+# ---------------------------------------------------------------------------
+# canonicalize_donor — alias pattern expansion (Codex round-6 audit)
+# ---------------------------------------------------------------------------
+
+class TestDonorCanonicalizationDelaney:
+    """M. Quinn Delaney: 5 variants -> 1. Covers both LAST,FIRST-MIDDLE
+    and FIRST-MIDDLE-LAST orderings (Codex caution: no broad surname matching)."""
+
+    @pytest.mark.parametrize("variant", [
+        "DELANEY, M. QUINN",
+        "M. QUINN DELANEY",
+        "DELANEY, QUINN",
+        "DELANEY, MARY QUINN",
+        "DELANEY, M QUINN",
+    ])
+    def test_variant_canonicalizes(self, variant):
+        assert canonicalize_donor(variant) == "M. Quinn Delaney"
+
+    @pytest.mark.parametrize("other_delaney", [
+        "DELANEY, JOHN",
+        "DELANEY, MARGARET",
+        "DELANEY, ROBERT J",
+        "OTHER DELANEY FAMILY MEMBER",
+    ])
+    def test_other_delaneys_left_alone(self, other_delaney):
+        """Negative test (Codex caution): broad surname matches must not fire
+        on unrelated Delaneys."""
+        assert canonicalize_donor(other_delaney) != "M. Quinn Delaney"
+
+
+class TestDonorCanonicalizationDavita:
+    @pytest.mark.parametrize("variant", ["DAVITA", "DAVITA, INC", "DAVITA, INC."])
+    def test_davita_variants(self, variant):
+        assert canonicalize_donor(variant) == "DaVita"
+
+
+class TestDonorCanonicalizationPechanga:
+    @pytest.mark.parametrize("variant", [
+        "PECHANGA BAND OF LUISENO MISSION INDIANS",
+        "PECHANGA BAND OF LUISENO INDIANS",
+        "PECHANGA BAND OF MISSION INDIANS",
+    ])
+    def test_pechanga_variants(self, variant):
+        assert canonicalize_donor(variant) == "Pechanga Band of Luiseno Mission Indians"
+
+
+class TestDonorCanonicalizationMungerJr:
+    """Charles T. Munger Jr.: 4 unambiguous variants merge. Negative cases
+    cover (a) ambiguous form that could be Sr., (b) other Mungers (Molly,
+    Nancy, Wendy)."""
+
+    @pytest.mark.parametrize("variant", [
+        "MUNGER, JR., CHARLES THOMAS",
+        "MUNGER, JR., CHARLES T",
+        "CHARLES T. MUNGER, JR",
+        "MUNGER, JR., CHARLES",
+    ])
+    def test_jr_variants_merge(self, variant):
+        assert canonicalize_donor(variant) == "Charles T. Munger, Jr."
+
+    def test_ambiguous_no_jr_stays_distinct(self):
+        """MUNGER, CHARLES T has no JR anchor; could be Sr.
+        Conservative rule: leave distinct."""
+        assert canonicalize_donor("MUNGER, CHARLES T") != "Charles T. Munger, Jr."
+
+    @pytest.mark.parametrize("other_munger", [
+        "MUNGER, MOLLY",
+        "MUNGER, NANCY B",
+        "MUNGER, WENDY",
+    ])
+    def test_other_mungers_stay_distinct(self, other_munger):
+        """Different people — never collapse different individuals into one."""
+        assert canonicalize_donor(other_munger) != "Charles T. Munger, Jr."
+
+
+class TestDonorCanonicalizationCAR:
+    """California Association of Realtors Issues Mobilization PAC: 9 spelling
+    variants merge to one canonical. Parent CAR + National Realtors stay
+    distinct (legally separate entities)."""
+
+    @pytest.mark.parametrize("variant", [
+        "CALIFORNIA ASSOCIATION OF REALTORS ISSUES MOBILIZATION POLITICAL ACTION COMMITTEE (IMPAC)",
+        "CALIFORNIA ASSOCIATION OF REALTORS - ISSUES MOBILIZATION PAC",
+        "CALIFORNIA ASSOCIATION OF REALTORS ISSUES MOBILIZATION PAC",
+        "CALIFORNIA ASSOCIATION OF REALTORS, ISSUES MOBILIZATION POLITICAL ACTION COMMITTEE (IMPAC)",
+        "CALIFORNIA ASSOCIATION OF REALTORS ISSUES MOBILIZATION POLITICAL ACTION COMMITTEE",
+        "CALIFORNIA ASSOCIATION OF REALTORS- ISSUES MOBILIZATION PAC",
+        "CALIFORNIA ASSOCIATION OF REALTORS ISSUES MOBILIZATION PAC (IMPAC)",
+        "CA ASSN OF REALTORS ISSUES MOBILIZATION PAC",
+        "CA ASSOCIATION OF REALTORS ISSUES",
+    ])
+    def test_car_impac_variants_merge(self, variant):
+        assert canonicalize_donor(variant) == "California Association of Realtors Issues Mobilization PAC"
+
+    def test_parent_car_stays_distinct(self):
+        """Parent association is a separate legal entity from its PAC."""
+        result = canonicalize_donor("CALIFORNIA ASSOCIATION OF REALTORS")
+        assert result != "California Association of Realtors Issues Mobilization PAC"
+
+    def test_national_realtors_stays_distinct(self):
+        """National Association of Realtors is a different national entity."""
+        result = canonicalize_donor("NATIONAL ASSOCIATION OF REALTORS")
+        assert result != "California Association of Realtors Issues Mobilization PAC"
+
+
+class TestDonorCanonicalizationInstacart:
+    def test_maplebear_dba_canonicalizes(self):
+        assert canonicalize_donor("MAPLEBEAR INC., DBA INSTACART") == "Instacart"
+
+
+class TestDonorCanonicalizationConservativeBounds:
+    """End-to-end check that the patterns added in round 2 don't over-merge.
+    Codex-blessed scope: legal-entity-level only, no parent-org grouping."""
+
+    def test_seiu_locals_stay_distinct(self):
+        """SEIU Local 721 and SEIU Local 1021 are different bargaining units
+        — must NOT collapse to a generic 'SEIU' parent. Parent-org grouping
+        belongs in the donor-sector classification pass."""
+        result_721 = canonicalize_donor("SERVICE EMPLOYEES INTERNATIONAL UNION LOCAL 721 CTW, CLC ISSUES & INITIATIVES")
+        result_1021 = canonicalize_donor("SERVICE EMPLOYEES INTERNATIONAL UNION LOCAL 1021")
+        assert result_721 != result_1021
+
 
 # ---------------------------------------------------------------------------
 # recover_stance_from_committee — overrides + regex patterns

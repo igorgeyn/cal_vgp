@@ -134,6 +134,47 @@ DONOR_ALIAS_PATTERNS: list[tuple[re.Pattern, str]] = [
     # California Hospitals committee — long official name with parenthetical.
     (re.compile(r"^CALIFORNIA HOSPITALS COMMITTEE ON ISSUES.*\(CHCI\).*"),
      "California Hospitals Committee on Issues (CHCI)"),
+
+    # ---------------------------------------------------------------
+    # Round 2 additions (2026-05-12 audit; Codex-blessed):
+    # only legal-entity-level merges, no parent-org grouping. Each
+    # cluster verified against finance_top_donors before pattern was
+    # written. Anchored patterns; specific forms before general.
+    # ---------------------------------------------------------------
+
+    # M. Quinn Delaney — 5 variants of the same individual across 14
+    # campaigns. Covers both LAST,FIRST-MIDDLE and FIRST-MIDDLE-LAST
+    # orderings (Codex caution: don't broad-surname-match).
+    (re.compile(r"^(DELANEY,?\s+(M\.?|MARY)\s+QUINN|DELANEY,?\s+QUINN|M\.?\s+QUINN\s+DELANEY)$"),
+     "M. Quinn Delaney"),
+
+    # DaVita — bare brand vs corporate-suffix variant.
+    (re.compile(r"^DAVITA(,\s*INC)?$"),
+     "DaVita"),
+
+    # Pechanga Band of Luiseno Mission Indians — 3 historical name
+    # variants of the same tribal nation. Canonical = formal current.
+    (re.compile(r"^PECHANGA BAND OF (LUISENO MISSION|LUISENO|MISSION) INDIANS$"),
+     "Pechanga Band of Luiseno Mission Indians"),
+
+    # Charles T. Munger, Jr. — 4 unambiguous spelling variants of one
+    # person. The bare "MUNGER, CHARLES T" (no JR anchor) is left
+    # distinct because it could be Charles Munger Sr. Molly / Nancy /
+    # Wendy Munger stay as separate individuals.
+    (re.compile(r"^(MUNGER,?\s+JR\.?,?\s+CHARLES(\s+T\.?|\s+THOMAS)?|CHARLES\s+T\.?\s+MUNGER,?\s+JR\.?)$"),
+     "Charles T. Munger, Jr."),
+
+    # California Association of Realtors Issues Mobilization PAC — 9
+    # spelling/punctuation variants of the same PAC entity (separately
+    # registered from the parent CAR, which stays distinct). National
+    # Association of Realtors stays distinct (different national entity).
+    (re.compile(r"^(CALIFORNIA|CA)\s+(ASSOCIATION|ASSN)\s+OF\s+REALTORS[\s,\-]+ISSUES(.*)?$"),
+     "California Association of Realtors Issues Mobilization PAC"),
+
+    # Instacart — Maplebear Inc. is the legal parent doing business as
+    # Instacart (same company, two naming layers).
+    (re.compile(r"^MAPLEBEAR\s+INC\.?,?\s+DBA\s+INSTACART$"),
+     "Instacart"),
 ]
 
 

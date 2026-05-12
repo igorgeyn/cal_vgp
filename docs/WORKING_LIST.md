@@ -198,11 +198,24 @@ checks pass; Phase F manual checklist signed off via browser spot-check).
       Bumping MAX_YEAR_LOOKBACK to 3 for the PROP_54 case alone isn't
       worth the false-positive risk.
 
-- [ ] **Deeper donor canonicalization** + formatter edge cases. Known
-      variants: M. Quinn Delaney, SEIU/hospital, DAVITA, Pechanga, Munger,
-      CAR. Formatter polish: post-comma "Sponsored" lowercasing; expand
-      brand-display map beyond DaVita/FanDuel/DraftKings/JPMorgan/YouTube/
-      eBay.
+- [x] ~~**Deeper donor canonicalization + formatter edge cases.**~~
+      **DONE 2026-05-12.** Codex-blessed conservative scope: legal-entity
+      merges only, no parent-org grouping. Six clusters consolidated:
+      M. Quinn Delaney (5→1, $6.77M), DaVita (2→1, $70.58M), Pechanga
+      (3→1, $48.44M), Charles T. Munger Jr. (4→1, $60.17M with ambiguous
+      "MUNGER, CHARLES T" left distinct), CAR Issues Mobilization PAC
+      (9→1, $10.95M), Instacart/Maplebear (1→1, $17.69M). DoorDash +
+      Instacart added to frontend brand-display map. JS formatter
+      early-return removed so connective lowercasing fires on mixed-case
+      strings ("Committee, Sponsored By CAHHS" → "Committee, sponsored
+      by CAHHS"). 36 new parametrized tests including negative cases
+      (other Delaneys, Mungers, parent CAR + National Realtors stay
+      distinct, SEIU locals stay distinct). 75/75 finance tests pass.
+
+      **SEIU deferred** — the PROP_8_2018 UHW pair looks like a candidate
+      single-entity merge but dollar verification (whether the two
+      $11.387M strings are double-reported or genuinely distinct) needed
+      before touching. Punted to a future follow-up.
 
 - [x] ~~**Stance recovery**~~ **DONE 2026-05-12.** Item promoted from
       "residual 42 rows / $7K" to ~1,500 rows / $0.75M after matcher v2
