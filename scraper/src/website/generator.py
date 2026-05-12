@@ -898,7 +898,7 @@ class WebsiteGenerator:
 
                         <p class="finance-bridge">Money matters but isn&rsquo;t decisive: the better-funded side wins about 65% of the time and loses the other 35%. And this is the visible top of the iceberg &mdash; California&rsquo;s local ballot has tens of thousands of measures with no comparable donor data.</p>
 
-                        <p class="method-note">Method: per-(prop_num, election_year) aggregates from finance_statewide_v2.db, rebuilt 2026-05-04 with row-level date hygiene + exact-row dedupe + minimal donor alias normalization. The spending-arc chart offers two lenses: election-cycle (totals per measure&rsquo;s actual election year, the substantive frame for ballot-measure campaigns) and calendar-year (totals per Monday-of-week bucket of accepted weekly receipts, useful for cash-flow timing). The calendar view groups boundary weeks by their week-start year, so a transaction in the week of 2007-12-31 is attributed to 2007 even though it&rsquo;s for the 2008 cycle. Donor lists aggregate the per-campaign top-20 reports, not all transactions &mdash; a donor below the top-20 cutoff in every campaign won&rsquo;t appear here. Donor canonicalization is partial; some entities still appear under multiple legal-entity variants.</p>
+                        <p class="method-note">Method: per-(prop_num, election_year) aggregates from finance_statewide_v2.db, rebuilt 2026-05-04 with row-level date hygiene + exact-row dedupe + minimal donor alias normalization. The spending-arc chart offers two lenses: election-cycle (totals per measure&rsquo;s actual election year, the substantive frame for ballot-measure campaigns) and calendar-year (totals per Monday-of-week bucket of accepted weekly receipts, useful for cash-flow timing). The calendar view groups boundary weeks by their week-start year, so a transaction in the week of 2007-12-31 is attributed to 2007 even though it&rsquo;s for the 2008 cycle. Donor lists aggregate the per-campaign top-20 reports, not all transactions &mdash; a donor below the top-20 cutoff in every campaign won&rsquo;t appear here. Sector labels are hand-curated for prominent visible donors; unlabeled donors are not assigned a sector. Donor canonicalization is partial; some entities still appear under multiple legal-entity variants.</p>
                     </article>
 
                 <details class="insights-methodology insights-carousel-slide insights-anchor-target" id="insightsMethodologySection">
@@ -7694,8 +7694,13 @@ class WebsiteGenerator:
                 if (donors.length > 0) {{
                     html += '<div class="finance-donors-list"><h4>Top Donors</h4>';
                     donors.slice(0, 5).forEach(d => {{
+                        // Modal mirrors the Insights panel: donor name +
+                        // sector chip when curated. donor_type stays as a
+                        // separate field (individual / committee / etc.)
+                        // since it's a different concept from sector.
+                        const sectorChip = renderSectorChip(d.donor_sector);
                         html += '<div class="finance-donor-row">' +
-                            '<span class="finance-donor-name">' + escapeHtml(d.donor_name_canon) + '</span>' +
+                            '<span class="finance-donor-name">' + escapeHtml(d.donor_name_canon) + sectorChip + '</span>' +
                             '<span class="finance-donor-amount">' + formatDollars(d.total_amount) + '</span>' +
                             '<span class="finance-donor-type">' + escapeHtml(d.donor_type || '') + '</span>' +
                         '</div>';

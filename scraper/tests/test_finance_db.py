@@ -190,6 +190,44 @@ class TestDonorSectorLookup:
         assert get_donor_sector("San Manuel Band of Mission Indians") == "Tribal Gaming"
         assert get_donor_sector("FanDuel Sportsbook (Betfair Interactive US)") == "Commercial Gambling"
 
+    @pytest.mark.parametrize("raw_variant,expected_sector", [
+        # DaVita: raw variants merge via canonicalize_donor then classify
+        ("DAVITA", "Healthcare"),
+        ("DAVITA, INC", "Healthcare"),
+        ("DAVITA, INC.", "Healthcare"),
+        # Charles T. Munger, Jr. — multiple LAST,JR,FIRST and FIRST T LAST,JR
+        ("MUNGER, JR., CHARLES THOMAS", "Individual"),
+        ("MUNGER, JR., CHARLES T", "Individual"),
+        ("CHARLES T. MUNGER, JR", "Individual"),
+        # Pechanga — three historical naming variants
+        ("PECHANGA BAND OF LUISENO MISSION INDIANS", "Tribal Gaming"),
+        ("PECHANGA BAND OF LUISENO INDIANS", "Tribal Gaming"),
+        ("PECHANGA BAND OF MISSION INDIANS", "Tribal Gaming"),
+        # CAR IMPAC — spelling variants
+        ("CALIFORNIA ASSOCIATION OF REALTORS - ISSUES MOBILIZATION PAC", "Real Estate"),
+        ("CA ASSN OF REALTORS ISSUES MOBILIZATION PAC", "Real Estate"),
+        # Instacart — Maplebear DBA wrapper collapses to "Instacart"
+        ("MAPLEBEAR INC., DBA INSTACART", "Gig Economy"),
+        # M. Quinn Delaney — Individual after canonicalization
+        ("DELANEY, M. QUINN", "Individual"),
+        ("M. QUINN DELANEY", "Individual"),
+    ])
+    def test_canonicalize_then_classify_roundtrip(self, raw_variant, expected_sector):
+        """Defense in depth (Codex round-9 catch): the lookup module's keys
+        must match the *output* of canonicalize_donor, not raw CalAccess
+        names. This roundtrip test verifies the
+        canonicalize_donor(raw) → get_donor_sector(canon) pipeline works
+        for variants that go through the canonicalization step before
+        classification. Catches drift between the alias map and the
+        sector keys."""
+        canonical = canonicalize_donor(raw_variant)
+        sector = get_donor_sector(canonical)
+        assert sector == expected_sector, (
+            f"Roundtrip failed for {raw_variant!r}: "
+            f"canonicalize -> {canonical!r}, get_sector -> {sector!r}, "
+            f"expected {expected_sector!r}"
+        )
+
 
 # ---------------------------------------------------------------------------
 # Donor sector flows through aggregate_for_measure + get_top_donors
