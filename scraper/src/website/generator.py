@@ -3294,20 +3294,23 @@ class WebsiteGenerator:
             }
         }
 
-        /* Card Styles */
+        /* Card Styles — condensed layout (2026-05-12 redesign):
+         * description cut from normal cards, header is a 3-part grid
+         * (year / result / status), title clamped to 2 lines, thin result
+         * rail at the bottom. Featured/hero variants override the
+         * normal-card clamps to allow more content. */
         .measure-card {
             background: var(--bg-primary);
             border-radius: var(--radius);
-            padding: 1rem 1.1rem;
+            padding: 0.75rem 0.85rem;
             box-shadow: var(--shadow-sm);
             transition: all 0.2s ease;
             cursor: pointer;
             display: flex;
             flex-direction: column;
-            gap: 0.5rem;
+            gap: 0.38rem;
             border: 1px solid #E8E2D4;
-            min-height: 170px;
-            max-height: 350px;
+            min-height: 118px;
         }
 
         .measure-card:hover {
@@ -3320,6 +3323,8 @@ class WebsiteGenerator:
             border: 2px solid var(--primary);
             box-shadow: 0 4px 12px rgba(201, 162, 60, 0.15);
             background: linear-gradient(135deg, var(--bg-primary) 0%, rgba(201, 162, 60, 0.03) 100%);
+            min-height: auto;
+            padding: 1rem 1.1rem;
         }
 
         .measure-card.hero:hover {
@@ -3329,39 +3334,42 @@ class WebsiteGenerator:
 
         .measure-card.featured {
             border-left: 4px solid var(--primary);
+            min-height: auto;
         }
-        
+
         .card-header {
-            display: flex;
+            display: grid;
+            grid-template-columns: auto 1fr auto;
             align-items: center;
-            justify-content: space-between;
-            margin-bottom: 0.75rem;
+            gap: 0.45rem;
+            margin-bottom: 0.15rem;
         }
 
         .card-year {
-            font-size: 0.9rem;
+            font-size: 0.78rem;
             font-weight: 600;
             color: var(--text-secondary);
-        }
-        
-        .badge {
-            padding: 0.375rem 0.75rem;
-            border-radius: var(--radius-sm);
-            font-size: 0.75rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.025em;
-            display: inline-flex;
-            align-items: center;
-            gap: 0.375rem;
+            letter-spacing: 0.01em;
         }
 
-        .badge::before {
-            content: '';
-            width: 6px;
-            height: 6px;
-            border-radius: 50%;
-            display: inline-block;
+        .card-result {
+            font-size: 0.78rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            text-align: center;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .badge {
+            padding: 0.18rem 0.42rem;
+            border-radius: 999px;
+            font-size: 0.68rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.02em;
+            display: inline-flex;
+            align-items: center;
+            white-space: nowrap;
         }
 
         .badge-passed {
@@ -3370,28 +3378,16 @@ class WebsiteGenerator:
             border: 1px solid rgba(58, 140, 40, 0.25);
         }
 
-        .badge-passed::before {
-            background: #2D6A1E;
-        }
-
         .badge-failed {
             background: rgba(192, 57, 43, 0.12);
             color: #A0302A;
             border: 1px solid rgba(192, 57, 43, 0.25);
         }
 
-        .badge-failed::before {
-            background: #C0392B;
-        }
-
         .badge-pending {
             background: rgba(201, 162, 60, 0.15);
             color: #8A6D14;
             border: 1px solid rgba(201, 162, 60, 0.3);
-        }
-
-        .badge-pending::before {
-            background: #C9A23C;
         }
 
         .badge-neutral {
@@ -3414,16 +3410,22 @@ class WebsiteGenerator:
         }
 
         .card-title {
-            font-size: 1.0625rem;
-            font-weight: 600;
+            font-size: 0.92rem;
+            font-weight: 650;
             color: var(--text-primary);
-            line-height: 1.5;
-            margin-bottom: 0.25rem;
+            line-height: 1.28;
+            margin: 0 0 0.1rem 0;
             display: -webkit-box;
-            -webkit-line-clamp: 4;
+            -webkit-line-clamp: 2;
             -webkit-box-orient: vertical;
             overflow: hidden;
             text-overflow: ellipsis;
+        }
+        .measure-card.featured .card-title,
+        .measure-card.hero .card-title {
+            -webkit-line-clamp: 3;
+            font-size: 1.0625rem;
+            line-height: 1.4;
         }
 
         .card-description {
@@ -3483,17 +3485,21 @@ class WebsiteGenerator:
         }
         
         .card-meta {
-            font-size: 0.8rem;
+            font-size: 0.72rem;
             color: var(--text-tertiary);
-            margin-top: 0.75rem;
-        }
-        
-        .vote-bar {
-            height: 6px;
-            background: rgba(0, 0, 0, 0.08);
-            border-radius: 3px;
+            line-height: 1.25;
+            margin-top: 0.05rem;
+            white-space: nowrap;
             overflow: hidden;
-            margin: 0.5rem 0;
+            text-overflow: ellipsis;
+        }
+
+        .vote-bar {
+            height: 3px;
+            background: var(--border-light);
+            border-radius: 2px;
+            overflow: hidden;
+            margin: 0.25rem 0 0;
             position: relative;
         }
 
@@ -3501,18 +3507,38 @@ class WebsiteGenerator:
             height: 100%;
             background: linear-gradient(90deg, var(--success), #34a853);
             transition: width 0.3s ease;
-            border-radius: 3px;
+            border-radius: 2px;
+        }
+        /* Hero / featured cards keep the heavier vote bar for emphasis. */
+        .measure-card.hero .vote-bar,
+        .measure-card.featured .vote-bar {
+            height: 6px;
+            margin: 0.5rem 0;
         }
 
-        .measure-card:hover .vote-bar-fill {
-            box-shadow: 0 0 8px rgba(30, 142, 62, 0.4);
-        }
-        
-        /* Grid View */
+        /* Grid View — denser columns (Codex redesign 2026-05-12). */
         .results-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
             gap: 0.75rem;
+        }
+        @media (max-width: 1279px) and (min-width: 900px) {
+            .results-grid {
+                grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+            }
+        }
+        @media (max-width: 899px) and (min-width: 640px) {
+            .results-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+        @media (max-width: 639px) {
+            .results-grid {
+                grid-template-columns: 1fr;
+            }
+            .measure-card {
+                padding: 0.7rem;
+            }
         }
         
         /* List View */
@@ -12403,43 +12429,12 @@ class WebsiteGenerator:
             const passed = measure.passed;
             const isPending = isPendingMeasure(measure);
 
-            // Pending measures get special status display
+            // Pending measures get special status display.
+            // Compact-card redesign (2026-05-12): drop the leading
+            // checkmark / cross from the badge label since the colored
+            // pill itself carries the outcome signal.
             const passedClass = isPending ? 'pending' : (passed === 1 ? 'passed' : passed === 0 ? 'failed' : 'pending');
-            const passedText = isPending ? '⏳ Upcoming' : (passed === 1 ? '✓ Passed' : passed === 0 ? '✗ Failed' : '• Pending');
-
-            // Get summary/description - prioritize summary fields
-            let summary = '';
-
-            // Priority order: summary_text > ballot_question > description > original_title
-            // Skip AI refusals (using global isAiRefusal function)
-            if (measure.summary_text && measure.summary_text.length > 50 && !isAiRefusal(measure.summary_text) &&
-                !(isPending && isMetadataSummary(measure.summary_text))) {{
-                summary = measure.summary_text;
-            }} else if (measure.ballot_question && measure.ballot_question.length > 50) {{
-                summary = measure.ballot_question;
-            }} else if (measure.description && !(isPending && isMetadataSummary(measure.description))) {{
-                summary = measure.description;
-            }} else if (measure.generated_title && measure.original_title) {{
-                summary = measure.original_title;
-            }}
-
-            // For pending measures, show historical context if available
-            if (isPending && measure.historical_context) {{
-                const ctx = measure.historical_context;
-                if (!summary) {{
-                    summary = `California has voted on ${{ctx.total_similar.toLocaleString()}} similar ${{ctx.matched_topic.toLowerCase()}} measures since ${{ctx.year_range.split('-')[0]}}. They passed ${{ctx.pass_rate}}% of the time with a median YES vote of ${{ctx.median_yes}}%.`;
-                }}
-            }} else if (isPending && !summary) {{
-                summary = 'Full measure details will be available closer to the election. Check back for official language, fiscal analysis, and voter guide information.';
-            }}
-
-            // Truncate summary for card preview (full text available in modal)
-            const maxLength = 200;
-            const truncatedSummary = summary.length > maxLength ? summary.substring(0, maxLength) + '...' : summary;
-
-            const descriptionHtml = truncatedSummary ? `
-                <div class="card-summary">${{escapeHtml(truncatedSummary)}}</div>
-            ` : '';
+            const passedText = isPending ? 'Upcoming' : (passed === 1 ? 'Passed' : passed === 0 ? 'Failed' : 'Pending');
 
             // Hide vote bar for pending measures (no vote data yet)
             const percentYes = measure.percent_yes;
@@ -12449,18 +12444,53 @@ class WebsiteGenerator:
                 </div>
             ` : '';
 
+            // Result text promoted into the header. Empty for pending measures.
+            const resultText = (percentYes != null && !isPending)
+                ? `${{Math.round(percentYes)}}% Yes`
+                : '';
+
             const topic = measure.topic_primary || measure.category_topic || '';
             const source = measure.data_source || measure.source || '';
 
-            // Determine card class - add pending-measure class for 2026+ measures
+            // Determine card class. Hero/featured variants keep summaries
+            // and looser title clamps via CSS overrides.
             let cardClass = isHero ? 'hero' : (featured ? 'featured' : '');
             if (measure.is_landmark) cardClass += ' landmark';
             if (isPending) cardClass += ' pending-measure';
 
-            // Build meta items - only show what's available, cleaner format
+            // Featured/hero cards keep the summary preview. Normal cards
+            // cut the description entirely — the modal is the right place
+            // for full text per the Codex redesign plan.
+            let descriptionHtml = '';
+            if (featured || isHero) {{
+                let summary = '';
+                if (measure.summary_text && measure.summary_text.length > 50 && !isAiRefusal(measure.summary_text) &&
+                    !(isPending && isMetadataSummary(measure.summary_text))) {{
+                    summary = measure.summary_text;
+                }} else if (measure.ballot_question && measure.ballot_question.length > 50) {{
+                    summary = measure.ballot_question;
+                }} else if (measure.description && !(isPending && isMetadataSummary(measure.description))) {{
+                    summary = measure.description;
+                }} else if (measure.generated_title && measure.original_title) {{
+                    summary = measure.original_title;
+                }}
+                if (isPending && measure.historical_context && !summary) {{
+                    const ctx = measure.historical_context;
+                    summary = `California has voted on ${{ctx.total_similar.toLocaleString()}} similar ${{ctx.matched_topic.toLowerCase()}} measures since ${{ctx.year_range.split('-')[0]}}. They passed ${{ctx.pass_rate}}% of the time with a median YES vote of ${{ctx.median_yes}}%.`;
+                }} else if (isPending && !summary) {{
+                    summary = 'Full measure details will be available closer to the election. Check back for official language, fiscal analysis, and voter guide information.';
+                }}
+                const maxLength = 200;
+                const truncatedSummary = summary.length > maxLength ? summary.substring(0, maxLength) + '...' : summary;
+                if (truncatedSummary) {{
+                    descriptionHtml = `<div class="card-summary">${{escapeHtml(truncatedSummary)}}</div>`;
+                }}
+            }}
+
+            // Build meta items — topic + source + landmark flag. % Yes is
+            // now promoted into the header; do NOT duplicate it here.
             const metaItems = [];
             if (measure.is_landmark) metaItems.push('⭐ Historic');
-            if (percentYes != null && !isPending) metaItems.push(`${{Math.round(percentYes)}}% Yes`);
             if (topic) metaItems.push(escapeHtml(topic));
             if (source) metaItems.push(escapeHtml(source));
             if (isPending && !metaItems.length) metaItems.push('Election pending');
@@ -12472,12 +12502,13 @@ class WebsiteGenerator:
                 <div class="measure-card ${{cardClass}}" data-midx="${{mIdx}}" onclick="viewMeasure(allMeasures[this.dataset.midx])">
                     <div class="card-header">
                         <span class="card-year">${{year}}</span>
+                        <span class="card-result">${{resultText}}</span>
                         <span class="badge badge-${{passedClass}}">${{passedText}}</span>
                     </div>
                     <h3 class="card-title">${{escapeHtml(displayTitle)}}</h3>
                     ${{descriptionHtml}}
-                    ${{voteBar}}
                     <div class="card-meta">${{metaItems.join(' · ')}}</div>
+                    ${{voteBar}}
                 </div>
             `;
         }}
