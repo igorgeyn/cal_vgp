@@ -199,11 +199,16 @@ def extract_prop_mentions(filer_name: str) -> list[FilerNameMention]:
 
 @dataclass
 class AttributionResult:
-    finance_campaign_id: Optional[str] = None
+    finance_campaign_id: Optional[str] = None  # canonical (post-collapse)
     measure_db_id: Optional[int] = None
     stance: Optional[str] = None
     attribution_method: str = "failed"
     quarantine_reason: Optional[str] = None
+    # Codex round-8: preserve which crosswalk row matched before
+    # canonicalization. Equals finance_campaign_id when no remap
+    # happened. Differs when a cover sheet hit an alias (e.g.
+    # PROP_79_2006) and we collapsed to the canonical (PROP_79_2005).
+    source_crosswalk_campaign_id: Optional[str] = None
     debug: list[str] = field(default_factory=list)
 
     @property
@@ -229,13 +234,58 @@ class AttributionResolver:
 
     def __init__(self, crosswalk: dict[tuple[str, int],
                                        tuple[str, int]],
-                 manual_overrides: Optional[dict] = None) -> None:
+                 manual_overrides: Optional[dict] = None,
+                 match_via_by_cid: Optional[dict[str, str]] = None) -> None:
         self.crosswalk = crosswalk
-        self.props_by_num: dict[str, list[tuple[int, str, int]]] = {}
+        self.match_via_by_cid = match_via_by_cid or {}
+
+        # Codex round-8: canonical choice principled rule.
+        # For each measure_db_id with multiple crosswalk rows, the
+        # canonical is the one whose match_via does NOT start with
+        # 'year_offset_'. Year-offset rows are matcher-v2 late-filing
+        # aliases of the actual election-year row. If match_via is
+        # not available, fall back to lowest election_year (the actual
+        # election year is always earlier than a year_offset alias).
+        self.canonical_by_mdb: dict[int, tuple[int, str]] = {}
+        rows_by_mdb: dict[int, list[tuple[int, str]]] = {}
         for (prop_num, year), (cid, mdb) in crosswalk.items():
-            self.props_by_num.setdefault(prop_num, []).append((year, cid, mdb))
+            rows_by_mdb.setdefault(mdb, []).append((year, cid))
+        for mdb, rows in rows_by_mdb.items():
+            non_offset = [
+                (y, c) for (y, c) in rows
+                if not (self.match_via_by_cid.get(c) or "").startswith(
+                    "year_offset_"
+                )
+            ]
+            if len(non_offset) == 1:
+                self.canonical_by_mdb[mdb] = non_offset[0]
+            elif len(non_offset) > 1:
+                # Multiple non-offset rows: pick lowest year + log
+                non_offset.sort(key=lambda r: r[0])
+                self.canonical_by_mdb[mdb] = non_offset[0]
+            else:
+                # No match_via info; fall back to lowest year
+                rows.sort(key=lambda r: r[0])
+                self.canonical_by_mdb[mdb] = rows[0]
+
+        # props_by_num: distinct measures only (one entry per
+        # measure_db_id, using the canonical). Genuine prop-number
+        # reuse (Prop 14 = 2004 vs 2020 stem cell with different
+        # measure_db_ids) stays multi-candidate.
+        self.props_by_num: dict[str, list[tuple[int, str, int]]] = {}
+        seen_mdbs_per_prop: dict[str, set[int]] = {}
+        for (prop_num, year), (cid, mdb) in crosswalk.items():
+            seen = seen_mdbs_per_prop.setdefault(prop_num, set())
+            if mdb in seen:
+                continue
+            seen.add(mdb)
+            canonical_year, canonical_cid = self.canonical_by_mdb[mdb]
+            self.props_by_num.setdefault(prop_num, []).append(
+                (canonical_year, canonical_cid, mdb)
+            )
         for entries in self.props_by_num.values():
             entries.sort(key=lambda e: e[0])
+
         self.manual_overrides = manual_overrides or {}
 
     # -- Cover-sheet path -------------------------------------------
@@ -258,8 +308,16 @@ class AttributionResolver:
             )
         cid, mdb = hit
         stance = _normalize_sup_opp(cover_sup_opp_cd)
+        # Codex round-8: canonicalize even when cover-sheet hits an
+        # alias row directly. If the matched cid is a year_offset
+        # alias (e.g. PROP_79_2006), remap to canonical PROP_79_2005.
+        # Preserve the matched cid in source_crosswalk_campaign_id so
+        # downstream audit can see what the cover sheet actually said.
+        canonical = self.canonical_by_mdb.get(mdb)
+        canonical_cid = canonical[1] if canonical else cid
         return AttributionResult(
-            finance_campaign_id=cid,
+            finance_campaign_id=canonical_cid,
+            source_crosswalk_campaign_id=cid,
             measure_db_id=mdb,
             stance=stance,
             attribution_method="cover_sheet",
@@ -390,6 +448,7 @@ class AttributionResolver:
                 break
         return AttributionResult(
             finance_campaign_id=cid,
+            source_crosswalk_campaign_id=cid,
             measure_db_id=mdb,
             stance=stance,
             attribution_method="manual_override",
@@ -417,6 +476,7 @@ class AttributionResolver:
                 year, cid, mdb = candidates[0]
                 return AttributionResult(
                     finance_campaign_id=cid,
+                    source_crosswalk_campaign_id=cid,
                     measure_db_id=mdb,
                     stance=stance,
                     attribution_method=method_name,
@@ -446,6 +506,7 @@ class AttributionResolver:
                 year, cid, mdb = plausible[0]
                 return AttributionResult(
                     finance_campaign_id=cid,
+                    source_crosswalk_campaign_id=cid,
                     measure_db_id=mdb,
                     stance=stance,
                     attribution_method=method_name,
@@ -482,6 +543,7 @@ class AttributionResolver:
         if within_strict:
             return AttributionResult(
                 finance_campaign_id=cid,
+                source_crosswalk_campaign_id=cid,
                 measure_db_id=mdb,
                 stance=stance,
                 attribution_method=method_name,
@@ -497,6 +559,7 @@ class AttributionResolver:
                 recovery_method = f"{method_name}_winddown"
             return AttributionResult(
                 finance_campaign_id=cid,
+                source_crosswalk_campaign_id=cid,
                 measure_db_id=mdb,
                 stance=stance,
                 attribution_method=recovery_method,

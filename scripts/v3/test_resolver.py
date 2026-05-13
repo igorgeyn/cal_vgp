@@ -23,12 +23,19 @@ def main() -> int:
         ("39", 2012): ("PROP_39_2012", 5002),
         ("22", 2020): ("PROP_22_2020", 6001),
         ("27", 2022): ("PROP_27_2022", 7001),
-        # 2005 Schwarzenegger reform props (single-candidate)
+        # 2005 Schwarzenegger reform props with matcher-v2 collision
+        # pairs (same measure_db_id, year-offset alias from CalAccess
+        # late filings labeled as 2006)
         ("74", 2005): ("PROP_74_2005", 7401),
+        ("74", 2006): ("PROP_74_2006", 7401),  # collision: same mdb
         ("75", 2005): ("PROP_75_2005", 7501),
+        ("75", 2006): ("PROP_75_2006", 7501),
         ("76", 2005): ("PROP_76_2005", 7601),
+        ("76", 2006): ("PROP_76_2006", 7601),
         ("78", 2005): ("PROP_78_2005", 8001),
+        ("78", 2006): ("PROP_78_2006", 8001),
         ("79", 2005): ("PROP_79_2005", 7901),
+        ("79", 2006): ("PROP_79_2006", 7901),
         # Legacy single-candidate with 1978 year (Howard Jarvis test)
         ("13", 1978): ("PROP_13_1978", 9001),
         ("38", 2000): ("PROP_38_2000", 10001),
@@ -41,7 +48,16 @@ def main() -> int:
     overrides = {
         "hold politicians accountable": [("PROP_54_2016", "support")],
     }
-    R = resolver.AttributionResolver(crosswalk, overrides)
+    # Match_via signals: year_offset rows are aliases of canonical
+    match_via = {
+        "PROP_74_2006": "year_offset_1_title_short",
+        "PROP_75_2006": "year_offset_1_title_short",
+        "PROP_76_2006": "year_offset_1_title_short",
+        "PROP_78_2006": "year_offset_1_title_short",
+        "PROP_79_2006": "year_offset_1_title_short",
+    }
+    R = resolver.AttributionResolver(crosswalk, overrides,
+                                     match_via_by_cid=match_via)
 
     def check(label, predicate, *args):
         try:
@@ -244,6 +260,55 @@ def main() -> int:
     m = resolver.extract_prop_mentions("Citizens for Proposition 4")
     check("'for Proposition 4' -> support, 4",
           lambda: any(x.prop_num == "4" and x.stance == "support" for x in m))
+
+    # --- Collision-pair collapse (Codex round-7 root cause finding) ---
+    print()
+    print("=== Collision-pair collapse ===")
+    # Crosswalk has PROP_79_2005 + PROP_79_2006 with same mdb=7901.
+    # Without collapse: resolver sees 2 candidates and applies strict
+    # +/- 1 logic, which fails when hints span both years.
+    # With collapse: only PROP_79_2005 remains (lowest year), and the
+    # single-candidate wind-down rule fires.
+    r = R.resolve_from_filer_name(
+        "NO ON 79 - Californians Against Wrong Prescription",
+        [date(2005, 11, 8), date(2007, 12, 31)],  # elect + thru dates
+    )
+    check("NO ON 79 + [2005-11, 2007-12] -> PROP_79_2005 not ambiguous "
+          "(collision pair collapsed)",
+          lambda: r.resolved
+                 and r.finance_campaign_id == "PROP_79_2005"
+                 and r.stance == "oppose")
+
+    # Genuine reuse (Prop 14 = different measure_db_ids in 2004 vs 2020)
+    # should still be multi-candidate
+    r = R.resolve_from_filer_name(
+        "YES ON 14",
+        [date(2020, 9, 1), date(2004, 9, 1)],  # both years as hints
+    )
+    check("YES ON 14 + [2020, 2004] -> ambiguous_year (genuine reuse "
+          "stays multi-candidate)",
+          lambda: r.quarantine_reason == "ambiguous_year")
+
+    # --- Cover-sheet canonicalization (Codex round-8 fix) ---
+    print()
+    print("=== Cover-sheet canonicalization ===")
+    # Cover sheet hits the alias PROP_79_2006 directly. Should remap
+    # to canonical PROP_79_2005 with source_crosswalk_campaign_id
+    # preserving the original match.
+    r = R.resolve_from_cover_sheet("79", 2006, "O")
+    check("Cover_sheet (79, 2006, O) -> canonical PROP_79_2005, "
+          "source=PROP_79_2006",
+          lambda: r.resolved
+                 and r.finance_campaign_id == "PROP_79_2005"
+                 and r.source_crosswalk_campaign_id == "PROP_79_2006"
+                 and r.stance == "oppose")
+
+    # Cover sheet hits canonical directly — source equals canonical
+    r = R.resolve_from_cover_sheet("79", 2005, "O")
+    check("Cover_sheet (79, 2005, O) -> PROP_79_2005, source=PROP_79_2005",
+          lambda: r.resolved
+                 and r.finance_campaign_id == "PROP_79_2005"
+                 and r.source_crosswalk_campaign_id == "PROP_79_2005")
 
     # --- Manual override ---
     print()

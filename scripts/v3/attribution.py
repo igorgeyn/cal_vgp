@@ -61,19 +61,29 @@ class FilingAttribution:
     debug: list[str] = field(default_factory=list)
 
 
-def _load_v2_crosswalk(v2_db: Path) -> dict[tuple[str, int],
-                                            tuple[str, int]]:
+def _load_v2_crosswalk(v2_db: Path) -> tuple[
+    dict[tuple[str, int], tuple[str, int]],
+    dict[str, str],
+]:
+    """Returns (crosswalk, match_via_by_cid).
+
+    Codex round-8: match_via lets the resolver pick the canonical
+    entry in collision-pair groups (the non-year_offset_* row).
+    """
     crosswalk: dict[tuple[str, int], tuple[str, int]] = {}
+    match_via_by_cid: dict[str, str] = {}
     with sqlite3.connect(str(v2_db)) as v2:
         for r in v2.execute(
             "SELECT prop_num, election_year, finance_campaign_id, "
-            "       measure_db_id "
+            "       measure_db_id, match_via "
             "FROM finance_campaign WHERE status = 'matched'"
         ):
-            prop_num, year, cid, mdb = r
+            prop_num, year, cid, mdb, match_via = r
             if year and mdb is not None:
                 crosswalk[(prop_num, int(year))] = (cid, int(mdb))
-    return crosswalk
+                if match_via:
+                    match_via_by_cid[cid] = match_via
+    return crosswalk, match_via_by_cid
 
 
 def _load_manual_overrides(path: Optional[Path]) -> dict:
@@ -115,15 +125,17 @@ def build_filing_attribution_index(
     *,
     verbose: bool = True,
 ) -> dict[str, FilingAttribution]:
-    crosswalk = _load_v2_crosswalk(v2_db)
+    crosswalk, match_via_by_cid = _load_v2_crosswalk(v2_db)
     if verbose:
-        print(f"v2 crosswalk: {len(crosswalk):,} (prop_num, year) entries")
+        print(f"v2 crosswalk: {len(crosswalk):,} (prop_num, year) entries; "
+              f"match_via loaded for {len(match_via_by_cid):,}")
 
     manual_overrides = _load_manual_overrides(manual_overrides_path)
     if manual_overrides and verbose:
         print(f"Manual overrides loaded: {len(manual_overrides)}")
 
-    R = resolver.AttributionResolver(crosswalk, manual_overrides)
+    R = resolver.AttributionResolver(crosswalk, manual_overrides,
+                                     match_via_by_cid=match_via_by_cid)
 
     cvr_path = dump_dir / "CVR_CAMPAIGN_DISCLOSURE_CD.TSV"
     if not cvr_path.exists():
@@ -263,8 +275,15 @@ def _apply_result(att: FilingAttribution,
 
 def _pick_best_failure(*results: resolver.AttributionResult
                        ) -> resolver.AttributionResult:
-    """Pick the most informative failure for diagnostic purposes."""
+    """Pick the most informative failure for diagnostic purposes.
+
+    Codex round-8: single_candidate_stale_out_of_window is added at
+    priority 10 so legacy-committee exclusions (PROTECT PROP. 13 in
+    2026) surface as stale rather than collapsing to less precise
+    reasons.
+    """
     priority = {
+        "single_candidate_stale_out_of_window": 10,
         "no_campaign_match": 10,
         "ambiguous_year": 9,
         "ambiguous_multi_prop": 8,
