@@ -1,0 +1,459 @@
+"""Conservative attribution resolver for v3 finance ingest (Codex round-6).
+
+A row in CAL-ACCESS (RCPT_CD / LOAN_CD / EXPN_CD / S496_CD / S497_CD)
+resolves to a (finance_campaign_id, stance) pair via a sequence of
+attribution methods, in order of preference:
+
+  cover_sheet              -- BAL_NUM / BAL_NAME on cover sheet
+  row_fields               -- BAL_NUM / SUP_OPP_CD on the line item
+  filer_name_explicit      -- single-prop committee name like
+                              "YES ON 14: CALIFORNIANS FOR..."
+  filer_name_prop_stance_pair -- multi-prop name with per-prop stance
+                              like "NO ON 30 / YES ON 32"; usable only
+                              when row-level BAL/SUP fields can pick
+                              which prop the line belongs to
+  manual_override          -- curated table for names with no prop
+                              number, e.g. "HOLD POLITICIANS
+                              ACCOUNTABLE", "Stop the Republican
+                              Recall of Governor Newsom"
+
+Quarantine reasons for un-resolvable rows:
+
+  no_cover_sheet            -- cover sheet absent (LOAN_CD / RCPT_CD /
+                               etc., filing not in CVR)
+  no_campaign_match         -- prop_num + year extracted but no v2
+                               crosswalk entry
+  bad_prop_or_year          -- couldn't extract prop_num + year at all
+  ambiguous_multi_prop      -- 2+ distinct props named; no row-level
+                               disambiguation
+  ambiguous_year            -- prop number known but multiple plausible
+                               election years (California reuses prop
+                               numbers; date evidence didn't pick one)
+  unknown_stance            -- prop + year resolved but stance unknown
+                               and no recovery pattern matched
+  filer_name_no_prop        -- filer name has no recognizable prop
+                               reference and no manual override
+
+The resolver returns a structured AttributionResult that callers
+attach to finance_flow_v3 rows. attribution_method on the row records
+which path produced the result.
+
+Design rule (Codex round-6): automatic fallback requires exactly one
+prop mention OR one prop-specific stance pair, plus exactly one
+plausible crosswalk campaign after date scoring. Anything else is
+quarantine or manual override.
+"""
+from __future__ import annotations
+
+import re
+from dataclasses import dataclass, field
+from datetime import date
+from pathlib import Path
+from typing import Iterable, Optional
+
+
+# Safe automatic patterns for filer-name prop extraction. Each pattern
+# yields (prop_num, stance_or_None). Order matters: more specific
+# patterns first.
+_FILER_NAME_PATTERNS: list[tuple[re.Pattern[str], Optional[str]]] = [
+    # "VOTE YES ON ..." / "VOTE NO ON ..."
+    (re.compile(r"\bVOTE\s+YES\s+ON\s+(?:PROP(?:\.|OSITION)?\s+)?(\d+[A-Z]?)\b",
+                re.IGNORECASE), "support"),
+    (re.compile(r"\bVOTE\s+NO\s+ON\s+(?:PROP(?:\.|OSITION)?\s+)?(\d+[A-Z]?)\b",
+                re.IGNORECASE), "oppose"),
+    # "YES ON PROP ..." / "NO ON PROP ..."
+    (re.compile(r"\bYES\s+ON\s+PROP(?:\.|OSITION)?\s+(\d+[A-Z]?)\b",
+                re.IGNORECASE), "support"),
+    (re.compile(r"\bNO\s+ON\s+PROP(?:\.|OSITION)?\s+(\d+[A-Z]?)\b",
+                re.IGNORECASE), "oppose"),
+    # Plain "YES ON N" / "NO ON N"
+    (re.compile(r"\bYES\s+ON\s+(\d+[A-Z]?)\b", re.IGNORECASE), "support"),
+    (re.compile(r"\bNO\s+ON\s+(\d+[A-Z]?)\b", re.IGNORECASE), "oppose"),
+    # "PROP 38 YES" / "PROP38YES.COM"
+    (re.compile(r"\bPROP\.?\s*(\d+[A-Z]?)\s*YES\b", re.IGNORECASE), "support"),
+    (re.compile(r"\bPROP\.?\s*(\d+[A-Z]?)\s*NO\b", re.IGNORECASE), "oppose"),
+    (re.compile(r"\bPROP(\d+[A-Z]?)YES\b", re.IGNORECASE), "support"),
+    (re.compile(r"\bPROP(\d+[A-Z]?)NO\b", re.IGNORECASE), "oppose"),
+    # Bare prop reference, no stance. Last so stance-bearing patterns
+    # match first.
+    (re.compile(r"\bPROP(?:\.|OSITION)?\s+(\d+[A-Z]?)\b",
+                re.IGNORECASE), None),
+]
+
+
+@dataclass
+class FilerNameMention:
+    """One (prop_num, stance) extraction from a filer name."""
+    prop_num: str
+    stance: Optional[str]  # 'support' | 'oppose' | None
+    matched_text: str
+
+
+def extract_prop_mentions(filer_name: str) -> list[FilerNameMention]:
+    """Return all (prop_num, stance) mentions in the filer name.
+
+    Conservative: only matches explicit prop / yes / no patterns. Does
+    not extract bare numbers, years, district numbers, or "$2 billion"
+    type noise. Returns empty list if no prop reference is found.
+    """
+    if not filer_name:
+        return []
+    mentions: list[FilerNameMention] = []
+    seen: set[tuple[str, Optional[str]]] = set()
+    for pattern, stance in _FILER_NAME_PATTERNS:
+        for m in pattern.finditer(filer_name):
+            prop = m.group(1).upper()
+            # Don't merge stance=None matches with stance-bearing ones;
+            # a name might say "YES ON 14" AND "PROPOSITION 14" — keep
+            # the stance-bearing version only
+            if stance is None and any(
+                p == prop and s is not None for (p, s) in seen
+            ):
+                continue
+            key = (prop, stance)
+            if key in seen:
+                continue
+            # If we previously recorded the same prop without stance,
+            # remove the unstanced version in favor of this one
+            if stance is not None:
+                mentions = [
+                    mn for mn in mentions
+                    if not (mn.prop_num == prop and mn.stance is None)
+                ]
+                seen = {
+                    (p, s) for (p, s) in seen
+                    if not (p == prop and s is None)
+                }
+            seen.add(key)
+            mentions.append(FilerNameMention(
+                prop_num=prop,
+                stance=stance,
+                matched_text=m.group(0),
+            ))
+    # Deduplicate: collapse stance-None entries for props that already
+    # have stance-bearing entries
+    final: list[FilerNameMention] = []
+    stance_props = {mn.prop_num for mn in mentions if mn.stance is not None}
+    for mn in mentions:
+        if mn.stance is None and mn.prop_num in stance_props:
+            continue
+        final.append(mn)
+    return final
+
+
+# ---------------------------------------------------------------------------
+# AttributionResult + resolver
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class AttributionResult:
+    finance_campaign_id: Optional[str] = None
+    measure_db_id: Optional[int] = None
+    stance: Optional[str] = None
+    attribution_method: str = "failed"
+    quarantine_reason: Optional[str] = None
+    debug: list[str] = field(default_factory=list)
+
+    @property
+    def resolved(self) -> bool:
+        return (
+            self.finance_campaign_id is not None
+            and self.stance is not None
+            and self.quarantine_reason is None
+        )
+
+
+class AttributionResolver:
+    """Resolves a row to (finance_campaign_id, stance) using a chain of
+    attribution methods.
+
+    Construct with the v2 crosswalk dict {(prop_num, year): (cid, mdb)}
+    and optionally a manual-override lookup
+    {normalized_filer_name: [(cid, stance), ...]}.
+
+    Call one of the resolve_from_* methods. The first method that
+    succeeds wins; downstream callers can chain.
+    """
+
+    def __init__(self, crosswalk: dict[tuple[str, int],
+                                       tuple[str, int]],
+                 manual_overrides: Optional[dict] = None) -> None:
+        self.crosswalk = crosswalk
+        self.props_by_num: dict[str, list[tuple[int, str, int]]] = {}
+        for (prop_num, year), (cid, mdb) in crosswalk.items():
+            self.props_by_num.setdefault(prop_num, []).append((year, cid, mdb))
+        for entries in self.props_by_num.values():
+            entries.sort(key=lambda e: e[0])
+        self.manual_overrides = manual_overrides or {}
+
+    # -- Cover-sheet path -------------------------------------------
+
+    def resolve_from_cover_sheet(self, prop_num: Optional[str],
+                                 election_year: Optional[int],
+                                 cover_sup_opp_cd: str) -> AttributionResult:
+        if not prop_num or not election_year:
+            return AttributionResult(
+                quarantine_reason="bad_prop_or_year",
+                attribution_method="failed",
+                debug=[f"prop_num={prop_num!r} year={election_year!r}"],
+            )
+        hit = self.crosswalk.get((prop_num, election_year))
+        if not hit:
+            return AttributionResult(
+                quarantine_reason="no_campaign_match",
+                attribution_method="failed",
+                debug=[f"({prop_num}, {election_year}) not in crosswalk"],
+            )
+        cid, mdb = hit
+        stance = _normalize_sup_opp(cover_sup_opp_cd)
+        return AttributionResult(
+            finance_campaign_id=cid,
+            measure_db_id=mdb,
+            stance=stance,
+            attribution_method="cover_sheet",
+            quarantine_reason=("unknown_stance" if stance is None else None),
+        )
+
+    # -- Filer-name path --------------------------------------------
+
+    def resolve_from_filer_name(self, filer_name: str,
+                                date_hints: Iterable[date | None]
+                                ) -> AttributionResult:
+        """Resolve via the conservative filer-name patterns.
+
+        date_hints are used for year-scoring when a prop number
+        matches multiple v2 campaigns (e.g. Prop 14 = 2004 stem cell
+        OR 2020 stem cell renewal). The resolver picks a candidate
+        only when one is clearly better than any other (within 1 year
+        of the date_hints AND uniquely so).
+        """
+        mentions = extract_prop_mentions(filer_name)
+        if not mentions:
+            return AttributionResult(
+                quarantine_reason="filer_name_no_prop",
+                attribution_method="failed",
+                debug=[f"no prop mention in {filer_name!r}"],
+            )
+        distinct_props = {mn.prop_num for mn in mentions}
+        if len(distinct_props) > 1:
+            # Multi-prop name (e.g. "NO ON 30 / YES ON 32"). Stance
+            # may be paired per prop, but we can't pick which prop
+            # the line belongs to without row-level fields. Quarantine.
+            return AttributionResult(
+                quarantine_reason="ambiguous_multi_prop",
+                attribution_method="failed",
+                debug=[
+                    f"multi-prop filer name: "
+                    f"{[(m.prop_num, m.stance) for m in mentions]}",
+                ],
+            )
+        prop_num = next(iter(distinct_props))
+        # Pool stances across the mentions of that prop (if name has
+        # "YES ON 14" + "PROPOSITION 14" we keep "support")
+        stance_set = {mn.stance for mn in mentions if mn.stance is not None}
+        stance: Optional[str]
+        if len(stance_set) == 1:
+            stance = stance_set.pop()
+        elif len(stance_set) > 1:
+            # Conflicting stances for same prop (shouldn't happen often)
+            return AttributionResult(
+                quarantine_reason="unknown_stance",
+                attribution_method="failed",
+                debug=[
+                    f"conflicting stances for prop {prop_num}: "
+                    f"{stance_set}",
+                ],
+            )
+        else:
+            stance = None  # bare PROP. 13 reference, no stance
+
+        return self._resolve_prop_with_dates(
+            prop_num, stance, date_hints,
+            method_name="filer_name_explicit",
+        )
+
+    # -- Row-fields path (Phase 4) ----------------------------------
+
+    def resolve_from_row_fields(self, row_bal_num: Optional[str],
+                                row_bal_name: Optional[str],
+                                row_sup_opp_cd: Optional[str],
+                                date_hints: Iterable[date | None]
+                                ) -> AttributionResult:
+        """For EXPN_CD / S497_CD / S401_CD rows that have BAL_NUM and
+        SUP_OPP_CD on the line item itself.
+
+        Phase 4 implementation will use this; included here so the
+        resolver API is stable across phases.
+        """
+        prop_num = _clean_prop_num(row_bal_num) or _extract_prop_from_name(
+            row_bal_name
+        )
+        if not prop_num:
+            return AttributionResult(
+                quarantine_reason="bad_prop_or_year",
+                attribution_method="failed",
+            )
+        stance = _normalize_sup_opp(row_sup_opp_cd)
+        return self._resolve_prop_with_dates(
+            prop_num, stance, date_hints,
+            method_name="row_fields",
+        )
+
+    # -- Manual override path ---------------------------------------
+
+    def resolve_from_manual_override(self, filer_id: str,
+                                     filer_name: str
+                                     ) -> AttributionResult:
+        """Lookup by filer_id first, then by normalized filer name.
+
+        manual_overrides format: {key: [(cid, stance), ...]} where key
+        is either a filer_id (str) or a normalized filer name (lower,
+        whitespace-collapsed).
+        """
+        override = self.manual_overrides.get(filer_id)
+        if not override:
+            normalized = _normalize_name(filer_name)
+            override = self.manual_overrides.get(normalized)
+        if not override:
+            return AttributionResult(
+                quarantine_reason="filer_name_no_prop",
+                attribution_method="failed",
+                debug=[f"no manual override for {filer_id!r} / "
+                       f"{filer_name!r}"],
+            )
+        if len(override) > 1:
+            # Multi-prop manual override — Phase 4 row-fields can pick;
+            # for filings without row-fields, quarantine
+            return AttributionResult(
+                quarantine_reason="ambiguous_multi_prop",
+                attribution_method="failed",
+                debug=[f"multi-target override: {override}"],
+            )
+        cid, stance = override[0]
+        mdb = None
+        # Look up measure_db_id from crosswalk if we have the cid
+        for (_p, _y), (c, m) in self.crosswalk.items():
+            if c == cid:
+                mdb = m
+                break
+        return AttributionResult(
+            finance_campaign_id=cid,
+            measure_db_id=mdb,
+            stance=stance,
+            attribution_method="manual_override",
+        )
+
+    # -- Shared year scoring helper ---------------------------------
+
+    def _resolve_prop_with_dates(self, prop_num: str,
+                                 stance: Optional[str],
+                                 date_hints: Iterable[date | None],
+                                 method_name: str) -> AttributionResult:
+        candidates = self.props_by_num.get(prop_num, [])
+        if not candidates:
+            return AttributionResult(
+                quarantine_reason="no_campaign_match",
+                attribution_method="failed",
+                debug=[f"prop {prop_num} not in v2 crosswalk"],
+            )
+        hint_years = [d.year for d in date_hints if d is not None]
+        # Codex round-6: always apply date scoring when hints are
+        # available, even for a single candidate. Otherwise a stale
+        # candidate (e.g. PROP_13_1978 with a 2026 hint) gets falsely
+        # auto-attributed.
+        if not hint_years:
+            if len(candidates) == 1:
+                year, cid, mdb = candidates[0]
+                return AttributionResult(
+                    finance_campaign_id=cid,
+                    measure_db_id=mdb,
+                    stance=stance,
+                    attribution_method=method_name,
+                    quarantine_reason=(
+                        "unknown_stance" if stance is None else None
+                    ),
+                )
+            return AttributionResult(
+                quarantine_reason="ambiguous_year",
+                attribution_method="failed",
+                debug=[
+                    f"prop {prop_num} has multiple candidates "
+                    f"{[c[0] for c in candidates]}; no date hints",
+                ],
+            )
+        # Score: distance from the median hint year to each candidate
+        # year. Candidates within 1 year of any hint are "plausible".
+        plausible = [
+            (year, cid, mdb)
+            for (year, cid, mdb) in candidates
+            if any(abs(h - year) <= 1 for h in hint_years)
+        ]
+        if len(plausible) == 0:
+            return AttributionResult(
+                quarantine_reason="ambiguous_year",
+                attribution_method="failed",
+                debug=[
+                    f"prop {prop_num}: no candidate within 1 year of "
+                    f"hints {hint_years}",
+                ],
+            )
+        if len(plausible) == 1:
+            year, cid, mdb = plausible[0]
+            return AttributionResult(
+                finance_campaign_id=cid,
+                measure_db_id=mdb,
+                stance=stance,
+                attribution_method=method_name,
+                quarantine_reason=(
+                    "unknown_stance" if stance is None else None
+                ),
+            )
+        return AttributionResult(
+            quarantine_reason="ambiguous_year",
+            attribution_method="failed",
+            debug=[
+                f"prop {prop_num}: multiple plausible candidates "
+                f"{[p[0] for p in plausible]} for hints {hint_years}",
+            ],
+        )
+
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+
+def _normalize_sup_opp(raw: Optional[str]) -> Optional[str]:
+    if not raw:
+        return None
+    val = raw.strip().upper()
+    if val == "S":
+        return "support"
+    if val == "O":
+        return "oppose"
+    return None
+
+
+def _normalize_name(s: str) -> str:
+    return re.sub(r"\s+", " ", (s or "")).strip().lower()
+
+
+def _clean_prop_num(raw: Optional[str]) -> Optional[str]:
+    if not raw:
+        return None
+    m = re.search(r"(\d+[A-Z]?)", raw.strip().upper())
+    if m:
+        return m.group(1).lstrip("0") or "0"
+    return None
+
+
+def _extract_prop_from_name(name: Optional[str]) -> Optional[str]:
+    if not name:
+        return None
+    m = re.search(
+        r"PROP(?:OSITION)?\s*[#]?\s*0*(\d+[A-Z]?)",
+        name,
+        re.IGNORECASE,
+    )
+    return m.group(1).upper() if m else None
