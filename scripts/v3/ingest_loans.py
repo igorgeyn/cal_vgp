@@ -385,6 +385,11 @@ def ingest_loans(dump_dir: Path, v2_db: Path, v3_db: Path,
             else:
                 # Accepted: populate attribution fields + dedupe_key
                 base["finance_campaign_id"] = attr.finance_campaign_id
+                # ingest_loans currently uses load_cover_attributions
+                # which returns the cover-sheet match directly; with
+                # round-8 canonicalization that's the canonical cid.
+                # Source provenance preserved for downstream audit.
+                base["source_crosswalk_campaign_id"] = attr.finance_campaign_id
                 base["measure_db_id"] = attr.measure_db_id
                 base["stance"] = attr.stance
                 base["attribution_source"] = "funding_source"

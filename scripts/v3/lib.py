@@ -134,6 +134,7 @@ class CoverAttribution:
 
 FLOW_COLUMNS = [
     "finance_campaign_id",
+    "source_crosswalk_campaign_id",
     "measure_db_id",
     "stance",
     "receipt_type",

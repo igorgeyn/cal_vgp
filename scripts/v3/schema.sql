@@ -19,7 +19,13 @@ CREATE TABLE IF NOT EXISTS finance_flow_v3 (
     flow_id              INTEGER PRIMARY KEY,
 
     -- Attribution result (NULL for quarantined / unattributed rows)
-    finance_campaign_id  TEXT,
+    finance_campaign_id  TEXT,                 -- canonical (post-collapse)
+    -- Codex round-8: preserve the crosswalk row that matched before
+    -- canonicalization. Equals finance_campaign_id when no remap
+    -- happened. Differs when cover sheet hit an alias (PROP_79_2006)
+    -- and we collapsed to canonical (PROP_79_2005). Lets audits
+    -- trace flow back to original CalAccess attribution.
+    source_crosswalk_campaign_id TEXT,
     measure_db_id        INTEGER,
     stance               TEXT,                 -- 'support' | 'oppose'
     receipt_type         TEXT,                 -- 'monetary_contribution'
