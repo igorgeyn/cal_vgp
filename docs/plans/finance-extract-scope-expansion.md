@@ -1,7 +1,7 @@
 ---
 plan: Finance extract scope expansion (close the Ballotpedia gap)
-status: DRAFT 2026-05-13 — Codex round-1 (decisions) integrated; awaiting Codex round-2 (full plan review)
-target: v3 total-support-side-money within ±10% of Ballotpedia for top 5 high-IE props
+status: DRAFT 2026-05-13 — Codex round-1 + round-2 integrated; ready to start Phase 0 on user go-ahead
+target: v3 total-support-side-money reconciles to source-table filtered SUM; Ballotpedia within ±10% is a smoke test
 ---
 
 # Finance extract scope expansion
@@ -45,58 +45,245 @@ Our local `data/CalAccess/DATA/` dump is incomplete for this work:
 - `S401_CD` — slate mailer contributions (may matter for some props)
 - `DEBT_CD` — accrued expenses (probably out of scope; spending not money in)
 
-**Action:** download fresh CAL-ACCESS dump from sos.ca.gov:
+**Action:** download fresh CAL-ACCESS dump from sos.ca.gov + build a
+source capability matrix:
 
 - `https://campaignfinance.cdn.sos.ca.gov/dbwebexport.zip` (the public
   full export; ~10GB compressed, ~50GB uncompressed)
 - Verify checksum matches sos.ca.gov publication
-- Inventory all `*_CD.TSV` files — confirm presence of the 5 above
-- Sample-read headers to verify schema matches CAL-ACCESS docs (CalAccess
-  has minor schema drift between dump dates; verify before assuming
-  column names)
+- Inventory all `*_CD.TSV` files — confirm presence of the 6 we need
+- Sample-read headers to verify schema matches CAL-ACCESS docs
+  (CalAccess has minor schema drift between dump dates; verify before
+  assuming column names)
 
-**Estimated time:** 1–2 hours (mostly download)
+**Source capability matrix.** For each target table, document what's
+actually available before Phase 1 DDL. Output: `data/CalAccess/SOURCE_MATRIX.md`.
 
-## Phase 1 — Schema design & plan review
+For each of `RCPT_CD`, `LOAN_CD`, `S496_CD`, `S497_CD`, `EXPN_CD`,
+`S401_CD`, capture:
+
+- Amount field(s) — name and semantics (`AMOUNT` vs `LOAN_AMT1..8` etc)
+- Date field — transaction date column name and format
+- Form-type field — `FORM_TYPE` values present + counts (e.g. for
+  `RCPT_CD`, distribution of `A` vs `C` vs others)
+- Measure attribution — does the table itself have `BAL_NUM` / `BAL_NAME`,
+  or must it be joined via FILING_ID to `CVR_CAMPAIGN_DISCLOSURE_CD`?
+  **(critical for S496_CD — round-2 Codex flag below)**
+- Stance field — `SUP_OPP_CD` or equivalent
+- Amendment fields — `AMEND_ID`, and a count of how many filings have
+  multiple amendments
+- Memo flag — `MEMO_CODE` column presence, value distribution
+- Transaction-line ID — `TRAN_ID` or `LINE_ITEM` column (used for
+  dedupe across late vs periodic reports)
+- Filer reference — `FILER_ID`, `FILER_NAML`
+
+This matrix is the prerequisite for DDL. Several Phase 1 assumptions
+(e.g., "S496_CD has BAL_NUM per filing") need to be validated against
+the actual dump.
+
+**Critical correction from Codex round-2:** S496_CD has only ~13 fields,
+no `BAL_NUM` and no `SUP_OPP_CD` on the row itself. Measure attribution
+must be joined via `FILING_ID` to the cover-sheet table
+(`CVR_CAMPAIGN_DISCLOSURE_CD`). S497_CD and EXPN_CD do expose
+ballot/stance fields directly. Phase 4 implementation must account for
+this difference.
+
+**Estimated time:** 2–4 hours (download + matrix build + spot-check
+existing v2 numbers against current HEAD for baseline snapshot)
+
+## Phase 1 — Schema design
 
 Decisions are now resolved (see "Key decisions" + "Anti-double-count
-rules" + flow taxonomy below). Concrete deliverables of Phase 1:
+rules" + flow taxonomy below). Concrete deliverables of Phase 1, in
+order:
 
-- **DDL** for the three new v3 tables: `finance_summary_by_type`,
-  `finance_top_donors_by_type`, `finance_timeline_weekly_by_type`
-- **DDL for views**: `finance_summary_total`, `finance_top_donors_total`
-- Pluck `finance_summary` (v2 existing) and `finance_top_donors` (v2
-  existing) — **no schema change**; they remain monetary-only.
-- Codex round-2 review of the full plan + DDL before Phase 2.
+### 1a — Versioning decision (Decision 6)
+
+**Resolved: separate `finance_statewide_v3.db` file.**
+
+Codex round-2 flagged the missing versioning decision. New file vs.
+new tables in existing v2.db. Choosing the separate file because:
+
+- Clean atomic switchover (build v3.db end-to-end, validate, then flip
+  consumers in one commit)
+- Easy rollback (just point consumers back at v2.db)
+- v2.db stays as the verified-monetary reference; v3 is the new
+  scope-expanded surface
+- File size isn't a constraint (v2.db is ~70MB; v3.db likely 200-400MB
+  with full transaction-level fact table)
+
+Trade-off: temporary period during Phase 5 frontend migration where
+some consumers read v2 and others read v3. Mitigation: ship Phase 5 as
+an atomic commit (operations + API + insights + briefing all migrate
+together), don't trickle.
+
+### 1b — Transaction-level fact table (Codex round-2 critical addition)
+
+Codex round-2 caught that summary/top-donors/timeline tables alone
+aren't enough — without a normalized internal fact table, provenance
+fields in `finance_top_donors_by_type` become lossy (one donor can
+have multiple payees, filers, attribution sources, source rows). The
+fact table is the foundation; everything else is derived.
+
+**New table `finance_flow_v3`** — one row per accepted source-table
+transaction line, before any aggregation:
+
+```sql
+CREATE TABLE finance_flow_v3 (
+    flow_id INTEGER PRIMARY KEY,
+    finance_campaign_id TEXT NOT NULL,
+    measure_db_id INTEGER NOT NULL,
+    stance TEXT NOT NULL,                  -- 'support' | 'oppose'
+    receipt_type TEXT NOT NULL,            -- 'monetary_contribution'
+                                           -- 'loan'
+                                           -- 'in_kind'
+                                           -- 'independent_expenditure'
+    amount REAL NOT NULL,
+    txn_date TEXT NOT NULL,                -- ISO date
+    week_start TEXT NOT NULL,              -- Monday ISO
+    source_table TEXT NOT NULL,            -- 'RCPT_CD' | 'LOAN_CD' | ...
+    source_form_type TEXT,                 -- 'A' | 'C' | 'F465P3' | ...
+    filing_id TEXT NOT NULL,
+    amend_id INTEGER NOT NULL,
+    line_item TEXT,                        -- TRAN_ID or schedule line
+    memo_code TEXT,                        -- present-and-truthy = excluded
+    committee_id TEXT,                     -- filer
+    committee_name TEXT,
+    donor_name_raw TEXT,
+    donor_name_canon TEXT,
+    reported_filer TEXT,                   -- IE rows: filing committee
+    payee_name TEXT,                       -- IE rows: vendor
+    attribution_source TEXT,               -- 'funding_source' | 'filer'
+                                           -- | 'inferred' | 'unknown'
+    donor_type TEXT,
+    donor_sector TEXT,
+    dedupe_key TEXT,                       -- for cross-filing dedup
+    quarantine_reason TEXT                 -- null = accepted
+);
+CREATE INDEX idx_flow_campaign_stance_type ON finance_flow_v3
+  (finance_campaign_id, stance, receipt_type);
+CREATE INDEX idx_flow_measure ON finance_flow_v3 (measure_db_id);
+CREATE INDEX idx_flow_dedupe ON finance_flow_v3 (dedupe_key);
+```
+
+This table is the source of truth. Quarantined rows live in the same
+table with `quarantine_reason` populated (cleaner than a separate
+quarantine table; everything dedupes against everything).
+
+### 1c — Derived tables
+
+All derived from `finance_flow_v3` via deterministic SQL transforms:
+
+- **`finance_summary_by_type`** — grouped by
+  `(finance_campaign_id, stance, receipt_type)`. Columns:
+  `total_amount`, `n_committees`, `n_transactions`, `top5_share`, `hhi`.
+  **Critical:** `top5_share` and `hhi` are recomputed per-grouping
+  from the underlying donor distribution; never summed across types.
+
+- **`finance_top_donors_by_type`** — grouped by
+  `(finance_campaign_id, stance, receipt_type, donor_name_canon)`.
+  Includes the per-grouping `attribution_source` (most common across
+  rows) and `n_underlying_rows`.
+
+- **`finance_timeline_weekly_by_type`** — grouped by
+  `(finance_campaign_id, stance, receipt_type, week_start)`. Cumulative
+  totals computed from weekly via SQL window function over a
+  **filled week spine** (every Monday between earliest-and-latest
+  campaign week; zero-fill missing).
+
+### 1d — Aggregate views (Codex round-2 gotchas integrated)
+
+- **`finance_summary_total`** — VIEW grouping `finance_flow_v3` by
+  `(finance_campaign_id, stance)` directly. **Not** `finance_summary_by_type`
+  summed across types. Because `top5_share` / `hhi` must be recomputed
+  against the merged-across-types donor distribution, not aggregated
+  from per-type values.
+
+- **`finance_top_donors_total`** — VIEW grouping `finance_flow_v3` by
+  `(finance_campaign_id, stance, donor_name_canon)`. Columns include:
+  - `total_amount` (sum across types)
+  - `flow_types` — JSON array of types this donor appears in (e.g.
+    `["monetary_contribution", "independent_expenditure"]`)
+  - `attribution_sources` — JSON array
+  - `primary_attribution_source` — most common attribution_source by
+    dollar weight
+  - **Does NOT expose** a single `payee_name` or `reported_filer` —
+    those are role-specific to IE rows and lossy at aggregate. Detailed
+    provenance stays in `finance_flow_v3`.
+
+- **`finance_timeline_weekly_total`** — VIEW recomputing weekly +
+  cumulative from `finance_flow_v3` directly over the filled week
+  spine. Not derived from `_by_type` by SUM.
+
+### 1e — Pre-Phase-2 prep
+
+- Re-snapshot **current v2 numbers** from HEAD (not the stale 2026-05-04
+  baseline) into `data/CalAccess/v2_pre_v3_baseline.json` — used for
+  Layer 1 no-regression checks. Includes:
+  - `finance_summary` rows for all 181 campaigns
+  - `finance_top_donors` top-5 per (campaign, stance)
+  - Snapshot hash so we can confirm at end-of-Phase-6 that v3's
+    monetary slice still matches.
+
+- Capture Ballotpedia reference figures with URL + capture-date in
+  `data/CalAccess/ballotpedia_baselines.json` (Codex round-2 note:
+  these change over time; freeze them at a known capture point).
 
 ## Phase 2 — Loans (`LOAN_CD`)
 
 Smallest scope, easiest to verify. Loans are typically small fraction of
 campaign money (often $0 for ballot measures since they don't borrow).
 
+**Codex round-2 correction:** LOAN_CD does NOT have a single `AMOUNT`
+column. It has `LOAN_AMT1` through `LOAN_AMT8`, and the semantics of
+each column depend on `FORM_TYPE`. Schedule B Part 1 (loans received)
+is what we want; Schedule B Part 2 (guarantors), repayments,
+outstanding balances, and loans made are explicitly out of scope.
+
+Concrete:
+
 - Extend `extract_calaccess_finance.py` to read `LOAN_CD` alongside
   `RCPT_CD`, joining on FILING_ID
-- Add `receipt_type='loan'` rows to output CSV
-- Verify reconciliation: sum of LOAN_CD amounts per ballot-measure filing
-  matches new `finance_summary` loan column
+- Filter to Schedule B Part 1 receive-loan rows (specific FORM_TYPE
+  values determined by Phase 0 source matrix)
+- Map `LOAN_AMT1` (or correct column per FORM_TYPE rule) as the loan
+  amount
+- Add `receipt_type='loan'` rows to `finance_flow_v3`
+- Verify reconciliation: sum of accepted loan rows per
+  (campaign, stance) matches direct SQL against LOAN_CD filtered to
+  the same FORM_TYPE / amendment / non-memo rules
 
-## Phase 3 — In-kind contributions
+## Phase 3 — In-kind contributions (Schedule C)
 
-Need to verify upstream whether in-kind lives in `RCPT_CD` (distinguished
-by `FORM_TYPE` or `REC_TYPE` field) or in a separate table.
+**Codex round-2 confirmation:** in-kind contributions live in `RCPT_CD`
+with `FORM_TYPE = 'C'` (Schedule C), parallel to `FORM_TYPE = 'A'`
+(Schedule A monetary). Our current extract implicitly filters to
+Schedule A only; relaxing that filter to also keep Schedule C is the
+core change.
 
-**Investigation:** sample-read a few hundred rows of `RCPT_CD.TSV`
-filtered to known ballot-measure filings; check distribution of
-`FORM_TYPE` / `REC_TYPE`. If in-kind = `FORM_TYPE='C'` (Schedule C), then
-we just need to relax our current implicit Schedule-A filter. If it lives
-elsewhere, additional table ingestion required.
+Concrete:
+
+- Relax the `RCPT_CD` filter to keep both `FORM_TYPE='A'` (monetary)
+  and `FORM_TYPE='C'` (in-kind)
+- Tag each row's `receipt_type` based on `FORM_TYPE`:
+  - `'A'` → `monetary_contribution`
+  - `'C'` → `in_kind`
+- Verify reconciliation per receipt_type against filtered RCPT_CD SUM
 
 ## Phase 4 — Independent Expenditures (biggest impact)
 
-This is where most of the missing money lives. Three sources to ingest:
+**Codex round-2 fix.** Original plan listed three sources for IE
+spending; round-2 corrected several attribution and source-table
+assumptions. The corrected list:
 
 1. **`S496_CD`** — 24-hour late IE filings (mandatory for IEs > $1K in
-   the 90 days before an election)
+   the 90 days before an election). **Critical:** S496_CD does NOT
+   have `BAL_NUM` or `SUP_OPP_CD` on the row itself. Measure +
+   stance attribution must be joined via `FILING_ID` to the cover-sheet
+   table (`CVR_CAMPAIGN_DISCLOSURE_CD`), then to BAL_NUM/SUP_OPP_CD on
+   that cover sheet. Need to confirm via Phase 0 matrix whether the
+   cover-sheet measure attribution itself comes from a separate line
+   in S496_CD or from a parent filing.
 2. **F461 filings** in `CVR_CAMPAIGN_DISCLOSURE_CD` — Major Donor /
    Independent Expenditure committee disclosures. Schedules associated
    with these are in `EXPN_CD`
@@ -105,27 +292,78 @@ This is where most of the missing money lives. Three sources to ingest:
 
 Each requires its own prop-attribution logic:
 
-- S496_CD has a `BAL_NUM` field on each filing → direct prop attribution
-- F461 EXPN_CD entries reference `BAKREF_TID` (links the expenditure to
-  the supported/opposed measure)
-- Stance is explicit (`SUP_OPP_CD`)
+2. **`EXPN_CD` — F461 Part 5 (Schedule E equivalent) and F465 Part 3
+   (supplemental IE report)** — official IE filings from major-donor
+   and IE committees. Per Codex round-2:
+   - `EXPN_CD FORM_TYPE = 'F461P5'` — major donor IE schedule
+   - `EXPN_CD FORM_TYPE = 'F465P3'` — Form 465 (supplemental IE report)
+     part 3
+   - Both have ballot-measure attribution fields documented on the row
+   - `BAKREF_TID` may link back to parent forms; investigate during
+     Phase 0 matrix
 
-**Risk:** IE attribution edge cases. E.g., an IE committee that supports
-TWO different props in the same filing. Need to split per-prop on a
-pro-rata or per-line basis. Document the rule.
+3. **`S497_CD` — 24-hour late contributions/expenditures** — DEMOTED
+   from primary source to cross-check / investigation. Per Codex
+   round-2: late reports frequently duplicate later periodic filings
+   (S497-reported IEs reappear in F465P3 / F461P5). Use S497_CD only
+   as a fallback when the same transaction isn't found in EXPN_CD
+   filings, and only after dedup-precedence rules are settled.
+
+4. **Slate mailers (`S401_CD`)** — not in scope for first pass; revisit
+   if Ballotpedia gap remains material after IE ingestion. Slate-mailer
+   organizations are a distinct contribution vehicle and may
+   double-count if naively added on top of IE.
+
+**Attribution risks (now explicit):**
+
+- S496_CD measure attribution requires cover-sheet join (round-2 fix)
+- Multi-prop IE filings: one filing covering 2+ props needs to be
+  split per-prop on a per-line basis if amounts are itemized, or
+  pro-rata if not. Most filings itemize.
+- F461 major-donor filings sometimes name the funding entity at filing
+  level + payee per line. Capture both: `attribution_source = funding_source`
+  if the funder is named distinctly from the filer/payee.
+- IE-by-recipient-committees (a PAC primarily supporting Prop X spending
+  on IEs against Prop Y): attribute to Prop Y's `oppose` stance via
+  the per-expenditure-line `BAL_NUM` / `SUP_OPP_CD`, NOT to the PAC's
+  primary affiliation.
 
 ## Phase 5 — Frontend integration
 
-Decisions from Phase 1 cascade here:
+**Sequencing (Codex round-2 addition):** API/operations layer migrates
+**before** the visual UI. The library must support both reading
+patterns (v2 monetary-only and v3 by-type / total) before any UI
+references the new surface.
 
-- **Modal Finance tab**: show breakdown (Monetary / In-kind / Loans /
-  IEs / Total) or single Total with hover tooltip?
-- **Hero card top-funded-side**: use Total or stay on Monetary?
-- **Insights panel** Module 1 (hero stats): "campaigns / total / win
-  rate" — does Total now include IE spending? If yes, win-rate math
-  re-runs and the 65% number will shift.
-- **Insights Module 4 (marquee fights)**: now include IE spending in the
-  per-side dollar amounts
+Concrete order within Phase 5:
+
+1. **Library/API migration (no UI change yet).** Add new methods on
+   `FinanceDatabase`:
+   - `get_finance_summary_total(measure_db_id)` — uses `finance_summary_total`
+     view
+   - `get_finance_breakdown_by_type(measure_db_id)` — uses
+     `finance_summary_by_type`
+   - `get_top_donors_total(campaign_id, stance, limit=N)` — uses
+     `finance_top_donors_total`
+   - `get_top_donors_by_type(campaign_id, stance, receipt_type,
+     limit=N)` — uses `finance_top_donors_by_type`
+   - Existing `get_top_donors()`, `aggregate_for_measure()`, etc. keep
+     reading v2 monetary-only tables. No breakage.
+
+2. **Atomic visible-change commit.** All UI surfaces flip to the new
+   surface in one commit, along with the methodology copy update:
+   - Modal Finance tab: total + breakdown layout
+   - Hero card / Insights Module 1: total replaces monetary
+   - Insights Module 4 (marquee fights): includes IE
+   - Insights Module 3 (top donors): uses `_total` ranked list
+   - Briefing pipeline finance facts: uses `_total`
+   - API endpoint: returns both `total` and `breakdown` payloads
+   - Methodology note replaces "we don't include IE" copy with "we
+     now include..."
+   - `insights.json` regenerated; `index.html` regenerated
+
+   Atomic because: if hero shows total but modal shows monetary,
+   user sees inconsistent numbers and trust craters. Ship together.
 
 ## Phase 6 — Final verification + docs
 
@@ -256,40 +494,91 @@ Internal `receipt_type` values:
 Aggregated header label: **"Total support-side money"** (or
 "opposition-side"). Never "raised" once IE is included.
 
-## Anti-double-count rules (added by Codex)
+## Anti-double-count rules (Codex round-2 expanded)
 
 Critical: direct receipts + PAC expenditures double-count if naively
 summed (money flows in as receipt, then out as expenditure of the same
-dollars). The expansion below intentionally avoids this trap, but the
-rule must be explicit in the rebuild:
+dollars). Codex round-2 flagged the original rule as directionally right
+but incomplete. The full rule set, applied at the rebuild stage:
 
-**Allowed sums (no double-count):**
+### Rule 1 — Allowed flows (sum across these is the "total support-side / opposition-side money")
 
-- Monetary contributions to PAC (`RCPT_CD`)
-- Loans received by PAC (`LOAN_CD`)
-- In-kind contributions to PAC (RCPT_CD Schedule C or equivalent)
-- IE spending by major donors (`S496_CD` / F461 funders) — money that
-  bypassed the PAC
+- Monetary contributions to recipient committee (`RCPT_CD FORM_TYPE='A'`)
+- Loans received by recipient committee (`LOAN_CD` Schedule B Part 1)
+- In-kind contributions to recipient committee (`RCPT_CD FORM_TYPE='C'`)
+- IE spending by major donors / IE committees (`EXPN_CD FORM_TYPE='F461P5'`
+  + `F465P3`, plus S496_CD as fallback)
 
-**Disallowed sums (would double-count):**
+### Rule 2 — Disallowed flows (would double-count or are out of scope)
 
-- PAC's own expenditures (`EXPN_CD` for the recipient committee) — this
-  is the PAC spending dollars we already counted as receipts. We do NOT
-  ingest PAC expenditures in this expansion.
+- PAC's own general expenditures (`EXPN_CD` rows from a recipient
+  committee filing under non-IE form types) — the PAC spending its
+  own receipts. We do NOT ingest these.
+- Loan repayments, forgiveness, guarantor entries (`LOAN_CD` rows where
+  FORM_TYPE indicates Schedule B Part 2 or repayment subtypes).
+- Loans made BY a committee to others (out of scope; not money in).
+- Debt / accrued expenses (`DEBT_CD`).
 
-**Edge case: a recipient committee that also makes IEs against other
-props.** E.g., a labor PAC that opposes Prop X (its primary affiliation)
-may also make IE spending against unrelated Prop Y. The IE money is
-attributed to Prop Y's `oppose` side, NOT counted as part of Prop X.
-This is handled by the per-filing `BAL_NUM` / `BAKREF_TID` field on each
-expenditure record, not by the committee's primary affiliation.
+### Rule 3 — Amendment precedence
 
-**Edge case: same donor appears in multiple types for the same prop.**
+For every `FILING_ID`, keep only the latest `AMEND_ID`. Older amendments
+are superseded. This is already done at the filing-level for
+`CVR_CAMPAIGN_DISCLOSURE_CD`; needs to be enforced at the line-item
+level for each source table.
+
+### Rule 4 — Memo rows
+
+Exclude rows where `MEMO_CODE` is set (truthy) unless proven additive
+during Phase 0 source-matrix work. Memo rows are typically informational
+breakouts of a transaction that's already counted elsewhere.
+
+### Rule 5 — Late-report vs periodic-report precedence
+
+The same underlying transaction can appear in:
+
+- S496_CD (24-hour IE late filing)
+- S497_CD (24-hour late contribution / expenditure)
+- F461P5 (major donor IE schedule, periodic report)
+- F465P3 (Form 465 supplemental IE report, periodic)
+- F460 Schedule A (monetary contributions, periodic)
+
+**Precedence (in order of preference):**
+
+1. **EXPN_CD periodic IE entries** (F461P5, F465P3) — most complete
+2. **RCPT_CD monetary** (F460 Schedule A) — periodic, authoritative for
+   contributions
+3. **LOAN_CD periodic** — periodic, authoritative for loans
+4. **S496_CD / S497_CD late filings** — only when the same TRAN_ID /
+   line-item is absent from the periodic source
+
+**Dedupe key** for cross-source uniqueness:
+`(donor_name_canon, payee_name, txn_date, amount, committee_id, stance)`
+with normalization. Any pair of rows from different source tables that
+share this key gets collapsed to the one in the preferred source.
+
+### Rule 6 — IE attribution to the targeted prop, not the filer's affiliation
+
+A committee primarily affiliated with Prop X may make IE spending
+against Prop Y on the same ballot. Attribution rule: every expenditure
+line's own `BAL_NUM` + `SUP_OPP_CD` determines the (prop, stance) it
+counts toward. Do NOT attribute by the filer's primary affiliation.
+
+### Edge case: same donor, multiple flows, same prop
+
 E.g., FanDuel gives $5M to Yes-on-27 PAC (monetary) AND spends $20M
 directly on ads (IE). Both legitimately count: they're disjoint flows
-of FanDuel money. `finance_top_donors_total` view should sum the funder
-across types (FanDuel = $25M total support), but the breakdown view
-keeps them separate ($5M monetary + $20M IE).
+of FanDuel money. `finance_top_donors_total` view sums the funder across
+types (FanDuel = $25M total support); `finance_top_donors_by_type` keeps
+them separate ($5M monetary + $20M IE). No double-count.
+
+### Edge case: same donor, same flow type, different reporting period
+
+E.g., FanDuel gives $8.33M on 2022-07-15 reported on the 24-hour late
+filing AND the semi-annual F460. Rule 5 precedence collapses these to
+the periodic-source row only. The Gate 7 dedupe key
+(`finance_campaign_id, stance, txn_date, amount, donor_canon,
+donor_type, committee`) already catches this within a source; cross-source
+dedup uses the same key plus `receipt_type` and `payee_name`.
 
 ## Verification strategy
 
@@ -317,34 +606,65 @@ true. But verify it explicitly:
 
 Any deviation in either check = bug. Halt and investigate.
 
-### Layer 2 — Source-table reconciliation
+### Layer 2 — Source-table reconciliation (THE main acceptance criterion, Codex round-2)
 
-For each new receipt type, sum the new `finance_summary` entries and
-compare to direct SQL against the source CAL-ACCESS table:
+For each new receipt type, the sum in `finance_summary_by_type` /
+`finance_flow_v3` must reconcile to direct SQL against the source
+CAL-ACCESS table **after applying the same filters**. Raw `SUM(AMOUNT)`
+overstates because it doesn't honor amendment / memo / non-additive
+filters.
 
-- LOAN_CD: `SELECT SUM(AMOUNT) FROM LOAN_CD WHERE FILING_ID IN
-  (ballot-measure filing IDs)` = total loans column in v2
-- In-kind: similar
-- IE: per-prop sum = sum of `S496_CD` + relevant `EXPN_CD` Schedule E
+**Reconciliation pattern, per receipt type:**
 
-Tolerance: $1 per campaign (rounding). Larger gaps = bug.
+```
+For each receipt_type R:
+    src_total = SUM(amount) over source-table rows WHERE
+        - filing_id in (ballot-measure filings, matched to crosswalk)
+        - amend_id = MAX(amend_id) FOR THAT FILING  -- latest amendment only
+        - memo_code IS NULL OR FALSY  -- exclude memos
+        - form_type IN (allowed types for R)  -- e.g. 'A' for monetary
+        - dedupe applied per Rule 5 precedence
+        - (for IE) attributed to a known (BAL_NUM, election_year)
+    v3_total = SUM(amount) FROM finance_flow_v3 WHERE
+        receipt_type = R AND quarantine_reason IS NULL
+    assert abs(src_total - v3_total) < $1.00 per campaign
+```
 
-### Layer 3 — Ballotpedia spot-check (the headline test)
+**Critical:** the reconciliation source query must apply the same
+filters as the rebuild. Otherwise we'd be comparing apples to "all
+source data" and the reconciliation would never pass. The filtered-SUM
+script lives at `scripts/reconcile_source_totals.py` and is reused at
+every phase boundary.
 
-5 reference props with reliable Ballotpedia totals:
+Tolerance: $1 per campaign (rounding accumulation). Larger gaps = bug.
 
-| Prop | Target support | Target oppose | Source |
-|---|---|---|---|
-| PROP_22_2020 | $224.3M | $20.0M | Ballotpedia |
-| PROP_27_2022 | $169.1M | $249.3M | Ballotpedia |
-| PROP_32_2012 | $74M | $60M | Ballotpedia |
-| PROP_8_2018 | $20.7M | $111.5M | Ballotpedia |
-| PROP_50_2025 | $165M | $0M | Current sentinel |
+### Layer 3 — Ballotpedia smoke test (demoted from gate, Codex round-2)
 
-**Acceptance criteria:** post-change **Total support-side money / Total
-opposition-side money** (sum across monetary + loan + in_kind + IE
-in `finance_summary_total` view) within **±10%** of Ballotpedia for
-**≥4 of 5 props**.
+Codex round-2: Ballotpedia numbers change over time, their methodology
+may differ from ours, and they may include sources we still don't
+capture (slate mailers, 527 organizations, out-of-state spending).
+Therefore: Ballotpedia is a **smoke test**, not an acceptance gate.
+If we're systematically far below Ballotpedia after Phase 4, that's a
+signal to investigate, not a pass/fail.
+
+Reference figures captured with provenance:
+
+| Prop | Target support | Target oppose | Source URL | Captured |
+|---|---|---|---|---|
+| PROP_22_2020 | $224.3M | $20.0M | (capture in Phase 0) | 2026-05-13 |
+| PROP_27_2022 | $169.1M | $249.3M | (capture in Phase 0) | 2026-05-13 |
+| PROP_32_2012 | $74M | $60M | (capture in Phase 0) | 2026-05-13 |
+| PROP_8_2018 | $20.7M | $111.5M | (capture in Phase 0) | 2026-05-13 |
+| PROP_50_2025 | $165M | $0M | Current sentinel | n/a |
+
+Snapshot lives in `data/CalAccess/ballotpedia_baselines.json` with
+URLs + capture dates. Re-capture before Phase 6 if any number is
+materially stale.
+
+**Smoke threshold:** post-change Total within **±25%** of Ballotpedia
+for **≥4 of 5 props**. If <4/5 pass, halt and investigate. ±25% is
+deliberately loose because Ballotpedia methodology drift is expected;
+the real acceptance is Layer 2 source reconciliation.
 
 If <4/5 pass, halt and investigate. Most likely failure modes:
 - Missing IE committees not tagged with BAL_NUM (separate crosswalk
@@ -364,63 +684,125 @@ Adding IEs / loans / in-kind to these props' totals shouldn't shift the
 year-distribution materially (IE money is filed in the same election
 cycle as the underlying contributions).
 
-### Layer 5 — Dollar-trace test
+### Layer 5 — Dollar-trace per receipt type (Codex round-2 expanded)
 
-Pick one **known specific IE transaction** with public reporting (e.g.,
-the FanDuel $20M to ad-agency-X on date-Y). Verify:
+Codex round-2: add one trace test per source type, not just one for IE.
+Each catches systemic extraction bugs (wrong field parsed, wrong
+attribution, off-by-one) that aggregate reconciliation might mask.
 
-1. It appears in our IE ingest output
-2. It's attributed to PROP_27_2022 support
-3. The dollar amount matches CAL-ACCESS web display
+For each of `monetary_contribution`, `in_kind`, `loan`,
+`independent_expenditure`:
 
-This catches systemic extraction bugs (wrong field parsed, etc.) that
-aggregate reconciliation might miss.
+- Pick one specific known transaction with public/verifiable reporting
+  (URL captured in `data/CalAccess/trace_tests.json`)
+- Verify the transaction appears in `finance_flow_v3` with:
+  - Correct `finance_campaign_id` + `stance` + `receipt_type`
+  - Correct `donor_name_canon` (and `payee_name` for IE)
+  - Correct `amount` (exact match to source)
+  - Correct `txn_date`
+  - Sensible `attribution_source` value
+- Document the source URL + capture-date
+
+Trace candidates (finalize in Phase 0):
+
+- Monetary: FanDuel $8.33M to Yes-on-27 PAC on 2022-07-15
+- In-kind: TBD (Phase 0 — pick from any prop with material Schedule C)
+- Loan: TBD (Phase 0 — search LOAN_CD for ballot-measure committee
+  loans; ballot props rarely borrow, may need fallback example)
+- IE: TBD (Phase 0 — pick a publicly-reported FanDuel or San Manuel
+  IE spend; Ballotpedia / CalMatters articles cite specifics)
+
+## Existing schema risks (Codex round-2 addition)
+
+**Stale baseline.** "181 campaigns / $3.24B" reflects 2026-05-12 state,
+not necessarily HEAD. Phase 1e re-snapshots current numbers before
+locking the no-regression baseline.
+
+**Measure rollup interaction.** Some `finance_campaign_id`s share a
+`measure_db_id` after year-offset recovery (the Bucket A fix from
+matcher v2). The v2 layer handles this via
+`FinanceDatabase.aggregate_for_measure(measure_db_id)`, which rolls up
+campaigns sharing a measure_db_id into a single measure-level view.
+
+v3 design implications:
+
+- `finance_flow_v3` rows are **campaign-grain** (one row per accepted
+  transaction with its `finance_campaign_id`). This is the right grain
+  for traceability.
+- `finance_summary_by_type` / `finance_summary_total` are also
+  **campaign-grain** so they roll up cleanly through existing
+  `aggregate_for_measure()`-style logic.
+- Public-facing APIs (modal, briefing, insights) continue to call
+  `aggregate_for_measure(measure_db_id)` to merge collision pairs
+  into a single user-facing measure record. Phase 5 library migration
+  needs a v3-aware version: `aggregate_for_measure_v3(measure_db_id)`
+  that hits the new tables and views.
+
+**Consumer audit before atomic Phase 5 commit:** every place that
+currently calls `get_top_donors()`, `aggregate_for_measure()`, or reads
+`finance_summary` directly needs a decision: stay on v2 monetary or
+migrate to v3. Phase 5 commit includes a checklist + grep of consumer
+call sites.
 
 ## Risks
 
 - **CAL-ACCESS schema drift:** column names sometimes change between
-  dumps. Verify against documentation before assuming.
-- **IE attribution edge cases:** committees that support multiple props
-  in one filing; donor-of-donor chains in major-donor filings; gray-area
-  cases (e.g. "issue advocacy" that doesn't legally qualify as IE but
-  influences the vote).
-- **Headline number shift will surprise users.** If the homepage shows
-  total receipts go from $3.24B to ~$6-8B, that's a major perceptual
-  change. We should ship the methodology note + breakdown together so
-  users can see what shifted and why.
+  dumps. Verify against documentation before assuming. Phase 0 source
+  matrix catches this.
+- **IE attribution edge cases:** multi-prop filings; donor-of-donor
+  chains in major-donor filings; gray-area cases ("issue advocacy"
+  that doesn't legally qualify as IE).
+- **S496_CD attribution gap (round-2 fix):** S496_CD itself has no
+  BAL_NUM. Cover-sheet join required; if the join is missing data for
+  some filings, we'll silently lose IE money. Phase 0 source matrix
+  must confirm join completeness.
+- **Headline number shift will surprise users.** Homepage total
+  receipts going from $3.24B to ~$6-8B is a major perceptual change.
+  Phase 5 atomic commit + methodology copy mitigates.
 - **We may not match Ballotpedia exactly.** Their methodology may
-  include things we still don't capture (slate mailers, contributions
-  through 527 organizations, out-of-state spending). The ±10% target is
-  the realistic ceiling without months of iteration.
-- **Backward compatibility:** every downstream consumer of v2
-  (operations.py, generate_insights, generator.py, briefing pipeline,
-  API) needs a WHERE-clause review. Some queries that currently sum
-  `total_receipts` may inadvertently start summing all receipt types
-  → numbers shift unexpectedly. Mitigated by single-table-with-
-  discriminator design + explicit migration.
+  include things we still don't capture (slate mailers, 527s,
+  out-of-state). Ballotpedia is now a smoke test (±25%), not an
+  acceptance gate.
+- **v2.db → v3.db cutover:** consumers reading v2 during cutover get
+  stale numbers. Phase 5 atomic commit limits the cutover window.
+- **Late-vs-periodic dedup precedence rule (Rule 5):** if precedence
+  is wrong, we could either undercount (drop periodic in favor of
+  late) or double-count (keep both). Reconciliation layer 2 catches
+  this; trace tests on each receipt type verify it.
 
-## Effort estimate
+## Effort estimate (revised after Codex round-2)
 
 | Phase | Effort | Cumulative |
 |---|---|---|
-| 0 — Source data acquisition | 1–2 hours | 1–2 |
-| 1 — Schema design + Codex plan review | 3–4 hours | 4–6 |
-| 2 — LOAN_CD ingestion + verify | 2–4 hours | 6–10 |
-| 3 — In-kind ingestion + verify | 4–6 hours | 10–16 |
-| 4 — IE ingestion + verify (biggest) | 1–2 days | 18–32 |
-| 5 — Frontend integration | 4–6 hours | 22–38 |
-| 6 — Final verification + docs | 2–3 hours | 24–41 |
+| 0 — Source data + capability matrix + baselines | 4–6 hours | 4–6 |
+| 1 — Schema design (DDL: flow table + by-type + views) | 6–8 hours | 10–14 |
+| 2 — LOAN_CD ingestion + verify | 3–5 hours | 13–19 |
+| 3 — In-kind ingestion + verify | 3–5 hours | 16–24 |
+| 4 — IE ingestion + dedup precedence + verify (biggest) | 2–3 days | 32–48 |
+| 5 — Library migration + atomic frontend commit | 8–12 hours | 40–60 |
+| 6 — Final verification + docs | 4–6 hours | 44–66 |
 
-**Total: ~3–5 days of focused work over 1–2 weeks.**
+**Total: ~6–8 days of focused work over 2–3 weeks.** Higher than
+original estimate because Codex round-2 surfaced (a) the transaction-
+level fact table as foundational rather than optional, (b) the
+late-vs-periodic dedup precedence as a non-trivial design problem, and
+(c) the atomic-commit frontend migration requirement.
 
-Phase 4 is the big rock; everything else compounds onto Phase 4's
-foundation.
+Phase 4 remains the big rock — IE ingestion has the most complex
+attribution + dedup logic.
 
 ## Next steps (this session)
 
-1. User reviews this plan and answers the 4 key decisions
-2. Codex review pass on the plan with user's decisions baked in
-3. Begin Phase 0 (source data acquisition)
+1. User reviews this updated plan (round-1 + round-2 integrated)
+2. On user go-ahead, begin Phase 0:
+   - Download CAL-ACCESS dump
+   - Build source capability matrix at `data/CalAccess/SOURCE_MATRIX.md`
+   - Snapshot current v2 baseline at
+     `data/CalAccess/v2_pre_v3_baseline.json`
+   - Capture Ballotpedia reference figures with URLs at
+     `data/CalAccess/ballotpedia_baselines.json`
+3. Phase 1 DDL only after Phase 0 source matrix confirms (or
+   contradicts) the table-shape assumptions baked into the plan.
 
 Nothing irreversible happens until decisions are made and Codex has
 weighed in.
