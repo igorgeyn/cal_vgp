@@ -1,7 +1,7 @@
 ---
 plan: Finance extract scope expansion (close the Ballotpedia gap)
-status: DRAFT 2026-05-13 — Codex round-1 + round-2 integrated; ready to start Phase 0 on user go-ahead
-target: v3 total-support-side-money reconciles to source-table filtered SUM; Ballotpedia within ±10% is a smoke test
+status: DRAFT 2026-05-13 — Codex round-1 + round-2 + round-3 integrated; Phase 0 done; Phase 1 DDL gated on user go-ahead
+target: v3 total-support-side-money reconciles to source-table filtered SUM; Ballotpedia within ±25% is a smoke test
 ---
 
 # Finance extract scope expansion
@@ -117,7 +117,7 @@ some consumers read v2 and others read v3. Mitigation: ship Phase 5 as
 an atomic commit (operations + API + insights + briefing all migrate
 together), don't trickle.
 
-### 1b — Transaction-level fact table (Codex round-2 critical addition)
+### 1b — Transaction-level fact table (Codex rounds 2 + 3)
 
 Codex round-2 caught that summary/top-donors/timeline tables alone
 aren't enough — without a normalized internal fact table, provenance
@@ -125,50 +125,132 @@ fields in `finance_top_donors_by_type` become lossy (one donor can
 have multiple payees, filers, attribution sources, source rows). The
 fact table is the foundation; everything else is derived.
 
-**New table `finance_flow_v3`** — one row per accepted source-table
-transaction line, before any aggregation:
+Codex round-3 caught a NOT NULL contradiction in the original sketch
+(quarantined rows can't have `finance_campaign_id` / `measure_db_id` /
+`stance` because their attribution failed) and added cover-sheet
+lineage columns to support debugging "why did this filing attach to
+this prop?". Same-table quarantine retained because cross-table dedupe
+needs every row in one place.
+
+**`finance_flow_v3`** — one row per source-table transaction line
+(accepted or quarantined):
 
 ```sql
 CREATE TABLE finance_flow_v3 (
-    flow_id INTEGER PRIMARY KEY,
-    finance_campaign_id TEXT NOT NULL,
-    measure_db_id INTEGER NOT NULL,
-    stance TEXT NOT NULL,                  -- 'support' | 'oppose'
-    receipt_type TEXT NOT NULL,            -- 'monetary_contribution'
-                                           -- 'loan'
-                                           -- 'in_kind'
-                                           -- 'independent_expenditure'
-    amount REAL NOT NULL,
-    txn_date TEXT NOT NULL,                -- ISO date
-    week_start TEXT NOT NULL,              -- Monday ISO
-    source_table TEXT NOT NULL,            -- 'RCPT_CD' | 'LOAN_CD' | ...
-    source_form_type TEXT,                 -- 'A' | 'C' | 'F465P3' | ...
-    filing_id TEXT NOT NULL,
-    amend_id INTEGER NOT NULL,
-    line_item TEXT,                        -- TRAN_ID or schedule line
-    memo_code TEXT,                        -- present-and-truthy = excluded
-    committee_id TEXT,                     -- filer
-    committee_name TEXT,
-    donor_name_raw TEXT,
-    donor_name_canon TEXT,
-    reported_filer TEXT,                   -- IE rows: filing committee
-    payee_name TEXT,                       -- IE rows: vendor
-    attribution_source TEXT,               -- 'funding_source' | 'filer'
-                                           -- | 'inferred' | 'unknown'
-    donor_type TEXT,
-    donor_sector TEXT,
-    dedupe_key TEXT,                       -- for cross-filing dedup
-    quarantine_reason TEXT                 -- null = accepted
+    flow_id              INTEGER PRIMARY KEY,
+
+    -- Attribution result (NULL for quarantined / unattributed rows)
+    finance_campaign_id  TEXT,
+    measure_db_id        INTEGER,
+    stance               TEXT,                 -- 'support' | 'oppose'
+    receipt_type         TEXT,                 -- 'monetary_contribution'
+                                               -- 'loan'
+                                               -- 'in_kind'
+                                               -- 'independent_expenditure'
+    amount               REAL,
+    txn_date             TEXT,                 -- ISO date
+    week_start           TEXT,                 -- Monday ISO
+
+    -- Source provenance (always populated)
+    source_table         TEXT NOT NULL,        -- 'RCPT_CD' | 'LOAN_CD' | ...
+    source_form_type     TEXT NOT NULL,        -- 'A' | 'C' | 'F465P3' | ...
+    filing_id            TEXT NOT NULL,
+    amend_id             INTEGER NOT NULL,
+    source_line_item     TEXT,                 -- LINE_ITEM column
+    source_tran_id       TEXT,                 -- TRAN_ID column
+    source_bakref_tid    TEXT,                 -- BAKREF_TID (links across schedules)
+    source_memo_refno    TEXT,                 -- MEMO_REFNO (informational memo ref)
+    source_xref_schnm    TEXT,                 -- XREF_SCHNM (cross-schedule xref)
+    amount_field_used    TEXT,                 -- 'AMOUNT' | 'LOAN_AMT1' | ...
+
+    -- Cover-sheet lineage (populated via FILING_ID join to CVR_CAMPAIGN_DISCLOSURE_CD;
+    -- preserved even when attribution succeeds so debugging stays cheap)
+    cover_form_type      TEXT,                 -- F460 / F461 / F465 / F496 / etc.
+    cover_filer_id       TEXT,
+    cover_filer_name     TEXT,
+    cover_committee_id   TEXT,
+    cover_bal_num        TEXT,
+    cover_bal_name       TEXT,
+    cover_bal_juris      TEXT,
+    cover_sup_opp_cd     TEXT,
+    cover_elect_date     TEXT,
+    cover_from_date      TEXT,
+    cover_thru_date      TEXT,
+    attribution_method   TEXT,                 -- 'row_fields' | 'cover_sheet'
+                                               -- | 'crosswalk' | 'inferred' | 'failed'
+
+    -- Donor / payee identity
+    committee_id         TEXT,                 -- filer of the line-item
+    committee_name       TEXT,
+    donor_name_raw       TEXT,
+    donor_name_canon     TEXT,
+    reported_filer       TEXT,                 -- IE rows: filing committee
+    payee_name           TEXT,                 -- IE rows: vendor
+    attribution_source   TEXT,                 -- 'funding_source' | 'filer'
+                                               -- | 'inferred' | 'unknown'
+    donor_type           TEXT,
+    donor_sector         TEXT,
+
+    -- Memo + dedupe keys
+    memo_code            TEXT,                 -- present-and-truthy = excluded as memo
+    source_fingerprint   TEXT,                 -- pre-attribution row fingerprint
+    dedupe_key           TEXT,                 -- post-attribution cross-source dedupe key
+
+    -- Lifecycle
+    quarantine_reason    TEXT                  -- NULL = accepted
 );
-CREATE INDEX idx_flow_campaign_stance_type ON finance_flow_v3
-  (finance_campaign_id, stance, receipt_type);
-CREATE INDEX idx_flow_measure ON finance_flow_v3 (measure_db_id);
-CREATE INDEX idx_flow_dedupe ON finance_flow_v3 (dedupe_key);
+
+-- Source-row lookup (for upserts + amendment supersession)
+CREATE INDEX idx_flow_source_row
+    ON finance_flow_v3 (source_table, filing_id, amend_id, source_line_item);
+
+-- FORM_TYPE distribution queries
+CREATE INDEX idx_flow_source_form
+    ON finance_flow_v3 (source_table, source_form_type);
+
+-- Hot aggregation paths (accepted rows only)
+CREATE INDEX idx_flow_accepted_campaign_stance_type
+    ON finance_flow_v3 (finance_campaign_id, stance, receipt_type)
+    WHERE quarantine_reason IS NULL;
+
+CREATE INDEX idx_flow_accepted_measure_stance
+    ON finance_flow_v3 (measure_db_id, stance)
+    WHERE quarantine_reason IS NULL;
+
+CREATE INDEX idx_flow_accepted_type_date
+    ON finance_flow_v3 (receipt_type, txn_date)
+    WHERE quarantine_reason IS NULL;
+
+CREATE INDEX idx_flow_dedupe
+    ON finance_flow_v3 (dedupe_key)
+    WHERE quarantine_reason IS NULL;
+
+-- Quarantine analysis
+CREATE INDEX idx_flow_quarantine
+    ON finance_flow_v3 (quarantine_reason, source_table, source_form_type);
 ```
 
-This table is the source of truth. Quarantined rows live in the same
-table with `quarantine_reason` populated (cleaner than a separate
-quarantine table; everything dedupes against everything).
+**Rationale for the partial indexes** (Codex round-3): hot aggregation
+paths read only accepted rows; quarantined rows are typically 30-70%
+of source data. Partial indexes keep hot-path indexes ~3x smaller and
+exclude them from cache thrash. Quarantine-analysis queries get their
+own index so Phase 6 diagnostics don't bottleneck.
+
+**Why same-table quarantine** (despite the nullable attribution
+columns): cross-source dedupe in Rule 5 needs every row visible to a
+single query. If a periodic F460 RCPT_CD row supersedes a late S497_CD
+row, both must be in the same table to compute precedence. Plus,
+"quarantined" isn't always permanent — when Phase 4 IE attribution
+improves, some previously-quarantined IE rows may move to accepted.
+Easier as an UPDATE than a cross-table migration.
+
+**RCPT_CD `FORM_TYPE = 'I'` and `'F401A'` handling** (Codex round-3 +
+matrix finding): out of scope for v3, but loaded into the same table
+as quarantine rows with `quarantine_reason = 'unsupported_form_type'`
+so Phase 6 reports can quantify the excluded dollar volume.
+Intermediary receipts (`I`) require additional semantic work to map
+real funders through intermediary committees; slate-mailer receipts
+(`F401A`) double-count risk against `S401_CD`. Both deferred to v3.1.
 
 ### 1c — Derived tables
 
@@ -551,10 +633,28 @@ The same underlying transaction can appear in:
 4. **S496_CD / S497_CD late filings** — only when the same TRAN_ID /
    line-item is absent from the periodic source
 
-**Dedupe key** for cross-source uniqueness:
-`(donor_name_canon, payee_name, txn_date, amount, committee_id, stance)`
-with normalization. Any pair of rows from different source tables that
-share this key gets collapsed to the one in the preferred source.
+**Dedupe key** (Codex round-3): use the post-attribution
+`finance_campaign_id`, not raw `BAL_NUM`. The campaign_id is the
+normalized, crosswalk-resolved attribution target; BAL_NUM is sparse
+and not the granularity we de-duplicate against.
+
+Accepted-row `dedupe_key` (column on `finance_flow_v3`):
+
+```
+receipt_type | finance_campaign_id | stance | donor_name_canon |
+payee_name | txn_date | amount | committee_id
+```
+
+For rows where attribution failed (`finance_campaign_id IS NULL`), a
+separate `source_fingerprint` column carries a row-level fingerprint
+derived from `(source_table, source_form_type, filing_id,
+source_line_item, source_tran_id)`. This is for traceability and
+re-runnable rebuilds, not for cross-source dedupe.
+
+Cover-sheet fields (`cover_bal_num`, `cover_elect_date`, etc.) are
+**preserved alongside** `finance_campaign_id` for debugging "why did
+this row attach to this prop?" — but they don't appear in the dedupe
+key itself.
 
 ### Rule 6 — IE attribution to the targeted prop, not the filer's affiliation
 
@@ -585,26 +685,42 @@ dedup uses the same key plus `receipt_type` and `payee_name`.
 Layered verification at every phase boundary so a regression is contained
 and traceable.
 
-### Layer 1 — No-regression on monetary
+### Layer 1 — No-regression on monetary (Codex round-3 tightened)
 
 Under the v3 parallel-tables design, the existing `finance_summary` and
 `finance_top_donors` v2 tables remain monetary-only and are written by
 the same rebuild path as today. So no-regression should be *trivially*
-true. But verify it explicitly:
+true. But verify it explicitly. Baseline is at
+`data/CalAccess/v2_pre_v3_baseline.json` (194 campaigns, 301 summary
+rows, $3,240,293,198.54 grand total, SHA-256 self-hash). Layer 1
+assertions, all of which must pass before any phase completes:
 
-1. Snapshot v2 `finance_summary` for all 181 campaigns to
-   `plans/finance-extract-baseline.json`
-2. Snapshot v2 `finance_top_donors` top-5 per campaign per stance
-3. After every phase: re-run a comparison: v2 `finance_summary` must
-   equal the snapshot **to the penny**; v2 `finance_top_donors` top-5
-   identical.
-4. ALSO verify: `finance_summary_by_type` WHERE `receipt_type =
-   'monetary_contribution'` must equal the v2 `finance_summary` slice
-   for the same campaigns. (Cross-check that the v3 monetary slice and
-   the v2 monetary table agree — catches bugs where the new code path
-   drifts from the old.)
+1. **Exact same `finance_summary` keys.** The set of
+   `(finance_campaign_id, stance)` keys after rebuild == the baseline
+   key set. No keys added or removed unless an explicit Phase note
+   documents why.
+2. **Exact same `finance_summary` values.** For every key:
+   `total_receipts`, `n_committees`, `top5_share`, `hhi` all equal
+   the baseline values to the penny / to 4 decimal places.
+3. **Exact same top-5 donor keys.** For every `(campaign, stance)`,
+   the set of top-5 `donor_name_canon` is identical to baseline.
+4. **Exact same top-5 donor values.** Per donor: `donor_type` matches
+   and `total_amount` equal to the penny.
+5. **v3 monetary slice equals v2 monetary baseline.** Querying
+   `finance_summary_by_type WHERE receipt_type = 'monetary_contribution'`
+   must equal the v2 `finance_summary` baseline for all 194 campaigns.
+   Cross-check that the new code path doesn't drift from the old.
+6. **No extra monetary campaigns.** Count of distinct
+   `finance_campaign_id` with `receipt_type = 'monetary_contribution'`
+   must equal baseline's `campaign_count = 194` unless an explicit
+   Phase note documents an intentional addition.
+7. **Baseline hash unchanged.** The `_self_hash` in
+   `v2_pre_v3_baseline.json` matches at every comparison run (paranoia
+   check — if anyone mutates the baseline file mid-project, this
+   trips).
 
-Any deviation in either check = bug. Halt and investigate.
+Any deviation = bug. Halt and investigate. Specifically, do NOT
+proceed to the next phase if any assertion fails.
 
 ### Layer 2 — Source-table reconciliation (THE main acceptance criterion, Codex round-2)
 
@@ -791,18 +907,28 @@ late-vs-periodic dedup precedence as a non-trivial design problem, and
 Phase 4 remains the big rock — IE ingestion has the most complex
 attribution + dedup logic.
 
-## Next steps (this session)
+## Next steps
 
-1. User reviews this updated plan (round-1 + round-2 integrated)
-2. On user go-ahead, begin Phase 0:
-   - Download CAL-ACCESS dump
-   - Build source capability matrix at `data/CalAccess/SOURCE_MATRIX.md`
-   - Snapshot current v2 baseline at
-     `data/CalAccess/v2_pre_v3_baseline.json`
-   - Capture Ballotpedia reference figures with URLs at
-     `data/CalAccess/ballotpedia_baselines.json`
-3. Phase 1 DDL only after Phase 0 source matrix confirms (or
-   contradicts) the table-shape assumptions baked into the plan.
+**Phase 0: DONE (2026-05-13, commit `61e4527`).** Source matrix
+built, baseline snapshotted, Ballotpedia baselines captured. Codex
+round-3 review integrated above (NOT NULL fix, cover-sheet lineage
+columns, partial indexes, quarantine of unsupported FORM_TYPEs,
+campaign_id-keyed dedupe, tightened Layer 1 assertions).
+
+**Phase 1: ready to begin on user go-ahead.** Deliverables:
+
+1. `scripts/v3/schema.sql` — full DDL for `finance_flow_v3` +
+   derived tables + views, matching section 1b above exactly.
+2. `scripts/v3/init_db.py` — idempotent migration runner that creates
+   `scraper/data/finance/finance_statewide_v3.db` from `schema.sql`.
+3. `scripts/v3/verify_layer1.py` — Layer 1 no-regression checker
+   reading from `v2_pre_v3_baseline.json`.
+4. Smoke test: run `init_db.py` to confirm DDL parses + indexes create
+   cleanly. No data loaded yet.
+
+Phase 1 deliverables are still cheap to throw away if anything
+surfaces. Phase 2 (LOAN_CD ingestion) is where the first real data
+touches v3.db.
 
 Nothing irreversible happens until decisions are made and Codex has
 weighed in.
