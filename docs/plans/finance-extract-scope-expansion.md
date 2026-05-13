@@ -860,6 +860,55 @@ currently calls `get_top_donors()`, `aggregate_for_measure()`, or reads
 migrate to v3. Phase 5 commit includes a checklist + grep of consumer
 call sites.
 
+## Scope (Codex round-5)
+
+**v3 inherits v2 crosswalk scope.** v3 captures loans / in-kind / IEs
+for the same **194 statewide ballot measures** v2 already tracks
+(1999-2025). It does NOT add coverage of:
+
+- June 2018 statewide props (PROP_68/69/70 — known Bucket B gap)
+- Pre-1999 statewide props
+- Recall measures (e.g. 2021 Newsom recall)
+- Local ballot measures
+- Special-election measures not in CEDA / v2
+
+These gaps are tracked separately in WORKING_LIST.md. Broadening the
+crosswalk is a parallel effort to scope expansion (one is "more
+campaigns," the other is "more flows per campaign") and they can ship
+independently.
+
+**Quarantine taxonomy** (Codex round-5 finding 6 + 7): some categories
+are deliberately quarantined rather than handled:
+
+- Multi-prop committees ("No on 62, Yes on 66"): cover sheet has no
+  per-line attribution and the committee name contains opposing
+  stances. Row-level BAL/SUP fields in EXPN_CD / S497_CD can
+  disambiguate; for tables without those (RCPT_CD, LOAN_CD), these
+  fall to `quarantine_reason='unknown_stance'` unless an explicit
+  override is added to COMMITTEE_STANCE_OVERRIDES.
+- RCPT_CD `FORM_TYPE='I'` (intermediary receipts) and `'F401A'`
+  (slate-mailer contributions): loaded with
+  `quarantine_reason='unsupported_form_type'` so Phase 6 reports can
+  quantify exclusion; not attributed as direct contributions.
+
+## Phase 4 scalability notes (Codex round-5 finding 7)
+
+For Phase 4 EXPN_CD ingest (2.95GB raw):
+
+- Pre-filter to relevant `FORM_TYPE` values (`F461P5`, `F465P3`,
+  selected Schedule E) **before** building per-row dicts. Don't load
+  the whole 2.95GB into memory.
+- Streaming batch inserts (e.g. 50K rows per `executemany` batch with
+  intermediate COMMIT) rather than collecting a single giant Python
+  list.
+- Reject rows for `FORM_TYPE` not in the allow-list **without storing
+  them** in `finance_flow_v3`. Quarantine for cases that are
+  in-scope-but-fail-a-gate; out-of-scope FORM_TYPEs don't need
+  same-table residency.
+
+For Phase 2 (LOAN_CD, 18MB) and Phase 3 (RCPT_CD Schedule C subset,
+~75MB filtered) the simpler in-memory pattern is fine.
+
 ## Risks
 
 - **CAL-ACCESS schema drift:** column names sometimes change between
