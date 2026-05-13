@@ -61,12 +61,50 @@ high-value donor name variants (CTA, AFSCME, AFT, R.J. Reynolds, San
 Manuel, Lyft, DraftKings, FanDuel, Cal Apartment Assn, Philip Morris).
 See `DONOR_ALIAS_PATTERNS` in `rebuild_finance_db.py`. No fuzzy matching.
 
-## Current state (2026-05-04)
+## Current state (2026-05-12)
 
-- **181 matched campaigns** (1999–2025) covering $3.32B in retained receipts
+- **181 matched campaigns** (1999–2025) covering **$3.24B** in retained receipts
 - **1,589,936 source rows quarantined** with reason codes (mostly recall money, empty-year rows, and exact duplicates)
 - 105 / 105 two-stance campaigns return both support + oppose donors
 - All five named sentinels (PROP_16_2020, PROP_22_2020, PROP_32_2024, PROP_6_2024, PROP_50_2025) at 100% in-target-year activity
 
 See `plans/finance-rebuild-verification.md` for the full verification report
 and `plans/finance-panel-redesign.md` for the rebuild story.
+
+## Scope and methodology
+
+**What the receipt totals include:** itemized monetary contributions
+recorded in CAL-ACCESS `RCPT_CD` for filings tagged with the prop's
+`BAL_NUM` / `BAL_NAME`, after cross-filing dedupe.
+
+**What they do NOT include:**
+
+- Non-monetary / in-kind contributions (Form 460 Schedule C)
+- Loans received (Form 460 Schedule B / `LOAN_CD`)
+- Independent expenditures by major donors (Form 461 / `S496_CD`) —
+  e.g. if a sportsbook paid an ad agency directly to support a prop,
+  bypassing the official Yes-on-X PAC, that spending is not captured
+- Receipts to side-committees that didn't tag their filings with the
+  prop's `BAL_NUM` (a CAL-ACCESS data-entry gap; Prop 27 (2022) is a
+  known example — Ballotpedia lists two oppose committees, we have one)
+
+**Why our totals differ from press citations:** common public-reporting
+figures (Ballotpedia, OpenSecrets news posts, CalMatters explainers)
+combine all of the above scopes, often using committee-reported cumulative
+totals from Form 460 cover sheets rather than itemized line sums. Our
+numbers are the strictest defensible subset: verifiable monetary inflow
+to the official committees, de-duplicated across cross-filing repetition.
+Expect our totals to run **roughly 40–60% of headline figures** for
+high-IE-spending props like PROP_22_2020 and PROP_27_2022.
+
+**Cross-filing dedupe (Gate 7 in rebuild_finance_db.py):** the same
+Schedule A transaction is legitimately reported across multiple distinct
+CAL-ACCESS `FILING_ID`s — Form 497 24-hour late filing, Form 460
+pre-election, Form 460 semi-annual, Form 460 annual closer all carry the
+same itemized contributions for transactions inside their reporting
+window. `extract_calaccess_finance.py` filters to latest amendment **per
+FILING_ID** but does not collapse across FILING_IDs. The rebuild's Gate 7
+does that work, keyed on `(campaign, stance, date, amount,
+canonicalize_donor(donor_raw), donor_type, committee)`. The canonical-
+donor key (2026-05-12 change) catches casing-variant duplicates
+("D/B/A" vs "d/b/a") that the prior raw-name key missed.

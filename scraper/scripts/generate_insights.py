@@ -1554,7 +1554,7 @@ def build_insights(db_path=DB_PATH):
             "sources": sorted(Counter(m.get("data_source") or "Unknown" for m in measures).items(), key=lambda x: x[1], reverse=True),
             "notes": [
                 "CEDA dominates local measure coverage and is strongest for outcomes, categories, and vote totals.",
-                "Campaign finance analysis uses the year-scoped statewide proposition finance database (rebuilt 2026-05-04, keyed by finance_campaign_id) and is not available for local measures.",
+                "Campaign finance analysis uses the year-scoped statewide proposition finance database (finance_statewide_v2.db, last rebuilt 2026-05-12, keyed by finance_campaign_id). Scope: itemized monetary contributions to recipient committees tagged with each prop's CAL-ACCESS ballot number. Independent expenditures, in-kind contributions, loans, and contributions to untagged side-committees are not included — our totals therefore run lower than press citations (e.g. Ballotpedia) that combine those scopes. Not available for local measures.",
                 "Pending-measure analogs are intentionally excluded from this MVP to avoid prediction framing.",
             ],
         },

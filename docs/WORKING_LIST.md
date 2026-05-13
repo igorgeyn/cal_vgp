@@ -151,20 +151,50 @@ checks pass; Phase F manual checklist signed off via browser spot-check).
       Captured under the stance-recovery item below — now meaningfully
       bigger scope than the "residual 42 rows" framing implied.
 
-- [ ] **Audit Prop 27 (2022) coverage gap.** Online sports betting (Yes
-      side: DraftKings/FanDuel/etc. vs. tribes). Public reporting puts the
-      support side around **$160–170M**; v2 post-dedup shows **$69.8M
-      support / $76.1M oppose**. Donor list looks structurally clean
-      (sportsbook cos. on yes, San Manuel + Pala on no), but the absolute
-      numbers are well under the historical record — suggesting one or
-      more sportsbook PACs aren't year-attributed to 2022 in the crosswalk
-      (Bucket A pattern), or the crosswalk is missing committees entirely
-      (coverage). Confirmed via screenshot spot-check 2026-05-12. Probable
-      fix: inspect CalAccess for Prop 27 committee filings, cross-reference
-      against `finance_row_quarantine`, and check whether the existing
-      ±2-year matcher v2 catches them or if they need a manual nudge.
-      Likely sibling case: PROP_26_2022 (tribal counter-prop on same
-      ballot) which would be expected to have ~$100M+ oppose-side spend.
+- [x] ~~**Audit Prop 27 (2022) coverage gap.**~~ **RESOLVED BY DIAGNOSTIC
+      2026-05-13.** Investigated the ~$99M gap between Ballotpedia
+      ($169.1M Yes-on-27) and our v2 ($69.8M). Three root causes
+      identified, none of which are bugs in the dedup commit `9fb9dc0`:
+      (1) Our scope is monetary contributions to the official recipient
+      committee only — we don't include in-kind, loans, or independent
+      expenditures (which is where sportsbooks' direct-to-ad-agency
+      spending sits). (2) `extract_calaccess_finance.py` filters
+      amendments per FILING_ID, but each underlying transaction
+      legitimately appears in multiple distinct FILING_IDs (Form 497
+      24-hour late + Form 460 pre-election + 460 semi-annual + 460
+      annual all carry the same Schedule A entries); Gate 7 in
+      `rebuild_finance_db.py` correctly collapses this. (3) Crosswalk has
+      1 oppose committee for Prop 27; Ballotpedia lists 2 (untagged
+      second committee in CAL-ACCESS — separate small follow-up below).
+      Spot-check ground truth: FanDuel raw CSV has 40 rows with only 8
+      distinct (date, amount) tuples summing to $18.34M — matches v2 to
+      the penny. Same pattern verified across PROP_22_2020, PROP_32_2012,
+      PROP_8_2018. Methodology note added to Finance panel + insights
+      methodology block + `scraper/data/finance/README.md` clarifying
+      what's in/out of scope and why our totals run ~40-60% of headline
+      press figures for high-IE-spending props.
+
+- [ ] **Expand finance extract scope** (medium-large, future). Extend
+      `scripts/extract_calaccess_finance.py` to ingest `LOAN_CD` (loans
+      received), Form 460 Schedule C (in-kind contributions), and
+      `S496_CD` / Form 461 (independent expenditures by major donors)
+      alongside `RCPT_CD`. Closes the gap with Ballotpedia headline
+      numbers but touches the entire 181-campaign DB; requires a
+      verification rerun and a new column in `finance_summary` to
+      distinguish receipt types. Worth doing only if the methodology
+      note proves insufficient or if a downstream use case (briefing
+      prose, donor-power narrative) needs the full picture.
+
+- [ ] **Hunt missing second oppose committee for PROP_27_2022** (small,
+      10-15 min). Ballotpedia lists "Coalition for Safe, Responsible
+      Gaming" as a second No-on-27 committee. Our crosswalk has only
+      1443032 ("Californians for Tribal Sovereignty"). Either the second
+      committee didn't tag its filings with `BAL_NUM=27` in CAL-ACCESS,
+      or its filings exist but don't survive our prop-number extraction.
+      Check `finance_row_quarantine` and the raw `CVR_CAMPAIGN_DISCLOSURE_CD`
+      dump for filer_id-of-other-committee. If it's a tagging gap, add
+      to `COMMITTEE_STANCE_OVERRIDES` or extend the crosswalk to accept
+      named committee fallbacks for known cases.
 
 - [ ] **Backfill June 2018 statewide props (Bucket B).** Manually add
       PROP_68_2018 (Parks/Water Bond), PROP_69_2018 (Transportation
