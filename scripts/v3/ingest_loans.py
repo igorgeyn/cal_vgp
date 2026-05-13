@@ -193,15 +193,17 @@ def ingest_loans(dump_dir: Path, v2_db: Path, v3_db: Path,
     if not loan_path.exists():
         raise SystemExit(f"Missing source: {loan_path}")
 
-    # Pass 1: identify latest AMEND_ID per (FILING_ID, LINE_ITEM) so we
-    # can supersede prior amendments deterministically. CalAccess Loan
-    # schedules amend the whole schedule, so the FILING_ID+LINE_ITEM
-    # together identify a single source row across amendments.
+    # Pass 1: identify latest AMEND_ID PER FILING_ID. CalAccess
+    # amendments are complete refiles of the schedule, so an amend-N
+    # filing supersedes all amend-(N-1) rows for that FILING_ID — even
+    # LINE_ITEMs that were removed in the amendment. (Codex round-5
+    # caught this: prior code used (FILING_ID, LINE_ITEM) grain which
+    # kept removed line items from old amendments.)
     if verbose:
         print()
         print(f"Scanning LOAN_CD ({loan_path.stat().st_size / 1e6:.1f}MB)...")
 
-    latest_amend: dict[tuple[str, str], int] = {}
+    latest_amend: dict[str, int] = {}
     with loan_path.open(encoding="latin-1", newline="") as f:
         reader = csv.reader(f, delimiter="\t")
         header = next(reader)
@@ -213,20 +215,17 @@ def ingest_loans(dump_dir: Path, v2_db: Path, v3_db: Path,
 
         for row in reader:
             fid = col(row, "FILING_ID")
-            line = col(row, "LINE_ITEM")
             if not fid:
                 continue
             try:
                 amend = int(col(row, "AMEND_ID") or 0)
             except ValueError:
                 amend = 0
-            key = (fid, line)
-            if amend > latest_amend.get(key, -1):
-                latest_amend[key] = amend
+            if amend > latest_amend.get(fid, -1):
+                latest_amend[fid] = amend
 
     if verbose:
-        print(f"Unique (FILING_ID, LINE_ITEM) keys in LOAN_CD: "
-              f"{len(latest_amend):,}")
+        print(f"Unique FILING_IDs in LOAN_CD: {len(latest_amend):,}")
 
     # Pass 2: build finance_flow_v3 rows
     rows_for_insert: list[dict] = []
@@ -252,10 +251,12 @@ def ingest_loans(dump_dir: Path, v2_db: Path, v3_db: Path,
             if not fid:
                 stats["bad_filing_id"] += 1
                 continue
-            if amend != latest_amend.get((fid, line), -1):
+            if amend != latest_amend.get(fid, -1):
                 stats["superseded_amendment"] += 1
                 continue
 
+            # --- Parse all source fields up front (Codex round-5: quarantined
+            # rows should still carry amount/date/donor for diagnostics)
             form_type = (col(row, "FORM_TYPE") or "").strip()
             memo_code = col(row, "MEMO_CODE")
             tran_id = col(row, "TRAN_ID")
@@ -273,13 +274,44 @@ def ingest_loans(dump_dir: Path, v2_db: Path, v3_db: Path,
             entity_cd = col(row, "ENTITY_CD")
             date1_str = col(row, "LOAN_DATE1")
             txn_date = lib.parse_calaccess_date(date1_str)
-            try:
-                amount = float(col(row, "LOAN_AMT1") or 0)
-            except (ValueError, TypeError):
-                amount = 0.0
+            # Distinguish "0 in source" from "couldn't parse" by using
+            # None for unparseable, float (incl. 0) for parsed values
+            amt_raw = col(row, "LOAN_AMT1")
+            if lib.is_null(amt_raw):
+                amount: float | None = None
+            else:
+                try:
+                    amount = float(amt_raw)
+                except (ValueError, TypeError):
+                    amount = None
+
+            donor_canon = (
+                lib.canonicalize_donor(lender_full) if lender_full else None
+            )
+            txn_date_iso = txn_date.isoformat() if txn_date else None
+            week_start = lib.week_start_iso(txn_date) if txn_date else None
+
+            # source_fingerprint: row identity, INCLUDES source_table
+            source_fingerprint = (
+                f"LOAN_CD|{form_type}|{fid}|{amend}|{line}|{tran_id}"
+            )
+            # economic_fingerprint: cross-source dedup candidate.
+            # EXCLUDES source_table so a Form-460 row and a Form-497
+            # late-filing row for the same transaction collide and
+                # Phase 4 Rule-5 can apply precedence. Built from
+            # economic fields only.
+            economic_fingerprint = (
+                f"{(donor_canon or '')}|{txn_date_iso or ''}|"
+                f"{(amount if amount is not None else ''):}|"
+                f"{(committee_id or '')}|loan"
+            )
 
             base = {c: None for c in lib.FLOW_COLUMNS}
             base.update({
+                "amount": amount,
+                "txn_date": txn_date_iso,
+                "week_start": week_start,
+                "receipt_type": "loan",   # tentative; cleared if quarantined
                 "source_table": "LOAN_CD",
                 "source_form_type": form_type,
                 "filing_id": fid,
@@ -287,19 +319,27 @@ def ingest_loans(dump_dir: Path, v2_db: Path, v3_db: Path,
                 "source_line_item": line,
                 "source_tran_id": tran_id,
                 "source_bakref_tid": bakref if not lib.is_null(bakref) else None,
-                "source_memo_refno": memo_refno if not lib.is_null(memo_refno) else None,
+                "source_memo_refno": (
+                    memo_refno if not lib.is_null(memo_refno) else None
+                ),
                 "source_xref_schnm": xref if not lib.is_null(xref) else None,
                 "amount_field_used": "LOAN_AMT1",
-                "committee_id": committee_id if not lib.is_null(committee_id) else None,
+                "committee_id": (
+                    committee_id if not lib.is_null(committee_id) else None
+                ),
                 "donor_name_raw": lender_full or None,
-                "donor_name_canon": lib.canonicalize_donor(lender_full) if lender_full else None,
-                "donor_type": "individual" if (entity_cd or "").strip().upper() == "IND" else "other",
+                "donor_name_canon": donor_canon,
+                "donor_type": (
+                    "individual"
+                    if (entity_cd or "").strip().upper() == "IND"
+                    else "other"
+                ),
                 "memo_code": memo_code if not lib.is_null(memo_code) else None,
-                "source_fingerprint":
-                    f"LOAN_CD|{form_type}|{fid}|{amend}|{line}|{tran_id}",
+                "source_fingerprint": source_fingerprint,
+                "economic_fingerprint": economic_fingerprint,
             })
 
-            # Cover-sheet lineage
+            # Cover-sheet lineage (always populated when available)
             attr = attribs.get(fid)
             if attr:
                 base.update({
@@ -331,26 +371,27 @@ def ingest_loans(dump_dir: Path, v2_db: Path, v3_db: Path,
                 quarantine_reason = "unknown_stance"
             elif txn_date is None:
                 quarantine_reason = "unparseable_date"
+            elif amount is None:
+                quarantine_reason = "unparseable_amount"
             elif amount <= 0:
                 quarantine_reason = "non_positive_amount"
 
             if quarantine_reason:
+                # Quarantined: keep parsed amount/date for diagnostics,
+                # but clear receipt_type / stance / measure attribution
                 base["quarantine_reason"] = quarantine_reason
+                base["receipt_type"] = None
                 stats[f"quarantine_{quarantine_reason}"] += 1
             else:
                 # Accepted: populate attribution fields + dedupe_key
                 base["finance_campaign_id"] = attr.finance_campaign_id
                 base["measure_db_id"] = attr.measure_db_id
                 base["stance"] = attr.stance
-                base["receipt_type"] = "loan"
-                base["amount"] = amount
-                base["txn_date"] = txn_date.isoformat()
-                base["week_start"] = lib.week_start_iso(txn_date)
-                base["attribution_source"] = "funding_source"  # lender named directly
+                base["attribution_source"] = "funding_source"
                 base["dedupe_key"] = (
                     f"loan|{attr.finance_campaign_id}|{attr.stance}|"
-                    f"{base['donor_name_canon']}||"
-                    f"{base['txn_date']}|{amount:.2f}|"
+                    f"{donor_canon}||"
+                    f"{txn_date_iso}|{amount:.2f}|"
                     f"{committee_id or ''}"
                 )
                 stats["accepted"] += 1

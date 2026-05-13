@@ -43,15 +43,18 @@ def is_null(value: str | None) -> bool:
 
 
 def parse_calaccess_date(s: str | None) -> Optional[date]:
-    """Parse a CalAccess date column. Returns None on any parsing failure.
+    """Parse a CalAccess date column. Returns None on parsing failure.
 
-    CalAccess writes dates in M/D/YYYY or MM/DD/YYYY format in TSV
-    exports (with time stripped). Some rows are blank or \\N.
+    Accepts:
+    - M/D/YYYY or MM/DD/YYYY (the common case in TSV exports)
+    - YYYY-MM-DD (ISO; future-safe per Codex round-5)
+    - Either with a trailing time suffix (regex is prefix-based)
+
+    Blank/\\N returns None silently.
     """
     if is_null(s):
         return None
     s = (s or "").strip()
-    # First try MM/DD/YYYY
     m = re.match(r"^(\d{1,2})/(\d{1,2})/(\d{4})", s)
     if m:
         try:
@@ -59,7 +62,13 @@ def parse_calaccess_date(s: str | None) -> Optional[date]:
             return date(yr, mo, day)
         except (ValueError, TypeError):
             return None
-    # Some columns include a time suffix like "12/31/2022 12:00:00 AM"
+    m = re.match(r"^(\d{4})-(\d{1,2})-(\d{1,2})", s)
+    if m:
+        try:
+            yr, mo, day = int(m.group(1)), int(m.group(2)), int(m.group(3))
+            return date(yr, mo, day)
+        except (ValueError, TypeError):
+            return None
     return None
 
 
@@ -168,6 +177,7 @@ FLOW_COLUMNS = [
     "donor_sector",
     "memo_code",
     "source_fingerprint",
+    "economic_fingerprint",
     "dedupe_key",
     "quarantine_reason",
 ]

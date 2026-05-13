@@ -30,6 +30,7 @@ V3_OBJECTS = [
     ("index", "idx_flow_accepted_type_date"),
     ("index", "idx_flow_dedupe"),
     ("index", "idx_flow_quarantine"),
+    ("index", "idx_flow_economic_fingerprint"),
     ("index", "idx_summary_bytype_campaign_stance"),
     ("index", "idx_summary_bytype_measure_stance"),
     ("index", "idx_topdonors_bytype_amount"),

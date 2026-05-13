@@ -48,8 +48,9 @@ def filtered_source_totals(dump_dir: Path, v2_db: Path) -> dict:
     attribs = load_cover_attributions(v2_db, dump_dir, verbose=False)
     loan_path = dump_dir / "LOAN_CD.TSV"
 
-    # Latest amend per (FILING_ID, LINE_ITEM)
-    latest_amend: dict[tuple[str, str], int] = {}
+    # Latest amend per FILING_ID (Codex round-5 fix: amendments are
+    # complete refiles, not incremental)
+    latest_amend: dict[str, int] = {}
     with loan_path.open(encoding="latin-1", newline="") as f:
         reader = csv.reader(f, delimiter="\t")
         header = next(reader)
@@ -59,15 +60,14 @@ def filtered_source_totals(dump_dir: Path, v2_db: Path) -> dict:
                 i = cols.get(n)
                 return row[i] if i is not None and i < len(row) else ""
             fid = c("FILING_ID")
-            line = c("LINE_ITEM")
             if not fid:
                 continue
             try:
                 a = int(c("AMEND_ID") or 0)
             except ValueError:
                 a = 0
-            if a > latest_amend.get((fid, line), -1):
-                latest_amend[(fid, line)] = a
+            if a > latest_amend.get(fid, -1):
+                latest_amend[fid] = a
 
     totals: dict[tuple[str, str], float] = defaultdict(float)
     with loan_path.open(encoding="latin-1", newline="") as f:
@@ -84,7 +84,7 @@ def filtered_source_totals(dump_dir: Path, v2_db: Path) -> dict:
                 amend = int(c("AMEND_ID") or 0)
             except ValueError:
                 amend = 0
-            if amend != latest_amend.get((fid, line), -1):
+            if amend != latest_amend.get(fid, -1):
                 continue
             if (c("FORM_TYPE") or "").strip() != "B1":
                 continue

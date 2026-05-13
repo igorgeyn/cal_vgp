@@ -83,10 +83,18 @@ CREATE TABLE IF NOT EXISTS finance_flow_v3 (
 
     -- Memo + dedupe keys
     memo_code            TEXT,                 -- present + truthy = excluded as memo
-    source_fingerprint   TEXT,                 -- pre-attribution row identity
+    source_fingerprint   TEXT,                 -- pre-attribution source-row identity
                                                -- (source_table, source_form_type,
                                                --  filing_id, source_line_item,
-                                               --  source_tran_id)
+                                               --  source_tran_id) — INCLUDES
+                                               -- source_table so two tables can hold
+                                               -- the same economic event distinctly
+    economic_fingerprint TEXT,                 -- pre-attribution cross-source dedup
+                                               -- candidate; EXCLUDES source_table.
+                                               -- Used in Phase 4 Rule-5 precedence to
+                                               -- collapse the same transaction
+                                               -- reported in multiple source tables
+                                               -- (e.g. F496 late + F465P3 periodic)
     dedupe_key           TEXT,                 -- post-attribution cross-source dedupe key
                                                -- (receipt_type, finance_campaign_id,
                                                --  stance, donor_name_canon,
@@ -134,6 +142,11 @@ CREATE INDEX idx_flow_dedupe
 DROP INDEX IF EXISTS idx_flow_quarantine;
 CREATE INDEX idx_flow_quarantine
     ON finance_flow_v3 (quarantine_reason, source_table, source_form_type);
+
+DROP INDEX IF EXISTS idx_flow_economic_fingerprint;
+CREATE INDEX idx_flow_economic_fingerprint
+    ON finance_flow_v3 (economic_fingerprint)
+    WHERE economic_fingerprint IS NOT NULL;
 
 ------------------------------------------------------------
 -- 3. Derived materialized tables: by-type summaries
