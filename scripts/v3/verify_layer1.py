@@ -242,7 +242,8 @@ def check_v3_monetary_slice(baseline_summary: dict, baseline_donors: dict,
     try:
         try:
             row = con.execute(
-                "SELECT COUNT(*) FROM finance_summary_by_type"
+                "SELECT COUNT(*) FROM finance_summary_by_type "
+                "WHERE receipt_type = 'monetary_contribution'"
             ).fetchone()
         except sqlite3.OperationalError:
             if require:
@@ -258,12 +259,13 @@ def check_v3_monetary_slice(baseline_summary: dict, baseline_donors: dict,
         if row[0] == 0:
             if require:
                 result.record("5. v3_monetary_slice_match", False,
-                              "--require-v3-monetary but "
-                              "finance_summary_by_type is empty")
+                              "--require-v3-monetary but no "
+                              "monetary_contribution rows in "
+                              "finance_summary_by_type")
             else:
                 result.record("5. v3_monetary_slice_match", True,
-                              "info: finance_summary_by_type is empty; "
-                              "skipped (pre-Phase 2 ingest)")
+                              "info: no monetary_contribution rows in "
+                              "v3 yet; skipped (pre-monetary ingest)")
             return
 
         # Full row comparison (Codex round-4 hardening)
