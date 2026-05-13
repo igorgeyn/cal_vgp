@@ -23,11 +23,20 @@ def main() -> int:
         ("39", 2012): ("PROP_39_2012", 5002),
         ("22", 2020): ("PROP_22_2020", 6001),
         ("27", 2022): ("PROP_27_2022", 7001),
+        # 2005 Schwarzenegger reform props (single-candidate)
+        ("74", 2005): ("PROP_74_2005", 7401),
+        ("75", 2005): ("PROP_75_2005", 7501),
+        ("76", 2005): ("PROP_76_2005", 7601),
         ("78", 2005): ("PROP_78_2005", 8001),
+        ("79", 2005): ("PROP_79_2005", 7901),
+        # Legacy single-candidate with 1978 year (Howard Jarvis test)
         ("13", 1978): ("PROP_13_1978", 9001),
         ("38", 2000): ("PROP_38_2000", 10001),
         ("30", 2012): ("PROP_30_2012", 11001),
         ("32", 2012): ("PROP_32_2012", 12001),
+        # Multi-prop test fixtures (Yes on Props 1 and 2)
+        ("1", 2024): ("PROP_1_2024", 13001),
+        ("2", 2024): ("PROP_2_2024", 13002),
     }
     overrides = {
         "hold politicians accountable": [("PROP_54_2016", "support")],
@@ -156,9 +165,85 @@ def main() -> int:
         "PROTECT PROP. 13",
         [date(2026, 1, 1)],
     )
-    check("PROTECT PROP. 13 + 2026 -> no_campaign_match (1978 not in window)",
-          lambda: r.quarantine_reason == "ambiguous_year"
-                 or r.quarantine_reason == "no_campaign_match")
+    check("PROTECT PROP. 13 + 2026 -> single_candidate_stale_out_of_window",
+          lambda: r.quarantine_reason == "single_candidate_stale_out_of_window")
+
+    # --- Golden cases from Codex round-7 ---
+    print()
+    print("=== Codex round-7 golden cases ===")
+
+    # Schwarzenegger 2005 wind-down: filings continue through 2007-2009
+    for prop in ("74", "75", "76", "78", "79"):
+        r = R.resolve_from_filer_name(
+            f"NO ON {prop} - Californians Against Bad Stuff",
+            [date(2007, 6, 30)],  # post-election wind-down
+        )
+        check(f"NO ON {prop} + 2007 wind-down -> "
+              f"single_crosswalk_candidate_winddown",
+              lambda r=r, prop=prop:
+                  r.resolved
+                  and r.finance_campaign_id == f"PROP_{prop}_2005"
+                  and r.stance == "oppose"
+                  and r.attribution_method == "single_crosswalk_candidate_winddown")
+
+    # In-cycle filings (within +/- 1) use the regular method name
+    r = R.resolve_from_filer_name(
+        "NO ON 79 - Californians Against Wrong Prescription",
+        [date(2005, 9, 1)],
+    )
+    check("NO ON 79 + 2005 (in-cycle) -> filer_name_explicit",
+          lambda: r.resolved
+                 and r.attribution_method == "filer_name_explicit")
+
+    # Out-of-window: stale single-candidate
+    r = R.resolve_from_filer_name(
+        "NO ON 79 - Californians Against Wrong Prescription",
+        [date(2015, 1, 1)],
+    )
+    check("NO ON 79 + 2015 (>5 years off) -> stale_out_of_window",
+          lambda: r.quarantine_reason == "single_candidate_stale_out_of_window")
+
+    # Multi-candidate disambiguation
+    r = R.resolve_from_filer_name(
+        "YES ON 14 stem cell",
+        [date(2020, 9, 1)],
+    )
+    check("YES ON 14 + 2020 -> PROP_14_2020 (multi-candidate -> 1 plausible)",
+          lambda: r.resolved and r.finance_campaign_id == "PROP_14_2020")
+
+    r = R.resolve_from_filer_name(
+        "YES ON 14 stem cell",
+        [date(2004, 10, 1)],
+    )
+    check("YES ON 14 + 2004 -> PROP_14_2004",
+          lambda: r.resolved and r.finance_campaign_id == "PROP_14_2004")
+
+    # Plural pattern: "Yes on Props 1 and 2" should NOT fall to
+    # filer_name_no_prop — should be ambiguous_multi_prop
+    print()
+    print("=== Plural patterns (Codex round-7) ===")
+    m = resolver.extract_prop_mentions(
+        "Yes on Props 1 and 2, a bipartisan coalition"
+    )
+    props = {(x.prop_num, x.stance) for x in m}
+    check("'Yes on Props 1 and 2' -> two support mentions",
+          lambda: ("1", "support") in props and ("2", "support") in props)
+
+    r = R.resolve_from_filer_name(
+        "Yes on Props 1 and 2, a bipartisan coalition",
+        [date(2024, 9, 1)],
+    )
+    check("'Yes on Props 1 and 2' -> ambiguous_multi_prop (not filer_name_no_prop)",
+          lambda: r.quarantine_reason == "ambiguous_multi_prop")
+
+    # Cautious patterns
+    m = resolver.extract_prop_mentions("Californians Supporting Prop 50")
+    check("'Supporting Prop 50' -> support, 50",
+          lambda: any(x.prop_num == "50" and x.stance == "support" for x in m))
+
+    m = resolver.extract_prop_mentions("Citizens for Proposition 4")
+    check("'for Proposition 4' -> support, 4",
+          lambda: any(x.prop_num == "4" and x.stance == "support" for x in m))
 
     # --- Manual override ---
     print()

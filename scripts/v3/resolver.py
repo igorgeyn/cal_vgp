@@ -74,11 +74,42 @@ _FILER_NAME_PATTERNS: list[tuple[re.Pattern[str], Optional[str]]] = [
     (re.compile(r"\bPROP\.?\s*(\d+[A-Z]?)\s*NO\b", re.IGNORECASE), "oppose"),
     (re.compile(r"\bPROP(\d+[A-Z]?)YES\b", re.IGNORECASE), "support"),
     (re.compile(r"\bPROP(\d+[A-Z]?)NO\b", re.IGNORECASE), "oppose"),
+    # Stance verbs (Codex round-7, cautious additions)
+    (re.compile(r"\bSUPPORTING\s+PROP(?:\.|OSITION)?\s+(\d+[A-Z]?)\b",
+                re.IGNORECASE), "support"),
+    (re.compile(r"\bOPPOSING\s+PROP(?:\.|OSITION)?\s+(\d+[A-Z]?)\b",
+                re.IGNORECASE), "oppose"),
+    (re.compile(r"\bFOR\s+PROP(?:\.|OSITION)\s+(\d+[A-Z]?)\b",
+                re.IGNORECASE), "support"),
+    (re.compile(r"\bAGAINST\s+PROP(?:\.|OSITION)\s+(\d+[A-Z]?)\b",
+                re.IGNORECASE), "oppose"),
+    # "YES PROP 98" (without explicit "ON")
+    (re.compile(r"\bYES\s+PROP(?:\.|OSITION)?\s+(\d+[A-Z]?)\b",
+                re.IGNORECASE), "support"),
+    (re.compile(r"\bNO\s+PROP(?:\.|OSITION)?\s+(\d+[A-Z]?)\b",
+                re.IGNORECASE), "oppose"),
     # Bare prop reference, no stance. Last so stance-bearing patterns
     # match first.
     (re.compile(r"\bPROP(?:\.|OSITION)?\s+(\d+[A-Z]?)\b",
                 re.IGNORECASE), None),
 ]
+
+# Plural pattern: "Yes on Props 1 and 2" / "No on Propositions 30 and 32"
+# Matches multi-prop names that should ALL get the same stance, then
+# downstream the resolver flags ambiguous_multi_prop (correct quarantine
+# per Codex round-6). Without this pattern, "Yes on Props 1 and 2" was
+# falling to filer_name_no_prop because no single-prop pattern matched.
+_PLURAL_PATTERN_SUPPORT = re.compile(
+    r"\bYES\s+ON\s+PROPS?(?:\.|OSITIONS?)?\s+(\d+[A-Z]?(?:\s*,?\s+AND\s+\d+[A-Z]?)*"
+    r"|\d+[A-Z]?(?:\s*,\s*\d+[A-Z]?)*(?:\s*,?\s+AND\s+\d+[A-Z]?)?)",
+    re.IGNORECASE,
+)
+_PLURAL_PATTERN_OPPOSE = re.compile(
+    r"\bNO\s+ON\s+PROPS?(?:\.|OSITIONS?)?\s+(\d+[A-Z]?(?:\s*,?\s+AND\s+\d+[A-Z]?)*"
+    r"|\d+[A-Z]?(?:\s*,\s*\d+[A-Z]?)*(?:\s*,?\s+AND\s+\d+[A-Z]?)?)",
+    re.IGNORECASE,
+)
+_NUMBERED_TOKEN = re.compile(r"(\d+[A-Z]?)", re.IGNORECASE)
 
 
 @dataclass
@@ -100,6 +131,26 @@ def extract_prop_mentions(filer_name: str) -> list[FilerNameMention]:
         return []
     mentions: list[FilerNameMention] = []
     seen: set[tuple[str, Optional[str]]] = set()
+
+    # Plural patterns first: "Yes on Props 1 and 2", "No on Props 30, 32"
+    # Each plural match yields multiple FilerNameMentions with same stance
+    for pattern, stance in (
+        (_PLURAL_PATTERN_SUPPORT, "support"),
+        (_PLURAL_PATTERN_OPPOSE, "oppose"),
+    ):
+        for m in pattern.finditer(filer_name):
+            tokens = _NUMBERED_TOKEN.findall(m.group(1))
+            for prop_token in tokens:
+                prop = prop_token.upper()
+                key = (prop, stance)
+                if key not in seen:
+                    seen.add(key)
+                    mentions.append(FilerNameMention(
+                        prop_num=prop,
+                        stance=stance,
+                        matched_text=m.group(0),
+                    ))
+
     for pattern, stance in _FILER_NAME_PATTERNS:
         for m in pattern.finditer(filer_name):
             prop = m.group(1).upper()
@@ -358,10 +409,9 @@ class AttributionResolver:
                 debug=[f"prop {prop_num} not in v2 crosswalk"],
             )
         hint_years = [d.year for d in date_hints if d is not None]
-        # Codex round-6: always apply date scoring when hints are
-        # available, even for a single candidate. Otherwise a stale
-        # candidate (e.g. PROP_13_1978 with a 2026 hint) gets falsely
-        # auto-attributed.
+
+        # No date hints + single candidate: attribute (legacy).
+        # No date hints + multi candidate: ambiguous_year.
         if not hint_years:
             if len(candidates) == 1:
                 year, cid, mdb = candidates[0]
@@ -382,24 +432,54 @@ class AttributionResolver:
                     f"{[c[0] for c in candidates]}; no date hints",
                 ],
             )
-        # Score: distance from the median hint year to each candidate
-        # year. Candidates within 1 year of any hint are "plausible".
-        plausible = [
-            (year, cid, mdb)
-            for (year, cid, mdb) in candidates
-            if any(abs(h - year) <= 1 for h in hint_years)
-        ]
-        if len(plausible) == 0:
+
+        # MULTI-CANDIDATE: strict +/- 1 year. Prop number reuse means
+        # we need date evidence to pick the right one. Anything else
+        # quarantines as ambiguous_year.
+        if len(candidates) > 1:
+            plausible = [
+                (year, cid, mdb)
+                for (year, cid, mdb) in candidates
+                if any(abs(h - year) <= 1 for h in hint_years)
+            ]
+            if len(plausible) == 1:
+                year, cid, mdb = plausible[0]
+                return AttributionResult(
+                    finance_campaign_id=cid,
+                    measure_db_id=mdb,
+                    stance=stance,
+                    attribution_method=method_name,
+                    quarantine_reason=(
+                        "unknown_stance" if stance is None else None
+                    ),
+                )
             return AttributionResult(
                 quarantine_reason="ambiguous_year",
                 attribution_method="failed",
                 debug=[
-                    f"prop {prop_num}: no candidate within 1 year of "
-                    f"hints {hint_years}",
+                    f"prop {prop_num}: multi-candidate "
+                    f"{[c[0] for c in candidates]} for hints "
+                    f"{hint_years}; plausible={[p[0] for p in plausible]}",
                 ],
             )
-        if len(plausible) == 1:
-            year, cid, mdb = plausible[0]
+
+        # SINGLE-CANDIDATE: bounded wind-down rule (Codex round-7).
+        # Window is [election_year - 1, election_year + 4]. A 2005
+        # campaign's committee continues filing through 2007-2009 for
+        # wind-down activity. Those count. A 1978 prop's "ongoing
+        # legacy" 2026 activity (PROTECT PROP. 13 / Howard Jarvis)
+        # falls outside the window and quarantines as
+        # single_candidate_stale_out_of_window.
+        #
+        # Within +/- 1: regular attribution method (in-cycle).
+        # Within wind-down window only: distinct method so audits can
+        #   quantify the recovery.
+        # Outside both: quarantine.
+        year, cid, mdb = candidates[0]
+        within_strict = any(abs(h - year) <= 1 for h in hint_years)
+        within_winddown = any((year - 1) <= h <= (year + 4)
+                              for h in hint_years)
+        if within_strict:
             return AttributionResult(
                 finance_campaign_id=cid,
                 measure_db_id=mdb,
@@ -409,12 +489,31 @@ class AttributionResolver:
                     "unknown_stance" if stance is None else None
                 ),
             )
+        if within_winddown:
+            # Promote method name to mark the wind-down recovery path
+            if method_name == "filer_name_explicit":
+                recovery_method = "single_crosswalk_candidate_winddown"
+            else:
+                recovery_method = f"{method_name}_winddown"
+            return AttributionResult(
+                finance_campaign_id=cid,
+                measure_db_id=mdb,
+                stance=stance,
+                attribution_method=recovery_method,
+                quarantine_reason=(
+                    "unknown_stance" if stance is None else None
+                ),
+                debug=[
+                    f"single-candidate wind-down: prop {prop_num} "
+                    f"year={year}, hints={hint_years}",
+                ],
+            )
         return AttributionResult(
-            quarantine_reason="ambiguous_year",
+            quarantine_reason="single_candidate_stale_out_of_window",
             attribution_method="failed",
             debug=[
-                f"prop {prop_num}: multiple plausible candidates "
-                f"{[p[0] for p in plausible]} for hints {hint_years}",
+                f"prop {prop_num}: single candidate year={year}, "
+                f"all hints {hint_years} outside [-1, +4] window",
             ],
         )
 
