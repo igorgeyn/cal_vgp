@@ -218,62 +218,153 @@ def compare_top_donors(baseline: dict, current: dict, result: Layer1Result) -> N
                       f"info: all donor lists match to penny")
 
 
-def check_v3_monetary_slice(baseline_summary: dict, v3_db: Path,
-                            result: Layer1Result) -> None:
+def check_v3_monetary_slice(baseline_summary: dict, baseline_donors: dict,
+                            v3_db: Path, result: Layer1Result,
+                            require: bool) -> None:
+    """Compare the v3 monetary slice to the v2 baseline.
+
+    Codex round-4 hardening: compare exact key set + full row shape
+    (n_committees, top5_share, hhi) and top-5 donors per (campaign,
+    stance), not just totals. Plus a --require flag so Phase 2+ runs
+    fail loudly if v3 is empty when it shouldn't be.
+    """
     if not v3_db.exists():
-        result.record("5. v3_monetary_slice_match", True,
-                      "info: v3 DB does not exist yet (pre-Phase 2); skipped")
+        if require:
+            result.record("5. v3_monetary_slice_match", False,
+                          f"--require-v3-monetary but {v3_db} does not exist")
+        else:
+            result.record("5. v3_monetary_slice_match", True,
+                          "info: v3 DB does not exist yet "
+                          "(pre-Phase 2); skipped")
         return
+
     con = sqlite3.connect(str(v3_db))
     try:
-        row = con.execute(
-            "SELECT COUNT(*) FROM finance_summary_by_type"
-        ).fetchone()
-    except sqlite3.OperationalError:
-        result.record("5. v3_monetary_slice_match", True,
-                      "info: finance_summary_by_type missing; skipped "
-                      "(pre-Phase 1 DDL)")
+        try:
+            row = con.execute(
+                "SELECT COUNT(*) FROM finance_summary_by_type"
+            ).fetchone()
+        except sqlite3.OperationalError:
+            if require:
+                result.record("5. v3_monetary_slice_match", False,
+                              "--require-v3-monetary but "
+                              "finance_summary_by_type missing")
+            else:
+                result.record("5. v3_monetary_slice_match", True,
+                              "info: finance_summary_by_type missing; "
+                              "skipped (pre-Phase 1 DDL)")
+            return
+
+        if row[0] == 0:
+            if require:
+                result.record("5. v3_monetary_slice_match", False,
+                              "--require-v3-monetary but "
+                              "finance_summary_by_type is empty")
+            else:
+                result.record("5. v3_monetary_slice_match", True,
+                              "info: finance_summary_by_type is empty; "
+                              "skipped (pre-Phase 2 ingest)")
+            return
+
+        # Full row comparison (Codex round-4 hardening)
+        current_summary = {}
+        for r in con.execute(
+            "SELECT finance_campaign_id, stance, total_amount, "
+            "n_committees, top5_share, hhi "
+            "FROM finance_summary_by_type "
+            "WHERE receipt_type='monetary_contribution'"
+        ):
+            cid, stance, total, ncom, t5, hhi = r
+            current_summary[f"{cid}|{stance}"] = {
+                "total_receipts": round(total, 2),
+                "n_committees": ncom,
+                "top5_share": round(t5, 4) if t5 is not None else None,
+                "hhi": round(hhi, 4) if hhi is not None else None,
+            }
+
+        # Key-set check
+        base_keys = set(baseline_summary.keys())
+        cur_keys = set(current_summary.keys())
+        only_baseline = base_keys - cur_keys
+        only_current = cur_keys - base_keys
+        if only_baseline or only_current:
+            detail = []
+            if only_baseline:
+                detail.append(f"missing from v3: {len(only_baseline)} "
+                              f"(e.g. {next(iter(only_baseline))})")
+            if only_current:
+                detail.append(f"extra in v3: {len(only_current)} "
+                              f"(e.g. {next(iter(only_current))})")
+            result.record("5. v3_monetary_slice_match", False,
+                          "\n".join(detail))
+            return
+
+        # Full row-shape match
+        mismatches = []
+        for key, b in baseline_summary.items():
+            c = current_summary[key]
+            if abs((b["total_receipts"] or 0) - (c["total_receipts"] or 0)) > PENNY:
+                mismatches.append(f"{key} total: v2={b['total_receipts']} "
+                                  f"v3={c['total_receipts']}")
+                continue
+            if b["n_committees"] != c["n_committees"]:
+                mismatches.append(f"{key} n_committees: v2={b['n_committees']} "
+                                  f"v3={c['n_committees']}")
+                continue
+            for field in ("top5_share", "hhi"):
+                bv = b[field] or 0
+                cv = c[field] or 0
+                if abs(bv - cv) > SHARE_EPSILON:
+                    mismatches.append(f"{key} {field}: v2={bv} v3={cv}")
+                    break
+
+        # Top-5 donors per (campaign, stance) match
+        donor_mismatches = []
+        cur_donors = {}
+        for r in con.execute(
+            "SELECT finance_campaign_id, stance, donor_name_canon, "
+            "donor_type, total_amount "
+            "FROM finance_top_donors_by_type "
+            "WHERE receipt_type='monetary_contribution' "
+            "ORDER BY finance_campaign_id, stance, total_amount DESC"
+        ):
+            cid, stance, donor, dtype, amount = r
+            key = f"{cid}|{stance}"
+            cur_donors.setdefault(key, []).append({
+                "donor": donor,
+                "type": dtype,
+                "amount": round(amount, 2),
+            })
+        for key, b_list in baseline_donors.items():
+            c_list = cur_donors.get(key, [])[:5]
+            b_donors = [d["donor"] for d in b_list]
+            c_donors = [d["donor"] for d in c_list]
+            if b_donors != c_donors:
+                donor_mismatches.append(f"{key} donor order: "
+                                        f"v2={b_donors[:3]} v3={c_donors[:3]}")
+                continue
+            for b, c in zip(b_list, c_list):
+                if abs(b["amount"] - c["amount"]) > PENNY:
+                    donor_mismatches.append(f"{key} {b['donor']!r}: "
+                                            f"v2={b['amount']} v3={c['amount']}")
+                    break
+
+        if mismatches or donor_mismatches:
+            detail = []
+            if mismatches:
+                detail.append(f"{len(mismatches)} summary mismatch(es); "
+                              "first 5:\n  " + "\n  ".join(mismatches[:5]))
+            if donor_mismatches:
+                detail.append(f"{len(donor_mismatches)} donor mismatch(es); "
+                              "first 5:\n  " + "\n  ".join(donor_mismatches[:5]))
+            result.record("5. v3_monetary_slice_match", False,
+                          "\n".join(detail))
+        else:
+            result.record("5. v3_monetary_slice_match", True,
+                          f"info: all {len(baseline_summary)} monetary rows "
+                          f"+ donor top-5s match v2 baseline to the penny")
+    finally:
         con.close()
-        return
-    if row[0] == 0:
-        result.record("5. v3_monetary_slice_match", True,
-                      "info: finance_summary_by_type is empty; skipped "
-                      "(pre-Phase 2 ingest)")
-        con.close()
-        return
-    current = {}
-    for r in con.execute(
-        "SELECT finance_campaign_id, stance, total_amount, n_committees, "
-        "top5_share, hhi "
-        "FROM finance_summary_by_type "
-        "WHERE receipt_type='monetary_contribution'"
-    ):
-        cid, stance, total, ncom, t5, hhi = r
-        current[f"{cid}|{stance}"] = {
-            "total_receipts": round(total, 2),
-            "n_committees": ncom,
-            "top5_share": round(t5, 4) if t5 is not None else None,
-            "hhi": round(hhi, 4) if hhi is not None else None,
-        }
-    con.close()
-    # Now compare against baseline_summary by penny
-    mismatches = []
-    for key, b in baseline_summary.items():
-        c = current.get(key)
-        if c is None:
-            mismatches.append(f"{key} missing in v3 monetary slice")
-            continue
-        if abs(b["total_receipts"] - c["total_receipts"]) > PENNY:
-            mismatches.append(f"{key} total: v2={b['total_receipts']} "
-                              f"v3={c['total_receipts']}")
-    if mismatches:
-        result.record("5. v3_monetary_slice_match", False,
-                      f"{len(mismatches)} mismatch(es); first 5:\n  "
-                      + "\n  ".join(mismatches[:5]))
-    else:
-        result.record("5. v3_monetary_slice_match", True,
-                      f"info: all {len(baseline_summary)} monetary rows "
-                      f"in v3 match v2 baseline to the penny")
 
 
 def check_campaign_count(baseline: dict, v2_summary: dict,
@@ -287,11 +378,41 @@ def check_campaign_count(baseline: dict, v2_summary: dict,
                   if not ok else f"info: {actual} campaigns")
 
 
+def sanity_check_baseline(baseline: dict, result: Layer1Result) -> None:
+    """Validate that the baseline file itself is internally sane.
+
+    Codex round-4: before trusting the baseline as ground truth,
+    confirm finance_summary[*].n_committees is non-negative, top5_share
+    is in [0, 100], hhi is in [0, 10000].
+    """
+    bad = []
+    for key, row in baseline.get("finance_summary", {}).items():
+        if (row.get("n_committees") or 0) < 0:
+            bad.append(f"{key} n_committees={row['n_committees']}")
+        t5 = row.get("top5_share")
+        if t5 is not None and not (0 <= t5 <= 100.5):
+            bad.append(f"{key} top5_share={t5}")
+        hhi = row.get("hhi")
+        if hhi is not None and not (0 <= hhi <= 10000.5):
+            bad.append(f"{key} hhi={hhi}")
+    if bad:
+        result.record("0. baseline_internally_sane", False,
+                      f"{len(bad)} suspect row(s); first 5:\n  "
+                      + "\n  ".join(bad[:5]))
+    else:
+        result.record("0. baseline_internally_sane", True,
+                      f"info: all {len(baseline.get('finance_summary', {}))} "
+                      f"baseline rows pass range checks")
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--baseline", default=str(DEFAULT_BASELINE))
     parser.add_argument("--v2-db", default=str(DEFAULT_V2_DB))
     parser.add_argument("--v3-db", default=str(DEFAULT_V3_DB))
+    parser.add_argument("--require-v3-monetary", action="store_true",
+                        help="Fail (not skip) if v3 doesn't have a "
+                             "populated monetary slice. Phase 2+ usage.")
     args = parser.parse_args()
 
     result = Layer1Result()
@@ -303,6 +424,8 @@ def main():
     if baseline is None:
         return result.report()
 
+    sanity_check_baseline(baseline, result)
+
     current_summary = query_v2_summary(v2_db)
     compare_summary(baseline["finance_summary"], current_summary, result)
 
@@ -310,7 +433,13 @@ def main():
     compare_top_donors(baseline["finance_top_donors_top5"], current_donors,
                        result)
 
-    check_v3_monetary_slice(baseline["finance_summary"], v3_db, result)
+    check_v3_monetary_slice(
+        baseline["finance_summary"],
+        baseline["finance_top_donors_top5"],
+        v3_db,
+        result,
+        require=args.require_v3_monetary,
+    )
     check_campaign_count(baseline, current_summary, result)
 
     sys.exit(result.report())

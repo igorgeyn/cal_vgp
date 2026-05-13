@@ -42,6 +42,15 @@ CREATE TABLE IF NOT EXISTS finance_flow_v3 (
     source_xref_schnm    TEXT,                 -- XREF_SCHNM (cross-schedule xref)
     amount_field_used    TEXT,                 -- 'AMOUNT' | 'LOAN_AMT1' | etc.
 
+    -- Row-level ballot fields (Codex round-4: EXPN_CD, S497_CD,
+    -- S401_CD carry per-line BAL_NUM / SUP_OPP_CD that can differ
+    -- from the cover sheet. RCPT_CD / LOAN_CD don't, but we keep
+    -- the columns uniformly nullable.)
+    row_bal_num          TEXT,
+    row_bal_name         TEXT,
+    row_bal_juris        TEXT,
+    row_sup_opp_cd       TEXT,
+
     -- Cover-sheet lineage (populated via FILING_ID join to
     -- CVR_CAMPAIGN_DISCLOSURE_CD; preserved even after successful
     -- attribution so debugging stays cheap given the sparsity of
@@ -136,6 +145,7 @@ CREATE INDEX idx_flow_quarantine
 
 CREATE TABLE IF NOT EXISTS finance_summary_by_type (
     finance_campaign_id  TEXT NOT NULL,
+    measure_db_id        INTEGER NOT NULL,     -- Codex round-4: avoids join-back
     stance               TEXT NOT NULL,
     receipt_type         TEXT NOT NULL,
     total_amount         REAL NOT NULL,
@@ -146,12 +156,17 @@ CREATE TABLE IF NOT EXISTS finance_summary_by_type (
     PRIMARY KEY (finance_campaign_id, stance, receipt_type)
 );
 
-DROP INDEX IF EXISTS idx_summary_bytype_measure;
-CREATE INDEX idx_summary_bytype_measure
+DROP INDEX IF EXISTS idx_summary_bytype_campaign_stance;
+CREATE INDEX idx_summary_bytype_campaign_stance
     ON finance_summary_by_type (finance_campaign_id, stance);
+
+DROP INDEX IF EXISTS idx_summary_bytype_measure_stance;
+CREATE INDEX idx_summary_bytype_measure_stance
+    ON finance_summary_by_type (measure_db_id, stance);
 
 CREATE TABLE IF NOT EXISTS finance_top_donors_by_type (
     finance_campaign_id  TEXT NOT NULL,
+    measure_db_id        INTEGER NOT NULL,     -- Codex round-4
     stance               TEXT NOT NULL,
     receipt_type         TEXT NOT NULL,
     donor_name_canon     TEXT NOT NULL,
@@ -168,8 +183,13 @@ CREATE INDEX idx_topdonors_bytype_amount
     ON finance_top_donors_by_type
        (finance_campaign_id, stance, receipt_type, total_amount DESC);
 
+DROP INDEX IF EXISTS idx_topdonors_bytype_measure;
+CREATE INDEX idx_topdonors_bytype_measure
+    ON finance_top_donors_by_type (measure_db_id, stance, receipt_type);
+
 CREATE TABLE IF NOT EXISTS finance_timeline_weekly_by_type (
     finance_campaign_id  TEXT NOT NULL,
+    measure_db_id        INTEGER NOT NULL,     -- Codex round-4
     stance               TEXT NOT NULL,
     receipt_type         TEXT NOT NULL,
     week_start           TEXT NOT NULL,        -- Monday ISO
@@ -177,6 +197,10 @@ CREATE TABLE IF NOT EXISTS finance_timeline_weekly_by_type (
     cumulative_amount    REAL NOT NULL,
     PRIMARY KEY (finance_campaign_id, stance, receipt_type, week_start)
 );
+
+DROP INDEX IF EXISTS idx_timeline_bytype_measure;
+CREATE INDEX idx_timeline_bytype_measure
+    ON finance_timeline_weekly_by_type (measure_db_id, stance, receipt_type, week_start);
 
 ------------------------------------------------------------
 -- 4. Aggregate VIEWS: cross-type totals
@@ -232,9 +256,18 @@ hhi_calc AS (
     GROUP  BY pd.finance_campaign_id, pd.stance
 ),
 flow_agg AS (
-    SELECT finance_campaign_id, stance,
+    -- n_committees: COALESCE so IE rows that have no row-level
+    -- committee_id but do have a cover_committee_id / reported_filer
+    -- contribute to the committee count rather than getting silently
+    -- treated as one "NULL committee"
+    SELECT finance_campaign_id,
+           MAX(measure_db_id)           AS measure_db_id,
+           stance,
            SUM(amount)                  AS total_amount,
-           COUNT(DISTINCT committee_id) AS n_committees,
+           COUNT(DISTINCT COALESCE(
+               committee_id, cover_committee_id,
+               cover_filer_id, reported_filer
+           ))                           AS n_committees,
            COUNT(*)                     AS n_transactions
     FROM   finance_flow_v3
     WHERE  quarantine_reason IS NULL
@@ -242,6 +275,7 @@ flow_agg AS (
 )
 SELECT
     fa.finance_campaign_id,
+    fa.measure_db_id,
     fa.stance,
     fa.total_amount,
     fa.n_committees,
@@ -265,41 +299,81 @@ LEFT JOIN hhi_calc h
 
 DROP VIEW IF EXISTS finance_top_donors_total;
 CREATE VIEW finance_top_donors_total AS
+-- Codex round-4: original used a per-donor correlated subquery for
+-- primary_attribution_source which rescans finance_flow_v3 per donor.
+-- Restructured as CTEs that scan once for per-donor stats, once for
+-- per-(donor, attribution_source) totals, then rank and join.
+WITH flow_accepted AS (
+    SELECT finance_campaign_id, measure_db_id, stance,
+           donor_name_canon, receipt_type, attribution_source,
+           donor_type, donor_sector, amount
+    FROM   finance_flow_v3
+    WHERE  quarantine_reason IS NULL
+),
+per_donor AS (
+    SELECT finance_campaign_id,
+           MAX(measure_db_id)                          AS measure_db_id,
+           stance,
+           donor_name_canon,
+           SUM(amount)                                 AS total_amount,
+           MAX(donor_type)                             AS donor_type,
+           MAX(donor_sector)                           AS donor_sector,
+           json_group_array(DISTINCT receipt_type)     AS flow_types,
+           json_group_array(DISTINCT attribution_source) AS attribution_sources,
+           COUNT(*)                                    AS n_underlying_rows
+    FROM   flow_accepted
+    GROUP  BY finance_campaign_id, stance, donor_name_canon
+),
+per_donor_attribution AS (
+    SELECT finance_campaign_id, stance, donor_name_canon,
+           attribution_source,
+           SUM(amount) AS attr_total
+    FROM   flow_accepted
+    GROUP  BY finance_campaign_id, stance, donor_name_canon, attribution_source
+),
+ranked_attribution AS (
+    SELECT finance_campaign_id, stance, donor_name_canon,
+           attribution_source,
+           ROW_NUMBER() OVER (
+               PARTITION BY finance_campaign_id, stance, donor_name_canon
+               ORDER BY attr_total DESC
+           ) AS rk
+    FROM   per_donor_attribution
+)
 SELECT
-    finance_campaign_id,
-    stance,
-    donor_name_canon,
-    SUM(amount)                                         AS total_amount,
-    MAX(donor_type)                                     AS donor_type,
-    MAX(donor_sector)                                   AS donor_sector,
-    json_group_array(DISTINCT receipt_type)             AS flow_types,
-    json_group_array(DISTINCT attribution_source)       AS attribution_sources,
-    -- primary_attribution_source: modal attribution by dollar weight
-    -- (computed approximately via SQL; refinement in Python if needed)
-    (SELECT attribution_source
-     FROM finance_flow_v3 f2
-     WHERE f2.quarantine_reason IS NULL
-       AND f2.finance_campaign_id = f.finance_campaign_id
-       AND f2.stance               = f.stance
-       AND f2.donor_name_canon     = f.donor_name_canon
-     GROUP BY attribution_source
-     ORDER BY SUM(amount) DESC
-     LIMIT 1)                                           AS primary_attribution_source,
-    COUNT(*)                                            AS n_underlying_rows
-FROM finance_flow_v3 f
-WHERE quarantine_reason IS NULL
-GROUP BY finance_campaign_id, stance, donor_name_canon;
+    pd.finance_campaign_id,
+    pd.measure_db_id,
+    pd.stance,
+    pd.donor_name_canon,
+    pd.total_amount,
+    pd.donor_type,
+    pd.donor_sector,
+    pd.flow_types,
+    pd.attribution_sources,
+    ra.attribution_source                              AS primary_attribution_source,
+    pd.n_underlying_rows
+FROM per_donor pd
+LEFT JOIN ranked_attribution ra
+       ON ra.finance_campaign_id = pd.finance_campaign_id
+      AND ra.stance               = pd.stance
+      AND ra.donor_name_canon     = pd.donor_name_canon
+      AND ra.rk                   = 1;
 
 DROP VIEW IF EXISTS finance_timeline_weekly_total;
 CREATE VIEW finance_timeline_weekly_total AS
 WITH per_week AS (
-    SELECT finance_campaign_id, stance, week_start, SUM(amount) AS weekly_amount
+    SELECT finance_campaign_id,
+           MAX(measure_db_id) AS measure_db_id,
+           stance,
+           week_start,
+           SUM(amount) AS weekly_amount
     FROM   finance_flow_v3
     WHERE  quarantine_reason IS NULL
     GROUP  BY finance_campaign_id, stance, week_start
 )
 SELECT
     finance_campaign_id,
+    measure_db_id,
     stance,
     week_start,
     weekly_amount,
