@@ -94,19 +94,21 @@ _FILER_NAME_PATTERNS: list[tuple[re.Pattern[str], Optional[str]]] = [
                 re.IGNORECASE), None),
 ]
 
-# Plural pattern: "Yes on Props 1 and 2" / "No on Propositions 30 and 32"
-# Matches multi-prop names that should ALL get the same stance, then
-# downstream the resolver flags ambiguous_multi_prop (correct quarantine
-# per Codex round-6). Without this pattern, "Yes on Props 1 and 2" was
-# falling to filer_name_no_prop because no single-prop pattern matched.
+# Plural pattern: "Yes on Props 1 and 2", "Yes on Props 1 & 2",
+# "No on Propositions 30, 32", "Yes on Props 1&2".
+# Codex round-9: ampersand syntax added. Requires PLURAL Props /
+# Propositions keyword so "Prop. 13 & R.J. Riordan" doesn't false-
+# positive (singular PROP. would never match). Requires AT LEAST
+# ONE separator between numbers so a lone "PROP 13" doesn't trigger
+# plural either.
 _PLURAL_PATTERN_SUPPORT = re.compile(
-    r"\bYES\s+ON\s+PROPS?(?:\.|OSITIONS?)?\s+(\d+[A-Z]?(?:\s*,?\s+AND\s+\d+[A-Z]?)*"
-    r"|\d+[A-Z]?(?:\s*,\s*\d+[A-Z]?)*(?:\s*,?\s+AND\s+\d+[A-Z]?)?)",
+    r"\bYES\s+ON\s+(?:PROPS|PROPOSITIONS)\.?\s+"
+    r"(\d+[A-Z]?(?:\s*(?:,|AND|&)\s*\d+[A-Z]?)+)",
     re.IGNORECASE,
 )
 _PLURAL_PATTERN_OPPOSE = re.compile(
-    r"\bNO\s+ON\s+PROPS?(?:\.|OSITIONS?)?\s+(\d+[A-Z]?(?:\s*,?\s+AND\s+\d+[A-Z]?)*"
-    r"|\d+[A-Z]?(?:\s*,\s*\d+[A-Z]?)*(?:\s*,?\s+AND\s+\d+[A-Z]?)?)",
+    r"\bNO\s+ON\s+(?:PROPS|PROPOSITIONS)\.?\s+"
+    r"(\d+[A-Z]?(?:\s*(?:,|AND|&)\s*\d+[A-Z]?)+)",
     re.IGNORECASE,
 )
 _NUMBERED_TOKEN = re.compile(r"(\d+[A-Z]?)", re.IGNORECASE)
@@ -493,9 +495,12 @@ class AttributionResolver:
                 ],
             )
 
-        # MULTI-CANDIDATE: strict +/- 1 year. Prop number reuse means
-        # we need date evidence to pick the right one. Anything else
-        # quarantines as ambiguous_year.
+        # MULTI-CANDIDATE: strict +/- 1 year first. If no strict
+        # match, try wind-down windows (Codex round-9 extension).
+        # Wind-down accepts only if exactly one candidate's window
+        # [year-1, year+4] contains a hint AND no other candidate's
+        # window does. TABS Yes on Prop. 39 2002 case: only PROP_39_2000
+        # window contains 2002, not PROP_39_2012's window -> accept.
         if len(candidates) > 1:
             plausible = [
                 (year, cid, mdb)
@@ -514,13 +519,57 @@ class AttributionResolver:
                         "unknown_stance" if stance is None else None
                     ),
                 )
+            if len(plausible) > 1:
+                # Multiple strict candidates — strictly ambiguous, no
+                # safe recovery
+                return AttributionResult(
+                    quarantine_reason="ambiguous_year",
+                    attribution_method="failed",
+                    debug=[
+                        f"prop {prop_num}: multi-candidate "
+                        f"{[c[0] for c in candidates]} for hints "
+                        f"{hint_years}; "
+                        f"multiple strict plausible={[p[0] for p in plausible]}",
+                    ],
+                )
+            # 0 strict candidates — try multi-candidate wind-down rule.
+            winddown_plausible = [
+                (year, cid, mdb)
+                for (year, cid, mdb) in candidates
+                if any((year - 1) <= h <= (year + 4) for h in hint_years)
+            ]
+            if len(winddown_plausible) == 1:
+                year, cid, mdb = winddown_plausible[0]
+                method = (
+                    "filer_name_explicit_multi_candidate_winddown"
+                    if method_name == "filer_name_explicit"
+                    else f"{method_name}_multi_cand_winddown"
+                )
+                return AttributionResult(
+                    finance_campaign_id=cid,
+                    source_crosswalk_campaign_id=cid,
+                    measure_db_id=mdb,
+                    stance=stance,
+                    attribution_method=method,
+                    quarantine_reason=(
+                        "unknown_stance" if stance is None else None
+                    ),
+                    debug=[
+                        f"multi-cand wind-down: prop {prop_num} "
+                        f"candidates {[c[0] for c in candidates]}, "
+                        f"hints {hint_years}, "
+                        f"winddown_plausible={year}",
+                    ],
+                )
             return AttributionResult(
                 quarantine_reason="ambiguous_year",
                 attribution_method="failed",
                 debug=[
                     f"prop {prop_num}: multi-candidate "
                     f"{[c[0] for c in candidates]} for hints "
-                    f"{hint_years}; plausible={[p[0] for p in plausible]}",
+                    f"{hint_years}; "
+                    f"no strict, winddown_plausible="
+                    f"{[p[0] for p in winddown_plausible]}",
                 ],
             )
 

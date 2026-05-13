@@ -5,12 +5,19 @@ full resolver chain (cover_sheet -> filer_name_explicit ->
 manual_override). Shows bucket movements, so we can quantify what
 the resolver actually recovers before locking Phase 3 ingest design.
 
+Codex round-9: also produces a categorized table separating
+filer_name_no_prop into known_unattributed_vehicles (curated
+registry hits) vs. heuristically-identified candidate / party /
+recall committees vs. truly unclassified.
+
 Writes data/CalAccess/schedule_c_diagnostic_v2.md.
 """
 from __future__ import annotations
 
 import argparse
 import csv
+import json
+import re
 import sys
 from collections import Counter, defaultdict
 from pathlib import Path
@@ -24,14 +31,78 @@ else:
     from .attribution import build_filing_attribution_index
 
 
+# Codex round-9: classifiers for the unattributed bucket so the
+# diagnostic can separate genuinely-OOS political activity from
+# unresolved ballot-adjacent activity. Heuristic-only — for high-
+# confidence cases, curate in known_unattributed_vehicles.json.
+
+_CANDIDATE_REGEX = re.compile(
+    r"\b(for\s+(assembly|senate|congress|governor|mayor|sheriff|"
+    r"attorney\s+general|treasurer|controller|state\s+senate|"
+    r"lieutenant\s+governor|secretary\s+of\s+state|supervisor))\b",
+    re.IGNORECASE,
+)
+_PARTY_KEYWORDS = re.compile(
+    r"\b(democratic\s+(state\s+)?central\s+committee|"
+    r"california\s+democratic\s+party|"
+    r"california\s+republican\s+party|"
+    r"republican\s+state\s+central\s+committee)\b",
+    re.IGNORECASE,
+)
+_RECALL_KEYWORDS = re.compile(
+    r"\b(recall(\s+(governor|gavin|newsom|the))?|patriot\s+coalition|"
+    r"stop\s+the\s+(republican\s+)?recall)\b",
+    re.IGNORECASE,
+)
+
+
+def classify_unattributed(filer_name: str,
+                          filer_id: str,
+                          unattributed_registry: dict) -> str:
+    """Heuristic + curated-registry classifier for filer_name_no_prop
+    rows. Returns one of:
+        curated_unresolved | recall_committee | candidate_committee |
+        party_committee | unclassified
+    """
+    # Curated registry hits win (explicit > heuristic)
+    if filer_id and filer_id in unattributed_registry:
+        return "curated_unresolved"
+    normalized = " ".join((filer_name or "").split()).lower()
+    if normalized in unattributed_registry:
+        return "curated_unresolved"
+    name = filer_name or ""
+    if _RECALL_KEYWORDS.search(name):
+        return "recall_committee"
+    if _PARTY_KEYWORDS.search(name):
+        return "party_committee"
+    if _CANDIDATE_REGEX.search(name):
+        return "candidate_committee"
+    return "unclassified"
+
+
+def _load_unattributed_registry(path: Path | None) -> dict:
+    if not path or not path.exists():
+        return {}
+    raw = json.loads(path.read_text(encoding="utf-8"))
+    # Strip _schema and other _-prefixed keys
+    return {k: v for k, v in raw.items() if not k.startswith("_")}
+
+
 def diagnose(dump_dir: Path, v2_db: Path,
              manual_overrides_path: Path | None = None,
+             unattributed_registry_path: Path | None = None,
              *, verbose: bool = True) -> dict:
     idx = build_filing_attribution_index(
         dump_dir, v2_db,
         manual_overrides_path=manual_overrides_path,
         verbose=verbose,
     )
+    unattributed_registry = _load_unattributed_registry(
+        unattributed_registry_path
+    )
+    if verbose and unattributed_registry:
+        print(f"Loaded {len(unattributed_registry)} curated unattributed "
+              "vehicle entries.")
 
     rcpt_path = dump_dir / "RCPT_CD.TSV"
     if not rcpt_path.exists():
@@ -74,6 +145,11 @@ def diagnose(dump_dir: Path, v2_db: Path,
     quarantine_dollars: Counter[str] = Counter()
     top_filers_by_method: dict[str, Counter[str]] = defaultdict(Counter)
     top_filers_quarantine: dict[str, Counter[str]] = defaultdict(Counter)
+    # Categorized split of the filer_name_no_prop bucket per Codex
+    # round-9: separates genuinely OOS political activity from
+    # unresolved ballot-adjacent.
+    no_prop_categories: Counter[str] = Counter()
+    no_prop_dollars: Counter[str] = Counter()
 
     with rcpt_path.open(encoding="latin-1", newline="") as f:
         reader = csv.reader(f, delimiter="\t")
@@ -126,6 +202,15 @@ def diagnose(dump_dir: Path, v2_db: Path,
             if method.startswith("failed/") or method == "no_cover_sheet":
                 quarantine_dollars[method] += amount
                 top_filers_quarantine[method][filer_label] += amount
+                # Subclassify filer_name_no_prop into curated /
+                # heuristic OOS categories
+                if method == "failed/filer_name_no_prop":
+                    filer_id = att.cover_filer_id if att else ""
+                    category = classify_unattributed(
+                        filer_label, filer_id, unattributed_registry
+                    )
+                    no_prop_categories[category] += 1
+                    no_prop_dollars[category] += amount
             else:
                 top_filers_by_method[method][filer_label] += amount
 
@@ -138,6 +223,8 @@ def diagnose(dump_dir: Path, v2_db: Path,
         "top_filers_quarantine": {
             k: v.most_common(25) for k, v in top_filers_quarantine.items()
         },
+        "no_prop_categories": dict(no_prop_categories),
+        "no_prop_dollars": dict(no_prop_dollars),
     }
 
 
@@ -167,6 +254,34 @@ def render_report(stats: dict, report_path: Path, verbose: bool = True) -> None:
     lines.append(f"**Total accepted (cover_sheet + filer_name_explicit + "
                  f"manual_override): ${accepted_dollars:,.2f}**")
     lines.append("")
+
+    # Codex round-9: categorized honest-attribution table for the
+    # filer_name_no_prop residual
+    if stats.get("no_prop_categories"):
+        lines.append("## filer_name_no_prop subcategorization "
+                     "(Codex round-9)")
+        lines.append("")
+        lines.append("| Category | Rows | Dollars |")
+        lines.append("|---|---|---|")
+        order = [
+            "curated_unresolved", "recall_committee",
+            "party_committee", "candidate_committee", "unclassified",
+        ]
+        for cat in order:
+            rows = stats["no_prop_categories"].get(cat, 0)
+            dollars = stats["no_prop_dollars"].get(cat, 0.0)
+            if rows or dollars:
+                lines.append(f"| `{cat}` | {rows:,} | ${dollars:,.2f} |")
+        lines.append("")
+        lines.append("- `curated_unresolved`: matched the curated "
+                     "known_unattributed_vehicles.json registry "
+                     "(ballot-adjacent but not safely attributable)")
+        lines.append("- `recall_committee`, `party_committee`, "
+                     "`candidate_committee`: heuristic keyword match — "
+                     "out-of-scope for v3 measure attribution")
+        lines.append("- `unclassified`: remaining no-prop activity — "
+                     "where to look first for additional curation")
+        lines.append("")
 
     # Compare against v1 baseline
     lines.append("## Comparison vs v1 diagnostic (cover_sheet only)")
@@ -224,17 +339,29 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--dump-dir", default=str(lib.DUMP_DIR))
     parser.add_argument("--v2-db", default=str(lib.V2_DB))
-    parser.add_argument("--manual-overrides", default=None)
+    parser.add_argument("--manual-overrides",
+                        default=str(Path("data/CalAccess/"
+                                         "manual_attribution_overrides.json")))
+    parser.add_argument("--unattributed-registry",
+                        default=str(Path("data/CalAccess/"
+                                         "known_unattributed_vehicles.json")))
     parser.add_argument(
         "--report",
         default=str(Path("data/CalAccess/schedule_c_diagnostic_v2.md")),
     )
     args = parser.parse_args()
 
-    overrides = (Path(args.manual_overrides) if args.manual_overrides
+    overrides = (Path(args.manual_overrides)
+                 if args.manual_overrides and Path(args.manual_overrides).exists()
                  else None)
+    registry = (Path(args.unattributed_registry)
+                if args.unattributed_registry
+                and Path(args.unattributed_registry).exists()
+                else None)
     stats = diagnose(Path(args.dump_dir), Path(args.v2_db),
-                     manual_overrides_path=overrides, verbose=True)
+                     manual_overrides_path=overrides,
+                     unattributed_registry_path=registry,
+                     verbose=True)
     render_report(stats, Path(args.report), verbose=True)
 
 

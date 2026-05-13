@@ -289,6 +289,79 @@ def main() -> int:
           "stays multi-candidate)",
           lambda: r.quarantine_reason == "ambiguous_year")
 
+    # --- Ampersand plural pattern (Codex round-9) ---
+    print()
+    print("=== Ampersand plural pattern ===")
+    m = resolver.extract_prop_mentions("Affordable Housing Now - Yes on Props 1&2")
+    props = {(x.prop_num, x.stance) for x in m}
+    check("'Yes on Props 1&2' -> two support mentions",
+          lambda: ("1", "support") in props and ("2", "support") in props)
+
+    m = resolver.extract_prop_mentions("Yes on Props 1 & 2")
+    props = {(x.prop_num, x.stance) for x in m}
+    check("'Yes on Props 1 & 2' (spaces) -> two support mentions",
+          lambda: ("1", "support") in props and ("2", "support") in props)
+
+    m = resolver.extract_prop_mentions("Yes on Propositions 1A & 1B")
+    props = {(x.prop_num, x.stance) for x in m}
+    check("'Yes on Propositions 1A & 1B' -> two support mentions",
+          lambda: ("1A", "support") in props and ("1B", "support") in props)
+
+    # Critical NON-match: bare "Prop. 13 & R.J. Riordan" shouldn't
+    # trigger plural (singular PROP, not PROPS)
+    m = resolver.extract_prop_mentions(
+        "PROTECT PROP. 13 & R.J. Riordan, A PROJECT OF HOWARD JARVIS"
+    )
+    # Should only find single "PROP. 13" without stance, NOT a plural
+    # "PROP. 13 & R.J." match
+    check("'PROP. 13 & R.J. Riordan' -> only single 13, no R.J. match",
+          lambda: len(m) == 1 and m[0].prop_num == "13"
+                 and m[0].stance is None)
+
+    # --- Multi-candidate wind-down (Codex round-9) ---
+    print()
+    print("=== Multi-candidate wind-down ===")
+    # TABS Yes on Prop. 39 2002 case: v2 has both PROP_39_2000 and
+    # PROP_39_2012 (different mdb, genuine reuse). Hint year 2002:
+    # - strict +/- 1 of 2000: NO (distance 2)
+    # - strict +/- 1 of 2012: NO (distance 10)
+    # - wind-down [1999, 2004] of 2000: YES
+    # - wind-down [2011, 2016] of 2012: NO
+    # Exactly 1 wind-down candidate -> accept PROP_39_2000
+    r = R.resolve_from_filer_name(
+        "TAXPAYERS YES ON PROP. 39",
+        [date(2002, 2, 19)],
+    )
+    check("'YES ON PROP. 39' + 2002 (multi-candidate wind-down) -> "
+          "PROP_39_2000 via multi_candidate_winddown method",
+          lambda: r.resolved
+                 and r.finance_campaign_id == "PROP_39_2000"
+                 and r.attribution_method
+                 == "filer_name_explicit_multi_candidate_winddown")
+
+    # Negative case: hint outside both wind-down windows
+    r = R.resolve_from_filer_name(
+        "YES ON PROP. 39",
+        [date(2025, 1, 1)],  # outside both 2000+4=2004 and 2012+4=2016
+    )
+    check("'YES ON PROP. 39' + 2025 -> ambiguous_year "
+          "(neither wind-down window applies)",
+          lambda: r.quarantine_reason == "ambiguous_year")
+
+    # 2014 hint: distance 2 from 2012 (outside strict +/- 1), within
+    # 2012's wind-down [2011, 2016]. Should go through multi-cand
+    # wind-down path -> PROP_39_2012.
+    r = R.resolve_from_filer_name(
+        "YES ON PROP. 39",
+        [date(2014, 1, 1)],
+    )
+    check("'YES ON PROP. 39' + 2014 (outside strict, in 2012 wind-down) -> "
+          "PROP_39_2012 via multi_candidate_winddown",
+          lambda: r.resolved
+                 and r.finance_campaign_id == "PROP_39_2012"
+                 and r.attribution_method
+                 == "filer_name_explicit_multi_candidate_winddown")
+
     # --- Cover-sheet canonicalization (Codex round-8 fix) ---
     print()
     print("=== Cover-sheet canonicalization ===")

@@ -1,0 +1,16 @@
+{
+  "_schema": {
+    "description": "Manual attribution overrides for filings whose target prop + stance are DEFINITE but the resolver can't extract them automatically. Codex round-9 rule: only single-target, fully-documented cases.",
+    "key_format": "Either a CAL-ACCESS filer_id (numeric string) or a normalized filer name (lowercase, whitespace-collapsed)",
+    "value_format": "Array of [finance_campaign_id, stance] tuples. Length 1 = single-target (attribution_method='manual_override'). Length >1 = multi-target (resolver returns ambiguous_multi_prop unless row-level fields disambiguate, e.g. EXPN_CD with BAL_NUM per line).",
+    "curation_rules": [
+      "Only add entries where target prop + stance are definite based on documented evidence",
+      "If unsure, add to known_unattributed_vehicles.json instead",
+      "Include 'rationale' in a sibling key starting with _ if useful (parser ignores _-prefixed keys)"
+    ],
+    "examples_to_consider_for_future_curation": {
+      "Citizens for Paycheck Protection 2005 sponsored by PhRMA": "Target = PROP_75_2005 oppose (Paycheck Protection initiative was Prop 75 2005). Document Schedule A/C contributions before adding.",
+      "Alliance for a Better California 2005": "Multi-target: spans Schwarzenegger reform props 73-77 oppose. Probably NOT a single-target override; consider known_unattributed_vehicles."
+    }
+  }
+}

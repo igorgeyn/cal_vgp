@@ -1,0 +1,56 @@
+{
+  "_schema": {
+    "description": "Curated registry of high-dollar filings that are ballot-measure-adjacent but NOT safely attributable to a specific prop. Codex round-9: lets Phase 6 reporting say 'known unattributed ballot-adjacent money' instead of burying it in filer_name_no_prop.",
+    "key_format": "Either a CAL-ACCESS filer_id (numeric string) or a normalized filer name (lowercase, whitespace-collapsed)",
+    "value_format": "{ label: short label, rationale: why we can't attribute, approximate_dollar_volume: float, supported_or_opposed_measures: optional list of prop ids or 'multiple' }"
+  },
+  "1346379": {
+    "label": "Spirit of Democracy California (Munger Jr issues PAC)",
+    "rationale": "General issues PAC funded by Charles Munger Jr. Makes contributions to multiple ballot-measure committees across years. No single attribution target.",
+    "approximate_dollar_volume": 6154234.57,
+    "supported_or_opposed_measures": "multiple",
+    "source": "data/CalAccess/sample_filer_name_no_prop.csv"
+  },
+  "1381029": {
+    "label": "HOLD POLITICIANS ACCOUNTABLE (Munger Jr vehicle)",
+    "rationale": "Munger-funded issues PAC. Activity across multiple measures and years. Some sub-projects (PROTECT VOTERS FIRST) reuse same filer_id.",
+    "approximate_dollar_volume": 6610625.00,
+    "supported_or_opposed_measures": "multiple",
+    "source": "data/CalAccess/sample_filer_name_no_prop.csv"
+  },
+  "1321618": {
+    "label": "VOTERS FIRST ACT FOR CONGRESS (Munger Jr vehicle, likely Prop 20 2010 redistricting)",
+    "rationale": "Possibly attributable to Prop 20 2010 (Congressional redistricting), but the filer name doesn't carry the prop number explicitly and the committee's filings span multiple cycles. Needs manual review before adding to attribution overrides.",
+    "approximate_dollar_volume": 3100241.99,
+    "supported_or_opposed_measures": "PROP_20_2010 (probable)",
+    "source": "data/CalAccess/sample_filer_name_no_prop.csv"
+  },
+  "1483073": {
+    "label": "Californians for Responsible Healthcare (SEIU UHW)",
+    "rationale": "Active in 2025-2026 supporting an upcoming healthcare ballot measure. Specific target not yet determined (pre-election filings). Curated unresolved until the prop and stance are documented.",
+    "approximate_dollar_volume": 13973828.04,
+    "supported_or_opposed_measures": "pending 2026 healthcare measure",
+    "source": "data/CalAccess/sample_filer_name_no_prop.csv"
+  },
+  "1484470": {
+    "label": "Save California Health Care and Public Education (SEIU UHW)",
+    "rationale": "Sister vehicle to Californians for Responsible Healthcare. Same SEIU UHW funder, similar pending-prop status.",
+    "approximate_dollar_volume": 8684063.39,
+    "supported_or_opposed_measures": "pending 2026 healthcare measure",
+    "source": "data/CalAccess/sample_filer_name_no_prop.csv"
+  },
+  "1273998": {
+    "label": "Alliance for a Better California (2005)",
+    "rationale": "2005 special-election no-on-everything coalition opposing the Schwarzenegger reform package (Props 73-77). Genuinely multi-target; row-level attribution would be needed to split by specific prop. Not safe as a single-target override.",
+    "approximate_dollar_volume": 4505319.75,
+    "supported_or_opposed_measures": "PROP_73/74/75/76/77 2005 (oppose; multi-target)",
+    "source": "data/CalAccess/sample_filer_name_no_prop.csv"
+  },
+  "880873": {
+    "label": "California Teachers Association Issues PAC",
+    "rationale": "General-purpose issues PAC that makes contributions to multiple ballot-measure committees over years. The PAC itself is not a measure committee. Attribution would require knowing which specific committee each Schedule C contribution funded — that's the recipient committee's job, not ours.",
+    "approximate_dollar_volume": 16821503.74,
+    "supported_or_opposed_measures": "multiple",
+    "source": "data/CalAccess/sample_filer_name_no_prop.csv"
+  }
+}

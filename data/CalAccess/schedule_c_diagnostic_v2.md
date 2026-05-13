@@ -6,17 +6,32 @@ Run 2026-05-13. Resolver chain: cover_sheet -> filer_name_explicit -> manual_ove
 
 | Method | Rows | Dollars |
 |---|---|---|
-| `failed/filer_name_no_prop` | 125,460 | $442,944,923.33 |
+| `failed/filer_name_no_prop` | 125,462 | $442,954,784.56 |
 | `cover_sheet` | 14,027 | $237,784,560.93 |
-| `filer_name_explicit` | 9,858 | $177,119,439.44 |
+| `filer_name_explicit` | 9,798 | $176,823,099.84 |
 | `failed/no_campaign_match` | 236 | $15,780,327.26 |
-| `failed/ambiguous_multi_prop` | 641 | $12,783,487.77 |
-| `failed/ambiguous_year` | 647 | $7,518,049.14 |
-| `failed/unknown_stance` | 96 | $531,032.72 |
+| `failed/ambiguous_multi_prop` | 1,179 | $13,799,225.68 |
+| `failed/ambiguous_year` | 103 | $5,438,289.74 |
+| `filer_name_explicit_multi_candidate_winddown` | 43 | $1,374,221.84 |
+| `failed/unknown_stance` | 122 | $532,726.21 |
 | `failed/single_candidate_stale_out_of_window` | 36 | $60,265.12 |
-| `single_crosswalk_candidate_winddown` | 15 | $50,862.02 |
+| `single_crosswalk_candidate_winddown` | 10 | $25,446.55 |
 
-**Total accepted (cover_sheet + filer_name_explicit + manual_override): $414,904,000.37**
+**Total accepted (cover_sheet + filer_name_explicit + manual_override): $414,607,660.77**
+
+## filer_name_no_prop subcategorization (Codex round-9)
+
+| Category | Rows | Dollars |
+|---|---|---|
+| `curated_unresolved` | 1,019 | $63,626,334.75 |
+| `recall_committee` | 891 | $11,788,979.10 |
+| `party_committee` | 2,079 | $12,910,243.44 |
+| `candidate_committee` | 50,105 | $189,118,379.28 |
+| `unclassified` | 71,368 | $165,510,847.99 |
+
+- `curated_unresolved`: matched the curated known_unattributed_vehicles.json registry (ballot-adjacent but not safely attributable)
+- `recall_committee`, `party_committee`, `candidate_committee`: heuristic keyword match — out-of-scope for v3 measure attribution
+- `unclassified`: remaining no-prop activity — where to look first for additional curation
 
 ## Comparison vs v1 diagnostic (cover_sheet only)
 
@@ -100,12 +115,16 @@ v1 baseline buckets (data/CalAccess/schedule_c_diagnostic.md):
 | YES ON 20, NO ON 27 - HOLD POLITICIANS ACCOUNTABLE | $1,208,290.00 |
 | YES on 26, NO on 27 - Coalition for Safe, Responsible Gaming, Sponsored by Calif | $1,037,703.03 |
 | Californians to Mend, Not End, The Death Penalty. No on Prop 62, Yes on Prop 66. | $769,443.04 |
+| Affordable Housing Now - Yes on Props 1&2 coalition: Housing California, Califor | $703,844.07 |
 | Yes on 79 & No on 78, a coalition of consumer organizations for affordable presc | $383,045.75 |
 | No on Prop 15 - Stop Higher Property Taxes and Save Prop 13 - a coalition of Cal | $334,934.58 |
 | STOP HIDDEN TAXES - NO ON 25/YES ON 26, A COALITION OF TAXPAYERS AND EMPLOYERS | $251,051.99 |
+| No on Props 6 & 9, a committee for  fiscal responsibility with teachers, firefig | $196,517.33 |
 | California Nurses Association Initiative Political Action Committee (formerly Ye | $117,887.92 |
 | Yes on 62, No on 66. Replace the Costly, Failed Death Penalty System. Sponsored  | $91,288.24 |
 | Mi Familia Vota -- Yes on 30 and 39 for Tax Fairness and No on 32 to Stop Specia | $85,330.71 |
+| Californians for Safe Neighborhood Parks & Clean Water - Yes on Props 12 & 13 -  | $67,825.20 |
+| CITIZENS TO SAVE CALIFORNIA, A COALITION OF BUSINESS & TAXPAYER ORGANIZATIONS TO | $47,705.81 |
 | Pharmaceutical Research and Manufacturers of America California Initiative Fund  | $47,000.00 |
 | The Nature Conservancy Action Fund of California- Yes on Prop. 12 and Prop. 13 | $42,118.87 |
 | Yes on 30 to Save Our Schools & No on 32 to Stop Campaign Finance Loopholes for  | $13,613.70 |
@@ -116,38 +135,21 @@ v1 baseline buckets (data/CalAccess/schedule_c_diagnostic.md):
 | ASSOCIATION OF COMMUNITY ORGANIZATIONS FOR REFORM NOW (ACORN) VOTES ISSUES COMMI | $2,500.00 |
 | A Home for Everyone, Yes on Props 1 and 2 | $829.00 |
 | California Grocers Association Issues Committee, Yes on Proposition 30, No on Pr | $500.00 |
-| Assembly Member Liz Ortega California Freedom Ballot Measure Committee - Yes on  | $500.00 |
-| CA League of Conservation Voters 2006 Ballot Measure Fund; No on 90, Yes on 84 a | $428.86 |
-| Committee to Preserve Voter Choice, Yes on 60 & No on 62 | $314.44 |
 
 ### `failed/ambiguous_year`
 
 | Filer | Dollars |
 |---|---|
 | PROTECT PROP. 13, A PROJECT OF THE HOWARD JARVIS TAXPAYERS ASSOCIATION | $4,863,210.09 |
-| TAXPAYERS FOR ACCOUNTABILITY & BETTER SCHOOLS(TABS), YES ON PROP. 39,A COALTN. O | $1,322,535.24 |
-| Affordable Housing Now - Yes on Props 1&2 coalition: Housing California, Califor | $703,844.07 |
 | No on 1A, a coalition of teachers, faculty, nurses, health care providers, senio | $286,500.90 |
 | Yes on 1A and 1B, Repay and Protect our Schools: a Coalition of California Teach | $153,547.35 |
 | Californians for High Speed Trains-Yes on Proposition 1A-A Coalition of Taxpayer | $102,175.35 |
-| The Cruz Bustamante Committee Against Prop. 54 | $17,349.04 |
-| Yes on 46, a coalition of teachers, homebuilders, labor, lenders, realtors, John | $13,908.70 |
 | CALIFORNIANS AGAINST SPECIAL INTERESTS SUPPORTED BY CITIZENS POWER CAMPAIGN, W.E | $13,305.18 |
-| YES ON PROP 61, CALIFORNIANS FOR LOWER DRUG PRICES, WITH MAJOR FUNDING BY AIDS H | $8,892.18 |
 | CALIFORNIANS AGAINST SPECIAL INTERESTS SUPPORTED BY CITIZENS POWER CAMPAIGN, L S | $7,349.00 |
 | STOP PROP 1 - A COMMITTEE IN OPPOSITION TO PROPOSITION 1 | $6,957.64 |
-| California Cable & Telecommunications Association Non-Prop 34 Committee | $6,182.98 |
-| YES ON 35 - PROTECT OUR HEALTHCARE, A COALITION OF FIRST RESPONDERS, HEALTHCARE  | $4,125.50 |
-| Yes on 29, American Cancer Society Cancer Action Network Inc. and American Cance | $2,162.15 |
-| Yes on 37 For Your Right to Know if Your Food Has Been Genetically Engineered.   | $1,535.88 |
-| Public Health Warning: No on 64, a Coalition of Environmental, Public Health and | $1,457.15 |
-| Yes on Prop 12: Prevent Cruelty California, a Humane Society Committee | $1,400.00 |
-| Green Technology Leadership Group PAC, No On Prop 23 | $365.09 |
+| California Cable & Telecommunications Association Non-Prop 34 Committee | $4,612.49 |
 | CALIFORNIA COUNTIES UNITED, YES ON 1A, SPONSORED BY THE CALIFORNIA STATE ASSOCIA | $347.00 |
-| Yes On Proposition 31, Committee to Protect California Kids sponsored by Nonprof | $288.44 |
 | Citizens for a More Liveable California - Yes on 1A & 1B | $284.74 |
-| Los Angeles County Federation of Labor AFL-CIO, Yes on 24 and 25 | $202.47 |
-| California Cable Television Assn. Non-Prop 34 Committee | $123.00 |
 
 ### `failed/filer_name_no_prop`
 
@@ -217,8 +219,8 @@ v1 baseline buckets (data/CalAccess/schedule_c_diagnostic.md):
 | Consumer Watchdog Campaign to Stop Prop 33, the Insurance Industry Deception, Ma | $18,610.41 |
 | Stop Prop 17, Sponsored by Campaign for Consumer Rights - a coalition of consume | $17,021.97 |
 | Californians for Safe Drinking Water and a Clean and Reliable Water Supply in su | $7,951.54 |
+| California Cable & Telecommunications Association Non-Prop 34 Committee | $2,758.25 |
 | Californians for a Fresh Start Sponsored by Business and Labor Organizations, a  | $1,833.21 |
-| California Cable & Telecommunications Association Non-Prop 34 Committee | $1,187.76 |
+| California Cable Television Assn. Non-Prop 34 Committee | $300.20 |
 | Asian American Families Against Prop 54 | $189.31 |
-| California Cable Television Assn. Non-Prop 34 Committee | $177.20 |
 | TAXPAYERS FOR FAIR COMPETITION | $103.66 |
