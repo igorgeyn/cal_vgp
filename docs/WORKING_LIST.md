@@ -1,18 +1,51 @@
 # CalBallot Working List
 
-> Snapshot: **2026-05-12**. Branch: `main`. Last shipped locally: commit
-> `9fb9dc0` (SEIU UHW + canonical-dedup gate fix). Pushed-to-origin marker
-> is `fcd1345` (Finance v2 rebuild + Insights Finance panel redesign +
-> cleanups, 2026-05-04). Local commits ahead of origin: 11 (matcher v2,
-> rollup + tests, small-tier sweep, calendar-year aggregation, stance
-> recovery, donor canonicalization, donor sectors, card redesign v2,
-> sanity-check polish, evaluate_data_quality v2 rewrite, dedup gate).
+> Snapshot: **2026-05-13 evening**. Branch: `main` (in sync with
+> `origin/main`). Last shipped: commit `608abc6` (Codex round-9 final
+> pre-Phase-3: ampersand plural pattern + multi-candidate wind-down +
+> curated registries + diagnostic categorization).
+>
+> **WHERE WE LEFT OFF mid-Phase-3:** v3 attribution layer is built,
+> tested, and Codex-blessed. Phase 0-1 done (source dump + schema).
+> Phase 2 done (LOAN_CD: 269 loans, $186.16M, reconciles to penny).
+> Phase 3 attribution + diagnostic done; Phase 3 actual *ingest*
+> (writing Schedule C rows into finance_flow_v3) is the next discrete
+> chunk. See "Phase 3 next steps" below.
 >
 > This is the canonical resume point. Memory in `.claude/projects/...` is
 > per-machine and won't follow you — start here when picking up on a new
 > machine.
 
 ---
+
+## Phase 3 next steps (resume here)
+
+The conservative attribution resolver, unified attribution index,
+collision-pair canonicalization, ampersand plural pattern,
+multi-candidate wind-down, and curated registries are all live in
+`scripts/v3/`. The Schedule C diagnostic with the full chain shows:
+
+- **$414.6M accepted** of $894M total Schedule C activity (46%)
+- $63.6M curated_unresolved (7 known ballot-adjacent vehicles)
+- $213.8M heuristically OOS (candidates / parties / recall)
+- $165.5M unclassified residual (where future curation looks first)
+- ~$36M small quarantines (ambiguous_year, ambiguous_multi_prop, etc.)
+
+**Concrete next chunk:** write `scripts/v3/ingest_inkind.py`. Mirror
+`ingest_loans.py` structure but for RCPT_CD Schedule C
+(`FORM_TYPE='C'`). Use `build_filing_attribution_index()` from
+`attribution.py` instead of the inline `load_cover_attributions()` —
+the unified index already has the full resolver chain wired up.
+Write `receipt_type='in_kind'` to `finance_flow_v3`. Then build
+`reconcile_inkind.py` (same pattern as `reconcile_loans.py`) and
+verify Layer 1 (no-regression on v2) + Layer 2 (source filtered SUM
+matches v3 in-kind slice).
+
+After Phase 3 ingest:
+- Phase 4: IE ingest (S496_CD + EXPN_CD F461P5 + F465P3). The big rock.
+- Phase 5: Frontend atomic commit (modal + hero + insights + briefing
+  + methodology copy together).
+- Phase 6: Final verification + docs.
 
 ## Recently shipped
 
