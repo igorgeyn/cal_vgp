@@ -1,0 +1,37 @@
+{
+  "captured_date": "2026-05-13",
+  "methodology_note": "Captured from Ballotpedia per-prop campaign-finance sections. Includes monetary + IE + in-kind from their aggregation. May differ from our v3 if they include sources we don't (slate mailers, 527s, out-of-state). Stored with URL + capture date so reconciliation is reproducible.",
+  "props": {
+    "PROP_22_2020": {
+      "support_total": 224300000,
+      "oppose_total": 20000000,
+      "url": "https://ballotpedia.org/California_Proposition_22,_App-Based_Drivers_as_Contractors_and_Labor_Policies_Initiative_(2020)",
+      "notes": "Gig-worker / Uber+Lyft+DoorDash+Instacart; massive IE spend."
+    },
+    "PROP_27_2022": {
+      "support_total": 169100000,
+      "oppose_total": 249300000,
+      "url": "https://ballotpedia.org/California_Proposition_27,_Legalize_Sports_Betting_and_Revenue_for_Homelessness_Prevention_Fund_Initiative_(2022)",
+      "notes": "Online sports betting; FanDuel/DraftKings vs tribal coalitions. Two oppose committees per Ballotpedia (we currently have one)."
+    },
+    "PROP_32_2012": {
+      "support_total": 74000000,
+      "oppose_total": 60000000,
+      "url": "https://ballotpedia.org/California_Proposition_32,_Restrictions_on_Political_Contributions_by_Payroll_Deduction_Act_(2012)",
+      "notes": "Paycheck Protection; Munger Jr era. Ballotpedia number to verify in Phase 6 since older; CalAccess coverage may be less complete pre-2014."
+    },
+    "PROP_8_2018": {
+      "support_total": 20700000,
+      "oppose_total": 111500000,
+      "url": "https://ballotpedia.org/California_Proposition_8,_Limits_on_Dialysis_Clinics%27_Revenue_and_Required_Refunds_Initiative_(2018)",
+      "notes": "Dialysis revenue limits; DaVita/Fresenius vs SEIU-UHW."
+    },
+    "PROP_50_2025": {
+      "support_total": 165000000,
+      "oppose_total": 0,
+      "url": null,
+      "notes": "Recent (2025-11); use our internal sentinel as ground truth until a Ballotpedia capture is available."
+    }
+  },
+  "_self_hash": "19a458ff52b9c82d136cebffc6be5d9964f6afd406877562ae38229ab9d4fc30"
+}

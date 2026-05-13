@@ -1,0 +1,189 @@
+# CAL-ACCESS Source Capability Matrix
+
+Built 2026-05-13 from `data/CalAccess/DUMP_2026-05-13/`.
+Sampling first 200,000 rows per table for FORM_TYPE / key-field stats.
+
+## RCPT_CD
+- File size: **3652.4 MB**
+- Columns (63): `FILING_ID`, `AMEND_ID`, `LINE_ITEM`, `REC_TYPE`, `FORM_TYPE`, `TRAN_ID`, `ENTITY_CD`, `CTRIB_NAML`, `CTRIB_NAMF`, `CTRIB_NAMT`, `CTRIB_NAMS`, `CTRIB_CITY`, `CTRIB_ST`, `CTRIB_ZIP4`, `CTRIB_EMP`, `CTRIB_OCC`, `CTRIB_SELF`, `TRAN_TYPE`, `RCPT_DATE`, `DATE_THRU`, `AMOUNT`, `CUM_YTD`, `CUM_OTH`, `CTRIB_DSCR`, `CMTE_ID`, `TRES_NAML`, `TRES_NAMF`, `TRES_NAMT`, `TRES_NAMS`, `TRES_CITY`, `TRES_ST`, `TRES_ZIP4`, `INTR_NAML`, `INTR_NAMF`, `INTR_NAMT`, `INTR_NAMS`, `INTR_CITY`, `INTR_ST`, `INTR_ZIP4`, `INTR_EMP`, `INTR_OCC`, `INTR_SELF`, `CAND_NAML`, `CAND_NAMF`, `CAND_NAMT`, `CAND_NAMS`, `OFFICE_CD`, `OFFIC_DSCR`, `JURIS_CD`, `JURIS_DSCR`, `DIST_NO`, `OFF_S_H_CD`, `BAL_NAME`, `BAL_NUM`, `BAL_JURIS`, `SUP_OPP_CD`, `MEMO_CODE`, `MEMO_REFNO`, `BAKREF_TID`, `XREF_SCHNM`, `XREF_MATCH`, `INT_RATE`, `INTR_CMTEID`
+- Sample size: 200,001 rows
+- **FORM_TYPE distribution** (in sample):
+    - `A` — 190,069 rows
+    - `F401A` — 3,548 rows
+    - `I` — 3,291 rows
+    - `C` — 3,092 rows
+- **Key fields present in header**:
+    - `FORM_TYPE` ✓ (non-empty: 200,000 / 200,001)
+    - `BAL_NUM` ✓ (non-empty: 116 / 200,001)
+    - `BAL_NAME` ✓ (non-empty: 151 / 200,001)
+    - `SUP_OPP_CD` ✓ (non-empty: 3,546 / 200,001)
+    - `AMEND_ID` ✓ (non-empty: 200,000 / 200,001)
+    - `MEMO_CODE` ✓ (non-empty: 0 / 200,001)
+    - `MEMO_REFNO` ✓ (non-empty: 17,258 / 200,001)
+    - `TRAN_ID` ✓ (non-empty: 200,000 / 200,001)
+    - `LINE_ITEM` ✓ (non-empty: 200,000 / 200,001)
+    - `FILING_ID` ✓ (non-empty: 200,000 / 200,001)
+    - `AMOUNT` ✓ (non-empty: 200,000 / 200,001)
+    - `RCPT_DATE` ✓ (non-empty: 200,000 / 200,001)
+    - `CTRIB_NAML` ✓ (non-empty: 199,978 / 200,001)
+    - `BAKREF_TID` ✓ (non-empty: 0 / 200,001)
+- **Key fields NOT in header**:
+    - `FILER_ID`, `FILER_NAML`, `LOAN_AMT1`, `LOAN_AMT2`, `LOAN_AMT3`, `LOAN_AMT4`, `LOAN_AMT5`, `LOAN_AMT6`, `LOAN_AMT7`, `LOAN_AMT8`, `EXPN_DATE`, `LOAN_DATE1`, `LOAN_DATE2`, `SCHED_DATE`, `DATE_FIRST`, `DATE_LAST`, `ELECT_DATE`, `PAYEE_NAML`
+
+## LOAN_CD
+- File size: **18.3 MB**
+- Columns (49): `FILING_ID`, `AMEND_ID`, `LINE_ITEM`, `REC_TYPE`, `FORM_TYPE`, `TRAN_ID`, `LOAN_TYPE`, `ENTITY_CD`, `LNDR_NAML`, `LNDR_NAMF`, `LNDR_NAMT`, `LNDR_NAMS`, `LOAN_CITY`, `LOAN_ST`, `LOAN_ZIP4`, `LOAN_DATE1`, `LOAN_DATE2`, `LOAN_AMT1`, `LOAN_AMT2`, `LOAN_AMT3`, `LOAN_AMT4`, `LOAN_RATE`, `LOAN_EMP`, `LOAN_OCC`, `LOAN_SELF`, `CMTE_ID`, `TRES_NAML`, `TRES_NAMF`, `TRES_NAMT`, `TRES_NAMS`, `TRES_CITY`, `TRES_ST`, `TRES_ZIP4`, `INTR_NAML`, `INTR_NAMF`, `INTR_NAMT`, `INTR_NAMS`, `INTR_CITY`, `INTR_ST`, `INTR_ZIP4`, `MEMO_CODE`, `MEMO_REFNO`, `BAKREF_TID`, `XREF_SCHNM`, `XREF_MATCH`, `LOAN_AMT5`, `LOAN_AMT6`, `LOAN_AMT7`, `LOAN_AMT8`
+- Sample size: 96,175 rows
+- **FORM_TYPE distribution** (in sample):
+    - `B1` — 76,673 rows
+    - `H` — 14,934 rows
+    - `B3` — 1,706 rows
+    - `B2` — 1,693 rows
+    - `H3` — 499 rows
+    - `H1` — 386 rows
+    - `H2` — 284 rows
+- **Key fields present in header**:
+    - `FORM_TYPE` ✓ (non-empty: 96,175 / 96,175)
+    - `AMEND_ID` ✓ (non-empty: 96,175 / 96,175)
+    - `MEMO_CODE` ✓ (non-empty: 75 / 96,175)
+    - `MEMO_REFNO` ✓ (non-empty: 13,365 / 96,175)
+    - `TRAN_ID` ✓ (non-empty: 96,175 / 96,175)
+    - `LINE_ITEM` ✓ (non-empty: 96,175 / 96,175)
+    - `FILING_ID` ✓ (non-empty: 96,175 / 96,175)
+    - `LOAN_AMT1` ✓ (non-empty: 93,344 / 96,175)
+    - `LOAN_AMT2` ✓ (non-empty: 94,598 / 96,175)
+    - `LOAN_AMT3` ✓ (non-empty: 92,947 / 96,175)
+    - `LOAN_AMT4` ✓ (non-empty: 90,024 / 96,175)
+    - `LOAN_AMT5` ✓ (non-empty: 81,264 / 96,175)
+    - `LOAN_AMT6` ✓ (non-empty: 80,589 / 96,175)
+    - `LOAN_AMT7` ✓ (non-empty: 86,458 / 96,175)
+    - `LOAN_AMT8` ✓ (non-empty: 90,388 / 96,175)
+    - `LOAN_DATE1` ✓ (non-empty: 96,146 / 96,175)
+    - `LOAN_DATE2` ✓ (non-empty: 55,890 / 96,175)
+    - `BAKREF_TID` ✓ (non-empty: 5 / 96,175)
+- **Key fields NOT in header**:
+    - `BAL_NUM`, `BAL_NAME`, `SUP_OPP_CD`, `FILER_ID`, `FILER_NAML`, `AMOUNT`, `RCPT_DATE`, `EXPN_DATE`, `SCHED_DATE`, `DATE_FIRST`, `DATE_LAST`, `ELECT_DATE`, `CTRIB_NAML`, `PAYEE_NAML`
+
+## S496_CD
+- File size: **6.5 MB**
+- Columns (12): `FILING_ID`, `AMEND_ID`, `LINE_ITEM`, `REC_TYPE`, `FORM_TYPE`, `TRAN_ID`, `AMOUNT`, `EXP_DATE`, `EXPN_DSCR`, `MEMO_CODE`, `MEMO_REFNO`, `DATE_THRU`
+- Sample size: 73,821 rows
+- **FORM_TYPE distribution** (in sample):
+    - `F496` — 73,821 rows
+- **Key fields present in header**:
+    - `FORM_TYPE` ✓ (non-empty: 73,821 / 73,821)
+    - `AMEND_ID` ✓ (non-empty: 73,821 / 73,821)
+    - `MEMO_CODE` ✓ (non-empty: 428 / 73,821)
+    - `MEMO_REFNO` ✓ (non-empty: 38,806 / 73,821)
+    - `TRAN_ID` ✓ (non-empty: 73,821 / 73,821)
+    - `LINE_ITEM` ✓ (non-empty: 73,821 / 73,821)
+    - `FILING_ID` ✓ (non-empty: 73,821 / 73,821)
+    - `AMOUNT` ✓ (non-empty: 73,788 / 73,821)
+- **Key fields NOT in header**:
+    - `BAL_NUM`, `BAL_NAME`, `SUP_OPP_CD`, `FILER_ID`, `FILER_NAML`, `LOAN_AMT1`, `LOAN_AMT2`, `LOAN_AMT3`, `LOAN_AMT4`, `LOAN_AMT5`, `LOAN_AMT6`, `LOAN_AMT7`, `LOAN_AMT8`, `RCPT_DATE`, `EXPN_DATE`, `LOAN_DATE1`, `LOAN_DATE2`, `SCHED_DATE`, `DATE_FIRST`, `DATE_LAST`, `ELECT_DATE`, `CTRIB_NAML`, `PAYEE_NAML`, `BAKREF_TID`
+
+## S497_CD
+- File size: **234.8 MB**
+- Columns (41): `FILING_ID`, `AMEND_ID`, `LINE_ITEM`, `REC_TYPE`, `FORM_TYPE`, `TRAN_ID`, `ENTITY_CD`, `ENTY_NAML`, `ENTY_NAMF`, `ENTY_NAMT`, `ENTY_NAMS`, `ENTY_CITY`, `ENTY_ST`, `ENTY_ZIP4`, `CTRIB_EMP`, `CTRIB_OCC`, `CTRIB_SELF`, `ELEC_DATE`, `CTRIB_DATE`, `DATE_THRU`, `AMOUNT`, `CMTE_ID`, `CAND_NAML`, `CAND_NAMF`, `CAND_NAMT`, `CAND_NAMS`, `OFFICE_CD`, `OFFIC_DSCR`, `JURIS_CD`, `JURIS_DSCR`, `DIST_NO`, `OFF_S_H_CD`, `BAL_NAME`, `BAL_NUM`, `BAL_JURIS`, `MEMO_CODE`, `MEMO_REFNO`, `BAL_ID`, `CAND_ID`, `SUP_OFF_CD`, `SUP_OPP_CD`
+- Sample size: 200,001 rows
+- **FORM_TYPE distribution** (in sample):
+    - `F497P1` — 170,253 rows
+    - `F497P2` — 29,747 rows
+- **Key fields present in header**:
+    - `FORM_TYPE` ✓ (non-empty: 200,000 / 200,001)
+    - `BAL_NUM` ✓ (non-empty: 2,422 / 200,001)
+    - `BAL_NAME` ✓ (non-empty: 3,493 / 200,001)
+    - `SUP_OPP_CD` ✓ (non-empty: 6,804 / 200,001)
+    - `AMEND_ID` ✓ (non-empty: 200,000 / 200,001)
+    - `MEMO_CODE` ✓ (non-empty: 117 / 200,001)
+    - `MEMO_REFNO` ✓ (non-empty: 13,575 / 200,001)
+    - `TRAN_ID` ✓ (non-empty: 200,000 / 200,001)
+    - `LINE_ITEM` ✓ (non-empty: 200,000 / 200,001)
+    - `FILING_ID` ✓ (non-empty: 200,000 / 200,001)
+    - `AMOUNT` ✓ (non-empty: 199,984 / 200,001)
+- **Key fields NOT in header**:
+    - `FILER_ID`, `FILER_NAML`, `LOAN_AMT1`, `LOAN_AMT2`, `LOAN_AMT3`, `LOAN_AMT4`, `LOAN_AMT5`, `LOAN_AMT6`, `LOAN_AMT7`, `LOAN_AMT8`, `RCPT_DATE`, `EXPN_DATE`, `LOAN_DATE1`, `LOAN_DATE2`, `SCHED_DATE`, `DATE_FIRST`, `DATE_LAST`, `ELECT_DATE`, `CTRIB_NAML`, `PAYEE_NAML`, `BAKREF_TID`
+
+## EXPN_CD
+- File size: **2951.3 MB**
+- Columns (53): `FILING_ID`, `AMEND_ID`, `LINE_ITEM`, `REC_TYPE`, `FORM_TYPE`, `TRAN_ID`, `ENTITY_CD`, `PAYEE_NAML`, `PAYEE_NAMF`, `PAYEE_NAMT`, `PAYEE_NAMS`, `PAYEE_CITY`, `PAYEE_ST`, `PAYEE_ZIP4`, `EXPN_DATE`, `AMOUNT`, `CUM_YTD`, `CUM_OTH`, `EXPN_CHKNO`, `EXPN_CODE`, `EXPN_DSCR`, `AGENT_NAML`, `AGENT_NAMF`, `AGENT_NAMT`, `AGENT_NAMS`, `CMTE_ID`, `TRES_NAML`, `TRES_NAMF`, `TRES_NAMT`, `TRES_NAMS`, `TRES_CITY`, `TRES_ST`, `TRES_ZIP4`, `CAND_NAML`, `CAND_NAMF`, `CAND_NAMT`, `CAND_NAMS`, `OFFICE_CD`, `OFFIC_DSCR`, `JURIS_CD`, `JURIS_DSCR`, `DIST_NO`, `OFF_S_H_CD`, `BAL_NAME`, `BAL_NUM`, `BAL_JURIS`, `SUP_OPP_CD`, `MEMO_CODE`, `MEMO_REFNO`, `BAKREF_TID`, `G_FROM_E_F`, `XREF_SCHNM`, `XREF_MATCH`
+- Sample size: 200,001 rows
+- **FORM_TYPE distribution** (in sample):
+    - `E` — 125,583 rows
+    - `D` — 32,616 rows
+    - `G` — 28,715 rows
+    - `F461P5` — 11,472 rows
+    - `F465P3` — 1,397 rows
+    - `F450P5` — 217 rows
+- **Key fields present in header**:
+    - `FORM_TYPE` ✓ (non-empty: 200,000 / 200,001)
+    - `BAL_NUM` ✓ (non-empty: 2,583 / 200,001)
+    - `BAL_NAME` ✓ (non-empty: 3,495 / 200,001)
+    - `SUP_OPP_CD` ✓ (non-empty: 44,154 / 200,001)
+    - `AMEND_ID` ✓ (non-empty: 200,000 / 200,001)
+    - `MEMO_CODE` ✓ (non-empty: 13,693 / 200,001)
+    - `MEMO_REFNO` ✓ (non-empty: 3,418 / 200,001)
+    - `TRAN_ID` ✓ (non-empty: 200,000 / 200,001)
+    - `LINE_ITEM` ✓ (non-empty: 200,000 / 200,001)
+    - `FILING_ID` ✓ (non-empty: 200,000 / 200,001)
+    - `AMOUNT` ✓ (non-empty: 195,714 / 200,001)
+    - `EXPN_DATE` ✓ (non-empty: 160,869 / 200,001)
+    - `PAYEE_NAML` ✓ (non-empty: 188,445 / 200,001)
+    - `BAKREF_TID` ✓ (non-empty: 30,243 / 200,001)
+- **Key fields NOT in header**:
+    - `FILER_ID`, `FILER_NAML`, `LOAN_AMT1`, `LOAN_AMT2`, `LOAN_AMT3`, `LOAN_AMT4`, `LOAN_AMT5`, `LOAN_AMT6`, `LOAN_AMT7`, `LOAN_AMT8`, `RCPT_DATE`, `LOAN_DATE1`, `LOAN_DATE2`, `SCHED_DATE`, `DATE_FIRST`, `DATE_LAST`, `ELECT_DATE`, `CTRIB_NAML`
+
+## S401_CD
+- File size: **7.9 MB**
+- Columns (37): `FILING_ID`, `AMEND_ID`, `LINE_ITEM`, `REC_TYPE`, `FORM_TYPE`, `TRAN_ID`, `AGENT_NAML`, `AGENT_NAMF`, `AGENT_NAMT`, `AGENT_NAMS`, `PAYEE_NAML`, `PAYEE_NAMF`, `PAYEE_NAMT`, `PAYEE_NAMS`, `PAYEE_CITY`, `PAYEE_ST`, `PAYEE_ZIP4`, `AMOUNT`, `AGGREGATE`, `EXPN_DSCR`, `CAND_NAML`, `CAND_NAMF`, `CAND_NAMT`, `CAND_NAMS`, `OFFICE_CD`, `OFFIC_DSCR`, `JURIS_CD`, `JURIS_DSCR`, `DIST_NO`, `OFF_S_H_CD`, `BAL_NAME`, `BAL_NUM`, `BAL_JURIS`, `SUP_OPP_CD`, `MEMO_CODE`, `MEMO_REFNO`, `BAKREF_TID`
+- Sample size: 64,894 rows
+- **FORM_TYPE distribution** (in sample):
+    - `F401D` — 29,297 rows
+    - `F401B` — 28,125 rows
+    - `F401C` — 4,721 rows
+    - `F401B-1` — 2,751 rows
+- **Key fields present in header**:
+    - `FORM_TYPE` ✓ (non-empty: 64,894 / 64,894)
+    - `BAL_NUM` ✓ (non-empty: 4,306 / 64,894)
+    - `BAL_NAME` ✓ (non-empty: 4,742 / 64,894)
+    - `SUP_OPP_CD` ✓ (non-empty: 29,206 / 64,894)
+    - `AMEND_ID` ✓ (non-empty: 64,894 / 64,894)
+    - `MEMO_CODE` ✓ (non-empty: 11 / 64,894)
+    - `MEMO_REFNO` ✓ (non-empty: 193 / 64,894)
+    - `TRAN_ID` ✓ (non-empty: 64,894 / 64,894)
+    - `LINE_ITEM` ✓ (non-empty: 64,894 / 64,894)
+    - `FILING_ID` ✓ (non-empty: 64,894 / 64,894)
+    - `AMOUNT` ✓ (non-empty: 55,933 / 64,894)
+    - `PAYEE_NAML` ✓ (non-empty: 56,589 / 64,894)
+    - `BAKREF_TID` ✓ (non-empty: 2,178 / 64,894)
+- **Key fields NOT in header**:
+    - `FILER_ID`, `FILER_NAML`, `LOAN_AMT1`, `LOAN_AMT2`, `LOAN_AMT3`, `LOAN_AMT4`, `LOAN_AMT5`, `LOAN_AMT6`, `LOAN_AMT7`, `LOAN_AMT8`, `RCPT_DATE`, `EXPN_DATE`, `LOAN_DATE1`, `LOAN_DATE2`, `SCHED_DATE`, `DATE_FIRST`, `DATE_LAST`, `ELECT_DATE`, `CTRIB_NAML`
+
+## CVR_CAMPAIGN_DISCLOSURE_CD
+- File size: **215.8 MB**
+- Columns (86): `FILING_ID`, `AMEND_ID`, `REC_TYPE`, `FORM_TYPE`, `FILER_ID`, `ENTITY_CD`, `FILER_NAML`, `FILER_NAMF`, `FILER_NAMT`, `FILER_NAMS`, `REPORT_NUM`, `RPT_DATE`, `STMT_TYPE`, `LATE_RPTNO`, `FROM_DATE`, `THRU_DATE`, `ELECT_DATE`, `FILER_CITY`, `FILER_ST`, `FILER_ZIP4`, `FILER_PHON`, `FILER_FAX`, `FILE_EMAIL`, `MAIL_CITY`, `MAIL_ST`, `MAIL_ZIP4`, `TRES_NAML`, `TRES_NAMF`, `TRES_NAMT`, `TRES_NAMS`, `TRES_CITY`, `TRES_ST`, `TRES_ZIP4`, `TRES_PHON`, `TRES_FAX`, `TRES_EMAIL`, `CMTTE_TYPE`, `CONTROL_YN`, `SPONSOR_YN`, `PRIMFRM_YN`, `BRDBASE_YN`, `AMENDEXP_1`, `AMENDEXP_2`, `AMENDEXP_3`, `RPT_ATT_CB`, `CMTTE_ID`, `REPORTNAME`, `RPTFROMDT`, `RPTTHRUDT`, `EMPLBUS_CB`, `BUS_NAME`, `BUS_CITY`, `BUS_ST`, `BUS_ZIP4`, `BUS_INTER`, `BUSACT_CB`, `BUSACTVITY`, `ASSOC_CB`, `ASSOC_INT`, `OTHER_CB`, `OTHER_INT`, `CAND_NAML`, `CAND_NAMF`, `CAND_NAMT`, `CAND_NAMS`, `CAND_CITY`, `CAND_ST`, `CAND_ZIP4`, `CAND_PHON`, `CAND_FAX`, `CAND_EMAIL`, `BAL_NAME`, `BAL_NUM`, `BAL_JURIS`, `OFFICE_CD`, `OFFIC_DSCR`, `JURIS_CD`, `JURIS_DSCR`, `DIST_NO`, `OFF_S_H_CD`, `SUP_OPP_CD`, `EMPLOYER`, `OCCUPATION`, `SELFEMP_CB`, `BAL_ID`, `CAND_ID`
+- Sample size: 200,001 rows
+- **FORM_TYPE distribution** (in sample):
+    - `F497` — 98,433 rows
+    - `F460` — 69,554 rows
+    - `F461` — 13,811 rows
+    - `F496` — 9,619 rows
+    - `F465` — 4,152 rows
+    - `F401` — 2,014 rows
+    - `F498` — 1,602 rows
+    - `F450` — 673 rows
+    - `F425` — 128 rows
+    - `F900` — 11 rows
+    - `F511` — 2 rows
+- **Key fields present in header**:
+    - `FORM_TYPE` ✓ (non-empty: 199,999 / 200,001)
+    - `BAL_NUM` ✓ (non-empty: 5,360 / 200,001)
+    - `BAL_NAME` ✓ (non-empty: 6,544 / 200,001)
+    - `SUP_OPP_CD` ✓ (non-empty: 35,079 / 200,001)
+    - `AMEND_ID` ✓ (non-empty: 199,999 / 200,001)
+    - `FILING_ID` ✓ (non-empty: 199,999 / 200,001)
+    - `FILER_ID` ✓ (non-empty: 199,998 / 200,001)
+    - `FILER_NAML` ✓ (non-empty: 199,999 / 200,001)
+    - `ELECT_DATE` ✓ (non-empty: 65,673 / 200,001)
+- **Key fields NOT in header**:
+    - `MEMO_CODE`, `MEMO_REFNO`, `TRAN_ID`, `LINE_ITEM`, `AMOUNT`, `LOAN_AMT1`, `LOAN_AMT2`, `LOAN_AMT3`, `LOAN_AMT4`, `LOAN_AMT5`, `LOAN_AMT6`, `LOAN_AMT7`, `LOAN_AMT8`, `RCPT_DATE`, `EXPN_DATE`, `LOAN_DATE1`, `LOAN_DATE2`, `SCHED_DATE`, `DATE_FIRST`, `DATE_LAST`, `CTRIB_NAML`, `PAYEE_NAML`, `BAKREF_TID`

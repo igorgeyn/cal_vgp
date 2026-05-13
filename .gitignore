@@ -38,6 +38,16 @@ scraper/data/finance/calaccess_raw/
 scraper/data/finance/*.zip
 scraper/data/finance/*.db
 
+# Large data files - CalAccess root-level dumps (1.5GB zip, ~50GB extracted)
+data/CalAccess/*.zip
+data/CalAccess/DUMP_*/
+data/CalAccess/DATA/
+# But keep small Phase-0 artifacts trackable:
+!data/CalAccess/SOURCE_MATRIX.md
+!data/CalAccess/v2_pre_v3_baseline.json
+!data/CalAccess/ballotpedia_baselines.json
+!data/CalAccess/trace_tests.json
+
 # Sample data files (large)
 scraper/data/san_diego_samples/
 scraper/data/orange_county_samples/
