@@ -60,3 +60,6 @@ logs/
 
 # Local planning docs (not for publication)
 plans/
+# Exception: docs/plans/ is for plans promoted for external review
+!docs/plans/
+!docs/plans/**
