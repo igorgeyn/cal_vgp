@@ -362,6 +362,45 @@ def main() -> int:
                  and r.attribution_method
                  == "filer_name_explicit_multi_candidate_winddown")
 
+    # --- AG queue number rejection (Codex round-11 bug fix) ---
+    print()
+    print("=== AG queue number rejection ===")
+    from v3.resolver import _clean_prop_num
+    check("'19-0026' -> None (AG queue, not prop 19)",
+          lambda: _clean_prop_num("19-0026") is None)
+    check("'11-0099' -> None (AG queue)",
+          lambda: _clean_prop_num("11-0099") is None)
+    check("'09-0104' -> None (AG queue)",
+          lambda: _clean_prop_num("09-0104") is None)
+    check("'27' -> '27' (real prop number)",
+          lambda: _clean_prop_num("27") == "27")
+    check("'1A' -> '1A' (real prop with suffix)",
+          lambda: _clean_prop_num("1A") == "1A")
+    check("'039' -> '39' (leading zero stripped)",
+          lambda: _clean_prop_num("039") == "39")
+    check("'2026' -> '2026' (4-digit number, no hyphen, NOT AG queue)",
+          lambda: _clean_prop_num("2026") == "2026")
+
+    # Row-fields path: row_bal_num is AG queue, should fall to row_bal_name
+    r = R.resolve_from_row_fields(
+        "19-0026", "Protect App-Based Drivers", "S",
+        [date(2019, 10, 30)],
+    )
+    check("row_fields AG queue '19-0026' + name has no PROP keyword "
+          "-> bad_prop_or_year (not misattributed to PROP_19)",
+          lambda: r.quarantine_reason == "bad_prop_or_year")
+
+    r = R.resolve_from_row_fields(
+        "09-0104", "Proposition 23", "S",
+        [date(2010, 10, 30)],
+    )
+    # Crosswalk doesn't have PROP_23_2010 in test fixture but the
+    # important check is: it doesn't match PROP_9_2008 via "09" extract
+    check("row_fields AG queue '09-0104' + 'Proposition 23' -> "
+          "extracts 23 from name, not 9 from AG number",
+          lambda: r.quarantine_reason == "no_campaign_match"
+                 and any("prop 23" in str(d).lower() for d in r.debug))
+
     # --- Row-fields conditional stance fallback (Codex round-10) ---
     print()
     print("=== Row-fields conditional cover-stance fallback ===")

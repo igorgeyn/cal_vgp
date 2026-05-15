@@ -667,9 +667,28 @@ def _normalize_name(s: str) -> str:
 
 
 def _clean_prop_num(raw: Optional[str]) -> Optional[str]:
+    """Extract a clean prop number from a CAL-ACCESS BAL_NUM-style value.
+
+    Codex round-11 fix: reject Attorney General queue numbers
+    (pattern `\\d{2}-\\d{3,5}`, e.g. '19-0026', '11-0099'). These are
+    pre-ballot initiative tracking numbers, NOT prop numbers. The
+    raw row-level BAL_NUM on EXPN_CD F461P5/F465P3 rows often carries
+    the AG queue ID when the IE was filed before the initiative got
+    a ballot number. Grabbing the leading digits as a prop_num causes
+    silent misattribution (e.g. '19-0026' from a 2019 Prop 22 IE
+    matching PROP_19_2020 = property tax transfer measure).
+
+    Caller should fall through to BAL_NAME extraction or cover sheet
+    when this returns None.
+    """
     if not raw:
         return None
-    m = re.search(r"(\d+[A-Z]?)", raw.strip().upper())
+    cleaned = raw.strip().upper()
+    # AG queue pattern: NN-NNN through NN-NNNNN (always with a hyphen
+    # and at least 3 digits after).
+    if re.match(r"^\d{2}-\d{3,5}$", cleaned):
+        return None
+    m = re.search(r"(\d+[A-Z]?)", cleaned)
     if m:
         return m.group(1).lstrip("0") or "0"
     return None
