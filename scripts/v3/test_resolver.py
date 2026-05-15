@@ -459,6 +459,24 @@ def main() -> int:
     check("BAL_NAME 'County Measure B' -> ambiguous",
           lambda: has_ambiguous_bal_name("County Measure B") is True)
 
+    # Codex round-14: bare local letter measures
+    check("BAL_NAME 'Measure C' -> ambiguous (bare local measure)",
+          lambda: has_ambiguous_bal_name("Measure C") is True)
+    check("BAL_NAME 'Yes on Measure A' -> ambiguous",
+          lambda: has_ambiguous_bal_name("Yes on Measure A") is True)
+    check("BAL_NAME 'No on Measure B' -> ambiguous",
+          lambda: has_ambiguous_bal_name("No on Measure B") is True)
+    check("BAL_NAME \"Governor Newsom's Ballot Measure Committee\" "
+          "-> not ambiguous (Measure mid-string, no letter)",
+          lambda: has_ambiguous_bal_name(
+              "Governor Newsom's Ballot Measure Committee"
+          ) is False)
+    check("BAL_NAME 'Ballot measure to ensure ... Proposition 16' "
+          "-> not ambiguous (not anchored at start)",
+          lambda: has_ambiguous_bal_name(
+              "Ballot measure to ensure access ... Proposition 16"
+          ) is False)
+
     # Tracking ID rejection in _clean_prop_num
     check("'2024-V1' (year-prefixed tracking) -> None",
           lambda: _clean_prop_num("2024-V1") is None)

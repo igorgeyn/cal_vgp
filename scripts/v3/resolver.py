@@ -698,6 +698,14 @@ _NONSTATEWIDE_MEASURE = re.compile(
     r"\b(REGIONAL|MUNICIPAL|LOCAL)\s+(BOND|HOUSING)\b",
     re.IGNORECASE,
 )
+# Codex round-14: bare 'Measure A', 'Yes on Measure C', 'No on
+# Measure B' are LOCAL-measure syntax. Anchored to start-of-string
+# (with optional leading whitespace) so it won't match "Governor
+# Newsom's Ballot Measure Committee" or "Ballot measure to ensure...".
+_BARE_LOCAL_MEASURE = re.compile(
+    r"^\s*(?:YES|NO)?\s*(?:ON\s+)?MEASURE\s+[A-Z]\b",
+    re.IGNORECASE,
+)
 
 _SIMPLE_PROP = re.compile(r"^(\d+[A-Z]?)$")
 _PROP_PREFIXED = re.compile(r"^PROP(?:OSITION)?\.?\s*(\d+[A-Z]?)$",
@@ -740,6 +748,8 @@ def has_ambiguous_bal_name(raw: Optional[str]) -> bool:
     if _BALNAME_NUMERIC_MULTI.search(s):
         return True
     if _NONSTATEWIDE_MEASURE.search(s):
+        return True
+    if _BARE_LOCAL_MEASURE.match(s):
         return True
     return False
 
