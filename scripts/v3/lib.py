@@ -180,5 +180,7 @@ FLOW_COLUMNS = [
     "source_fingerprint",
     "economic_fingerprint",
     "dedupe_key",
+    "dedupe_winner_flow_id",
+    "dedupe_rule",
     "quarantine_reason",
 ]

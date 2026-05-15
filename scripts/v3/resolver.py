@@ -389,13 +389,25 @@ class AttributionResolver:
     def resolve_from_row_fields(self, row_bal_num: Optional[str],
                                 row_bal_name: Optional[str],
                                 row_sup_opp_cd: Optional[str],
-                                date_hints: Iterable[date | None]
+                                date_hints: Iterable[date | None],
+                                cover_bal_num: Optional[str] = None,
+                                cover_sup_opp_cd: Optional[str] = None,
                                 ) -> AttributionResult:
-        """For EXPN_CD / S497_CD / S401_CD rows that have BAL_NUM and
+        """For EXPN_CD / S497_CD / S401_CD rows that have BAL_NUM /
         SUP_OPP_CD on the line item itself.
 
-        Phase 4 implementation will use this; included here so the
-        resolver API is stable across phases.
+        Codex round-10: conditional cover-stance fallback when row
+        stance is missing. Only fall back to cover stance when cover
+        prop matches row prop — otherwise the cover stance can mis-
+        attribute a multi-prop filing's individual IE line.
+
+        Rule:
+        - row prop + row stance resolved: accept.
+        - row prop present but row stance missing: use cover stance
+          ONLY if cover prop matches row prop. Else fall through to
+          unknown_stance.
+        - row prop missing: caller falls back to resolve_from_cover_sheet
+          / filer_name. (This path requires a row prop.)
         """
         prop_num = _clean_prop_num(row_bal_num) or _extract_prop_from_name(
             row_bal_name
@@ -406,6 +418,10 @@ class AttributionResolver:
                 attribution_method="failed",
             )
         stance = _normalize_sup_opp(row_sup_opp_cd)
+        if stance is None and cover_sup_opp_cd:
+            cover_prop = _clean_prop_num(cover_bal_num)
+            if cover_prop == prop_num:
+                stance = _normalize_sup_opp(cover_sup_opp_cd)
         return self._resolve_prop_with_dates(
             prop_num, stance, date_hints,
             method_name="row_fields",

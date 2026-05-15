@@ -53,7 +53,12 @@ class FilingAttribution:
     parsed_election_year: Optional[int] = None
 
     # Resolved attribution (set by the chain)
-    finance_campaign_id: Optional[str] = None
+    finance_campaign_id: Optional[str] = None  # canonical
+    # Codex round-10: separate provenance field carrying the
+    # crosswalk row that originally matched (e.g. PROP_79_2006 when
+    # collapsed to canonical PROP_79_2005). Equals finance_campaign_id
+    # when no remap.
+    source_crosswalk_campaign_id: Optional[str] = None
     measure_db_id: Optional[int] = None
     stance: Optional[str] = None
     attribution_method: str = "failed"
@@ -267,6 +272,9 @@ def build_filing_attribution_index(
 def _apply_result(att: FilingAttribution,
                   r: resolver.AttributionResult) -> None:
     att.finance_campaign_id = r.finance_campaign_id
+    att.source_crosswalk_campaign_id = (
+        r.source_crosswalk_campaign_id or r.finance_campaign_id
+    )
     att.measure_db_id = r.measure_db_id
     att.stance = r.stance
     att.attribution_method = r.attribution_method

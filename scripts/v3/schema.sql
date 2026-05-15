@@ -107,6 +107,14 @@ CREATE TABLE IF NOT EXISTS finance_flow_v3 (
                                                --  payee_name, txn_date, amount,
                                                --  committee_id)
 
+    -- Cross-source dedup audit (Codex round-10)
+    -- When a row is quarantined as duplicate_economic_fingerprint,
+    -- dedupe_winner_flow_id points at the row that won. dedupe_rule
+    -- records which precedence rule fired ('source_table_priority',
+    -- 'amend_id', etc.). For non-deduped rows, both NULL.
+    dedupe_winner_flow_id INTEGER,
+    dedupe_rule          TEXT,
+
     -- Lifecycle
     quarantine_reason    TEXT                  -- NULL = accepted
 );

@@ -362,6 +362,41 @@ def main() -> int:
                  and r.attribution_method
                  == "filer_name_explicit_multi_candidate_winddown")
 
+    # --- Row-fields conditional stance fallback (Codex round-10) ---
+    print()
+    print("=== Row-fields conditional cover-stance fallback ===")
+
+    # row prop + row stance: accept row
+    r = R.resolve_from_row_fields("22", None, "O", [date(2020, 9, 1)])
+    check("row_fields row prop=22 row stance=O -> PROP_22_2020 oppose",
+          lambda: r.resolved and r.finance_campaign_id == "PROP_22_2020"
+                 and r.stance == "oppose"
+                 and r.attribution_method == "row_fields")
+
+    # row prop, no row stance, cover prop matches: use cover stance
+    r = R.resolve_from_row_fields(
+        "22", None, None, [date(2020, 9, 1)],
+        cover_bal_num="22", cover_sup_opp_cd="S",
+    )
+    check("row_fields row prop=22 no row stance + cover prop=22 cover S "
+          "-> PROP_22_2020 support (cover stance used)",
+          lambda: r.resolved and r.finance_campaign_id == "PROP_22_2020"
+                 and r.stance == "support")
+
+    # row prop, no row stance, cover prop DIFFERS: don't use cover stance
+    r = R.resolve_from_row_fields(
+        "22", None, None, [date(2020, 9, 1)],
+        cover_bal_num="27", cover_sup_opp_cd="S",  # cover is Prop 27, row is 22
+    )
+    check("row_fields row prop=22 no row stance + cover prop=27 -> "
+          "unknown_stance (cover prop differs from row prop)",
+          lambda: r.quarantine_reason == "unknown_stance")
+
+    # row prop, no row stance, no cover info: unknown_stance
+    r = R.resolve_from_row_fields("22", None, None, [date(2020, 9, 1)])
+    check("row_fields row prop=22 no stance + no cover -> unknown_stance",
+          lambda: r.quarantine_reason == "unknown_stance")
+
     # --- Cover-sheet canonicalization (Codex round-8 fix) ---
     print()
     print("=== Cover-sheet canonicalization ===")

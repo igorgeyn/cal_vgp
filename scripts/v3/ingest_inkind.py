@@ -252,11 +252,14 @@ def ingest_inkind(dump_dir: Path, v2_db: Path, v3_db: Path,
                 stats[f"quarantine_{quarantine_reason}"] += 1
             else:
                 base["finance_campaign_id"] = attr.finance_campaign_id
+                # Codex round-10: FilingAttribution now carries the
+                # pre-canonical match separately. Differs from
+                # finance_campaign_id when a cover-sheet alias was
+                # remapped to canonical (e.g. PROP_79_2006 ->
+                # PROP_79_2005).
                 base["source_crosswalk_campaign_id"] = (
-                    attr.finance_campaign_id  # FilingAttribution's
-                    # canonical cid already; ingest writes the canonical
-                    # for now. Future enhancement: read the pre-
-                    # canonical match from a richer FilingAttribution.
+                    attr.source_crosswalk_campaign_id
+                    or attr.finance_campaign_id
                 )
                 base["measure_db_id"] = attr.measure_db_id
                 base["stance"] = attr.stance
