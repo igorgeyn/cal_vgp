@@ -1,17 +1,19 @@
 # CalBallot Working List
 
-> Snapshot: **2026-05-15 evening**. Branch: `main` (in sync with
-> `origin/main`). Last shipped: commit `40ea27d` (Phase 4 Block E
-> final: trace tests).
+> Snapshot: **2026-05-15 late-evening**. Branch: `main` (in sync with
+> `origin/main`). Last shipped: commit `4408f24` (Codex round-14:
+> bare local letter measures rejected in BAL_NAME).
 >
-> **WHERE WE LEFT OFF — Phase 4 done, Phase 5 next.**
+> **WHERE WE LEFT OFF — Phase 4 truly done, Phase 5 starting.**
 >
 > v3 finance expansion through Phase 4 is fully shipped and verified.
-> v3.db now carries **48,259 accepted rows / $2.568B** flowing across
-> loans + in-kind + independent expenditures. All 11 Codex rounds
-> integrated. 60 unit tests + 6 trace tests + 7 verification checks
-> all green. The next discrete chunk is **Phase 5: atomic frontend
-> commit** — see "Phase 5 next steps" below.
+> v3.db now carries **47,942 accepted rows / $2.510B** flowing across
+> loans + in-kind + independent expenditures (post-dedup). All 14
+> Codex rounds integrated. 107+ unit tests + 10 trace tests + 4 source
+> reconciliation checks (loans / in-kind / IE three-slice) + dedup
+> invariant + Layer 1 8/8 all green. The next discrete chunk is
+> **Phase 5: atomic frontend commit** — see "Phase 5 next steps"
+> below. Library/API migration step started.
 >
 > This is the canonical resume point. Memory in `.claude/projects/...` is
 > per-machine and won't follow you — start here when picking up on a new
@@ -26,12 +28,22 @@ v3.db now carries:
 
   Loans:    269 accepted / $186.16M (LOAN_CD B1)
   In-kind:  23,878 accepted / $416.01M (RCPT_CD Schedule C)
-  IE:       24,112 accepted / $1,965.93M (EXPN_CD F461P5/F465P3 + S496_CD)
-  TOTAL:    48,259 accepted / $2,568.10M
+  IE:       23,795 accepted / $1,907.89M (EXPN_CD F461P5/F465P3 + S496_CD, post-dedup)
+  TOTAL:    47,942 accepted / $2,510.05M
 
-All 11 Codex rounds integrated. 60 unit tests + 6 trace tests pass.
-7 source-reconciliation checks all $0 diff. v2 baseline untouched
-(Layer 1 8/8 PASS).
+All 14 Codex rounds integrated. 107+ unit tests + 10 trace tests pass.
+Source reconciliation checks (loans / in-kind / IE three-slice +
+dedup invariant) all $0 diff. v2 baseline untouched (Layer 1 8/8
+PASS).
+
+**Bug-fix arc, rounds 10-14:** −$273M wrongly attributed removed
+(AG queue IDs, multi-prop separators, regional measures, bare local
+letter measures), +$232M valid attributions recovered (BAL_NAME
+false-positive cohort with legitimate commas in committee names).
+Net: cleaner attribution AND broader coverage. Field-specific
+ambiguity helpers (`has_ambiguous_bal_num` strict for BAL_NUM,
+`has_ambiguous_bal_name` semantic for BAL_NAME) keep the BAL_NUM /
+BAL_NAME signal asymmetry well-contained.
 
 **Concrete next chunk: Phase 5 atomic frontend commit (~1 day).**
 
@@ -73,15 +85,17 @@ The big visible-product shift. Order of operations:
    the shift in the methodology copy.
 
 4. **Headline number shift.** Homepage total receipts going from
-   $3.24B (v2 monetary) to ~$5-6B (v3 total support-side). Ship the
-   methodology note in the same commit so users see what changed
-   and why.
+   $3.24B (v2 monetary) to ~$5.75B (v3 = v2 monetary $3.24B + v3
+   loans/in-kind/IE $2.51B, post-dedup, before any cross-source
+   collision pass). Ship the methodology note in the same commit so
+   users see what changed and why.
 
 **Verification at end of Phase 5:**
 - Layer 1 still 8/8 (v2 untouched)
-- All 6 trace tests still pass
+- All 10 trace tests still pass
+- All 4 source reconciliation checks still $0 diff
 - Re-eyeball 3-5 specific prop modals against Ballotpedia
-- Codex round-12 sanity check on the visible-product result
+- Codex round-15 sanity check on the visible-product result
 
 **After Phase 5:**
 - **Phase 6: Final verification + docs** (~½ day). Re-run all 68
