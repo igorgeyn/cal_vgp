@@ -666,65 +666,112 @@ def _normalize_name(s: str) -> str:
     return re.sub(r"\s+", " ", (s or "")).strip().lower()
 
 
-# Codex round-12 + post-fix: multi-prop signals are:
-#   - '/' anywhere (26/27, RM/4, 11/2020)
-#   - '&' anywhere (25 & 26)
-#   - ',' anywhere (25, 26)
-#   - whitespace-separated digit pairs (e.g. "11 2020" date-like)
-#   - digit-flanked AND (e.g. "25 AND 26"; bare "and" in English doesn't fire)
-# AG queue patterns (19-0026) are handled separately by _clean_prop_num;
-# this regex must NOT match them (hyphen is intentionally absent).
-_MULTI_PROP_SIGNAL = re.compile(
-    r"[/&,]|\d+\s+\d+|\d+\s*(?:AND|&)\s*\d+",
+# Codex round-13: field-specific ambiguity detection.
+# BAL_NUM and BAL_NAME have different acceptable shapes.
+# BAL_NUM is supposed to be a structured ID; commas, slashes, etc. are
+# meaningful. BAL_NAME is free text; stray punctuation is normal.
+
+# BAL_NUM-strict patterns:
+_BALNUM_SEPARATORS = re.compile(r"[/&,]|\d+\s+\d+|\d+\s*(?:AND|&)\s*\d+",
+                                 re.IGNORECASE)
+_AG_QUEUE_PATTERN = re.compile(r"^\d{2}-\d{3,5}$")
+# Broader hyphenated tracking IDs Codex round-13 flagged:
+# 2024-001, 2024-V1, 24-V1, 2024-N1, RM-4, MM-A, etc.
+_TRACKING_ID_PATTERN = re.compile(
+    r"^\d{2,4}-[A-Z0-9]+$|^[A-Z]+-\d+$",
     re.IGNORECASE,
 )
-_AG_QUEUE_PATTERN = re.compile(r"^\d{2}-\d{3,5}$")
 _LOCAL_PREFIX = re.compile(r"^(RM|MM|MEAS|LOC)[/\s-]", re.IGNORECASE)
+
+# BAL_NAME-semantic patterns:
+# - Numeric multi-prop with explicit indicators (digit-flanked separators)
+# - Regional / local / bay area measure phrases
+_BALNAME_NUMERIC_MULTI = re.compile(
+    r"\d+\s*/\s*\d+|\d+\s*&\s*\d+|\d+\s+(?:AND)\s+\d+|"
+    r"\bPROPS?\s+(?:\d+[A-Z]?\s*(?:,|AND|&)\s*\d+)",
+    re.IGNORECASE,
+)
+_NONSTATEWIDE_MEASURE = re.compile(
+    r"\b(REGIONAL|MUNICIPAL|LOCAL|COUNTY|CITY|BAY\s+AREA(\s+REGIONAL)?)"
+    r"\s+MEASURE\b|"
+    r"\bBAY\s+AREA\s+REGIONAL\s+(MEASURE|BOND|HOUSING)\b|"
+    r"\b(REGIONAL|MUNICIPAL|LOCAL)\s+(BOND|HOUSING)\b",
+    re.IGNORECASE,
+)
+
 _SIMPLE_PROP = re.compile(r"^(\d+[A-Z]?)$")
 _PROP_PREFIXED = re.compile(r"^PROP(?:OSITION)?\.?\s*(\d+[A-Z]?)$",
                              re.IGNORECASE)
 
 
-def has_multi_prop_signal(raw: Optional[str]) -> bool:
-    """Detect multi-prop / non-statewide BAL_NUM-style indicators.
+def has_ambiguous_bal_num(raw: Optional[str]) -> bool:
+    """Detect non-clean BAL_NUM values that signal multi-prop /
+    non-statewide / tracking-ID semantics. Strict — any separator
+    or non-prop ID pattern fires.
 
-    Codex round-12: rows like '26/27', '25 & 26', 'RM/4', '11/2020'
-    were being greedy-matched to their first number. Caller should
-    treat these as ambiguous and NOT fall back to cover-sheet
-    attribution (cover may attribute to a different specific prop).
+    Codex round-13: split from the prior unified helper because
+    BAL_NAME is free text and shouldn't follow the same strict rules.
     """
     if not raw:
         return False
     s = raw.strip()
     if not s:
         return False
-    if _MULTI_PROP_SIGNAL.search(s):
+    if _BALNUM_SEPARATORS.search(s):
         return True
     if _LOCAL_PREFIX.match(s):
         return True
     return False
 
 
+def has_ambiguous_bal_name(raw: Optional[str]) -> bool:
+    """Detect BAL_NAME values that signal multi-prop or non-statewide.
+    Semantic — looks at the WORDS not just punctuation.
+
+    Codex round-13: free-text names like 'Proposition 61, State
+    Prescription Drug Purchases' contain commas but ARE clean
+    single-prop refs. Use word-level patterns instead.
+    """
+    if not raw:
+        return False
+    s = raw.strip()
+    if not s:
+        return False
+    if _BALNAME_NUMERIC_MULTI.search(s):
+        return True
+    if _NONSTATEWIDE_MEASURE.search(s):
+        return True
+    return False
+
+
+# Backwards-compat alias: callers that did has_multi_prop_signal
+# (which was previously a unified helper) get the BAL_NUM-strict
+# behavior. New code should call the field-specific helpers.
+def has_multi_prop_signal(raw: Optional[str]) -> bool:
+    return has_ambiguous_bal_num(raw)
+
+
 def _clean_prop_num(raw: Optional[str]) -> Optional[str]:
     """Extract a clean prop number from a CAL-ACCESS BAL_NUM-style value.
 
-    Codex round-11: reject AG queue numbers (NN-NNNNN like '19-0026').
-    Codex round-12: reject multi-prop signals (/, &, ',', AND), local-
-    measure prefixes (RM/, MM/), and date-like patterns. Caller may
-    fall through to BAL_NAME extraction (which has its own rejection
-    logic) or cover sheet ONLY when the raw value was empty — not
-    when it was rejected for multi-prop ambiguity.
+    Codex rounds 11/12/13: reject anything that isn't a simple
+    statewide prop reference. Specifically rejects:
+    - AG queue patterns ('19-0026')
+    - Broader hyphenated tracking IDs ('2024-V1', '24-N1', 'RM-4')
+    - Multi-prop signals ('/', '&', ',', digit-flanked AND)
+    - Local prefixes (RM/, MM/, MEAS-, LOC-)
 
-    Returns:
-        Clean prop number (e.g. '27', '1A') if value is unambiguous.
-        None if value is empty OR ambiguous/non-statewide.
+    Returns clean prop number (e.g. '27', '1A') if value is a clean
+    single statewide prop. None otherwise.
     """
     if not raw:
         return None
     cleaned = raw.strip().upper()
     if _AG_QUEUE_PATTERN.match(cleaned):
         return None
-    if has_multi_prop_signal(cleaned):
+    if _TRACKING_ID_PATTERN.match(cleaned):
+        return None
+    if has_ambiguous_bal_num(cleaned):
         return None
     m = _SIMPLE_PROP.match(cleaned)
     if m:
@@ -738,16 +785,13 @@ def _clean_prop_num(raw: Optional[str]) -> Optional[str]:
 def _extract_prop_from_name(name: Optional[str]) -> Optional[str]:
     """Extract a single prop number from a free-form BAL_NAME.
 
-    Codex round-12: reject multi-prop names ('Proposition 26/27',
-    'Yes on 25 & 26') and non-statewide measure prefixes ('Regional
-    Measure 4').
+    Codex rounds 12/13: reject multi-prop names ('Proposition 26/27',
+    'Yes on 25 & 26'), non-statewide measure prefixes ('Regional
+    Measure 4', 'Bay Area Regional Housing Bond').
     """
     if not name:
         return None
-    if has_multi_prop_signal(name):
-        return None
-    if re.search(r"\b(REGIONAL|MUNICIPAL|LOCAL)\s+MEASURE\b", name,
-                 re.IGNORECASE):
+    if has_ambiguous_bal_name(name):
         return None
     m = re.search(
         r"PROP(?:OSITION)?\s*[#]?\s*0*(\d+[A-Z]?)",

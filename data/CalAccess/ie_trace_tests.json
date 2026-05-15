@@ -96,6 +96,71 @@
     },
     "notes": "Round-11 AG-queue bug regression test. Uber's $30M IE for Protect App-Based Drivers (pre-Prop-22 filing dated 2019-10-30) carries row_bal_num='19-0026' (Attorney General queue ID, not prop number). Pre-fix this wrongly attributed to PROP_19_2020. Post-fix it correctly quarantines because BAL_NAME 'Protect App-Based Drivers and Services' has no 'Proposition NN' keyword and the resolver doesn't have a curated override for this committee. Demonstrates: AG-queue rejection works, AND we have a follow-up opportunity to manually attribute via known_unattributed_vehicles registry."
   },
+  "expn_f461p5_simple_balnum_prop38": {
+    "anchor": {
+      "source_table": "EXPN_CD",
+      "source_form_type": "F461P5",
+      "filing_id": "1737627",
+      "source_line_item": "1",
+      "source_tran_id": "1"
+    },
+    "expected": {
+      "finance_campaign_id": "PROP_38_2012",
+      "stance": "support",
+      "amount": 24700645.25,
+      "attribution_method": "row_fields",
+      "quarantine_reason": null
+    },
+    "notes": "Codex round-13: F461P5 accepted via clean row BAL_NUM='38' (simple statewide prop number). $24.7M IE supporting PROP_38_2012 (Munger Jr's tax-for-schools initiative). Confirms the row_fields path works cleanly when the row signal is unambiguous."
+  },
+  "expn_f461p5_ag_id_recovered_via_balname_prop61": {
+    "anchor": {
+      "source_table": "EXPN_CD",
+      "source_form_type": "F461P5",
+      "filing_id": "2059866",
+      "source_line_item": "1",
+      "source_tran_id": "1"
+    },
+    "expected": {
+      "finance_campaign_id": "PROP_61_2016",
+      "stance": "oppose",
+      "amount": 2800000.0,
+      "attribution_method": "row_fields",
+      "quarantine_reason": null
+    },
+    "notes": "Codex round-13: row_bal_num='15-0009' is an AG queue tracking ID (rejected by _clean_prop_num), but row_bal_name='Proposition 061: State Prescription Drug Purchases...' yields '61' via _extract_prop_from_name. PROP_61_2016 oppose attribution. Stray colon and additional descriptive text after '061' don't confuse the BAL_NAME extractor. Cover-sheet fallback NOT used."
+  },
+  "expn_f461p5_multi_prop_quarantines": {
+    "anchor": {
+      "source_table": "EXPN_CD",
+      "source_form_type": "F461P5",
+      "filing_id": "1351137",
+      "source_line_item": "10",
+      "source_tran_id": "EXP235"
+    },
+    "expected": {
+      "finance_campaign_id": null,
+      "stance": null,
+      "amount": 10000000.0,
+      "attribution_method": "failed",
+      "quarantine_reason": "ambiguous_multi_prop"
+    },
+    "notes": "Codex round-13: row_bal_name='Indian Gaming Compact - Proposition 94, 95, 96 and 97' is a multi-prop name (digit-flanked AND). $10M IE correctly quarantines as ambiguous_multi_prop. Does NOT fall back to cover-sheet attribution (would have been wrong because cover may pick one of the 4 props arbitrarily)."
+  },
+  "expn_regional_measure_quarantines_after_round13": {
+    "anchor": {
+      "source_table": "EXPN_CD",
+      "source_form_type": "F461P5",
+      "filing_id": "2272243",
+      "source_line_item": "2",
+      "source_tran_id": "2"
+    },
+    "expected": {
+      "amount": 125000.0,
+      "quarantine_reason": "ambiguous_multi_prop"
+    },
+    "notes": "Codex round-13 regression case. row_bal_num='3' is clean (single number), but row_bal_name='Regional Measure 3' signals non-statewide (Bay Area). Pre-fix this was wrongly attributed to PROP_3_2018 support. Post-fix: row_has_ambig fires via has_ambiguous_bal_name detecting REGIONAL MEASURE phrase; row quarantines."
+  },
   "dedup_s496_loses_to_s496_winner": {
     "anchor": {
       "source_table": "S496_CD",

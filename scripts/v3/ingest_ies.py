@@ -518,11 +518,15 @@ def ingest_expn_ies(dump_dir: Path,
                 # to a different specific prop, which would still be
                 # wrong because the row-level signal is genuinely
                 # ambiguous.
+                # Codex round-13: field-specific ambiguity checks.
+                # BAL_NUM uses strict (any separator fires); BAL_NAME
+                # uses semantic (regional/local + digit-flanked
+                # multi-prop only — stray commas in names don't fire).
                 row_has_ambig = (
-                    resolver_mod.has_multi_prop_signal(
+                    resolver_mod.has_ambiguous_bal_num(
                         row_bal_num if not lib.is_null(row_bal_num) else ""
                     )
-                    or resolver_mod.has_multi_prop_signal(
+                    or resolver_mod.has_ambiguous_bal_name(
                         row_bal_name if not lib.is_null(row_bal_name) else ""
                     )
                 )
