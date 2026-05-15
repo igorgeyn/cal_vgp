@@ -1,16 +1,17 @@
 # CalBallot Working List
 
-> Snapshot: **2026-05-13 evening**. Branch: `main` (in sync with
-> `origin/main`). Last shipped: commit `608abc6` (Codex round-9 final
-> pre-Phase-3: ampersand plural pattern + multi-candidate wind-down +
-> curated registries + diagnostic categorization).
+> Snapshot: **2026-05-15 evening**. Branch: `main` (in sync with
+> `origin/main`). Last shipped: commit `40ea27d` (Phase 4 Block E
+> final: trace tests).
 >
-> **WHERE WE LEFT OFF mid-Phase-3:** v3 attribution layer is built,
-> tested, and Codex-blessed. Phase 0-1 done (source dump + schema).
-> Phase 2 done (LOAN_CD: 269 loans, $186.16M, reconciles to penny).
-> Phase 3 attribution + diagnostic done; Phase 3 actual *ingest*
-> (writing Schedule C rows into finance_flow_v3) is the next discrete
-> chunk. See "Phase 3 next steps" below.
+> **WHERE WE LEFT OFF — Phase 4 done, Phase 5 next.**
+>
+> v3 finance expansion through Phase 4 is fully shipped and verified.
+> v3.db now carries **48,259 accepted rows / $2.568B** flowing across
+> loans + in-kind + independent expenditures. All 11 Codex rounds
+> integrated. 60 unit tests + 6 trace tests + 7 verification checks
+> all green. The next discrete chunk is **Phase 5: atomic frontend
+> commit** — see "Phase 5 next steps" below.
 >
 > This is the canonical resume point. Memory in `.claude/projects/...` is
 > per-machine and won't follow you — start here when picking up on a new
@@ -18,34 +19,78 @@
 
 ---
 
-## Phase 3 next steps (resume here)
+## Phase 5 next steps (resume here)
 
-The conservative attribution resolver, unified attribution index,
-collision-pair canonicalization, ampersand plural pattern,
-multi-candidate wind-down, and curated registries are all live in
-`scripts/v3/`. The Schedule C diagnostic with the full chain shows:
+Phases 0-4 of the v3 finance expansion are shipped + verified. The
+v3.db now carries:
 
-- **$414.6M accepted** of $894M total Schedule C activity (46%)
-- $63.6M curated_unresolved (7 known ballot-adjacent vehicles)
-- $213.8M heuristically OOS (candidates / parties / recall)
-- $165.5M unclassified residual (where future curation looks first)
-- ~$36M small quarantines (ambiguous_year, ambiguous_multi_prop, etc.)
+  Loans:    269 accepted / $186.16M (LOAN_CD B1)
+  In-kind:  23,878 accepted / $416.01M (RCPT_CD Schedule C)
+  IE:       24,112 accepted / $1,965.93M (EXPN_CD F461P5/F465P3 + S496_CD)
+  TOTAL:    48,259 accepted / $2,568.10M
 
-**Concrete next chunk:** write `scripts/v3/ingest_inkind.py`. Mirror
-`ingest_loans.py` structure but for RCPT_CD Schedule C
-(`FORM_TYPE='C'`). Use `build_filing_attribution_index()` from
-`attribution.py` instead of the inline `load_cover_attributions()` —
-the unified index already has the full resolver chain wired up.
-Write `receipt_type='in_kind'` to `finance_flow_v3`. Then build
-`reconcile_inkind.py` (same pattern as `reconcile_loans.py`) and
-verify Layer 1 (no-regression on v2) + Layer 2 (source filtered SUM
-matches v3 in-kind slice).
+All 11 Codex rounds integrated. 60 unit tests + 6 trace tests pass.
+7 source-reconciliation checks all $0 diff. v2 baseline untouched
+(Layer 1 8/8 PASS).
 
-After Phase 3 ingest:
-- Phase 4: IE ingest (S496_CD + EXPN_CD F461P5 + F465P3). The big rock.
-- Phase 5: Frontend atomic commit (modal + hero + insights + briefing
-  + methodology copy together).
-- Phase 6: Final verification + docs.
+**Concrete next chunk: Phase 5 atomic frontend commit (~1 day).**
+
+The big visible-product shift. Order of operations:
+
+1. **Library / API migration first** (no UI change yet). Add to
+   `FinanceDatabase` class in `scraper/src/finance/operations.py`:
+   - `get_finance_summary_total(measure_db_id)` — uses
+     `finance_summary_total` view
+   - `get_finance_breakdown_by_type(measure_db_id)` — uses
+     `finance_summary_by_type`
+   - `get_top_donors_total(campaign_id, stance, limit=N)`
+   - `get_top_donors_by_type(campaign_id, stance, receipt_type,
+     limit=N)`
+   - Existing v2 methods (`get_top_donors`, `aggregate_for_measure`)
+     keep reading v2.db monetary-only tables — no breakage.
+
+2. **Atomic visible-change commit.** All UI surfaces flip in ONE
+   commit because half-flipped UIs make headline numbers
+   inconsistent. Touches:
+   - Modal Finance tab: total + breakdown layout ("Total
+     support-side money: $X · Direct receipts $Y · Independent
+     spending $Z")
+   - Hero card / Insights Module 1: total replaces monetary
+   - Insights Module 4 (marquee fights): includes IE
+   - Insights Module 3 (top donors): uses `_total` ranked list
+     across types
+   - Briefing pipeline finance facts: uses `_total` view
+   - API endpoint: returns both `total` and `breakdown` payloads
+   - **Methodology note**: updated to explain what's now included
+     and what's still out (Schedule E excluded, recalls excluded,
+     etc.)
+   - `insights.json` regenerated, `index.html` regenerated
+
+3. **Win-rate math re-runs.** Current 65% "better-funded wins"
+   number uses v2 monetary only. With IE included, the math
+   changes — historically IE money is heavier on losing sides of
+   contentious props. Number will probably shift down. Document
+   the shift in the methodology copy.
+
+4. **Headline number shift.** Homepage total receipts going from
+   $3.24B (v2 monetary) to ~$5-6B (v3 total support-side). Ship the
+   methodology note in the same commit so users see what changed
+   and why.
+
+**Verification at end of Phase 5:**
+- Layer 1 still 8/8 (v2 untouched)
+- All 6 trace tests still pass
+- Re-eyeball 3-5 specific prop modals against Ballotpedia
+- Codex round-12 sanity check on the visible-product result
+
+**After Phase 5:**
+- **Phase 6: Final verification + docs** (~½ day). Re-run all 68
+  checks from `plans/finance-rebuild-verification.md`, add Phase G
+  checks (IE / in-kind / loan integrity), update CHANGELOG +
+  methodology + finance README.
+- **Schedule E sub-phase** (non-blocking). Diagnostic to identify
+  true cross-prop IE in Schedule E rows. If material, ingest as
+  separate sub-phase with explicit double-count safeguards.
 
 ## Recently shipped
 
