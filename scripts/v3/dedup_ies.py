@@ -18,7 +18,7 @@ Tiebreaker: lowest source_fingerprint string (deterministic).
 Losers are marked:
     quarantine_reason = 'duplicate_economic_fingerprint'
     dedupe_winner_flow_id = <winner's flow_id>
-    dedupe_rule = 'source_table_priority'
+    dedupe_rule = 'source_priority_then_fingerprint'
 
 Idempotent: clears any prior duplicate_economic_fingerprint marks
 before re-running. Winner's dedupe_winner_flow_id / dedupe_rule
@@ -138,7 +138,7 @@ def dedup_ies(v3_db: Path, dry_run: bool = False,
                 "UPDATE finance_flow_v3 "
                 "SET quarantine_reason = 'duplicate_economic_fingerprint', "
                 "    dedupe_winner_flow_id = ?, "
-                "    dedupe_rule = 'source_table_priority' "
+                "    dedupe_rule = 'source_priority_then_fingerprint' "
                 "WHERE flow_id = ?",
                 [(winner_id, loser_id) for loser_id, winner_id in losers],
             )

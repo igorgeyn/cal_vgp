@@ -666,36 +666,88 @@ def _normalize_name(s: str) -> str:
     return re.sub(r"\s+", " ", (s or "")).strip().lower()
 
 
+# Codex round-12 + post-fix: multi-prop signals are:
+#   - '/' anywhere (26/27, RM/4, 11/2020)
+#   - '&' anywhere (25 & 26)
+#   - ',' anywhere (25, 26)
+#   - whitespace-separated digit pairs (e.g. "11 2020" date-like)
+#   - digit-flanked AND (e.g. "25 AND 26"; bare "and" in English doesn't fire)
+# AG queue patterns (19-0026) are handled separately by _clean_prop_num;
+# this regex must NOT match them (hyphen is intentionally absent).
+_MULTI_PROP_SIGNAL = re.compile(
+    r"[/&,]|\d+\s+\d+|\d+\s*(?:AND|&)\s*\d+",
+    re.IGNORECASE,
+)
+_AG_QUEUE_PATTERN = re.compile(r"^\d{2}-\d{3,5}$")
+_LOCAL_PREFIX = re.compile(r"^(RM|MM|MEAS|LOC)[/\s-]", re.IGNORECASE)
+_SIMPLE_PROP = re.compile(r"^(\d+[A-Z]?)$")
+_PROP_PREFIXED = re.compile(r"^PROP(?:OSITION)?\.?\s*(\d+[A-Z]?)$",
+                             re.IGNORECASE)
+
+
+def has_multi_prop_signal(raw: Optional[str]) -> bool:
+    """Detect multi-prop / non-statewide BAL_NUM-style indicators.
+
+    Codex round-12: rows like '26/27', '25 & 26', 'RM/4', '11/2020'
+    were being greedy-matched to their first number. Caller should
+    treat these as ambiguous and NOT fall back to cover-sheet
+    attribution (cover may attribute to a different specific prop).
+    """
+    if not raw:
+        return False
+    s = raw.strip()
+    if not s:
+        return False
+    if _MULTI_PROP_SIGNAL.search(s):
+        return True
+    if _LOCAL_PREFIX.match(s):
+        return True
+    return False
+
+
 def _clean_prop_num(raw: Optional[str]) -> Optional[str]:
     """Extract a clean prop number from a CAL-ACCESS BAL_NUM-style value.
 
-    Codex round-11 fix: reject Attorney General queue numbers
-    (pattern `\\d{2}-\\d{3,5}`, e.g. '19-0026', '11-0099'). These are
-    pre-ballot initiative tracking numbers, NOT prop numbers. The
-    raw row-level BAL_NUM on EXPN_CD F461P5/F465P3 rows often carries
-    the AG queue ID when the IE was filed before the initiative got
-    a ballot number. Grabbing the leading digits as a prop_num causes
-    silent misattribution (e.g. '19-0026' from a 2019 Prop 22 IE
-    matching PROP_19_2020 = property tax transfer measure).
+    Codex round-11: reject AG queue numbers (NN-NNNNN like '19-0026').
+    Codex round-12: reject multi-prop signals (/, &, ',', AND), local-
+    measure prefixes (RM/, MM/), and date-like patterns. Caller may
+    fall through to BAL_NAME extraction (which has its own rejection
+    logic) or cover sheet ONLY when the raw value was empty — not
+    when it was rejected for multi-prop ambiguity.
 
-    Caller should fall through to BAL_NAME extraction or cover sheet
-    when this returns None.
+    Returns:
+        Clean prop number (e.g. '27', '1A') if value is unambiguous.
+        None if value is empty OR ambiguous/non-statewide.
     """
     if not raw:
         return None
     cleaned = raw.strip().upper()
-    # AG queue pattern: NN-NNN through NN-NNNNN (always with a hyphen
-    # and at least 3 digits after).
-    if re.match(r"^\d{2}-\d{3,5}$", cleaned):
+    if _AG_QUEUE_PATTERN.match(cleaned):
         return None
-    m = re.search(r"(\d+[A-Z]?)", cleaned)
+    if has_multi_prop_signal(cleaned):
+        return None
+    m = _SIMPLE_PROP.match(cleaned)
+    if m:
+        return m.group(1).lstrip("0") or "0"
+    m = _PROP_PREFIXED.match(cleaned)
     if m:
         return m.group(1).lstrip("0") or "0"
     return None
 
 
 def _extract_prop_from_name(name: Optional[str]) -> Optional[str]:
+    """Extract a single prop number from a free-form BAL_NAME.
+
+    Codex round-12: reject multi-prop names ('Proposition 26/27',
+    'Yes on 25 & 26') and non-statewide measure prefixes ('Regional
+    Measure 4').
+    """
     if not name:
+        return None
+    if has_multi_prop_signal(name):
+        return None
+    if re.search(r"\b(REGIONAL|MUNICIPAL|LOCAL)\s+MEASURE\b", name,
+                 re.IGNORECASE):
         return None
     m = re.search(
         r"PROP(?:OSITION)?\s*[#]?\s*0*(\d+[A-Z]?)",

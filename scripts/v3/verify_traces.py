@@ -109,18 +109,24 @@ def main():
     traces = {k: v for k, v in raw.items() if not k.startswith("_")}
 
     con = sqlite3.connect(str(args.v3_db))
-    total_failures = 0
+    entries_failed = 0
+    field_failures_total = 0
     try:
         for name, entry in traces.items():
-            total_failures += verify_one(con, name, entry)
+            field_failures = verify_one(con, name, entry)
+            field_failures_total += field_failures
+            if field_failures > 0:
+                entries_failed += 1
     finally:
         con.close()
 
+    entries_passed = len(traces) - entries_failed
     print()
     print(f"=== Trace verification: "
-          f"{len(traces) - total_failures}/{len(traces) * 1} entries "
-          f"({total_failures} field failures) ===")
-    sys.exit(0 if total_failures == 0 else 1)
+          f"{entries_passed}/{len(traces)} entries passed "
+          f"({field_failures_total} field failures across "
+          f"{entries_failed} failed entries) ===")
+    sys.exit(0 if entries_failed == 0 else 1)
 
 
 if __name__ == "__main__":

@@ -511,7 +511,22 @@ def ingest_expn_ies(dump_dir: Path,
                         d = lib.parse_calaccess_date(raw)
                         if d is not None:
                             date_hints.append(d)
-                # 1. Row-level fields if a row prop is present
+
+                # Codex round-12: multi-prop / non-statewide BAL_NUM
+                # or BAL_NAME signals (26/27, 25 & 26, RM/4, etc.)
+                # must NOT fall back to cover sheet. Cover may attribute
+                # to a different specific prop, which would still be
+                # wrong because the row-level signal is genuinely
+                # ambiguous.
+                row_has_ambig = (
+                    resolver_mod.has_multi_prop_signal(
+                        row_bal_num if not lib.is_null(row_bal_num) else ""
+                    )
+                    or resolver_mod.has_multi_prop_signal(
+                        row_bal_name if not lib.is_null(row_bal_name) else ""
+                    )
+                )
+                # 1. Row-level fields if a row prop signal is present
                 row_prop = (
                     row_bal_num
                     if row_bal_num and not lib.is_null(row_bal_num)
@@ -520,7 +535,7 @@ def ingest_expn_ies(dump_dir: Path,
                           else None)
                 )
                 r = None
-                if row_prop:
+                if row_prop and not row_has_ambig:
                     r = resolver.resolve_from_row_fields(
                         row_bal_num=(row_bal_num
                                      if not lib.is_null(row_bal_num)
@@ -545,8 +560,16 @@ def ingest_expn_ies(dump_dir: Path,
                         )
                         resolved_mdb = r.measure_db_id
                         resolved_stance = r.stance
-                # 2. Cover sheet (only when row didn't resolve)
-                if resolved_cid is None and attr and attr.finance_campaign_id:
+
+                # 2. Cover sheet ONLY when no row-level multi-prop
+                # signal AND row resolution didn't produce a result
+                # for a benign reason (no row info at all, or row
+                # info was AG queue / non-statewide / etc. — but NOT
+                # because row signal was multi-prop)
+                if (resolved_cid is None
+                        and not row_has_ambig
+                        and attr
+                        and attr.finance_campaign_id):
                     attribution_method = attr.attribution_method
                     resolved_cid = attr.finance_campaign_id
                     resolved_source_cid = (
@@ -555,13 +578,17 @@ def ingest_expn_ies(dump_dir: Path,
                     )
                     resolved_mdb = attr.measure_db_id
                     resolved_stance = attr.stance
+
                 # 3. quarantine if still unresolved
                 if resolved_cid is None:
-                    quarantine_reason = (
-                        (attr.quarantine_reason if attr else None)
-                        or (r.quarantine_reason if r is not None else None)
-                        or "no_campaign_match"
-                    )
+                    if row_has_ambig:
+                        quarantine_reason = "ambiguous_multi_prop"
+                    else:
+                        quarantine_reason = (
+                            (attr.quarantine_reason if attr else None)
+                            or (r.quarantine_reason if r is not None else None)
+                            or "no_campaign_match"
+                        )
                 elif resolved_stance is None:
                     quarantine_reason = "unknown_stance"
 

@@ -109,7 +109,7 @@
       "stance": "oppose",
       "amount": 52641.2,
       "quarantine_reason": "duplicate_economic_fingerprint",
-      "dedupe_rule": "source_table_priority"
+      "dedupe_rule": "source_priority_then_fingerprint"
     },
     "notes": "Dedup collision: this S496 row collides with another S496 row (flow_id 273686, filing_id 1135136) on identical economic_fingerprint. The dedup pass picks the first by source_fingerprint string tiebreaker. Demonstrates dedup pass marks loser correctly and preserves winner pointer. NOTE: dedup losers retain their original attribution (finance_campaign_id + stance) for audit provenance — quarantine_reason flags the elimination but the row remembers what it WOULD have attributed to. Aggregation queries filter by `WHERE quarantine_reason IS NULL` to skip dedup losers."
   }

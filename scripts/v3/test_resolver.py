@@ -381,6 +381,87 @@ def main() -> int:
     check("'2026' -> '2026' (4-digit number, no hyphen, NOT AG queue)",
           lambda: _clean_prop_num("2026") == "2026")
 
+    # Codex round-12: multi-prop / non-statewide rejections
+    print()
+    print("=== Multi-prop / non-statewide rejections (Codex round-12) ===")
+    check("'26/27' -> None (multi-prop via slash)",
+          lambda: _clean_prop_num("26/27") is None)
+    check("'25 & 26' -> None (multi-prop via ampersand)",
+          lambda: _clean_prop_num("25 & 26") is None)
+    check("'25, 26' -> None (multi-prop via comma)",
+          lambda: _clean_prop_num("25, 26") is None)
+    check("'25 AND 26' -> None (multi-prop via AND between digits)",
+          lambda: _clean_prop_num("25 AND 26") is None)
+    # False-positive regression: 'and' in English shouldn't trigger
+    from v3.resolver import has_multi_prop_signal
+    check("'Protect App-Based Drivers and Services' -> not multi-prop "
+          "(bare 'and' between non-digit words)",
+          lambda: has_multi_prop_signal(
+              "Protect App-Based Drivers and Services"
+          ) is False)
+    check("'Citizens and Taxpayers for ...' -> not multi-prop",
+          lambda: has_multi_prop_signal(
+              "Citizens and Taxpayers for Better Schools"
+          ) is False)
+    check("'25 and 26' (lowercase, digits) -> still multi-prop",
+          lambda: has_multi_prop_signal("25 and 26") is True)
+    # AG queue patterns shouldn't trigger multi-prop (handled separately)
+    check("'19-0026' (AG queue) -> not multi-prop "
+          "(hyphen-separated, handled by _clean_prop_num)",
+          lambda: has_multi_prop_signal("19-0026") is False)
+    check("'09-0104' (AG queue) -> not multi-prop",
+          lambda: has_multi_prop_signal("09-0104") is False)
+    check("'1A' -> not multi-prop (single prop)",
+          lambda: has_multi_prop_signal("1A") is False)
+    check("'27' -> not multi-prop (single bare number)",
+          lambda: has_multi_prop_signal("27") is False)
+    check("'027' -> not multi-prop (single number with leading zero)",
+          lambda: has_multi_prop_signal("027") is False)
+    check("'11 2020' (whitespace digit pair) -> multi-prop (date-like)",
+          lambda: has_multi_prop_signal("11 2020") is True)
+    check("'RM/4' -> None (regional measure prefix)",
+          lambda: _clean_prop_num("RM/4") is None)
+    check("'11/2020' -> None (date-like / has slash)",
+          lambda: _clean_prop_num("11/2020") is None)
+    check("'Prop 87' -> '87' (Prop-prefixed simple)",
+          lambda: _clean_prop_num("Prop 87") == "87")
+    check("'Proposition 87' -> '87' (full Proposition prefix)",
+          lambda: _clean_prop_num("Proposition 87") == "87")
+    check("'27 ' -> '27' (whitespace tolerant)",
+          lambda: _clean_prop_num("27 ") == "27")
+
+    # _extract_prop_from_name rejects multi-prop names
+    print()
+    print("=== _extract_prop_from_name rejections (Codex round-12) ===")
+    from v3.resolver import _extract_prop_from_name
+    check("'Proposition 26/27' -> None (multi-prop name)",
+          lambda: _extract_prop_from_name("Proposition 26/27") is None)
+    check("'Yes on 25 & 26' -> None (multi-prop name)",
+          lambda: _extract_prop_from_name("Yes on 25 & 26") is None)
+    check("'Regional Measure 4' -> None (non-statewide)",
+          lambda: _extract_prop_from_name("Regional Measure 4") is None)
+    check("'Municipal Measure A' -> None (non-statewide)",
+          lambda: _extract_prop_from_name("Municipal Measure A") is None)
+    check("'Proposition 27' -> '27' (clean single-prop)",
+          lambda: _extract_prop_from_name("Proposition 27") == "27")
+
+    # Multi-prop row through resolve_from_row_fields quarantines
+    # (via _clean_prop_num + _extract_prop_from_name BOTH rejecting)
+    r = R.resolve_from_row_fields(
+        "26/27", "Proposition 26/27", "S",
+        [date(2022, 9, 1)],
+    )
+    check("row_fields '26/27' multi-prop -> bad_prop_or_year "
+          "(both extractors reject)",
+          lambda: r.quarantine_reason == "bad_prop_or_year")
+
+    r = R.resolve_from_row_fields(
+        "RM/4", "Regional Measure 4", "S",
+        [date(2024, 9, 1)],
+    )
+    check("row_fields 'RM/4' regional -> bad_prop_or_year",
+          lambda: r.quarantine_reason == "bad_prop_or_year")
+
     # Row-fields path: row_bal_num is AG queue, should fall to row_bal_name
     r = R.resolve_from_row_fields(
         "19-0026", "Protect App-Based Drivers", "S",

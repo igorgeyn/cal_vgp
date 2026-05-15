@@ -197,6 +197,19 @@ def expn_source_totals_both(
             row_bal_num = c(row, "BAL_NUM")
             row_bal_name = c(row, "BAL_NAME")
             row_sup_opp_cd = c(row, "SUP_OPP_CD")
+
+            # Codex round-12: mirror ingest_ies's row_has_ambig pre-
+            # check. Multi-prop / non-statewide rows must NOT fall
+            # back to cover sheet. Otherwise reconcile over-accepts.
+            row_has_ambig = (
+                resolver_mod.has_multi_prop_signal(
+                    row_bal_num if not lib.is_null(row_bal_num) else ""
+                )
+                or resolver_mod.has_multi_prop_signal(
+                    row_bal_name if not lib.is_null(row_bal_name) else ""
+                )
+            )
+
             row_prop = (
                 row_bal_num
                 if row_bal_num and not lib.is_null(row_bal_num) else
@@ -206,7 +219,7 @@ def expn_source_totals_both(
 
             resolved_cid = None
             resolved_stance = None
-            if row_prop:
+            if row_prop and not row_has_ambig:
                 date_hints = [txn_date]
                 if attr:
                     for raw in (attr.cover_elect_date,
@@ -232,7 +245,10 @@ def expn_source_totals_both(
                 if r.resolved:
                     resolved_cid = r.finance_campaign_id
                     resolved_stance = r.stance
-            if resolved_cid is None and attr and attr.finance_campaign_id:
+            # Cover fallback ONLY when row signal isn't multi-prop
+            if (resolved_cid is None
+                    and not row_has_ambig
+                    and attr and attr.finance_campaign_id):
                 resolved_cid = attr.finance_campaign_id
                 resolved_stance = attr.stance
             if resolved_cid is None or resolved_stance is None:
