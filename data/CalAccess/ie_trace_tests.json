@@ -1,0 +1,116 @@
+{
+  "_schema": {
+    "description": "Source-row-anchored trace tests for Phase 4 IE ingest (Codex round-10). Each entry pins a specific (source_table, source_form_type, filing_id, source_line_item, source_tran_id) row to its expected attribution outcome. Confirms the end-to-end pipeline (extract -> attribute -> resolve -> persist) on known transactions. Manual-eyeball backstop for the kind of bug shared-code reconciles can miss (e.g. the round-11 AG-queue misattribution).",
+    "anchor_fields": ["source_table", "source_form_type", "filing_id", "source_line_item", "source_tran_id"],
+    "expected_fields": ["finance_campaign_id", "stance", "amount", "attribution_method", "donor_name_canon", "payee_name", "quarantine_reason"]
+  },
+  "loan_munger_prop50_2025": {
+    "anchor": {
+      "source_table": "LOAN_CD",
+      "source_form_type": "B1",
+      "filing_id": "3080221",
+      "source_line_item": "1",
+      "source_tran_id": "PAY839"
+    },
+    "expected": {
+      "finance_campaign_id": "PROP_50_2025",
+      "stance": "oppose",
+      "amount": 10000000.0,
+      "attribution_method": "crosswalk",
+      "donor_name_canon": "Charles T. Munger, Jr.",
+      "quarantine_reason": null
+    },
+    "notes": "Top loan in v3 by amount; Munger Jr opposing the 2025 redistricting prop."
+  },
+  "inkind_phrma_prop79_2005": {
+    "anchor": {
+      "source_table": "RCPT_CD",
+      "source_form_type": "C",
+      "filing_id": "1126386",
+      "source_line_item": "14",
+      "source_tran_id": "NON20"
+    },
+    "expected": {
+      "finance_campaign_id": "PROP_79_2005",
+      "stance": "oppose",
+      "amount": 14250000.0,
+      "attribution_method": "filer_name_explicit",
+      "donor_name_canon": "PHARMACEUTICAL RESEARCH AND MANUFACTURERS OF AMERICA CA INITIATIVE FUND",
+      "quarantine_reason": null
+    },
+    "notes": "PhRMA's largest Schedule C in-kind: $14.25M against PROP_79_2005 prescription drug discounts. filer_name_explicit because cover-sheet BAL_NUM is blank but filer name is 'CALIFORNIANS AGAINST THE WRONG PRESCRIPTION - NO ON PROPOSITION 79'."
+  },
+  "s496_ccpoa_prop32_2012": {
+    "anchor": {
+      "source_table": "S496_CD",
+      "source_form_type": "F496",
+      "filing_id": "1691472",
+      "source_line_item": "1",
+      "source_tran_id": "S496-107"
+    },
+    "expected": {
+      "finance_campaign_id": "PROP_32_2012",
+      "stance": "oppose",
+      "amount": 350000.0,
+      "attribution_method": "cover_sheet",
+      "donor_name_canon": "CALIFORNIA CORRECTIONAL PEACE OFFICERS ASSOCIATION TRUTH IN AMERICAN GOVERNMENT FUND",
+      "quarantine_reason": null
+    },
+    "notes": "CCPOA's $350K 24-hour late IE against Prop 32 2012 (Paycheck Protection). Cover-sheet attribution because S496 rows have no BAL_NUM."
+  },
+  "expn_f465p3_alliance_prop93_2008": {
+    "anchor": {
+      "source_table": "EXPN_CD",
+      "source_form_type": "F465P3",
+      "filing_id": "1306018",
+      "source_line_item": "36",
+      "source_tran_id": "PDT19"
+    },
+    "expected": {
+      "finance_campaign_id": "PROP_93_2008",
+      "stance": "oppose",
+      "amount": 2833160.7,
+      "attribution_method": "cover_sheet",
+      "donor_name_canon": "ALLIANCE FOR CALIFORNIA'S RENEWAL",
+      "payee_name": "JohnsonClark Associates, Inc.",
+      "quarantine_reason": null
+    },
+    "notes": "Form 465 supplemental IE; consultant payment opposing 2008 Prop 93 (Legislative term limits)."
+  },
+  "expn_f461p5_post_fix_uber_quarantines": {
+    "anchor": {
+      "source_table": "EXPN_CD",
+      "source_form_type": "F461P5",
+      "filing_id": "2440047",
+      "source_line_item": "25",
+      "source_tran_id": "25"
+    },
+    "expected": {
+      "finance_campaign_id": null,
+      "stance": null,
+      "amount": 30000000.0,
+      "attribution_method": "failed",
+      "donor_name_canon": "UBER TECHNOLOGIES INC",
+      "payee_name": "Protect App-Based Drivers and Services",
+      "quarantine_reason": "filer_name_no_prop"
+    },
+    "notes": "Round-11 AG-queue bug regression test. Uber's $30M IE for Protect App-Based Drivers (pre-Prop-22 filing dated 2019-10-30) carries row_bal_num='19-0026' (Attorney General queue ID, not prop number). Pre-fix this wrongly attributed to PROP_19_2020. Post-fix it correctly quarantines because BAL_NAME 'Protect App-Based Drivers and Services' has no 'Proposition NN' keyword and the resolver doesn't have a curated override for this committee. Demonstrates: AG-queue rejection works, AND we have a follow-up opportunity to manually attribute via known_unattributed_vehicles registry."
+  },
+  "dedup_s496_loses_to_s496_winner": {
+    "anchor": {
+      "source_table": "S496_CD",
+      "source_form_type": "F496",
+      "filing_id": "1135143",
+      "source_line_item": "1",
+      "source_tran_id": "2005-5273"
+    },
+    "expected": {
+      "finance_campaign_id": "PROP_75_2005",
+      "stance": "oppose",
+      "amount": 52641.2,
+      "quarantine_reason": "duplicate_economic_fingerprint",
+      "dedupe_rule": "source_table_priority"
+    },
+    "notes": "Dedup collision: this S496 row collides with another S496 row (flow_id 273686, filing_id 1135136) on identical economic_fingerprint. The dedup pass picks the first by source_fingerprint string tiebreaker. Demonstrates dedup pass marks loser correctly and preserves winner pointer. NOTE: dedup losers retain their original attribution (finance_campaign_id + stance) for audit provenance — quarantine_reason flags the elimination but the row remembers what it WOULD have attributed to. Aggregation queries filter by `WHERE quarantine_reason IS NULL` to skip dedup losers."
+  }
+}
