@@ -487,8 +487,10 @@ class FinanceDatabase:
                    SUM(amount) AS total_amount,
                    NULLIF(
                        COUNT(DISTINCT COALESCE(
-                           committee_id, cover_committee_id,
-                           cover_filer_id, reported_filer
+                           NULLIF(TRIM(committee_id), ''),
+                           NULLIF(TRIM(cover_committee_id), ''),
+                           NULLIF(TRIM(cover_filer_id), ''),
+                           NULLIF(TRIM(reported_filer), '')
                        )),
                        0
                    ) AS n_committees,
@@ -520,7 +522,14 @@ class FinanceDatabase:
                 "total_amount": float(r["total_amount"] or 0),
             })
         for lst in donors_by_stance.values():
-            lst.sort(key=lambda d: (-d["total_amount"], d["donor_name_canon"]))
+            # NULL-safe tiebreak: sort None donor names last among ties.
+            # Comparing None directly to str via `d["donor_name_canon"]`
+            # alone would raise TypeError when amounts tie. Codex round-2.
+            lst.sort(key=lambda d: (
+                -d["total_amount"],
+                d["donor_name_canon"] is None,
+                d["donor_name_canon"] or "",
+            ))
 
         out: List[Dict] = []
         for r in raw:
@@ -564,8 +573,10 @@ class FinanceDatabase:
                    SUM(amount) AS total_amount,
                    NULLIF(
                        COUNT(DISTINCT COALESCE(
-                           committee_id, cover_committee_id,
-                           cover_filer_id, reported_filer
+                           NULLIF(TRIM(committee_id), ''),
+                           NULLIF(TRIM(cover_committee_id), ''),
+                           NULLIF(TRIM(cover_filer_id), ''),
+                           NULLIF(TRIM(reported_filer), '')
                        )),
                        0
                    ) AS n_committees,
@@ -599,7 +610,12 @@ class FinanceDatabase:
                 "total_amount": float(r["total_amount"] or 0),
             })
         for lst in donors_by_slice.values():
-            lst.sort(key=lambda d: (-d["total_amount"], d["donor_name_canon"]))
+            # NULL-safe tiebreak — see get_finance_summary_total.
+            lst.sort(key=lambda d: (
+                -d["total_amount"],
+                d["donor_name_canon"] is None,
+                d["donor_name_canon"] or "",
+            ))
 
         out: List[Dict] = []
         for r in raw:

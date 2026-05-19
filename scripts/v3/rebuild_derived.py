@@ -41,11 +41,20 @@ def rebuild_summary_by_type(cur: sqlite3.Cursor, verbose: bool) -> int:
     """
     cur.execute("DELETE FROM finance_summary_by_type")
 
-    # Pull accepted rows
+    # Pull accepted rows.
+    # NULLIF(TRIM(col), '') strips empty / whitespace-only values so
+    # COALESCE doesn't short-circuit on them — CAL-ACCESS ships empty-
+    # string cover_committee_id ubiquitously; without NULLIF, every
+    # accepted row's committee_key collapsed to '' and the per-slice
+    # COUNT(DISTINCT) returned 1 universally (Codex round-2 finding).
     rows = cur.execute(
         "SELECT finance_campaign_id, measure_db_id, stance, receipt_type, "
-        "       COALESCE(committee_id, cover_committee_id, "
-        "                cover_filer_id, reported_filer) AS committee_key, "
+        "       COALESCE("
+        "           NULLIF(TRIM(committee_id), ''), "
+        "           NULLIF(TRIM(cover_committee_id), ''), "
+        "           NULLIF(TRIM(cover_filer_id), ''), "
+        "           NULLIF(TRIM(reported_filer), '')"
+        "       ) AS committee_key, "
         "       donor_name_canon, amount "
         "FROM finance_flow_v3 "
         "WHERE quarantine_reason IS NULL"

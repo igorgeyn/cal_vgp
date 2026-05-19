@@ -925,6 +925,157 @@ class TestMeasureGuardDefenseInDepth:
         assert donor_names == {"Legit Donor"}
 
 
+class TestEmptyStringCommitteeKey:
+    """Codex round-2 finding: CAL-ACCESS ships empty-string
+    cover_committee_id ubiquitously (every accepted row has it). The
+    naive COALESCE(committee_id, cover_committee_id, ...) short-circuits
+    on '' and counts it as one distinct "committee," so per-slice
+    COUNT(DISTINCT) returns 1 regardless of how many real filers exist.
+    Fix: COALESCE(NULLIF(TRIM(col), ''), ...) so empty / whitespace
+    values skip past instead of being counted."""
+
+    def test_empty_string_cover_committee_does_not_mask_real_filers(self, fdb_v3):
+        """Three flows: each has an empty-string cover_committee_id but
+        distinct reported_filer values. Expect n_committees=3, not 1."""
+        raw = _v3_raw(fdb_v3)
+        for fid, filer in [
+            (1, "Tribe A"),
+            (2, "Tribe B"),
+            (3, "Tribe C"),
+        ]:
+            # committee_id NULL, cover_committee_id empty-string,
+            # cover_filer_id NULL, reported_filer = the real entity.
+            # _insert_flow only sets committee_id; we patch the rest
+            # via raw UPDATE because the helper doesn't expose those
+            # columns. This matches the live-DB shape.
+            _insert_flow(raw, flow_id=fid, finance_campaign_id="PROP_X_2020",
+                         measure_db_id=3000, stance="oppose",
+                         receipt_type="independent_expenditure", amount=1_000_000,
+                         donor_name_canon=f"Donor{fid}",
+                         committee_id=None)
+            raw.execute(
+                "UPDATE finance_flow_v3 SET cover_committee_id = '', "
+                "reported_filer = ? WHERE flow_id = ?",
+                (filer, fid),
+            )
+        raw.commit()
+
+        result = fdb_v3.get_finance_breakdown_by_type(3000)
+        assert len(result) == 1
+        assert result[0]["receipt_type"] == "independent_expenditure"
+        assert result[0]["n_committees"] == 3, (
+            f"empty-string cover_committee_id must not mask real filers; "
+            f"got n_committees={result[0]['n_committees']}"
+        )
+
+    def test_space_only_committee_key_does_not_mask_real_filers(self, fdb_v3):
+        """Same as above but with space-only ('   ') instead of empty
+        string. SQLite's default TRIM strips ASCII spaces, so the fix
+        also handles this case. (CAL-ACCESS has zero whitespace-only
+        values in the wild per live-DB diagnostic, but defense-in-depth
+        for future drift.)
+
+        Caveat: SQLite TRIM() strips only ASCII space (0x20). Tab /
+        newline / carriage-return characters in committee_id columns
+        would NOT be stripped by the current fix and could still mask
+        real filers. Out of scope today (none observed in live data);
+        if it becomes a concern, expand to
+        `TRIM(col, char(9)||char(10)||char(13)||' ')` in operations.py,
+        schema.sql, and rebuild_derived.py.
+        """
+        raw = _v3_raw(fdb_v3)
+        for fid, filer in [(1, "Filer X"), (2, "Filer Y")]:
+            _insert_flow(raw, flow_id=fid, finance_campaign_id="PROP_X_2020",
+                         measure_db_id=3010, stance="support",
+                         receipt_type="independent_expenditure", amount=500_000,
+                         donor_name_canon=f"D{fid}",
+                         committee_id="   ")
+            raw.execute(
+                "UPDATE finance_flow_v3 SET cover_committee_id = '   ', "
+                "reported_filer = ? WHERE flow_id = ?",
+                (filer, fid),
+            )
+        raw.commit()
+
+        result = fdb_v3.get_finance_breakdown_by_type(3010)
+        assert result[0]["n_committees"] == 2
+
+    def test_committee_id_populated_still_correct(self, fdb_v3):
+        """Sanity: when committee_id IS populated (non-empty), the fix
+        shouldn't regress the count. 3 flows under 2 distinct
+        committee_ids → n_committees=2."""
+        raw = _v3_raw(fdb_v3)
+        for fid, cid in [(1, "C1"), (2, "C1"), (3, "C2")]:
+            _insert_flow(raw, flow_id=fid, finance_campaign_id="PROP_X_2020",
+                         measure_db_id=3020, stance="support",
+                         receipt_type="monetary_contribution", amount=1000,
+                         donor_name_canon=f"D{fid}",
+                         committee_id=cid)
+        raw.commit()
+
+        result = fdb_v3.get_finance_breakdown_by_type(3020)
+        assert result[0]["n_committees"] == 2
+
+
+class TestNullDonorSortTiebreak:
+    """Codex round-2 finding: the donor-list sort tiebreak used
+    `d["donor_name_canon"]` as the secondary key. If a NULL donor and a
+    non-NULL donor have the same amount, Python raises TypeError
+    comparing None to str. Fix: tuple (is_None_flag, name_or_empty)."""
+
+    def test_null_donor_with_tied_amount_does_not_crash(self, fdb_v3):
+        """Two donors, same amount, one of them has NULL donor_name_canon.
+        The sort must not raise TypeError."""
+        raw = _v3_raw(fdb_v3)
+        _insert_flow(raw, flow_id=1, finance_campaign_id="PROP_X_2020",
+                     measure_db_id=3100, stance="support",
+                     receipt_type="monetary_contribution", amount=5_000,
+                     donor_name_canon=None)
+        _insert_flow(raw, flow_id=2, finance_campaign_id="PROP_X_2020",
+                     measure_db_id=3100, stance="support",
+                     receipt_type="monetary_contribution", amount=5_000,
+                     donor_name_canon="Real Donor")
+        raw.commit()
+
+        # Must not raise. summary_total triggers the donor sort during
+        # top5/HHI recompute.
+        summary = fdb_v3.get_finance_summary_total(3100)
+        assert summary[0]["total_amount"] == 10_000.0
+        # NULL donor sorts AFTER named donors (deterministic).
+        breakdown = fdb_v3.get_finance_breakdown_by_type(3100)
+        assert breakdown[0]["total_amount"] == 10_000.0
+
+
+class TestAttributionSourceTieBreak:
+    """Codex round-2 documenting test: when two attribution_sources have
+    exactly tied SUM(amount), the rollup picks the lexicographically
+    earlier one via the secondary ORDER BY clause. Deterministic but
+    arbitrary — UI copy should treat the field as 'primary / modal'
+    rather than implying it's the unique source."""
+
+    def test_tied_amounts_break_lexicographically(self, fdb_v3):
+        """One donor, two attribution_sources, exactly equal amounts.
+        Lex-earlier 'filer' wins over 'funding_source'."""
+        raw = _v3_raw(fdb_v3)
+        _insert_flow(raw, flow_id=1, finance_campaign_id="PROP_X_2020",
+                     measure_db_id=3200, stance="support",
+                     receipt_type="monetary_contribution", amount=10_000,
+                     donor_name_canon="Tied Donor",
+                     attribution_source="filer")
+        _insert_flow(raw, flow_id=2, finance_campaign_id="PROP_X_2020",
+                     measure_db_id=3200, stance="support",
+                     receipt_type="monetary_contribution", amount=10_000,
+                     donor_name_canon="Tied Donor",
+                     attribution_source="funding_source")
+        raw.commit()
+
+        result = fdb_v3.get_top_donors_total(3200)
+        assert len(result) == 1
+        assert result[0]["primary_attribution_source"] == "filer", (
+            "tie should break alphabetically: 'filer' < 'funding_source'"
+        )
+
+
 class TestAcceptedRowNullDonorInvariant:
     """Codex test gap: ingest acceptance gates should reject any row with
     NULL donor_name_canon. This test documents the expected invariant —

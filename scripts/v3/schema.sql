@@ -286,14 +286,23 @@ flow_agg AS (
     -- n_committees: COALESCE so IE rows that have no row-level
     -- committee_id but do have a cover_committee_id / reported_filer
     -- contribute to the committee count rather than getting silently
-    -- treated as one "NULL committee"
+    -- treated as one "NULL committee".
+    --
+    -- NULLIF(TRIM(col), '') strips empty / whitespace-only values so
+    -- COALESCE doesn't short-circuit on them — CAL-ACCESS ships empty-
+    -- string cover_committee_id ubiquitously (every accepted row has
+    -- cover_committee_id = ''), so without NULLIF the COUNT(DISTINCT)
+    -- universally returned 1 (the empty string) and never reached the
+    -- real cover_filer_id / reported_filer values. Codex round-2.
     SELECT finance_campaign_id,
            MAX(measure_db_id)           AS measure_db_id,
            stance,
            SUM(amount)                  AS total_amount,
            COUNT(DISTINCT COALESCE(
-               committee_id, cover_committee_id,
-               cover_filer_id, reported_filer
+               NULLIF(TRIM(committee_id), ''),
+               NULLIF(TRIM(cover_committee_id), ''),
+               NULLIF(TRIM(cover_filer_id), ''),
+               NULLIF(TRIM(reported_filer), '')
            ))                           AS n_committees,
            COUNT(*)                     AS n_transactions
     FROM   finance_flow_v3
