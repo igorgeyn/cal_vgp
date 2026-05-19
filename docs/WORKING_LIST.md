@@ -1,19 +1,18 @@
 # CalBallot Working List
 
-> Snapshot: **2026-05-15 late-evening**. Branch: `main` (in sync with
-> `origin/main`). Last shipped: commit `4408f24` (Codex round-14:
-> bare local letter measures rejected in BAL_NAME).
+> Snapshot: **2026-05-19 evening**. Branch: `main` (ahead of
+> `origin/main`). Last shipped: commit `43dc55e` (Phase 5 step 1
+> Codex round-3 follow-up: NULL-last in SQL ORDER BY).
 >
-> **WHERE WE LEFT OFF — Phase 4 truly done, Phase 5 starting.**
+> **WHERE WE LEFT OFF — Phase 5 step 1 done, step 2 next.**
 >
 > v3 finance expansion through Phase 4 is fully shipped and verified.
 > v3.db now carries **47,942 accepted rows / $2.510B** flowing across
-> loans + in-kind + independent expenditures (post-dedup). All 14
-> Codex rounds integrated. 107+ unit tests + 10 trace tests + 4 source
-> reconciliation checks (loans / in-kind / IE three-slice) + dedup
-> invariant + Layer 1 8/8 all green. The next discrete chunk is
-> **Phase 5: atomic frontend commit** — see "Phase 5 next steps"
-> below. Library/API migration step started.
+> loans + in-kind + independent expenditures (post-dedup). Phase 5
+> step 1 (library/API migration: 4 new v3 read methods on
+> `FinanceDatabase`) is shipped + reviewed across 3 Codex rounds.
+> 153 finance tests pass (118 v2 + 35 v3). Next: **Phase 5 step 2 —
+> atomic frontend commit** — see "Phase 5 step 2 next steps" below.
 >
 > This is the canonical resume point. Memory in `.claude/projects/...` is
 > per-machine and won't follow you — start here when picking up on a new
@@ -21,20 +20,21 @@
 
 ---
 
-## Phase 5 next steps (resume here)
+## Phase 5 step 2 next steps (resume here)
 
-Phases 0-4 of the v3 finance expansion are shipped + verified. The
-v3.db now carries:
+Phases 0-4 + step 1 of Phase 5 are shipped + verified. The v3.db
+now carries:
 
   Loans:    269 accepted / $186.16M (LOAN_CD B1)
   In-kind:  23,878 accepted / $416.01M (RCPT_CD Schedule C)
   IE:       23,795 accepted / $1,907.89M (EXPN_CD F461P5/F465P3 + S496_CD, post-dedup)
   TOTAL:    47,942 accepted / $2,510.05M
 
-All 14 Codex rounds integrated. 107+ unit tests + 10 trace tests pass.
-Source reconciliation checks (loans / in-kind / IE three-slice +
-dedup invariant) all $0 diff. v2 baseline untouched (Layer 1 8/8
-PASS).
+All 14 Phase 4 Codex rounds integrated, plus 3 rounds on step 1.
+107+ resolver unit tests + 10 trace tests pass. Source reconciliation
+checks (loans / in-kind / IE three-slice + dedup invariant) all $0
+diff. v2 baseline untouched (Layer 1 8/8 PASS). Full finance suite
+153/153 (118 v2 + 35 v3).
 
 **Bug-fix arc, rounds 10-14:** −$273M wrongly attributed removed
 (AG queue IDs, multi-prop separators, regional measures, bare local
@@ -45,21 +45,52 @@ ambiguity helpers (`has_ambiguous_bal_num` strict for BAL_NUM,
 `has_ambiguous_bal_name` semantic for BAL_NAME) keep the BAL_NUM /
 BAL_NAME signal asymmetry well-contained.
 
-**Concrete next chunk: Phase 5 atomic frontend commit (~1 day).**
+**Step-1 Codex review arc (rounds 1-3 on the library/API):**
+- Round 1: surfaced 3 issues — n_committees NULL coercion,
+  primary_attribution_source not amount-weighted despite docstring,
+  measure_db_id guard missing.
+- Round 2: fixes introduced new issue — COALESCE short-circuits on
+  empty strings (CAL-ACCESS ships `cover_committee_id = ''` on all
+  47,942 accepted rows), making 278 IE slices wrong across ~$1.886B.
+  Fixed via `NULLIF(TRIM(col), '')` wrapping. Sort tiebreak also
+  fixed for NULL-donor crash.
+- Round 3: clean shape, one non-blocking SQL ORDER BY NULL-handling
+  fix applied. Live DB parity confirmed: app reads, view, and by-type
+  table all return identical n_committees per slice.
+
+**Step 1 shape (shipped at commits 4542d4a → d2d2a5f → 7a3eb55 →
+43dc55e):**
+- 4 new methods on `FinanceDatabase` keying on measure_db_id:
+  `get_finance_summary_total`, `get_finance_breakdown_by_type`,
+  `get_top_donors_total`, `get_top_donors_by_type`
+- Aggregate directly from `finance_flow_v3` (not via derived
+  views/tables) for single-source-of-truth + correct cross-measure
+  semantics
+- Amount-weighted `attribution_source` (replaces broken
+  `attribution_source_mode`)
+- NULL-safe in both Python sort and SQL ORDER BY
+- 35 v3 tests covering rollup arithmetic, NULL preservation,
+  empty-string COALESCE, cross-measure guards, tie behavior
+
+**Concrete next chunk: Phase 5 step 2 — atomic frontend commit
+(~1 day).**
 
 The big visible-product shift. Order of operations:
 
-1. **Library / API migration first** (no UI change yet). Add to
-   `FinanceDatabase` class in `scraper/src/finance/operations.py`:
-   - `get_finance_summary_total(measure_db_id)` — uses
-     `finance_summary_total` view
-   - `get_finance_breakdown_by_type(measure_db_id)` — uses
-     `finance_summary_by_type`
-   - `get_top_donors_total(campaign_id, stance, limit=N)`
-   - `get_top_donors_by_type(campaign_id, stance, receipt_type,
-     limit=N)`
+1. ~~**Library / API migration**~~ **DONE 2026-05-19** (commits
+   4542d4a → d2d2a5f → 7a3eb55 → 43dc55e). 4 new `FinanceDatabase`
+   methods ready for UI consumption, all keying on `measure_db_id`
+   with built-in rollup for year-offset-collision campaigns:
+   - `get_finance_summary_total(measure_db_id)`
+   - `get_finance_breakdown_by_type(measure_db_id)`
+   - `get_top_donors_total(measure_db_id, *, stance=None, limit=10)`
+   - `get_top_donors_by_type(measure_db_id, receipt_type, *,
+     stance=None, limit=10)`
    - Existing v2 methods (`get_top_donors`, `aggregate_for_measure`)
      keep reading v2.db monetary-only tables — no breakage.
+   - Methods aggregate directly from `finance_flow_v3` for
+     single-source-of-truth + correct cross-measure semantics.
+   - 3 rounds of Codex review applied; final shape is reviewed-clean.
 
 2. **Atomic visible-change commit.** All UI surfaces flip in ONE
    commit because half-flipped UIs make headline numbers
