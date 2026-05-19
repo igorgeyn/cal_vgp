@@ -467,6 +467,14 @@ class FinanceDatabase:
         Each row: {stance, total_amount, n_committees, n_transactions,
                    top5_share, hhi}
         Empty list if no v3 flows for this measure.
+
+        Implementation reads directly from `finance_flow_v3` rather than
+        the `finance_summary_total` view because the view's `MAX(measure_db_id)`
+        per (campaign, stance) collapses cross-measure-spanning campaigns
+        (pathological today, defense-in-depth) and because the view's
+        n_committees uses `COUNT(DISTINCT COALESCE(...))` which returns 0
+        for all-NULL slices (e.g. IE rows). Going through flow lets us
+        preserve None for the not-applicable case via `NULLIF(..., 0)`.
         """
         campaign_ids = self._v3_campaign_ids_for_measure(measure_db_id)
         if not campaign_ids:
@@ -476,27 +484,34 @@ class FinanceDatabase:
         raw = self.v3_conn.execute(
             f"""
             SELECT stance,
-                   SUM(total_amount) AS total_amount,
-                   SUM(n_committees) AS n_committees,
-                   SUM(n_transactions) AS n_transactions
-            FROM finance_summary_total
-            WHERE finance_campaign_id IN ({placeholders})
-            GROUP BY stance
+                   SUM(amount) AS total_amount,
+                   NULLIF(
+                       COUNT(DISTINCT COALESCE(
+                           committee_id, cover_committee_id,
+                           cover_filer_id, reported_filer
+                       )),
+                       0
+                   ) AS n_committees,
+                   COUNT(*) AS n_transactions
+            FROM   finance_flow_v3
+            WHERE  measure_db_id = ?
+              AND  finance_campaign_id IN ({placeholders})
+              AND  quarantine_reason IS NULL
+            GROUP  BY stance
             """,
-            campaign_ids,
+            (measure_db_id, *campaign_ids),
         ).fetchall()
 
-        # Recompute top5_share + hhi against the merged donor list per
-        # stance — view-level metrics are per-campaign, would be wrong
-        # under rollup.
         donor_rows = self.v3_conn.execute(
             f"""
-            SELECT stance, donor_name_canon, SUM(total_amount) AS total_amount
-            FROM finance_top_donors_total
-            WHERE finance_campaign_id IN ({placeholders})
-            GROUP BY stance, donor_name_canon
+            SELECT stance, donor_name_canon, SUM(amount) AS total_amount
+            FROM   finance_flow_v3
+            WHERE  measure_db_id = ?
+              AND  finance_campaign_id IN ({placeholders})
+              AND  quarantine_reason IS NULL
+            GROUP  BY stance, donor_name_canon
             """,
-            campaign_ids,
+            (measure_db_id, *campaign_ids),
         ).fetchall()
         donors_by_stance: Dict[str, List[Dict]] = defaultdict(list)
         for r in donor_rows:
@@ -517,8 +532,8 @@ class FinanceDatabase:
             out.append({
                 "stance": stance,
                 "total_amount": total,
-                "n_committees": int(r["n_committees"] or 0),
-                "n_transactions": int(r["n_transactions"] or 0),
+                "n_committees": self._opt_int(r["n_committees"]),
+                "n_transactions": self._opt_int(r["n_transactions"]),
                 "top5_share": top5_share,
                 "hhi": hhi,
             })
@@ -539,32 +554,43 @@ class FinanceDatabase:
             return []
         placeholders = ",".join("?" for _ in campaign_ids)
 
+        # Aggregate from flow directly (not from finance_summary_by_type)
+        # for the same reasons as get_finance_summary_total: avoid the
+        # MAX(measure_db_id) collapse on cross-measure-spanning campaigns,
+        # and preserve NULL n_committees semantics via NULLIF.
         raw = self.v3_conn.execute(
             f"""
             SELECT stance, receipt_type,
-                   SUM(total_amount) AS total_amount,
-                   SUM(n_committees) AS n_committees,
-                   SUM(n_transactions) AS n_transactions
-            FROM finance_summary_by_type
-            WHERE finance_campaign_id IN ({placeholders})
-            GROUP BY stance, receipt_type
-            ORDER BY stance, receipt_type
+                   SUM(amount) AS total_amount,
+                   NULLIF(
+                       COUNT(DISTINCT COALESCE(
+                           committee_id, cover_committee_id,
+                           cover_filer_id, reported_filer
+                       )),
+                       0
+                   ) AS n_committees,
+                   COUNT(*) AS n_transactions
+            FROM   finance_flow_v3
+            WHERE  measure_db_id = ?
+              AND  finance_campaign_id IN ({placeholders})
+              AND  quarantine_reason IS NULL
+            GROUP  BY stance, receipt_type
+            ORDER  BY stance, receipt_type
             """,
-            campaign_ids,
+            (measure_db_id, *campaign_ids),
         ).fetchall()
 
-        # Per-(stance, receipt_type) merged donor lists for concentration
-        # recomputation. finance_top_donors_by_type already keys on
-        # receipt_type so this is one query.
         donor_rows = self.v3_conn.execute(
             f"""
             SELECT stance, receipt_type, donor_name_canon,
-                   SUM(total_amount) AS total_amount
-            FROM finance_top_donors_by_type
-            WHERE finance_campaign_id IN ({placeholders})
-            GROUP BY stance, receipt_type, donor_name_canon
+                   SUM(amount) AS total_amount
+            FROM   finance_flow_v3
+            WHERE  measure_db_id = ?
+              AND  finance_campaign_id IN ({placeholders})
+              AND  quarantine_reason IS NULL
+            GROUP  BY stance, receipt_type, donor_name_canon
             """,
-            campaign_ids,
+            (measure_db_id, *campaign_ids),
         ).fetchall()
         donors_by_slice: Dict[tuple, List[Dict]] = defaultdict(list)
         for r in donor_rows:
@@ -586,8 +612,12 @@ class FinanceDatabase:
                 "stance": r["stance"],
                 "receipt_type": r["receipt_type"],
                 "total_amount": total,
-                "n_committees": int(r["n_committees"] or 0),
-                "n_transactions": int(r["n_transactions"] or 0),
+                # NULL-preserving: finance_summary_by_type currently stores
+                # NULL n_committees for IE rows (no committee_id in the
+                # source). Coercing to 0 would misrepresent "not applicable"
+                # as "zero committees." UI must treat None as N/A.
+                "n_committees": self._opt_int(r["n_committees"]),
+                "n_transactions": self._opt_int(r["n_transactions"]),
                 "top5_share": top5_share,
                 "hhi": hhi,
             })
@@ -604,6 +634,74 @@ class FinanceDatabase:
         except (ValueError, TypeError):
             return []
         return [v for v in parsed if v is not None]
+
+    @staticmethod
+    def _opt_int(value) -> Optional[int]:
+        """NULL-preserving int conversion. SUM() over an all-NULL group
+        returns NULL; coercing that to 0 misrepresents "not applicable"
+        (e.g. n_committees for IE rows, which carry no committee_id /
+        cover_committee_id / cover_filer_id / reported_filer) as
+        "zero committees." Caller should treat None as "not applicable."
+        """
+        return None if value is None else int(value)
+
+    def _amount_weighted_attribution_sources(
+        self,
+        measure_db_id: int,
+        campaign_ids: List[str],
+        *,
+        stance: Optional[str] = None,
+        receipt_type: Optional[str] = None,
+    ) -> Dict[tuple, Optional[str]]:
+        """Pick the modal-by-amount attribution_source per (stance,
+        donor_name_canon) over the given campaign set, computed directly
+        from finance_flow_v3 (not from view rollups that lose the
+        amount-weighting under collision).
+
+        Returns dict keyed by (stance, donor_name_canon). Missing keys
+        imply no flows under the filter (e.g. donor only had quarantined
+        rows for the requested receipt_type).
+        """
+        if not campaign_ids:
+            return {}
+        placeholders = ",".join("?" for _ in campaign_ids)
+        params: List = [measure_db_id] + list(campaign_ids)
+        extra_clauses = ""
+        if stance is not None:
+            extra_clauses += " AND stance = ?"
+            params.append(stance)
+        if receipt_type is not None:
+            extra_clauses += " AND receipt_type = ?"
+            params.append(receipt_type)
+        cursor = self.v3_conn.execute(
+            f"""
+            WITH per_attr AS (
+                SELECT stance, donor_name_canon, attribution_source,
+                       SUM(amount) AS attr_total
+                FROM   finance_flow_v3
+                WHERE  measure_db_id = ?
+                  AND  finance_campaign_id IN ({placeholders})
+                  AND  quarantine_reason IS NULL
+                  {extra_clauses}
+                GROUP  BY stance, donor_name_canon, attribution_source
+            ),
+            ranked AS (
+                SELECT *, ROW_NUMBER() OVER (
+                    PARTITION BY stance, donor_name_canon
+                    ORDER BY attr_total DESC, attribution_source
+                ) AS rn
+                FROM per_attr
+            )
+            SELECT stance, donor_name_canon, attribution_source
+            FROM   ranked
+            WHERE  rn = 1
+            """,
+            params,
+        )
+        return {
+            (r["stance"], r["donor_name_canon"]): r["attribution_source"]
+            for r in cursor.fetchall()
+        }
 
     def get_top_donors_total(
         self,
@@ -630,28 +728,29 @@ class FinanceDatabase:
             return []
         placeholders = ",".join("?" for _ in campaign_ids)
 
-        params: List = list(campaign_ids)
+        params: List = [measure_db_id] + list(campaign_ids)
         stance_clause = ""
         if stance is not None:
             stance_clause = "AND stance = ?"
             params.append(stance)
 
-        # Roll up: SUM total_amount across campaigns, then per-stance
-        # ROW_NUMBER. flow_types unioned across campaigns (parsed JSON
-        # arrays merged). primary_attribution_source picked as the
-        # source with the largest attr_total under the merged donor.
+        # Aggregate from finance_flow_v3 directly (single source of truth)
+        # rather than through finance_top_donors_total view. flow_types is
+        # a flat json_group_array over the donor's receipt_types — no
+        # nested-JSON unpacking needed.
         cursor = self.v3_conn.execute(
             f"""
             WITH per_donor AS (
                 SELECT stance, donor_name_canon,
-                       SUM(total_amount) AS total_amount,
-                       MAX(donor_type)   AS donor_type,
-                       SUM(n_underlying_rows) AS n_underlying_rows,
-                       json_group_array(flow_types) AS flow_types_nested,
-                       json_group_array(primary_attribution_source)
-                           AS attr_sources_nested
-                FROM   finance_top_donors_total
-                WHERE  finance_campaign_id IN ({placeholders}) {stance_clause}
+                       SUM(amount) AS total_amount,
+                       MAX(donor_type) AS donor_type,
+                       COUNT(*) AS n_underlying_rows,
+                       json_group_array(DISTINCT receipt_type) AS flow_types_json
+                FROM   finance_flow_v3
+                WHERE  measure_db_id = ?
+                  AND  finance_campaign_id IN ({placeholders})
+                  AND  quarantine_reason IS NULL
+                  {stance_clause}
                 GROUP  BY stance, donor_name_canon
             ),
             ranked AS (
@@ -663,30 +762,26 @@ class FinanceDatabase:
                 FROM   per_donor
             )
             SELECT stance, donor_name_canon, donor_type, total_amount,
-                   n_underlying_rows, flow_types_nested, attr_sources_nested
+                   n_underlying_rows, flow_types_json
             FROM   ranked
             WHERE  rn <= ?
             ORDER  BY stance, total_amount DESC, donor_name_canon
             """,
             (*params, limit),
         )
+        donor_rows = cursor.fetchall()
+
+        # Amount-weighted attribution source per (stance, donor) computed
+        # from the flow table directly. One query for the whole result
+        # set (scoped to this measure + campaigns + optional stance).
+        attr_source_map = self._amount_weighted_attribution_sources(
+            measure_db_id, campaign_ids, stance=stance,
+        )
 
         rows: List[Dict] = []
-        for r in cursor.fetchall():
-            # Merge nested json arrays: per_donor's json_group_array of
-            # json arrays produces e.g. '["[\"loan\",\"in_kind\"]","[...]"]'.
-            # Parse each leg, union into one flat list.
-            flow_types: List[str] = []
-            seen: set = set()
-            for leg in self._parse_json_array(r["flow_types_nested"]):
-                for ft in self._parse_json_array(leg):
-                    if ft not in seen:
-                        flow_types.append(ft)
-                        seen.add(ft)
-            attr_legs: List[str] = []
-            for leg in self._parse_json_array(r["attr_sources_nested"]):
-                if leg and leg not in attr_legs:
-                    attr_legs.append(leg)
+        for r in donor_rows:
+            flow_types = self._parse_json_array(r["flow_types_json"])
+            key = (r["stance"], r["donor_name_canon"])
             rows.append({
                 "stance": r["stance"],
                 "donor_name_canon": r["donor_name_canon"],
@@ -694,8 +789,8 @@ class FinanceDatabase:
                 "donor_sector": get_donor_sector(r["donor_name_canon"]),
                 "total_amount": float(r["total_amount"] or 0),
                 "flow_types": flow_types,
-                "primary_attribution_source": attr_legs[0] if attr_legs else None,
-                "n_underlying_rows": int(r["n_underlying_rows"] or 0),
+                "primary_attribution_source": attr_source_map.get(key),
+                "n_underlying_rows": self._opt_int(r["n_underlying_rows"]),
             })
         return rows
 
@@ -712,14 +807,20 @@ class FinanceDatabase:
 
         Each row: {stance, receipt_type, donor_name_canon, donor_type,
                    donor_sector, total_amount, n_underlying_rows,
-                   attribution_source_mode}
+                   attribution_source}
+
+        attribution_source is amount-weighted over the flow table for
+        the (measure_db_id, receipt_type, stance, donor) cohort —
+        replaces v3's pre-rollup `attribution_source_mode` column which
+        was per-(campaign, stance, receipt_type, donor) and would drift
+        under cross-campaign rollup via lexicographic MAX().
         """
         campaign_ids = self._v3_campaign_ids_for_measure(measure_db_id)
         if not campaign_ids:
             return []
         placeholders = ",".join("?" for _ in campaign_ids)
 
-        params: List = list(campaign_ids) + [receipt_type]
+        params: List = [measure_db_id, receipt_type] + list(campaign_ids)
         stance_clause = ""
         if stance is not None:
             stance_clause = "AND stance = ?"
@@ -729,13 +830,14 @@ class FinanceDatabase:
             f"""
             WITH per_donor AS (
                 SELECT stance, receipt_type, donor_name_canon,
-                       SUM(total_amount) AS total_amount,
-                       MAX(donor_type)   AS donor_type,
-                       SUM(n_underlying_rows) AS n_underlying_rows,
-                       MAX(attribution_source_mode) AS attribution_source_mode
-                FROM   finance_top_donors_by_type
-                WHERE  finance_campaign_id IN ({placeholders})
+                       SUM(amount) AS total_amount,
+                       MAX(donor_type) AS donor_type,
+                       COUNT(*) AS n_underlying_rows
+                FROM   finance_flow_v3
+                WHERE  measure_db_id = ?
                   AND  receipt_type = ?
+                  AND  finance_campaign_id IN ({placeholders})
+                  AND  quarantine_reason IS NULL
                   {stance_clause}
                 GROUP  BY stance, receipt_type, donor_name_canon
             ),
@@ -748,12 +850,19 @@ class FinanceDatabase:
                 FROM   per_donor
             )
             SELECT stance, receipt_type, donor_name_canon, donor_type,
-                   total_amount, n_underlying_rows, attribution_source_mode
+                   total_amount, n_underlying_rows
             FROM   ranked
             WHERE  rn <= ?
             ORDER  BY stance, total_amount DESC, donor_name_canon
             """,
             (*params, limit),
+        )
+        donor_rows = cursor.fetchall()
+
+        # Amount-weighted attribution source, scoped to this receipt_type.
+        attr_source_map = self._amount_weighted_attribution_sources(
+            measure_db_id, campaign_ids,
+            stance=stance, receipt_type=receipt_type,
         )
 
         return [
@@ -764,10 +873,12 @@ class FinanceDatabase:
                 "donor_type": r["donor_type"],
                 "donor_sector": get_donor_sector(r["donor_name_canon"]),
                 "total_amount": float(r["total_amount"] or 0),
-                "n_underlying_rows": int(r["n_underlying_rows"] or 0),
-                "attribution_source_mode": r["attribution_source_mode"],
+                "n_underlying_rows": self._opt_int(r["n_underlying_rows"]),
+                "attribution_source": attr_source_map.get(
+                    (r["stance"], r["donor_name_canon"])
+                ),
             }
-            for r in cursor.fetchall()
+            for r in donor_rows
         ]
 
 

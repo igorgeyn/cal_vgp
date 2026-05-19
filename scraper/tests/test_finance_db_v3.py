@@ -404,26 +404,19 @@ class TestSummaryTotal:
 class TestBreakdownByType:
     def test_separates_receipt_types(self, fdb_v3):
         raw = _v3_raw(fdb_v3)
-        for cid, rt, amt in [
-            ("PROP_27_2022", "monetary_contribution", 5_000_000),
-            ("PROP_27_2022", "in_kind", 1_000_000),
-            ("PROP_27_2022", "independent_expenditure", 20_000_000),
-            ("PROP_27_2022", "loan", 500_000),
+        for fid, rt, amt in [
+            (1, "monetary_contribution", 5_000_000),
+            (2, "in_kind", 1_000_000),
+            (3, "independent_expenditure", 20_000_000),
+            (4, "loan", 500_000),
         ]:
-            _insert_summary_by_type(
-                raw, finance_campaign_id=cid, measure_db_id=400,
-                stance="support", receipt_type=rt, total_amount=amt,
-            )
-        # Need finance_flow_v3 rows too so _v3_campaign_ids_for_measure
-        # finds the campaign.
-        _insert_flow(raw, flow_id=1, finance_campaign_id="PROP_27_2022",
-                     measure_db_id=400, stance="support",
-                     receipt_type="monetary_contribution", amount=5_000_000,
-                     donor_name_canon="Anchor")
+            _insert_flow(raw, flow_id=fid, finance_campaign_id="PROP_27_2022",
+                         measure_db_id=400, stance="support",
+                         receipt_type=rt, amount=amt,
+                         donor_name_canon=f"Donor{fid}")
         raw.commit()
 
         result = fdb_v3.get_finance_breakdown_by_type(400)
-        # 4 rows, one per receipt_type
         assert len(result) == 4
         types = sorted(r["receipt_type"] for r in result)
         assert types == ["in_kind", "independent_expenditure",
@@ -435,19 +428,14 @@ class TestBreakdownByType:
         """When measure has 2 campaigns, breakdown sums each receipt_type
         across both."""
         raw = _v3_raw(fdb_v3)
-        for cid, rt, amt in [
-            ("PROP_A_2020", "monetary_contribution", 1_000_000),
-            ("PROP_A_2022", "monetary_contribution", 500_000),
-            ("PROP_A_2020", "in_kind", 200_000),
+        for fid, cid, rt, amt in [
+            (1, "PROP_A_2020", "monetary_contribution", 1_000_000),
+            (2, "PROP_A_2022", "monetary_contribution", 500_000),
+            (3, "PROP_A_2020", "in_kind", 200_000),
         ]:
-            _insert_summary_by_type(
-                raw, finance_campaign_id=cid, measure_db_id=500,
-                stance="oppose", receipt_type=rt, total_amount=amt,
-            )
-        for fid, cid in [(1, "PROP_A_2020"), (2, "PROP_A_2022")]:
             _insert_flow(raw, flow_id=fid, finance_campaign_id=cid,
                          measure_db_id=500, stance="oppose",
-                         receipt_type="monetary_contribution", amount=100,
+                         receipt_type=rt, amount=amt,
                          donor_name_canon=f"Donor{fid}")
         raw.commit()
 
@@ -570,20 +558,15 @@ class TestTopDonorsTotal:
 class TestTopDonorsByType:
     def test_filters_to_one_receipt_type(self, fdb_v3):
         raw = _v3_raw(fdb_v3)
-        for cid, rt, donor, amt in [
-            ("PROP_X_2020", "monetary_contribution", "Cash Donor", 1_000_000),
-            ("PROP_X_2020", "in_kind", "InKind Donor", 500_000),
-            ("PROP_X_2020", "independent_expenditure", "IE Donor", 3_000_000),
+        for fid, rt, donor, amt in [
+            (1, "monetary_contribution", "Cash Donor", 1_000_000),
+            (2, "in_kind", "InKind Donor", 500_000),
+            (3, "independent_expenditure", "IE Donor", 3_000_000),
         ]:
-            _insert_top_donor_by_type(
-                raw, finance_campaign_id=cid, measure_db_id=1100,
-                stance="support", receipt_type=rt,
-                donor_name_canon=donor, total_amount=amt,
-            )
-        _insert_flow(raw, flow_id=1, finance_campaign_id="PROP_X_2020",
-                     measure_db_id=1100, stance="support",
-                     receipt_type="monetary_contribution", amount=100,
-                     donor_name_canon="anchor")
+            _insert_flow(raw, flow_id=fid, finance_campaign_id="PROP_X_2020",
+                         measure_db_id=1100, stance="support",
+                         receipt_type=rt, amount=amt,
+                         donor_name_canon=donor)
         raw.commit()
 
         ie_result = fdb_v3.get_top_donors_by_type(
@@ -595,20 +578,14 @@ class TestTopDonorsByType:
 
     def test_stance_filter(self, fdb_v3):
         raw = _v3_raw(fdb_v3)
-        _insert_top_donor_by_type(
-            raw, finance_campaign_id="PROP_X_2020", measure_db_id=1200,
-            stance="support", receipt_type="monetary_contribution",
-            donor_name_canon="Sup", total_amount=1000,
-        )
-        _insert_top_donor_by_type(
-            raw, finance_campaign_id="PROP_X_2020", measure_db_id=1200,
-            stance="oppose", receipt_type="monetary_contribution",
-            donor_name_canon="Opp", total_amount=2000,
-        )
         _insert_flow(raw, flow_id=1, finance_campaign_id="PROP_X_2020",
                      measure_db_id=1200, stance="support",
-                     receipt_type="monetary_contribution", amount=100,
-                     donor_name_canon="anchor")
+                     receipt_type="monetary_contribution", amount=1000,
+                     donor_name_canon="Sup")
+        _insert_flow(raw, flow_id=2, finance_campaign_id="PROP_X_2020",
+                     measure_db_id=1200, stance="oppose",
+                     receipt_type="monetary_contribution", amount=2000,
+                     donor_name_canon="Opp")
         raw.commit()
 
         result = fdb_v3.get_top_donors_by_type(
@@ -619,16 +596,13 @@ class TestTopDonorsByType:
 
     def test_donor_sector_resolved_at_query_time(self, fdb_v3):
         raw = _v3_raw(fdb_v3)
-        _insert_top_donor_by_type(
-            raw, finance_campaign_id="PROP_X_2020", measure_db_id=1300,
-            stance="support", receipt_type="independent_expenditure",
-            donor_name_canon="Lyft, Inc",
-            total_amount=5_000_000, donor_sector="STALE",
-        )
+        # Insert IE flow for Lyft, with a STALE stored donor_sector that
+        # should NOT bleed through — the method re-resolves via get_donor_sector.
         _insert_flow(raw, flow_id=1, finance_campaign_id="PROP_X_2020",
                      measure_db_id=1300, stance="support",
-                     receipt_type="monetary_contribution", amount=100,
-                     donor_name_canon="anchor")
+                     receipt_type="independent_expenditure", amount=5_000_000,
+                     donor_name_canon="Lyft, Inc",
+                     donor_sector="STALE")
         raw.commit()
 
         result = fdb_v3.get_top_donors_by_type(
@@ -638,13 +612,11 @@ class TestTopDonorsByType:
 
     def test_rolls_up_collision_within_type(self, fdb_v3):
         raw = _v3_raw(fdb_v3)
-        for cid, amt in [("PROP_A_2008", 600_000), ("PROP_A_2010", 400_000)]:
-            _insert_top_donor_by_type(
-                raw, finance_campaign_id=cid, measure_db_id=1400,
-                stance="oppose", receipt_type="monetary_contribution",
-                donor_name_canon="Planned Parenthood", total_amount=amt,
-            )
-            _insert_flow(raw, flow_id=hash(cid) & 0xFFFF, finance_campaign_id=cid,
+        for fid, cid, amt in [
+            (1, "PROP_A_2008", 600_000),
+            (2, "PROP_A_2010", 400_000),
+        ]:
+            _insert_flow(raw, flow_id=fid, finance_campaign_id=cid,
                          measure_db_id=1400, stance="oppose",
                          receipt_type="monetary_contribution", amount=amt,
                          donor_name_canon="Planned Parenthood")
@@ -660,3 +632,328 @@ class TestTopDonorsByType:
         assert fdb_v3.get_top_donors_by_type(
             99999, "monetary_contribution",
         ) == []
+
+
+# ---------------------------------------------------------------------------
+# Codex round-1 follow-ups: n_committees NULL preservation, amount-weighted
+# attribution_source rollup, 3-campaign collision, limit boundaries, NULL
+# donor invariant.
+# ---------------------------------------------------------------------------
+
+class TestNCommitteesNullPreservation:
+    """Codex finding: finance_summary_by_type currently stores NULL
+    n_committees for IE rows (the source has no committee_id /
+    cover_committee_id / cover_filer_id / reported_filer for IE).
+    Coercing NULL -> 0 misrepresents 'not applicable' as 'zero'."""
+
+    def test_breakdown_preserves_none_when_source_is_null(self, fdb_v3):
+        """IE rows in the source have NULL committee_id, cover_committee_id,
+        cover_filer_id, AND reported_filer (the donor is the filer of an
+        independent expenditure — no receiving committee). COUNT(DISTINCT
+        COALESCE(...)) on these is 0; NULLIF coerces 0 to NULL; result
+        surfaces as None for "not applicable."""
+        raw = _v3_raw(fdb_v3)
+        _insert_flow(raw, flow_id=1, finance_campaign_id="PROP_X_2020",
+                     measure_db_id=2100, stance="oppose",
+                     receipt_type="independent_expenditure", amount=5_000_000,
+                     donor_name_canon="IE Filer",
+                     committee_id=None)  # all 4 COALESCE fields NULL
+        raw.commit()
+
+        result = fdb_v3.get_finance_breakdown_by_type(2100)
+        assert len(result) == 1
+        assert result[0]["receipt_type"] == "independent_expenditure"
+        assert result[0]["n_committees"] is None, (
+            "all-NULL committee keys must surface as None, not 0"
+        )
+        # n_transactions still counts rows, so it's 1
+        assert result[0]["n_transactions"] == 1
+
+    def test_breakdown_preserves_int_when_source_is_nonzero(self, fdb_v3):
+        """When flows have non-NULL committee_id, n_committees is the
+        DISTINCT count."""
+        raw = _v3_raw(fdb_v3)
+        for fid, cid in [(1, "C1"), (2, "C2"), (3, "C3")]:
+            _insert_flow(raw, flow_id=fid, finance_campaign_id="PROP_X_2020",
+                         measure_db_id=2110, stance="support",
+                         receipt_type="monetary_contribution", amount=1_000,
+                         donor_name_canon=f"Donor{fid}",
+                         committee_id=cid)
+        # Plus 2 more from C1 (duplicate committee — should NOT bump count)
+        for fid in [4, 5]:
+            _insert_flow(raw, flow_id=fid, finance_campaign_id="PROP_X_2020",
+                         measure_db_id=2110, stance="support",
+                         receipt_type="monetary_contribution", amount=1_000,
+                         donor_name_canon=f"DonorRepeat{fid}",
+                         committee_id="C1")
+        raw.commit()
+
+        result = fdb_v3.get_finance_breakdown_by_type(2110)
+        assert len(result) == 1
+        assert result[0]["n_committees"] == 3, (
+            "3 distinct committees (C1, C2, C3) across 5 flows"
+        )
+        assert result[0]["n_transactions"] == 5
+
+
+class TestAttributionSourceAmountWeighted:
+    """Codex finding: primary_attribution_source rollup must be weighted
+    by amount across colliding campaigns, NOT just first-non-null or
+    lexicographic MAX. The bigger source (by SUM amount) wins."""
+
+    def test_total_picks_larger_source_across_two_campaigns(self, fdb_v3):
+        """Same donor has 'filer'-attributed $80M in one campaign and
+        'funding_source'-attributed $20M in another. Rollup primary
+        should be 'filer' (the bigger one), regardless of insertion or
+        view ordering."""
+        raw = _v3_raw(fdb_v3)
+        _insert_flow(raw, flow_id=1, finance_campaign_id="PROP_A_2008",
+                     measure_db_id=2200, stance="oppose",
+                     receipt_type="independent_expenditure", amount=80_000_000,
+                     donor_name_canon="Big Tech Co",
+                     attribution_source="filer")
+        _insert_flow(raw, flow_id=2, finance_campaign_id="PROP_A_2010",
+                     measure_db_id=2200, stance="oppose",
+                     receipt_type="independent_expenditure", amount=20_000_000,
+                     donor_name_canon="Big Tech Co",
+                     attribution_source="funding_source")
+        raw.commit()
+
+        result = fdb_v3.get_top_donors_total(2200)
+        assert len(result) == 1
+        assert result[0]["donor_name_canon"] == "Big Tech Co"
+        assert result[0]["primary_attribution_source"] == "filer", (
+            "amount-weighted rollup should pick 'filer' ($80M) over "
+            "'funding_source' ($20M)"
+        )
+
+    def test_total_picks_amount_winner_regardless_of_lex_order(self, fdb_v3):
+        """Same scenario but with sources whose alphabetical MAX would
+        give the wrong answer. 'apple_source' is lex-LT 'zebra_source'
+        but carries more amount."""
+        raw = _v3_raw(fdb_v3)
+        _insert_flow(raw, flow_id=1, finance_campaign_id="PROP_A_2008",
+                     measure_db_id=2210, stance="support",
+                     receipt_type="monetary_contribution", amount=100,
+                     donor_name_canon="Anchor",
+                     attribution_source="zebra_source")
+        _insert_flow(raw, flow_id=2, finance_campaign_id="PROP_A_2010",
+                     measure_db_id=2210, stance="oppose",
+                     receipt_type="independent_expenditure", amount=10_000_000,
+                     donor_name_canon="Donor with Mixed Sources",
+                     attribution_source="apple_source")
+        _insert_flow(raw, flow_id=3, finance_campaign_id="PROP_A_2008",
+                     measure_db_id=2210, stance="oppose",
+                     receipt_type="independent_expenditure", amount=1_000,
+                     donor_name_canon="Donor with Mixed Sources",
+                     attribution_source="zebra_source")
+        raw.commit()
+
+        result = fdb_v3.get_top_donors_total(2210, stance="oppose")
+        donor_row = next(
+            r for r in result if r["donor_name_canon"] == "Donor with Mixed Sources"
+        )
+        assert donor_row["primary_attribution_source"] == "apple_source", (
+            "amount-weighted ($10M vs $1K) should beat lexicographic MAX "
+            "(which would pick 'zebra_source')"
+        )
+
+    def test_by_type_picks_amount_winner_within_type(self, fdb_v3):
+        """Codex flagged the by_type variant used MAX(attribution_source_mode)
+        which is lexicographic. The new field 'attribution_source' must
+        be amount-weighted within the receipt_type slice."""
+        raw = _v3_raw(fdb_v3)
+        # Need by-type table rows so the donor surfaces in the ranking
+        for cid, amt in [("PROP_A_2008", 80_000_000), ("PROP_A_2010", 20_000_000)]:
+            _insert_top_donor_by_type(
+                raw, finance_campaign_id=cid, measure_db_id=2220,
+                stance="oppose", receipt_type="independent_expenditure",
+                donor_name_canon="Big Tech Co", total_amount=amt,
+                attribution_source_mode="ignored_old_field",
+            )
+        _insert_flow(raw, flow_id=1, finance_campaign_id="PROP_A_2008",
+                     measure_db_id=2220, stance="oppose",
+                     receipt_type="independent_expenditure", amount=80_000_000,
+                     donor_name_canon="Big Tech Co",
+                     attribution_source="filer")
+        _insert_flow(raw, flow_id=2, finance_campaign_id="PROP_A_2010",
+                     measure_db_id=2220, stance="oppose",
+                     receipt_type="independent_expenditure", amount=20_000_000,
+                     donor_name_canon="Big Tech Co",
+                     attribution_source="funding_source")
+        raw.commit()
+
+        result = fdb_v3.get_top_donors_by_type(
+            2220, "independent_expenditure",
+        )
+        assert len(result) == 1
+        assert result[0]["attribution_source"] == "filer"
+        # Sanity: the old field name is GONE from the returned shape
+        assert "attribution_source_mode" not in result[0]
+
+
+class TestThreeCampaignCollision:
+    """Codex test gap: 2-campaign collision was covered, 3-campaign
+    wasn't. Three campaigns can stress GROUP BY behavior in ways two
+    don't (e.g. partial overlap, varying receipt_types per leg)."""
+
+    def test_summary_total_rolls_up_three_campaigns(self, fdb_v3):
+        raw = _v3_raw(fdb_v3)
+        for fid, cid, amt in [
+            (1, "PROP_A_2008", 600_000),
+            (2, "PROP_A_2010", 400_000),
+            (3, "PROP_A_2012", 200_000),
+        ]:
+            _insert_flow(raw, flow_id=fid, finance_campaign_id=cid,
+                         measure_db_id=2300, stance="oppose",
+                         receipt_type="monetary_contribution", amount=amt,
+                         donor_name_canon="Persistent Donor")
+        raw.commit()
+
+        result = fdb_v3.get_finance_summary_total(2300)
+        assert len(result) == 1, "3 campaigns must collapse to 1 row per stance"
+        assert result[0]["total_amount"] == 1_200_000.0
+
+    def test_top_donors_total_merges_donor_across_three_campaigns(self, fdb_v3):
+        raw = _v3_raw(fdb_v3)
+        for fid, cid, amt in [
+            (1, "PROP_A_2008", 1_000_000),
+            (2, "PROP_A_2010", 500_000),
+            (3, "PROP_A_2012", 250_000),
+        ]:
+            _insert_flow(raw, flow_id=fid, finance_campaign_id=cid,
+                         measure_db_id=2310, stance="oppose",
+                         receipt_type="in_kind", amount=amt,
+                         donor_name_canon="Persistent Donor")
+        raw.commit()
+
+        result = fdb_v3.get_top_donors_total(2310)
+        assert len(result) == 1
+        assert result[0]["donor_name_canon"] == "Persistent Donor"
+        assert result[0]["total_amount"] == 1_750_000.0
+
+
+class TestLimitBoundaries:
+    """Codex test gap: limit=1 (single-donor return) and limit > donor
+    count (no padding, no error)."""
+
+    def test_limit_one_returns_single_donor_per_stance(self, fdb_v3):
+        raw = _v3_raw(fdb_v3)
+        for fid, donor, amt in [
+            (1, "Top Donor", 10_000_000),
+            (2, "Middle Donor", 5_000_000),
+            (3, "Small Donor", 100_000),
+        ]:
+            _insert_flow(raw, flow_id=fid, finance_campaign_id="PROP_X_2020",
+                         measure_db_id=2400, stance="support",
+                         receipt_type="monetary_contribution", amount=amt,
+                         donor_name_canon=donor)
+        raw.commit()
+
+        result = fdb_v3.get_top_donors_total(2400, limit=1)
+        assert len(result) == 1
+        assert result[0]["donor_name_canon"] == "Top Donor"
+
+    def test_limit_larger_than_donor_count_returns_all(self, fdb_v3):
+        raw = _v3_raw(fdb_v3)
+        _insert_flow(raw, flow_id=1, finance_campaign_id="PROP_X_2020",
+                     measure_db_id=2410, stance="support",
+                     receipt_type="monetary_contribution", amount=1_000,
+                     donor_name_canon="Only Donor")
+        raw.commit()
+
+        result = fdb_v3.get_top_donors_total(2410, limit=100)
+        assert len(result) == 1, "limit > donor count returns all, no error"
+
+    def test_by_type_limit_one_per_stance(self, fdb_v3):
+        raw = _v3_raw(fdb_v3)
+        for fid, stance, donor, amt in [
+            (1, "support", "Sup Top", 1_000_000),
+            (2, "support", "Sup Mid", 500_000),
+            (3, "oppose", "Opp Top", 800_000),
+            (4, "oppose", "Opp Mid", 400_000),
+        ]:
+            _insert_flow(raw, flow_id=fid, finance_campaign_id="PROP_X_2020",
+                         measure_db_id=2420, stance=stance,
+                         receipt_type="monetary_contribution", amount=amt,
+                         donor_name_canon=donor)
+            _insert_top_donor_by_type(
+                raw, finance_campaign_id="PROP_X_2020", measure_db_id=2420,
+                stance=stance, receipt_type="monetary_contribution",
+                donor_name_canon=donor, total_amount=amt,
+            )
+        raw.commit()
+
+        result = fdb_v3.get_top_donors_by_type(
+            2420, "monetary_contribution", limit=1,
+        )
+        # One donor per stance — partition is by stance, so limit=1 gives
+        # 2 rows (one per side).
+        assert len(result) == 2
+        donors = {(r["stance"], r["donor_name_canon"]) for r in result}
+        assert donors == {("support", "Sup Top"), ("oppose", "Opp Top")}
+
+
+class TestMeasureGuardDefenseInDepth:
+    """Codex finding C: even though no campaign currently spans multiple
+    measure_db_ids, the rollup queries should guard against future drift
+    by explicitly filtering on measure_db_id alongside finance_campaign_id."""
+
+    def test_cross_measure_flow_with_shared_campaign_id_is_excluded(self, fdb_v3):
+        """Inject a row with the same finance_campaign_id but a DIFFERENT
+        measure_db_id. The guard must exclude it from the rollup for
+        either measure."""
+        raw = _v3_raw(fdb_v3)
+        _insert_flow(raw, flow_id=1, finance_campaign_id="SHARED_CID",
+                     measure_db_id=2500, stance="support",
+                     receipt_type="monetary_contribution", amount=1_000,
+                     donor_name_canon="Legit Donor")
+        _insert_flow(raw, flow_id=2, finance_campaign_id="SHARED_CID",
+                     measure_db_id=2999, stance="support",
+                     receipt_type="monetary_contribution", amount=999_999,
+                     donor_name_canon="Other Measure's Donor")
+        raw.commit()
+
+        result = fdb_v3.get_finance_summary_total(2500)
+        assert len(result) == 1
+        assert result[0]["total_amount"] == 1_000.0, (
+            "rollup must not leak the other-measure row even though it "
+            "shares finance_campaign_id"
+        )
+        donors = fdb_v3.get_top_donors_total(2500)
+        donor_names = {d["donor_name_canon"] for d in donors}
+        assert donor_names == {"Legit Donor"}
+
+
+class TestAcceptedRowNullDonorInvariant:
+    """Codex test gap: ingest acceptance gates should reject any row with
+    NULL donor_name_canon. This test documents the expected invariant —
+    if a NULL ever slips through, the v3 read methods must not crash on
+    it, even if the row is filtered (or surfaces with None handling)."""
+
+    def test_null_donor_canon_does_not_crash(self, fdb_v3):
+        """Even though accepted rows shouldn't have NULL donor_name_canon,
+        the read methods must not crash if one ever surfaces."""
+        raw = _v3_raw(fdb_v3)
+        _insert_flow(raw, flow_id=1, finance_campaign_id="PROP_X_2020",
+                     measure_db_id=2600, stance="support",
+                     receipt_type="monetary_contribution", amount=1_000,
+                     donor_name_canon=None)
+        _insert_flow(raw, flow_id=2, finance_campaign_id="PROP_X_2020",
+                     measure_db_id=2600, stance="support",
+                     receipt_type="monetary_contribution", amount=500,
+                     donor_name_canon="Real Donor")
+        raw.commit()
+
+        # Should not raise. Sum still reflects both rows (NULL donor still
+        # contributes to amount).
+        summary = fdb_v3.get_finance_summary_total(2600)
+        assert len(summary) == 1
+        assert summary[0]["total_amount"] == 1_500.0
+        # Top-donors output may include or exclude the NULL row; we just
+        # require it not to crash and to surface the Real Donor.
+        top = fdb_v3.get_top_donors_total(2600)
+        real_donor = next(
+            (d for d in top if d["donor_name_canon"] == "Real Donor"), None,
+        )
+        assert real_donor is not None
