@@ -995,6 +995,272 @@ class FinanceDatabase:
             if r["year"] is not None
         ]
 
+    # ---- Combined v2 (monetary) + v3 (loans + in-kind + IE) ---------------
+    # These methods stitch the v2 monetary slice onto the v3 expanded
+    # slice so the UI sees one coherent total per measure. v3 currently
+    # doesn't ingest monetary contributions (those still live in v2 only);
+    # once a v3 monetary ingest lands, these methods can collapse into
+    # their underlying v3 counterparts. The split is hidden from
+    # consumers — they always call get_combined_*.
+    # -----------------------------------------------------------------------
+
+    def get_combined_summary(self, measure_db_id: int) -> List[Dict]:
+        """Per-stance totals across MONETARY (v2) + LOAN + IN-KIND + IE
+        (v3). Each row: {stance, total_receipts, n_committees,
+        n_transactions, top5_share, hhi, monetary_amount,
+        non_monetary_amount}. top5_share / hhi recomputed against the
+        merged donor list. n_committees is best-effort sum (may
+        double-count committees that file across v2 and v3).
+        """
+        v2_rollup = self.aggregate_for_measure(measure_db_id, donor_limit=10_000)
+        v3_summary = self.get_finance_summary_total(measure_db_id)
+
+        # Index by stance
+        v2_by_stance = {}
+        if v2_rollup:
+            for r in v2_rollup["summary"]:
+                v2_by_stance[r["stance"]] = r
+        v3_by_stance = {r["stance"]: r for r in v3_summary}
+
+        # Merged donor list per stance for top5/hhi recompute.
+        # We pull "all donors" via aggregate_for_measure with a huge
+        # donor_limit and v3's top_donors_total with a high limit too.
+        v3_donors_full = self.get_top_donors_total(measure_db_id, limit=10_000)
+        donors_by_stance: Dict[str, Dict[str, float]] = defaultdict(dict)
+        if v2_rollup:
+            for d in v2_rollup["donors"]:
+                donors_by_stance[d["stance"]][d["donor_name_canon"]] = (
+                    donors_by_stance[d["stance"]].get(d["donor_name_canon"], 0.0)
+                    + float(d["total_amount"] or 0)
+                )
+        for d in v3_donors_full:
+            donors_by_stance[d["stance"]][d["donor_name_canon"]] = (
+                donors_by_stance[d["stance"]].get(d["donor_name_canon"], 0.0)
+                + float(d["total_amount"] or 0)
+            )
+        # Sort merged lists by amount desc for top5/hhi recompute.
+        donors_sorted: Dict[str, List[Dict]] = {}
+        for stance, dmap in donors_by_stance.items():
+            donors_sorted[stance] = sorted(
+                ({"donor_name_canon": n, "total_amount": a}
+                 for n, a in dmap.items()),
+                key=lambda d: (-d["total_amount"], d["donor_name_canon"]),
+            )
+
+        all_stances = sorted(set(v2_by_stance) | set(v3_by_stance))
+        out: List[Dict] = []
+        for stance in all_stances:
+            v2 = v2_by_stance.get(stance) or {}
+            v3 = v3_by_stance.get(stance) or {}
+            monetary = float(v2.get("total_receipts") or 0)
+            non_monetary = float(v3.get("total_amount") or 0)
+            total = monetary + non_monetary
+            n_committees = (
+                int(v2.get("n_committees") or 0)
+                + (int(v3["n_committees"]) if v3.get("n_committees") else 0)
+            ) or None
+            n_transactions = (v3.get("n_transactions") or None)
+            top5_share, hhi = self._recompute_top5_hhi(
+                total, donors_sorted.get(stance, [])
+            )
+            out.append({
+                "stance": stance,
+                "total_receipts": round(total, 2),
+                "monetary_amount": round(monetary, 2),
+                "non_monetary_amount": round(non_monetary, 2),
+                "n_committees": n_committees,
+                "n_transactions": n_transactions,
+                "top5_share": top5_share,
+                "hhi": hhi,
+            })
+        return out
+
+    def get_combined_breakdown_by_type(self, measure_db_id: int) -> List[Dict]:
+        """Per-stance, per-receipt-type breakdown. Adds 'monetary_contribution'
+        rows synthesized from v2 in front of the v3 by-type rows.
+
+        Each row: {stance, receipt_type, total_amount, n_committees,
+                   n_transactions}
+        receipt_type ∈ {monetary_contribution, loan, in_kind,
+                        independent_expenditure}
+        top5_share / hhi intentionally omitted at the per-type level —
+        the UI shows breakdown for orientation, not for concentration
+        analysis (the per-stance get_combined_summary carries those).
+        """
+        v3_rows = self.get_finance_breakdown_by_type(measure_db_id)
+        v2_rollup = self.aggregate_for_measure(measure_db_id)
+        out: List[Dict] = []
+        if v2_rollup:
+            for s in v2_rollup["summary"]:
+                if not s.get("total_receipts"):
+                    continue
+                out.append({
+                    "stance": s["stance"],
+                    "receipt_type": "monetary_contribution",
+                    "total_amount": round(float(s["total_receipts"]), 2),
+                    "n_committees": int(s.get("n_committees") or 0) or None,
+                    "n_transactions": None,
+                })
+        for r in v3_rows:
+            out.append({
+                "stance": r["stance"],
+                "receipt_type": r["receipt_type"],
+                "total_amount": round(float(r["total_amount"]), 2),
+                "n_committees": r.get("n_committees"),
+                "n_transactions": r.get("n_transactions"),
+            })
+        out.sort(key=lambda x: (x["stance"], x["receipt_type"]))
+        return out
+
+    def get_combined_top_donors(
+        self,
+        measure_db_id: int,
+        *,
+        stance: Optional[str] = None,
+        limit: int = 10,
+    ) -> List[Dict]:
+        """Top-N donors per stance, merging v2 monetary + v3 sources by
+        donor_name_canon. Re-ranks by combined total within stance.
+
+        Each row: {stance, donor_name_canon, donor_type, donor_sector,
+                   total_amount, flow_types}
+        donor_sector resolved at query time.
+        """
+        # Pull a large slice from each side so the merge doesn't lose
+        # donors that ranked low individually but pop on combined total.
+        v2_top = self.get_top_donors(
+            self.resolve_campaign(measure_db_id=measure_db_id) or "",
+            limit=10_000,
+        ) if False else []
+        # v2 get_top_donors keys on finance_campaign_id; for multi-
+        # campaign measures use aggregate_for_measure which merges.
+        v2_rollup = self.aggregate_for_measure(measure_db_id, donor_limit=10_000)
+        if v2_rollup:
+            v2_top = v2_rollup["donors"]
+        v3_top = self.get_top_donors_total(measure_db_id, limit=10_000)
+
+        # Merge per (stance, donor_name_canon).
+        merged: Dict[tuple, Dict] = {}
+        for d in v2_top:
+            key = (d["stance"], d["donor_name_canon"])
+            entry = merged.setdefault(key, {
+                "stance": d["stance"],
+                "donor_name_canon": d["donor_name_canon"],
+                "donor_type": d.get("donor_type"),
+                "total_amount": 0.0,
+                "flow_types": set(),
+            })
+            entry["total_amount"] += float(d.get("total_amount") or 0)
+            entry["flow_types"].add("monetary_contribution")
+        for d in v3_top:
+            key = (d["stance"], d["donor_name_canon"])
+            entry = merged.setdefault(key, {
+                "stance": d["stance"],
+                "donor_name_canon": d["donor_name_canon"],
+                "donor_type": d.get("donor_type"),
+                "total_amount": 0.0,
+                "flow_types": set(),
+            })
+            entry["total_amount"] += float(d.get("total_amount") or 0)
+            if entry["donor_type"] is None:
+                entry["donor_type"] = d.get("donor_type")
+            for ft in d.get("flow_types", []):
+                entry["flow_types"].add(ft)
+
+        # Per-stance ranking + limit
+        by_stance: Dict[str, List[Dict]] = defaultdict(list)
+        for entry in merged.values():
+            by_stance[entry["stance"]].append(entry)
+        stances = [stance] if stance is not None else sorted(by_stance.keys())
+        out: List[Dict] = []
+        for s in stances:
+            ranked = sorted(
+                by_stance.get(s, []),
+                key=lambda d: (
+                    -d["total_amount"],
+                    d["donor_name_canon"] is None,
+                    d["donor_name_canon"] or "",
+                ),
+            )[:limit]
+            for d in ranked:
+                out.append({
+                    "stance": d["stance"],
+                    "donor_name_canon": d["donor_name_canon"],
+                    "donor_type": d["donor_type"],
+                    "donor_sector": get_donor_sector(d["donor_name_canon"]),
+                    "total_amount": round(d["total_amount"], 2),
+                    "flow_types": sorted(d["flow_types"]),
+                })
+        return out
+
+    def get_combined_timeline(self, measure_db_id: int) -> List[Dict]:
+        """Merge v2 weekly + v3 weekly per (stance, week_start), sum,
+        recompute cumulative per stance. Each row:
+        {stance, week_start, weekly_receipts, cumulative_receipts}
+        """
+        v2_rollup = self.aggregate_for_measure(measure_db_id)
+        v2_timeline = v2_rollup["timeline"] if v2_rollup else []
+        v3_timeline = self.get_finance_timeline_total(measure_db_id)
+
+        weekly: Dict[tuple, float] = defaultdict(float)
+        for r in v2_timeline:
+            weekly[(r["stance"], r["week_start"])] += float(
+                r.get("weekly_receipts") or 0
+            )
+        for r in v3_timeline:
+            weekly[(r["stance"], r["week_start"])] += float(
+                r.get("weekly_amount") or 0
+            )
+
+        # Sort and recompute cumulative per stance.
+        rows_sorted = sorted(weekly.items(), key=lambda kv: (kv[0][0], kv[0][1]))
+        cumulative: Dict[str, float] = defaultdict(float)
+        out: List[Dict] = []
+        for (stance, week), amt in rows_sorted:
+            cumulative[stance] += amt
+            out.append({
+                "stance": stance,
+                "week_start": week,
+                "weekly_receipts": round(amt, 2),
+                "cumulative_receipts": round(cumulative[stance], 2),
+            })
+        return out
+
+    def get_combined_calendar_year_receipts(self) -> List[Dict]:
+        """Cross-measure spending arc, merged v2 monetary + v3
+        (loans+in-kind+IE) by year. Each row:
+        {year, total_receipts, n_measures}
+        """
+        v2_rows = self.get_calendar_year_receipts()
+        v3_rows = self.get_calendar_year_receipts_v3()
+        merged: Dict[int, Dict] = {}
+        for r in v2_rows:
+            merged.setdefault(r["year"], {
+                "year": r["year"], "total": 0.0, "measures": set(),
+            })
+            merged[r["year"]]["total"] += float(r.get("total_receipts") or 0)
+            # v2 doesn't expose the measure set per year, just count; we
+            # approximate by storing the COUNT-as-set placeholder. Best
+            # effort: take MAX(v2_count, v3_count) for n_measures (since
+            # the actual sets likely overlap heavily).
+            merged[r["year"]]["v2_count"] = int(r.get("n_measures") or 0)
+        for r in v3_rows:
+            entry = merged.setdefault(r["year"], {
+                "year": r["year"], "total": 0.0, "measures": set(), "v2_count": 0,
+            })
+            entry["total"] += float(r.get("total_amount") or 0)
+            entry["v3_count"] = int(r.get("n_measures") or 0)
+        return [
+            {
+                "year": e["year"],
+                "total_receipts": round(e["total"], 2),
+                "n_measures": max(
+                    e.get("v2_count", 0), e.get("v3_count", 0)
+                ),
+            }
+            for e in sorted(merged.values(), key=lambda x: x["year"])
+        ]
+
 
 # ---------------------------------------------------------------------------
 # Convenience wrappers for callers that historically passed a measure dict.

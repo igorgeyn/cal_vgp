@@ -380,44 +380,80 @@ class WebsiteGenerator:
         src/finance/operations.py for the merge semantics.
         """
         try:
-            from src.finance.schema import FINANCE_DB_PATH
+            from src.finance.schema import FINANCE_DB_PATH, FINANCE_DB_V3_PATH
             from src.finance.operations import FinanceDatabase
         except ImportError:
             logger.info("Finance module not available, skipping finance data")
             return {}
 
         if not FINANCE_DB_PATH.exists():
-            logger.info("Finance DB not found, skipping finance data")
+            logger.info("Finance v2 DB not found, skipping finance data")
+            return {}
+        if not FINANCE_DB_V3_PATH.exists():
+            logger.info("Finance v3 DB not found, skipping finance data")
             return {}
 
         try:
             fdb = FinanceDatabase(FINANCE_DB_PATH)
-            # Collect distinct measure_db_ids across all matched campaigns,
-            # then aggregate per measure. The output is keyed on
-            # str(measure_db_id) so the client-side lookup
-            # `financeData[String(measure.id)]` resolves cleanly.
+            # v2's finance_campaign table is still the source of truth for
+            # which measure_db_ids have *any* matched finance campaigns —
+            # v3 inherits these via the crosswalk. Iterate over those, then
+            # pull v3 totals/breakdown/donors/timeline per measure.
             seen_measure_ids: set = set()
+            all_campaign_ids_by_measure: Dict[int, list] = {}
             for campaign in fdb.get_all_campaigns():
                 mid = campaign.get("measure_db_id")
                 if mid is not None:
-                    seen_measure_ids.add(int(mid))
+                    mid_int = int(mid)
+                    seen_measure_ids.add(mid_int)
+                    all_campaign_ids_by_measure.setdefault(mid_int, []).append(
+                        campaign["finance_campaign_id"]
+                    )
             result: Dict[str, Dict] = {}
             for mid in seen_measure_ids:
-                rollup = fdb.aggregate_for_measure(mid, donor_limit=20)
-                if not rollup:
+                summary_combined = fdb.get_combined_summary(mid)
+                if not summary_combined:
+                    # No money at all for this measure (rare — would mean
+                    # v2 monetary AND v3 flows were both empty / all
+                    # quarantined). Skip rather than emit an empty card.
                     continue
+                donors_combined = fdb.get_combined_top_donors(mid, limit=20)
+                timeline_combined = fdb.get_combined_timeline(mid)
+                breakdown_combined = fdb.get_combined_breakdown_by_type(mid)
+                cids = sorted(all_campaign_ids_by_measure.get(mid, []))
+                # The embedded JS modal template expects v2-style field
+                # names (total_receipts, weekly_receipts, cumulative_receipts,
+                # n_committees as int). The combined methods already use
+                # those names; we just emit 0 for None n_committees to
+                # keep the existing template's `!== 1` falsy test stable.
+                summary = [
+                    {
+                        "stance": r["stance"],
+                        "total_receipts": r["total_receipts"],
+                        "monetary_amount": r["monetary_amount"],
+                        "non_monetary_amount": r["non_monetary_amount"],
+                        "n_committees": r["n_committees"] or 0,
+                        "top5_share": r["top5_share"],
+                        "hhi": r["hhi"],
+                    }
+                    for r in summary_combined
+                ]
                 result[str(mid)] = {
-                    "finance_campaign_id": rollup["finance_campaign_id"],
-                    "all_campaign_ids": rollup["all_campaign_ids"],
-                    "summary": rollup["summary"],
-                    "donors": rollup["donors"],
-                    "timeline": rollup["timeline"],
-                    "breakdown": rollup["breakdown"],
+                    "finance_campaign_id": cids[0] if cids else None,
+                    "all_campaign_ids": cids,
+                    "summary": summary,
+                    "donors": donors_combined,
+                    "timeline": timeline_combined,
+                    # Per-receipt-type breakdown: monetary_contribution
+                    # (from v2) + loan / in_kind / independent_expenditure
+                    # (from v3). New panel the modal MAY render; current
+                    # modal JS ignores it.
+                    "breakdown_by_type": breakdown_combined,
                 }
             fdb.close()
             logger.info(
-                f"Loaded finance data for {len(result)} measures "
-                f"(rolled up from {sum(len(r['all_campaign_ids']) for r in result.values())} campaigns)"
+                f"Loaded v3 finance data for {len(result)} measures "
+                f"(across {sum(len(r['all_campaign_ids']) for r in result.values())} campaigns)"
             )
             return result
         except Exception as e:
@@ -896,9 +932,9 @@ class WebsiteGenerator:
                             <div id="financeMarqueeFights" class="finance-marquee-grid"></div>
                         </section>
 
-                        <p class="finance-bridge">Money matters but isn&rsquo;t decisive: the better-funded side wins about 65% of the time and loses the other 35%. And this is the visible top of the iceberg &mdash; California&rsquo;s local ballot has tens of thousands of measures with no comparable donor data.</p>
+                        <p class="finance-bridge">Money matters but isn&rsquo;t decisive: across all reportable spending (direct receipts, in-kind, loans, and independent expenditures), the better-funded side wins about 65% of the time and loses the other 35%. And this is the visible top of the iceberg &mdash; California&rsquo;s local ballot has tens of thousands of measures with no comparable donor data.</p>
 
-                        <p class="method-note">Method: receipts include itemized monetary contributions to recipient committees tagged with the prop&rsquo;s CAL-ACCESS ballot number. Independent expenditures, in-kind contributions, loans, and contributions to untagged side-committees are not captured &mdash; our totals therefore run lower than press citations (e.g. Ballotpedia) that combine those scopes. We measure verifiable monetary inflow to the official committees, not total campaign spending. Per-(prop_num, election_year) aggregates from finance_statewide_v2.db (rebuilt 2026-05-12 with row-level date hygiene, cross-filing exact-row dedupe on (committee, donor, date, amount), and minimal donor alias normalization). The spending-arc chart offers two lenses: election-cycle (totals per measure&rsquo;s actual election year, the substantive frame for ballot-measure campaigns) and calendar-year (totals per Monday-of-week bucket of accepted weekly receipts, useful for cash-flow timing). The calendar view groups boundary weeks by their week-start year, so a transaction in the week of 2007-12-31 is attributed to 2007 even though it&rsquo;s for the 2008 cycle. Donor lists aggregate the per-campaign top-20 reports, not all transactions &mdash; a donor below the top-20 cutoff in every campaign won&rsquo;t appear here. Sector labels are hand-curated for prominent visible donors; unlabeled donors are not assigned a sector. Donor canonicalization is partial; some entities still appear under multiple legal-entity variants.</p>
+                        <p class="method-note">Method: totals now combine four scopes of reportable money: (1) itemized monetary contributions to recipient committees tagged with the prop&rsquo;s CAL-ACCESS ballot number, (2) loans received by those committees, (3) in-kind contributions reported on Form 460 Schedule C, and (4) independent expenditures (Form 461 / 465 / S496 filings) advocating for or against the measure. Contributions to untagged side-committees and Schedule E party-passthrough expenditures are still excluded. Our totals now approximate (but typically run somewhat below) press citations like Ballotpedia, since methodology decisions on attribution remain conservative. Combined aggregates draw from finance_statewide_v2.db (monetary) and finance_statewide_v3.db (loans + in-kind + IE), with the v3 attribution layer applying field-specific ambiguity rejection (AG queue IDs, multi-prop separators, regional/local measures) and post-ingest cross-source dedup. The spending-arc chart offers two lenses: election-cycle (totals per measure&rsquo;s actual election year, the substantive frame for ballot-measure campaigns) and calendar-year (totals per Monday-of-week bucket, useful for cash-flow timing). The calendar view groups boundary weeks by their week-start year, so a transaction in the week of 2007-12-31 is attributed to 2007 even though it&rsquo;s for the 2008 cycle. Donor lists aggregate across all four receipt types per donor; sector labels are hand-curated for prominent visible donors. Donor canonicalization is partial; some entities still appear under multiple legal-entity variants across v2 and v3.</p>
                     </article>
 
                 <details class="insights-methodology insights-carousel-slide insights-anchor-target" id="insightsMethodologySection">
@@ -10882,7 +10918,8 @@ class WebsiteGenerator:
                     <h3><span class="kf-num">3</span>Campaign money matters &mdash; but it is not destiny.</h3>
                     <p>
                         The finance database links ${{formatInsightNumber(finance.measure_count)}} statewide propositions to
-                        ${{fmtMoneyB(finance.total_receipts)}} in committee receipts. The better-funded side won
+                        ${{fmtMoneyB(finance.total_receipts)}} in combined reportable spending (direct receipts, in-kind, loans, and independent expenditures).
+                        The better-funded side won
                         ${{formatInsightNumber(finance.better_funded_won)}} of those races, or ${{formatInsightPct(finance.better_funded_win_rate)}}
                         &mdash; meaningful, but a long way from determinative. Recent better-funded campaigns that lost include some of
                         the largest contests in the dataset:

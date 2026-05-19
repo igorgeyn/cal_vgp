@@ -780,8 +780,17 @@ async def search_historical_measures(
 
 class FinanceSideResponse(BaseModel):
     stance: str
+    # Combined: v2 monetary + v3 loan + in-kind + IE.
     total_receipts: float
-    n_committees: int
+    # Split for transparency: how much of the total came from each
+    # source. monetary_amount is direct contributions to committees;
+    # non_monetary_amount lumps loans + in-kind + IE.
+    monetary_amount: float
+    non_monetary_amount: float
+    # Optional because the count is best-effort across two data sources
+    # and may not be defined for v3-only slices.
+    n_committees: Optional[int]
+    n_transactions: Optional[int]
     top5_share: Optional[float]
     hhi: Optional[float]
 
@@ -790,6 +799,7 @@ class FinanceSummaryResponse(BaseModel):
     sides: List[FinanceSideResponse]
 
 class FinanceTimelineEntry(BaseModel):
+    stance: str
     week_start: str
     weekly_receipts: float
     cumulative_receipts: float
@@ -804,6 +814,8 @@ class FinanceDonorEntry(BaseModel):
     donor_type: Optional[str]
     donor_sector: Optional[str]
     total_amount: float
+    # Receipt types this donor's money flowed through (combined view).
+    flow_types: Optional[List[str]] = None
 
 class FinanceTopDonorsResponse(BaseModel):
     measure_id: str
@@ -811,9 +823,13 @@ class FinanceTopDonorsResponse(BaseModel):
     oppose: List[FinanceDonorEntry]
 
 
-def _resolve_finance_campaign(measure_id: str, year: Optional[int]) -> str:
-    """Resolve a (measure_id, year) URL pair to a finance_campaign_id.
-    Raises HTTPException if disabled, unavailable, ambiguous, or not found."""
+def _resolve_finance_measure_db_id(measure_id: str, year: Optional[int]) -> int:
+    """Resolve a (measure_id, year) URL pair to a v3 measure_db_id.
+    Goes through v2's resolve_campaign (which already understands the
+    crosswalk + collision semantics), then pulls measure_db_id from
+    finance_campaign metadata. Raises HTTPException on disabled,
+    unavailable, ambiguous, or not-found cases.
+    """
     if FINANCE_DISABLED_PENDING_REBUILD:
         raise HTTPException(status_code=503, detail="Finance data temporarily unavailable: rebuild in progress.")
     if not FINANCE_AVAILABLE or not finance_db:
@@ -824,7 +840,10 @@ def _resolve_finance_campaign(measure_id: str, year: Optional[int]) -> str:
         raise HTTPException(status_code=400, detail=str(e))
     if not cid:
         raise HTTPException(status_code=404, detail=f"No finance campaign for {measure_id} ({year or 'any year'})")
-    return cid
+    meta = finance_db.get_campaign_metadata(cid)
+    if not meta or meta.get("measure_db_id") is None:
+        raise HTTPException(status_code=404, detail=f"No measure_db_id for {cid}")
+    return int(meta["measure_db_id"])
 
 
 @app.get("/api/measure/{measure_id}/finance_summary", response_model=FinanceSummaryResponse, tags=["Finance"])
@@ -832,12 +851,14 @@ async def get_finance_summary(
     measure_id: str = PathParam(..., description="Measure ID (e.g., PROP_36)"),
     year: Optional[int] = None,
 ):
-    """Get campaign finance summary for a statewide proposition. Optional `year`
-    query param disambiguates measure_ids reused across cycles (e.g. PROP_1)."""
-    cid = _resolve_finance_campaign(measure_id, year)
-    rows = finance_db.get_finance_summary(cid)
+    """Campaign finance summary across all receipt types (monetary
+    contributions + loans + in-kind + independent expenditures).
+    monetary_amount is sourced from v2; non_monetary_amount from v3.
+    Optional `year` disambiguates measure_ids reused across cycles."""
+    mid = _resolve_finance_measure_db_id(measure_id, year)
+    rows = finance_db.get_combined_summary(mid)
     if not rows:
-        raise HTTPException(status_code=404, detail=f"No finance data for {cid}")
+        raise HTTPException(status_code=404, detail=f"No finance data for measure_db_id={mid}")
     return FinanceSummaryResponse(measure_id=measure_id, sides=[FinanceSideResponse(**r) for r in rows])
 
 
@@ -846,11 +867,12 @@ async def get_finance_timeline(
     measure_id: str = PathParam(..., description="Measure ID (e.g., PROP_36)"),
     year: Optional[int] = None,
 ):
-    """Get weekly fundraising timeline for a statewide proposition."""
-    cid = _resolve_finance_campaign(measure_id, year)
-    rows = finance_db.get_finance_timeline(cid)
+    """Weekly + cumulative receipts timeline, combined across all
+    receipt types."""
+    mid = _resolve_finance_measure_db_id(measure_id, year)
+    rows = finance_db.get_combined_timeline(mid)
     if not rows:
-        raise HTTPException(status_code=404, detail=f"No finance data for {cid}")
+        raise HTTPException(status_code=404, detail=f"No finance data for measure_db_id={mid}")
     support = [FinanceTimelineEntry(**r) for r in rows if r["stance"] == "support"]
     oppose = [FinanceTimelineEntry(**r) for r in rows if r["stance"] == "oppose"]
     return FinanceTimelineResponse(measure_id=measure_id, support=support, oppose=oppose)
@@ -861,19 +883,19 @@ async def get_finance_top_donors(
     measure_id: str = PathParam(..., description="Measure ID (e.g., PROP_36)"),
     year: Optional[int] = None,
 ):
-    """Get top donors for a statewide proposition."""
-    cid = _resolve_finance_campaign(measure_id, year)
-    rows = finance_db.get_top_donors(cid)
+    """Top donors across all receipt types, ranked per stance with
+    combined v2 + v3 totals. donor_sector resolved at query time."""
+    mid = _resolve_finance_measure_db_id(measure_id, year)
+    rows = finance_db.get_combined_top_donors(mid)
     if not rows:
-        raise HTTPException(status_code=404, detail=f"No finance data for {cid}")
-    # `get_top_donors` attaches donor_sector per row from the hand-curated
-    # lookup in src/finance/donor_sectors.py; None for unclassified donors.
+        raise HTTPException(status_code=404, detail=f"No finance data for measure_db_id={mid}")
     support = [
         FinanceDonorEntry(
             donor_name=r["donor_name_canon"],
             donor_type=r["donor_type"],
             donor_sector=r.get("donor_sector"),
             total_amount=r["total_amount"],
+            flow_types=r.get("flow_types"),
         )
         for r in rows if r["stance"] == "support"
     ]
@@ -883,6 +905,7 @@ async def get_finance_top_donors(
             donor_type=r["donor_type"],
             donor_sector=r.get("donor_sector"),
             total_amount=r["total_amount"],
+            flow_types=r.get("flow_types"),
         )
         for r in rows if r["stance"] == "oppose"
     ]

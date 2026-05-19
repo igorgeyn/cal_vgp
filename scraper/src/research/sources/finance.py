@@ -1,18 +1,15 @@
 """
 Campaign finance source — pulls real proponent/opponent committees and top
-donors from finance_statewide_v2.db (CAL-ACCESS data, year-scoped by
-finance_campaign_id) for the synthesis prompt.
+donors from the combined v2 (monetary contributions) + v3 (loans + in-kind
++ independent expenditures) databases for the synthesis prompt.
 
 Covers statewide propositions only. The briefing spec requires real names
 (not 'Not yet available') and named donors when available; this is the
 data path that makes that requirement satisfiable for statewide measures
 without scraping anything per-measure.
 
-Uses FinanceDatabase.aggregate_for_measure(measure_db_id) so the briefing
-sees the full measure-level picture rather than just one of the campaigns
-linked to that measure — important for Bucket A year-offset recoveries
-where on-cycle + late-filing money are split across two finance_campaign_id
-rows that both point at the same measure_db_id.
+Uses FinanceDatabase.get_combined_summary + get_combined_top_donors — both
+key on measure_db_id and stitch v2 + v3 sources internally.
 """
 import logging
 from typing import Dict, Optional
@@ -29,7 +26,7 @@ def get_finance_facts(measure: Dict) -> Optional[Dict]:
     synthesis prompt:
 
         {
-          'source': 'CAL-ACCESS Campaign Finance',
+          'source': 'CAL-ACCESS Campaign Finance (combined v2 monetary + v3 non-monetary)',
           'extracted': {
             'support_summary': '...',
             'support_top_donors': '...',
@@ -38,7 +35,7 @@ def get_finance_facts(measure: Dict) -> Optional[Dict]:
           }
         }
     """
-    # Statewide-only — local measures aren't in finance_statewide_v2.db
+    # Statewide-only — local measures aren't in the finance databases
     if (measure.get('county') or '').strip().lower() != 'statewide':
         return None
 
@@ -54,17 +51,10 @@ def get_finance_facts(measure: Dict) -> Optional[Dict]:
 
     db = FinanceDatabase()
     try:
-        # Roll up all matched campaigns for this measure (handles Bucket A
-        # year-offset collisions where on-cycle + late-filing money sit
-        # under separate finance_campaign_id rows linked to the same
-        # measure_db_id).
-        rollup = db.aggregate_for_measure(int(measure_db_id), donor_limit=10)
-        if not rollup:
-            return None
-        summary_rows = rollup['summary']
+        summary_rows = db.get_combined_summary(int(measure_db_id))
         if not summary_rows:
             return None
-        top_donors = rollup['donors']
+        top_donors = db.get_combined_top_donors(int(measure_db_id), limit=10)
     finally:
         db.close()
 
@@ -82,16 +72,26 @@ def get_finance_facts(measure: Dict) -> Optional[Dict]:
     ):
         s = summary_by_stance.get(stance)
         if s:
-            total = s['total_receipts'] or 0
-            n_comm = s['n_committees'] or 0
+            total = s.get('total_receipts') or 0
+            monetary = s.get('monetary_amount') or 0
+            non_monetary = s.get('non_monetary_amount') or 0
+            n_comm = s.get('n_committees')
             top5 = s.get('top5_share')
             hhi = s.get('hhi')
-            line = (
-                f"{label} side: {n_comm} committee(s), "
-                f"${total:,.0f} total receipts."
-            )
+            # Lead with the headline total, then break down the
+            # monetary vs non-monetary split for transparency.
+            line = f"{label} side: ${total:,.0f} total reportable money"
+            if monetary > 0 and non_monetary > 0:
+                line += (
+                    f" (${monetary:,.0f} direct receipts "
+                    f"+ ${non_monetary:,.0f} loans/in-kind/IE)."
+                )
+            else:
+                line += "."
+            if n_comm:
+                line += f" {n_comm} committee(s)/filer(s)."
             if top5 is not None:
-                line += f" Top 5 donors = {top5:.0f}% of receipts."
+                line += f" Top 5 donors = {top5:.0f}% of total."
             if hhi is not None:
                 # HHI ranges 0-10000. >2500 is highly concentrated.
                 concentration = (
@@ -119,6 +119,6 @@ def get_finance_facts(measure: Dict) -> Optional[Dict]:
         return None
 
     return {
-        'source': 'CAL-ACCESS Campaign Finance',
+        'source': 'CAL-ACCESS Campaign Finance (combined v2 monetary + v3 non-monetary)',
         'extracted': extracted,
     }

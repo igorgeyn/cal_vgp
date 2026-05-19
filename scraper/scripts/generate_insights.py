@@ -19,7 +19,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from src.config import DB_PATH, DATA_DIR
 from src.finance.donor_sectors import get_donor_sector
-from src.finance.schema import FINANCE_DB_PATH
+from src.finance.schema import FINANCE_DB_PATH, FINANCE_DB_V3_PATH
 from src.utils.category_type_mapping import get_display_category_type
 from src.utils.regions import CA_REGIONS, get_region_for_county
 from src.utils.topic_mapping import get_display_topic
@@ -1042,41 +1042,43 @@ def build_close_call_insights(measures, margin_stats):
 
 
 def build_finance_insights(measures_by_db_id):
-    """Build cross-campaign finance aggregates from the v2 finance DB.
+    """Build cross-measure finance aggregates from the v3 finance DB.
 
-    Each campaign is a (prop_num, election_year) pair; measure metadata is
-    looked up by `measure_db_id` (FK in finance_campaign). The bare measure_id
-    is no longer used as a key — bypassing the v1 cross-cycle contamination.
+    v3 scope: monetary contributions + loans + in-kind + independent
+    expenditures. One entry per measure_db_id (year-offset collisions
+    are rolled up via the v3 read methods, so multi-campaign measures
+    like PROP_4 / PROP_27 surface once with merged totals).
+
+    insights.json field names (`total_receipts`, `support_receipts`,
+    etc.) are kept historically-named for JS-template stability; their
+    semantics now reflect v3's broader scope. The methodology copy in
+    the panel documents the change.
     """
     if not FINANCE_DB_PATH.exists():
         return {"available": False, "reason": "finance_statewide_v2.db not found"}
+    if not FINANCE_DB_V3_PATH.exists():
+        return {"available": False, "reason": "finance_statewide_v3.db not found"}
 
-    conn = sqlite3.connect(str(FINANCE_DB_PATH))
-    conn.row_factory = sqlite3.Row
-    rows = conn.execute(
-        """
-        SELECT s.finance_campaign_id, s.stance, s.total_receipts,
-               s.n_committees, s.top5_share, s.hhi,
-               c.election_year, c.measure_db_id, c.measure_id
-        FROM finance_summary s
-        JOIN finance_campaign c USING (finance_campaign_id)
-        WHERE c.status = 'matched'
-        """
-    ).fetchall()
-    conn.close()
+    from src.finance.operations import FinanceDatabase  # local import for testability
+    fdb = FinanceDatabase(FINANCE_DB_PATH)
 
-    by_campaign = defaultdict(lambda: {"meta": None, "sides": {}})
-    for row in rows:
-        rec = dict(row)
-        cid = rec["finance_campaign_id"]
-        if by_campaign[cid]["meta"] is None:
-            by_campaign[cid]["meta"] = {
-                "finance_campaign_id": cid,
-                "election_year": rec.get("election_year"),
-                "measure_db_id": rec.get("measure_db_id"),
-                "measure_id": rec.get("measure_id"),
-            }
-        by_campaign[cid]["sides"][rec["stance"]] = rec
+    # Enumerate measure_db_ids that have any matched campaign in v2's
+    # crosswalk — these are the measures with potential v3 flows. (v3
+    # inherits v2's crosswalk identity, so this is the canonical set.)
+    cid_to_meta: dict[str, dict] = {}
+    measure_to_cids: dict[int, list] = defaultdict(list)
+    for campaign in fdb.get_all_campaigns():
+        cid = campaign["finance_campaign_id"]
+        mid = campaign.get("measure_db_id")
+        meta = {
+            "finance_campaign_id": cid,
+            "election_year": campaign.get("election_year"),
+            "measure_db_id": int(mid) if mid is not None else None,
+            "measure_id": campaign.get("measure_id"),
+        }
+        cid_to_meta[cid] = meta
+        if mid is not None:
+            measure_to_cids[int(mid)].append(cid)
 
     def clean_float(value):
         try:
@@ -1084,42 +1086,58 @@ def build_finance_insights(measures_by_db_id):
         except (TypeError, ValueError):
             return None
 
-    campaigns_out = []
-    support_total = 0
-    oppose_total = 0
+    measures_out = []  # one entry per measure_db_id
+    support_total = 0.0
+    oppose_total = 0.0
 
-    for cid, payload in by_campaign.items():
-        meta = payload["meta"] or {}
-        sides = payload["sides"]
-        support = float((sides.get("support") or {}).get("total_receipts") or 0)
-        oppose = float((sides.get("oppose") or {}).get("total_receipts") or 0)
+    for mid, cids in measure_to_cids.items():
+        # Earliest-year cid is the canonical primary (matches v2's
+        # aggregate_for_measure convention and marquee_fight matching).
+        cids_sorted = sorted(
+            cids,
+            key=lambda c: (cid_to_meta[c].get("election_year") or 9999, c),
+        )
+        primary_cid = cids_sorted[0]
+        primary_meta = cid_to_meta[primary_cid]
+
+        # Combined per-measure totals: v2 monetary + v3 loan/in-kind/IE,
+        # rolled up across collision campaigns.
+        summary_rows = fdb.get_combined_summary(mid)
+        by_stance = {r["stance"]: r for r in summary_rows}
+        support = float((by_stance.get("support") or {}).get("total_receipts") or 0)
+        oppose = float((by_stance.get("oppose") or {}).get("total_receipts") or 0)
+        if not (support or oppose):
+            # No v3 flows for this measure — skip rather than emit a
+            # zero-money entry (would distort ratios and ranks).
+            continue
         support_total += support
         oppose_total += oppose
 
-        linked = measures_by_db_id.get(meta.get("measure_db_id")) if meta.get("measure_db_id") is not None else None
+        linked = measures_by_db_id.get(mid)
         passed = linked.get("passed") if linked else None
 
-        better_side = None
+        better_side = "support" if support >= oppose else "oppose"
         better_won = None
-        if support or oppose:
-            better_side = "support" if support >= oppose else "oppose"
-            if passed in (0, 1):
-                better_won = (
-                    (better_side == "support" and passed == 1)
-                    or (better_side == "oppose" and passed == 0)
-                )
+        if passed in (0, 1):
+            better_won = (
+                (better_side == "support" and passed == 1)
+                or (better_side == "oppose" and passed == 0)
+            )
 
         smaller_side = min(support, oppose)
         larger_side = max(support, oppose)
         funding_ratio = larger_side / smaller_side if smaller_side > 0 else None
 
-        campaigns_out.append({
-            "finance_campaign_id": cid,
-            "measure_id": meta.get("measure_id"),
-            "election_year": meta.get("election_year"),
-            "year": meta.get("election_year"),  # alias for back-compat with consumers
-            "measure_db_id": meta.get("measure_db_id"),
-            "title": linked.get("title") if linked else (meta.get("measure_id") or cid),
+        measures_out.append({
+            "finance_campaign_id": primary_cid,
+            "all_campaign_ids": cids_sorted,
+            "measure_id": primary_meta.get("measure_id"),
+            "election_year": primary_meta.get("election_year"),
+            "year": primary_meta.get("election_year"),
+            "measure_db_id": mid,
+            "title": linked.get("title") if linked else (
+                primary_meta.get("measure_id") or primary_cid
+            ),
             "passed": passed,
             "support_receipts": round(support, 2),
             "oppose_receipts": round(oppose, 2),
@@ -1127,42 +1145,25 @@ def build_finance_insights(measures_by_db_id):
             "better_funded_side": better_side,
             "better_funded_won": better_won,
             "funding_ratio": round(funding_ratio, 1) if funding_ratio is not None else None,
-            "support_top5_share": clean_float((sides.get("support") or {}).get("top5_share")),
-            "oppose_top5_share": clean_float((sides.get("oppose") or {}).get("top5_share")),
+            "support_top5_share": clean_float((by_stance.get("support") or {}).get("top5_share")),
+            "oppose_top5_share": clean_float((by_stance.get("oppose") or {}).get("top5_share")),
         })
 
-    # Measure-level rollup for the headline counters. Multiple finance
-    # campaigns (e.g. PROP_4_2008 on-cycle + PROP_4_2010 late-filing recovery)
-    # can map to one measure_db_id; counting them as separate "measures"
-    # mislabels what the panel surfaces. Sum receipts across campaigns per
-    # measure, then determine better_funded once at the measure level.
-    by_measure: dict[int, dict] = {}
-    for c in campaigns_out:
-        db_id = c.get("measure_db_id")
-        if db_id is None:
-            continue
-        agg = by_measure.setdefault(db_id, {
-            "measure_db_id": db_id,
-            "support": 0.0,
-            "oppose": 0.0,
-            "passed": None,
-        })
-        agg["support"] += float(c.get("support_receipts") or 0)
-        agg["oppose"] += float(c.get("oppose_receipts") or 0)
-        if agg["passed"] is None and c.get("passed") in (0, 1):
-            agg["passed"] = c["passed"]
+    fdb.close()
 
+    # Win-rate at the measure level. Each measure with a known outcome
+    # AND any v3 money on either side contributes one denominator unit.
     better_funded_known = 0
     better_funded_won = 0
-    for m in by_measure.values():
-        support, oppose, passed = m["support"], m["oppose"], m["passed"]
-        if not (support or oppose):
-            continue
-        better_side = "support" if support >= oppose else "oppose"
-        if passed in (0, 1):
+    for m in measures_out:
+        if m.get("passed") in (0, 1):
             better_funded_known += 1
-            if (better_side == "support" and passed == 1) or (better_side == "oppose" and passed == 0):
+            if m.get("better_funded_won") is True:
                 better_funded_won += 1
+
+    # Per-cid-shaped JS-compat aliases (some consumers expect this list
+    # name). Each entry corresponds to a measure, primary cid surfaced.
+    campaigns_out = measures_out
 
     better_funded_losses = [
         row for row in campaigns_out
@@ -1183,11 +1184,11 @@ def build_finance_insights(measures_by_db_id):
 
     return {
         "available": True,
-        # measure_count counts DISTINCT measure_db_ids, not campaigns —
-        # Bucket A year-offset recoveries create multiple campaigns per
-        # measure (e.g. PROP_4_2008 + PROP_4_2010 both map to one measure).
-        "measure_count": len(by_measure),
-        "campaign_count": len(by_campaign),  # exposed for transparency
+        # measure_count = entries in measures_out (one per measure_db_id
+        # with v3 flows). campaign_count surfaced via all_campaign_ids
+        # in each entry for transparency.
+        "measure_count": len(measures_out),
+        "campaign_count": sum(len(m["all_campaign_ids"]) for m in measures_out),
         "support_receipts": round(support_total, 2),
         "oppose_receipts": round(oppose_total, 2),
         "total_receipts": round(support_total + oppose_total, 2),
@@ -1202,6 +1203,9 @@ def build_finance_insights(measures_by_db_id):
         "top_donors_overall": top_donors_overall,
         "repeat_donors": repeat_donors,
         "marquee_fights": marquee_fights,
+        # v3 methodology marker — JS / docs reference this to label
+        # the panel "all reportable money" vs "monetary only".
+        "data_source": "v3 — monetary + loan + in-kind + IE",
     }
 
 
@@ -1228,151 +1232,204 @@ MARQUEE_FIGHT_IDS = [
 
 
 def _build_finance_supplements(campaigns_out, measures_by_db_id):
-    """Build the four post-rebuild supplemental fields the panel redesign needs:
+    """Build the supplemental panel fields, now v3-sourced:
 
-    1. annual_receipts — total receipts grouped by election year (bar chart)
-    2. top_donors_overall — top 15 donors aggregated across matched campaigns
-    3. repeat_donors — donors active in 3+ campaigns (filtered to ≥$1M to keep narrative)
-    4. marquee_fights — 3 hand-picked case studies with both-sides donor breakdowns
+    1. annual_receipts — total v3 money grouped by ACTUAL election year
+       (using v2's match_via remap for year-offset recoveries).
+    2. calendar_year_receipts — total v3 money by transaction-week year.
+    3. top_donors_overall — top 15 v3 donors across all measures.
+    4. repeat_donors — v3 donors active in 3+ campaigns at ≥$1M.
+    5. marquee_fights — 3 hand-picked case studies with v3 per-side
+       totals + top 5 donors per stance.
     """
-    if not FINANCE_DB_PATH.exists():
-        return [], [], [], []
+    if not FINANCE_DB_PATH.exists() or not FINANCE_DB_V3_PATH.exists():
+        return [], [], [], [], []
 
-    conn = sqlite3.connect(str(FINANCE_DB_PATH))
-    conn.row_factory = sqlite3.Row
+    from src.finance.operations import FinanceDatabase  # local import for testability
 
-    # 1. Annual receipts grouped by ACTUAL election year (not the CalAccess
-    #    reporting year). For Bucket A year-offset recoveries the actual year
-    #    sits 1–2y before the CalAccess year — without this remap, $1.9M of
-    #    late-filing money would be attributed to the wrong bar of the
-    #    spending arc (e.g. PROP_4_2010 contributing to 2010 when its actual
-    #    election was 2008). n_measures counts DISTINCT measure_db_ids per
-    #    year so Bucket A collisions (PROP_4_2008 + PROP_4_2010 → both link
-    #    to db_id 1189) don't double-count one measure.
-    annual = conn.execute(
+    # v2's finance_campaign carries the (cid → actual_election_year)
+    # mapping with year-offset corrections. Load it once.
+    v2_conn = sqlite3.connect(str(FINANCE_DB_PATH))
+    v2_conn.row_factory = sqlite3.Row
+    cid_to_actual_year: dict[str, int] = {}
+    for r in v2_conn.execute(
         """
-        SELECT
-            CASE
-                WHEN c.match_via LIKE 'year_offset_1_%' THEN c.election_year - 1
-                WHEN c.match_via LIKE 'year_offset_2_%' THEN c.election_year - 2
-                ELSE c.election_year
-            END AS actual_year,
-            SUM(s.total_receipts) AS total,
-            COUNT(DISTINCT c.measure_db_id) AS n_measures
+        SELECT finance_campaign_id,
+               CASE
+                   WHEN match_via LIKE 'year_offset_1_%' THEN election_year - 1
+                   WHEN match_via LIKE 'year_offset_2_%' THEN election_year - 2
+                   ELSE election_year
+               END AS actual_year
+        FROM finance_campaign WHERE status = 'matched'
+        """
+    ):
+        cid_to_actual_year[r["finance_campaign_id"]] = int(r["actual_year"])
+    v2_conn.close()
+
+    # v3 connection for the supplements.
+    v3_conn = sqlite3.connect(str(FINANCE_DB_V3_PATH))
+    v3_conn.row_factory = sqlite3.Row
+
+    # 1. Annual receipts by ACTUAL election year. Combines v2 monetary
+    #    AND v3 (loans+in-kind+IE) flows, indexed via the cid→actual_year
+    #    map. Python-side group-by avoids cross-db ATTACH.
+    by_actual_year: dict[int, dict] = {}
+    # v2 monetary slice
+    v2_summary = sqlite3.connect(str(FINANCE_DB_PATH))
+    v2_summary.row_factory = sqlite3.Row
+    for r in v2_summary.execute(
+        """
+        SELECT s.finance_campaign_id, c.measure_db_id, SUM(s.total_receipts) AS total
         FROM finance_summary s
         JOIN finance_campaign c USING (finance_campaign_id)
         WHERE c.status = 'matched'
-        GROUP BY actual_year
-        ORDER BY actual_year
+        GROUP BY s.finance_campaign_id, c.measure_db_id
         """
-    ).fetchall()
+    ):
+        cid = r["finance_campaign_id"]
+        year = cid_to_actual_year.get(cid)
+        if year is None:
+            continue
+        bucket = by_actual_year.setdefault(year, {"total": 0.0, "measures": set()})
+        bucket["total"] += float(r["total"] or 0)
+        if r["measure_db_id"] is not None:
+            bucket["measures"].add(int(r["measure_db_id"]))
+    v2_summary.close()
+    # v3 non-monetary slice
+    for r in v3_conn.execute(
+        """
+        SELECT finance_campaign_id, measure_db_id, SUM(amount) AS total
+        FROM finance_flow_v3
+        WHERE quarantine_reason IS NULL
+          AND finance_campaign_id IS NOT NULL
+        GROUP BY finance_campaign_id, measure_db_id
+        """
+    ):
+        cid = r["finance_campaign_id"]
+        year = cid_to_actual_year.get(cid)
+        if year is None:
+            continue
+        bucket = by_actual_year.setdefault(year, {"total": 0.0, "measures": set()})
+        bucket["total"] += float(r["total"] or 0)
+        if r["measure_db_id"] is not None:
+            bucket["measures"].add(int(r["measure_db_id"]))
     annual_receipts = [
         {
-            "year": int(r["actual_year"]),
-            "total_receipts": round(float(r["total"]), 2),
-            "n_measures": int(r["n_measures"]),
+            "year": year,
+            "total_receipts": round(b["total"], 2),
+            "n_measures": len(b["measures"]),
         }
-        for r in annual
-        if r["actual_year"] is not None
+        for year, b in sorted(by_actual_year.items())
     ]
 
-    # 1b. Calendar-year receipts: same data sliced by transaction-week year
-    #    rather than election year. SQL lives in FinanceDatabase so the
-    #    aggregation behavior is testable in isolation; see
-    #    `get_calendar_year_receipts()` docstring for the boundary-week
-    #    caveat and the n_measures (DISTINCT measure_db_id) semantics.
-    from src.finance.operations import FinanceDatabase  # local import for testability
-    _fdb = FinanceDatabase(FINANCE_DB_PATH)
+    # 1b. Calendar-year receipts via the combined v2+v3 helper.
+    _fdb = FinanceDatabase()
     calendar_year_receipts = [
         {
             "year": row["year"],
             "total_receipts": round(row["total_receipts"], 2),
             "n_measures": row["n_measures"],
         }
-        for row in _fdb.get_calendar_year_receipts()
+        for row in _fdb.get_combined_calendar_year_receipts()
     ]
     _fdb.close()
 
-    # 2. Top donors overall — aggregate across all matched campaigns
-    top_donors_rows = conn.execute(
+    # 2. Top donors overall — combined v2 (monetary) + v3 (non-monetary)
+    #    aggregated by donor_name_canon across all measures.
+    donor_totals: dict[str, dict] = {}
+    v2_donor = sqlite3.connect(str(FINANCE_DB_PATH))
+    v2_donor.row_factory = sqlite3.Row
+    for r in v2_donor.execute(
         """
         SELECT donor_name_canon AS name,
                SUM(total_amount) AS total,
                COUNT(DISTINCT finance_campaign_id) AS n_campaigns
         FROM finance_top_donors
+        WHERE donor_name_canon IS NOT NULL AND TRIM(donor_name_canon) != ''
         GROUP BY donor_name_canon
-        ORDER BY total DESC
-        LIMIT 15
         """
-    ).fetchall()
+    ):
+        donor_totals.setdefault(r["name"], {
+            "total": 0.0, "cids": set(),
+        })
+        donor_totals[r["name"]]["total"] += float(r["total"] or 0)
+    # v2 doesn't expose per-campaign cid list per donor in a single
+    # GROUP BY without a second query, so we record the v2 n_campaigns
+    # in a parallel field then merge with v3's distinct cid set.
+    for r in v2_donor.execute(
+        "SELECT donor_name_canon, finance_campaign_id "
+        "FROM finance_top_donors WHERE donor_name_canon IS NOT NULL"
+    ):
+        if r["donor_name_canon"] in donor_totals:
+            donor_totals[r["donor_name_canon"]]["cids"].add(r["finance_campaign_id"])
+    v2_donor.close()
+    for r in v3_conn.execute(
+        """
+        SELECT donor_name_canon, finance_campaign_id, SUM(amount) AS total
+        FROM finance_flow_v3
+        WHERE quarantine_reason IS NULL
+          AND donor_name_canon IS NOT NULL
+          AND TRIM(donor_name_canon) != ''
+        GROUP BY donor_name_canon, finance_campaign_id
+        """
+    ):
+        name = r["donor_name_canon"]
+        entry = donor_totals.setdefault(name, {"total": 0.0, "cids": set()})
+        entry["total"] += float(r["total"] or 0)
+        if r["finance_campaign_id"]:
+            entry["cids"].add(r["finance_campaign_id"])
+    # Rank + slice
+    ranked = sorted(
+        donor_totals.items(),
+        key=lambda kv: (-kv[1]["total"], kv[0]),
+    )
     top_donors_overall = [
         {
-            "name": r["name"],
-            "total_amount": round(float(r["total"]), 2),
-            "n_campaigns": int(r["n_campaigns"]),
-            "donor_sector": get_donor_sector(r["name"]),
+            "name": name,
+            "total_amount": round(entry["total"], 2),
+            "n_campaigns": len(entry["cids"]),
+            "donor_sector": get_donor_sector(name),
         }
-        for r in top_donors_rows
+        for name, entry in ranked[:15]
     ]
 
-    # 3. Repeat donors — donors active in 3+ campaigns AND ≥$1M aggregate.
-    #    The dollar floor keeps the list narrative-relevant (otherwise it fills
-    #    with $0.4M actors who happen to chip into many committees).
-    repeat_rows = conn.execute(
-        """
-        SELECT donor_name_canon AS name,
-               SUM(total_amount) AS total,
-               COUNT(DISTINCT finance_campaign_id) AS n_campaigns
-        FROM finance_top_donors
-        GROUP BY donor_name_canon
-        HAVING n_campaigns >= 3 AND total >= 1000000
-        ORDER BY n_campaigns DESC, total DESC
-        LIMIT 12
-        """
-    ).fetchall()
+    # 3. Repeat donors — active in 3+ campaigns AND ≥$1M combined.
     repeat_donors = [
         {
-            "name": r["name"],
-            "total_amount": round(float(r["total"]), 2),
-            "n_campaigns": int(r["n_campaigns"]),
-            "donor_sector": get_donor_sector(r["name"]),
+            "name": name,
+            "total_amount": round(entry["total"], 2),
+            "n_campaigns": len(entry["cids"]),
+            "donor_sector": get_donor_sector(name),
         }
-        for r in repeat_rows
-    ]
+        for name, entry in sorted(
+            donor_totals.items(),
+            key=lambda kv: (-len(kv[1]["cids"]), -kv[1]["total"], kv[0]),
+        )
+        if len(entry["cids"]) >= 3 and entry["total"] >= 1_000_000
+    ][:12]
 
-    # 4. Marquee fights — three curated case studies. Pull per-side summary +
-    #    top 5 donors per stance for each. If a curated id isn't in the DB
-    #    (rebuild changed coverage), warn loudly — a 2-card "Three fights"
-    #    section is an obvious broken state, so we want maintainers to notice.
+    # 4. Marquee fights — three curated case studies, combined totals +
+    #    top 5 donors per stance via get_combined_top_donors.
     by_cid = {row["finance_campaign_id"]: row for row in campaigns_out}
+    fdb_marquee = FinanceDatabase()
     marquee_fights = []
     for spec in MARQUEE_FIGHT_IDS:
         cid = spec["finance_campaign_id"]
         if cid not in by_cid:
             print(
-                f"WARNING: marquee fight {cid!r} not present in finance v2 DB; "
+                f"WARNING: marquee fight {cid!r} not present in finance data; "
                 f"section will render with fewer than {len(MARQUEE_FIGHT_IDS)} cards. "
-                "Update MARQUEE_FIGHT_IDS in build_finance_insights.",
+                "Update MARQUEE_FIGHT_IDS or check ingest.",
                 file=sys.stderr,
             )
             continue
         camp = by_cid[cid]
-        donor_rows = conn.execute(
-            """
-            SELECT stance, donor_name_canon, total_amount
-            FROM (
-                SELECT stance, donor_name_canon, total_amount,
-                       ROW_NUMBER() OVER (PARTITION BY stance ORDER BY total_amount DESC, donor_name_canon) AS rn
-                FROM finance_top_donors
-                WHERE finance_campaign_id = ?
-            )
-            WHERE rn <= 5
-            ORDER BY stance, total_amount DESC
-            """,
-            (cid,),
-        ).fetchall()
+        mid = camp.get("measure_db_id")
+        if mid is None:
+            continue
+        top_per_stance = fdb_marquee.get_combined_top_donors(int(mid), limit=5)
         donors_by_stance = defaultdict(list)
-        for d in donor_rows:
+        for d in top_per_stance:
             donors_by_stance[d["stance"]].append({
                 "name": d["donor_name_canon"],
                 "total_amount": round(float(d["total_amount"]), 2),
@@ -1394,8 +1451,9 @@ def _build_finance_supplements(campaigns_out, measures_by_db_id):
             "support_top_donors": donors_by_stance.get("support", []),
             "oppose_top_donors": donors_by_stance.get("oppose", []),
         })
+    fdb_marquee.close()
 
-    conn.close()
+    v3_conn.close()
     return (
         annual_receipts,
         calendar_year_receipts,

@@ -1345,6 +1345,231 @@ class TestCalendarYearReceiptsV3:
         assert fdb_v3.get_calendar_year_receipts_v3() == []
 
 
+class TestCombinedMethods:
+    """Phase 5 step 2b: get_combined_* methods stitch v2 monetary
+    contributions onto the v3 non-monetary slice (loans + in-kind + IE).
+    These tests need a v2-shaped fixture too — the per-test fdb_v3 only
+    builds v3, so we build a small v2 db alongside."""
+
+    @pytest.fixture
+    def fdb_combined(self, tmp_path):
+        """A FinanceDatabase pointing at both a hermetic v2 stub AND a
+        hermetic v3 stub."""
+        # v2 schema (subset of what's in test_finance_db.py)
+        v2_path = tmp_path / "v2_combo.db"
+        v2 = sqlite3.connect(str(v2_path))
+        v2.executescript("""
+            CREATE TABLE finance_campaign (
+                finance_campaign_id TEXT PRIMARY KEY,
+                prop_num TEXT, election_year INTEGER, election_month INTEGER,
+                measure_db_id INTEGER, measure_id TEXT,
+                status TEXT NOT NULL, match_via TEXT,
+                csv_row_count INTEGER, csv_total_amount REAL, notes TEXT
+            );
+            CREATE TABLE finance_summary (
+                finance_campaign_id TEXT NOT NULL, stance TEXT NOT NULL,
+                total_receipts REAL NOT NULL, n_committees INTEGER NOT NULL,
+                top5_share REAL, hhi REAL,
+                PRIMARY KEY (finance_campaign_id, stance)
+            );
+            CREATE TABLE finance_top_donors (
+                finance_campaign_id TEXT NOT NULL, stance TEXT NOT NULL,
+                donor_name_canon TEXT NOT NULL, donor_type TEXT,
+                total_amount REAL NOT NULL,
+                PRIMARY KEY (finance_campaign_id, stance, donor_name_canon)
+            );
+            CREATE TABLE finance_timeline_weekly (
+                finance_campaign_id TEXT NOT NULL, stance TEXT NOT NULL,
+                week_start TEXT NOT NULL,
+                weekly_receipts REAL NOT NULL, cumulative_receipts REAL NOT NULL,
+                PRIMARY KEY (finance_campaign_id, stance, week_start)
+            );
+        """)
+        v2.commit()
+        v2.close()
+        v3_path = tmp_path / "v3_combo.db"
+        v3 = _build_v3_db(v3_path)
+        v3.commit()
+        v3.close()
+        db = FinanceDatabase(db_path=v2_path, v3_db_path=v3_path)
+        yield db
+        db.close()
+
+    def test_combined_summary_adds_v2_and_v3(self, fdb_combined):
+        """v2 has $1M monetary on support; v3 has $500K in-kind +
+        $200K IE on support. Combined total should be $1.7M."""
+        db = fdb_combined
+        # v2 side
+        db.conn.execute(
+            "INSERT INTO finance_campaign "
+            "(finance_campaign_id, prop_num, election_year, measure_db_id, "
+            " measure_id, status, match_via) "
+            "VALUES ('PROP_X_2020', 'X', 2020, 7000, 'PROP_X', 'matched', 'short_form')"
+        )
+        db.conn.execute(
+            "INSERT INTO finance_summary VALUES "
+            "('PROP_X_2020', 'support', 1000000, 2, 80, 4500)"
+        )
+        db.conn.execute(
+            "INSERT INTO finance_top_donors VALUES "
+            "('PROP_X_2020', 'support', 'Big v2 Donor', 'committee', 1000000)"
+        )
+        db.conn.commit()
+        # v3 side
+        for fid, rt, amt in [
+            (1, "in_kind", 500_000),
+            (2, "independent_expenditure", 200_000),
+        ]:
+            _insert_flow(db.v3_conn, flow_id=fid, finance_campaign_id="PROP_X_2020",
+                         measure_db_id=7000, stance="support",
+                         receipt_type=rt, amount=amt,
+                         donor_name_canon=f"v3 donor {fid}")
+        db.v3_conn.commit()
+
+        result = db.get_combined_summary(7000)
+        assert len(result) == 1
+        row = result[0]
+        assert row["total_receipts"] == 1_700_000.0
+        assert row["monetary_amount"] == 1_000_000.0
+        assert row["non_monetary_amount"] == 700_000.0
+
+    def test_combined_summary_v2_only_measure(self, fdb_combined):
+        """Measure with v2 data but no v3 flows should still surface."""
+        db = fdb_combined
+        db.conn.execute(
+            "INSERT INTO finance_campaign "
+            "(finance_campaign_id, prop_num, election_year, measure_db_id, "
+            " measure_id, status, match_via) "
+            "VALUES ('PROP_Y_2000', 'Y', 2000, 7100, 'PROP_Y', 'matched', 'short_form')"
+        )
+        db.conn.execute(
+            "INSERT INTO finance_summary VALUES "
+            "('PROP_Y_2000', 'oppose', 500000, 1, 100, 10000)"
+        )
+        db.conn.commit()
+
+        result = db.get_combined_summary(7100)
+        assert len(result) == 1
+        assert result[0]["total_receipts"] == 500_000.0
+        assert result[0]["monetary_amount"] == 500_000.0
+        assert result[0]["non_monetary_amount"] == 0.0
+
+    def test_combined_summary_v3_only_measure(self, fdb_combined):
+        """Measure with v3 IE but no v2 monetary (rare today, but
+        possible if all v2 monetary rows got quarantined)."""
+        db = fdb_combined
+        _insert_flow(db.v3_conn, flow_id=1, finance_campaign_id="PROP_Z_2024",
+                     measure_db_id=7200, stance="oppose",
+                     receipt_type="independent_expenditure", amount=300_000,
+                     donor_name_canon="v3 IE Filer")
+        db.v3_conn.commit()
+
+        result = db.get_combined_summary(7200)
+        assert len(result) == 1
+        assert result[0]["total_receipts"] == 300_000.0
+        assert result[0]["monetary_amount"] == 0.0
+        assert result[0]["non_monetary_amount"] == 300_000.0
+
+    def test_combined_top_donors_merges_same_name(self, fdb_combined):
+        """Same donor appears in both v2 monetary and v3 IE. Combined
+        donor total = sum, flow_types union, ranked once."""
+        db = fdb_combined
+        db.conn.execute(
+            "INSERT INTO finance_campaign "
+            "(finance_campaign_id, prop_num, election_year, measure_db_id, "
+            " measure_id, status, match_via) "
+            "VALUES ('PROP_A_2020', 'A', 2020, 7300, 'PROP_A', 'matched', 'short_form')"
+        )
+        db.conn.execute(
+            "INSERT INTO finance_summary VALUES "
+            "('PROP_A_2020', 'oppose', 5000000, 1, 100, 10000)"
+        )
+        db.conn.execute(
+            "INSERT INTO finance_top_donors VALUES "
+            "('PROP_A_2020', 'oppose', 'San Manuel Band of Mission Indians', 'committee', 5000000)"
+        )
+        db.conn.commit()
+        _insert_flow(db.v3_conn, flow_id=1, finance_campaign_id="PROP_A_2020",
+                     measure_db_id=7300, stance="oppose",
+                     receipt_type="independent_expenditure", amount=3_000_000,
+                     donor_name_canon="San Manuel Band of Mission Indians")
+        db.v3_conn.commit()
+
+        result = db.get_combined_top_donors(7300, limit=5)
+        assert len(result) == 1
+        d = result[0]
+        assert d["donor_name_canon"] == "San Manuel Band of Mission Indians"
+        assert d["total_amount"] == 8_000_000.0
+        assert set(d["flow_types"]) == {"monetary_contribution", "independent_expenditure"}
+        assert d["donor_sector"] == "Tribal Gaming"  # re-resolved at query time
+
+    def test_combined_breakdown_includes_all_four_types(self, fdb_combined):
+        db = fdb_combined
+        db.conn.execute(
+            "INSERT INTO finance_campaign "
+            "(finance_campaign_id, prop_num, election_year, measure_db_id, "
+            " measure_id, status, match_via) "
+            "VALUES ('PROP_B_2020', 'B', 2020, 7400, 'PROP_B', 'matched', 'short_form')"
+        )
+        db.conn.execute(
+            "INSERT INTO finance_summary VALUES "
+            "('PROP_B_2020', 'support', 1000000, 1, 100, 10000)"
+        )
+        db.conn.commit()
+        for fid, rt, amt in [
+            (1, "loan", 200_000),
+            (2, "in_kind", 100_000),
+            (3, "independent_expenditure", 500_000),
+        ]:
+            _insert_flow(db.v3_conn, flow_id=fid, finance_campaign_id="PROP_B_2020",
+                         measure_db_id=7400, stance="support",
+                         receipt_type=rt, amount=amt,
+                         donor_name_canon=f"D{fid}")
+        db.v3_conn.commit()
+
+        result = db.get_combined_breakdown_by_type(7400)
+        types = sorted(r["receipt_type"] for r in result)
+        assert types == [
+            "in_kind", "independent_expenditure",
+            "loan", "monetary_contribution"
+        ]
+        total = sum(r["total_amount"] for r in result)
+        assert total == 1_800_000.0
+
+    def test_combined_timeline_merges_weeks(self, fdb_combined):
+        """v2 has weekly $1000 on week W; v3 has weekly $500 on same
+        week W. Combined weekly = $1500."""
+        db = fdb_combined
+        db.conn.execute(
+            "INSERT INTO finance_campaign "
+            "(finance_campaign_id, prop_num, election_year, measure_db_id, "
+            " measure_id, status, match_via) "
+            "VALUES ('PROP_C_2020', 'C', 2020, 7500, 'PROP_C', 'matched', 'short_form')"
+        )
+        db.conn.execute(
+            "INSERT INTO finance_summary VALUES "
+            "('PROP_C_2020', 'support', 1000, 1, 100, 10000)"
+        )
+        db.conn.execute(
+            "INSERT INTO finance_timeline_weekly VALUES "
+            "('PROP_C_2020', 'support', '2020-01-06', 1000, 1000)"
+        )
+        db.conn.commit()
+        _insert_flow(db.v3_conn, flow_id=1, finance_campaign_id="PROP_C_2020",
+                     measure_db_id=7500, stance="support",
+                     receipt_type="in_kind", amount=500,
+                     donor_name_canon="D1")
+        db.v3_conn.execute(
+            "UPDATE finance_flow_v3 SET week_start = '2020-01-06' WHERE flow_id = 1"
+        )
+        db.v3_conn.commit()
+
+        result = db.get_combined_timeline(7500)
+        assert len(result) == 1
+        assert result[0]["weekly_receipts"] == 1500.0
+        assert result[0]["cumulative_receipts"] == 1500.0
+
+
 class TestAcceptedRowNullDonorInvariant:
     """Codex test gap: ingest acceptance gates should reject any row with
     NULL donor_name_canon. This test documents the expected invariant —
