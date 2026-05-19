@@ -1076,6 +1076,56 @@ class TestAttributionSourceTieBreak:
         )
 
 
+class TestSqlNullLastOrdering:
+    """Codex round-3 non-blocking note: the SQL-level ORDER BY (both
+    the ROW_NUMBER ranking and the final result-set ORDER) needs the
+    same NULL-last tiebreak the Python sort got in round-2. Otherwise,
+    SQLite's default (NULLs sort BEFORE strings) would let a NULL
+    donor rank ahead of a named donor on tied amounts near the limit
+    boundary."""
+
+    def test_null_donor_with_tied_amount_ranks_after_named(self, fdb_v3):
+        """Two donors with the same total_amount, one with NULL name.
+        The named donor must rank ahead in the ROW_NUMBER ordering
+        (which controls the limit truncation)."""
+        raw = _v3_raw(fdb_v3)
+        _insert_flow(raw, flow_id=1, finance_campaign_id="PROP_X_2020",
+                     measure_db_id=3300, stance="support",
+                     receipt_type="monetary_contribution", amount=10_000,
+                     donor_name_canon=None)
+        _insert_flow(raw, flow_id=2, finance_campaign_id="PROP_X_2020",
+                     measure_db_id=3300, stance="support",
+                     receipt_type="monetary_contribution", amount=10_000,
+                     donor_name_canon="Real Named Donor")
+        raw.commit()
+
+        # limit=1 forces the truncation; if NULL ranks ahead, named
+        # donor falls off.
+        result = fdb_v3.get_top_donors_total(3300, limit=1)
+        assert len(result) == 1
+        assert result[0]["donor_name_canon"] == "Real Named Donor", (
+            "NULL donor must NOT rank ahead of named donor on tied amount"
+        )
+
+    def test_by_type_null_donor_with_tied_amount_ranks_after_named(self, fdb_v3):
+        raw = _v3_raw(fdb_v3)
+        _insert_flow(raw, flow_id=1, finance_campaign_id="PROP_X_2020",
+                     measure_db_id=3310, stance="support",
+                     receipt_type="independent_expenditure", amount=10_000,
+                     donor_name_canon=None)
+        _insert_flow(raw, flow_id=2, finance_campaign_id="PROP_X_2020",
+                     measure_db_id=3310, stance="support",
+                     receipt_type="independent_expenditure", amount=10_000,
+                     donor_name_canon="Real IE Filer")
+        raw.commit()
+
+        result = fdb_v3.get_top_donors_by_type(
+            3310, "independent_expenditure", limit=1,
+        )
+        assert len(result) == 1
+        assert result[0]["donor_name_canon"] == "Real IE Filer"
+
+
 class TestAcceptedRowNullDonorInvariant:
     """Codex test gap: ingest acceptance gates should reject any row with
     NULL donor_name_canon. This test documents the expected invariant —

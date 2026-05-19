@@ -773,7 +773,9 @@ class FinanceDatabase:
                 SELECT *,
                        ROW_NUMBER() OVER (
                            PARTITION BY stance
-                           ORDER BY total_amount DESC, donor_name_canon
+                           ORDER BY total_amount DESC,
+                                    donor_name_canon IS NULL,
+                                    donor_name_canon
                        ) AS rn
                 FROM   per_donor
             )
@@ -781,7 +783,8 @@ class FinanceDatabase:
                    n_underlying_rows, flow_types_json
             FROM   ranked
             WHERE  rn <= ?
-            ORDER  BY stance, total_amount DESC, donor_name_canon
+            ORDER  BY stance, total_amount DESC,
+                      donor_name_canon IS NULL, donor_name_canon
             """,
             (*params, limit),
         )
@@ -861,7 +864,9 @@ class FinanceDatabase:
                 SELECT *,
                        ROW_NUMBER() OVER (
                            PARTITION BY stance
-                           ORDER BY total_amount DESC, donor_name_canon
+                           ORDER BY total_amount DESC,
+                                    donor_name_canon IS NULL,
+                                    donor_name_canon
                        ) AS rn
                 FROM   per_donor
             )
@@ -869,7 +874,8 @@ class FinanceDatabase:
                    total_amount, n_underlying_rows
             FROM   ranked
             WHERE  rn <= ?
-            ORDER  BY stance, total_amount DESC, donor_name_canon
+            ORDER  BY stance, total_amount DESC,
+                      donor_name_canon IS NULL, donor_name_canon
             """,
             (*params, limit),
         )
