@@ -12,6 +12,10 @@ from pathlib import Path
 
 DATA_DIR = Path(__file__).parent.parent.parent / "data"
 FINANCE_DB_PATH = DATA_DIR / "finance" / "finance_statewide_v2.db"
+# v3 expanded-scope DB (loans + in-kind + IE on top of monetary). Read-only
+# from the application layer until the atomic UI flip in Phase 5. Built by
+# scripts/v3/ingest_* + dedup_ies.py + rebuild_derived.py.
+FINANCE_DB_V3_PATH = DATA_DIR / "finance" / "finance_statewide_v3.db"
 # Old contaminated DB kept as audit artifact; not consumed by any live code.
 FINANCE_DB_LEGACY_PATH = DATA_DIR / "finance" / "finance_statewide.db"
 
