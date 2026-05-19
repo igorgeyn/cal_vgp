@@ -903,6 +903,98 @@ class FinanceDatabase:
             for r in donor_rows
         ]
 
+    def get_finance_timeline_total(self, measure_db_id: int) -> List[Dict]:
+        """Per-stance weekly + cumulative receipts across ALL receipt
+        types (monetary + loan + in-kind + IE), rolled up across any
+        year-offset-collision campaigns under one measure.
+
+        Each row: {stance, week_start, weekly_amount, cumulative_amount}
+        Sorted by (stance, week_start). Cumulative is computed within
+        stance — restarts at the first week of each stance.
+
+        Empty list if no v3 flows for this measure. Rows with NULL
+        week_start (unparseable txn_date) are dropped.
+        """
+        campaign_ids = self._v3_campaign_ids_for_measure(measure_db_id)
+        if not campaign_ids:
+            return []
+        placeholders = ",".join("?" for _ in campaign_ids)
+
+        cursor = self.v3_conn.execute(
+            f"""
+            WITH per_week AS (
+                SELECT stance, week_start,
+                       SUM(amount) AS weekly_amount
+                FROM   finance_flow_v3
+                WHERE  measure_db_id = ?
+                  AND  finance_campaign_id IN ({placeholders})
+                  AND  quarantine_reason IS NULL
+                  AND  week_start IS NOT NULL
+                GROUP  BY stance, week_start
+            )
+            SELECT stance, week_start, weekly_amount,
+                   SUM(weekly_amount) OVER (
+                       PARTITION BY stance
+                       ORDER BY week_start
+                       ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+                   ) AS cumulative_amount
+            FROM per_week
+            ORDER BY stance, week_start
+            """,
+            (measure_db_id, *campaign_ids),
+        )
+
+        return [
+            {
+                "stance": r["stance"],
+                "week_start": r["week_start"],
+                "weekly_amount": float(r["weekly_amount"] or 0),
+                "cumulative_amount": float(r["cumulative_amount"] or 0),
+            }
+            for r in cursor.fetchall()
+        ]
+
+    def get_calendar_year_receipts_v3(self) -> List[Dict]:
+        """Cross-measure spending arc: SUM accepted v3 amount by the
+        year of each flow's week_start (Monday bucket). v3 counterpart
+        to v2's `get_calendar_year_receipts`.
+
+        Each row: {year, total_amount, n_measures}
+        n_measures = DISTINCT measure_db_id so year-offset collisions
+        collapse to one measure per calendar year (e.g. PROP_4_2008 +
+        PROP_4_2010 both link to measure_db_id 1189).
+
+        Aggregates across all measures and receipt types in scope —
+        no measure_db_id filter. Quarantined rows excluded.
+
+        Caveat (inherited from v2): boundary weeks crossing Dec 31 are
+        attributed to the week-start year. Real impact at the v3
+        scale is similar to v2.
+        """
+        cursor = self.v3_conn.execute(
+            """
+            SELECT
+                CAST(substr(week_start, 1, 4) AS INTEGER) AS year,
+                SUM(amount) AS total_amount,
+                COUNT(DISTINCT measure_db_id) AS n_measures
+            FROM   finance_flow_v3
+            WHERE  quarantine_reason IS NULL
+              AND  week_start IS NOT NULL
+              AND  measure_db_id IS NOT NULL
+            GROUP  BY year
+            ORDER  BY year
+            """
+        )
+        return [
+            {
+                "year": int(r["year"]),
+                "total_amount": float(r["total_amount"] or 0),
+                "n_measures": int(r["n_measures"] or 0),
+            }
+            for r in cursor.fetchall()
+            if r["year"] is not None
+        ]
+
 
 # ---------------------------------------------------------------------------
 # Convenience wrappers for callers that historically passed a measure dict.

@@ -1126,6 +1126,225 @@ class TestSqlNullLastOrdering:
         assert result[0]["donor_name_canon"] == "Real IE Filer"
 
 
+class TestTimelineTotal:
+    """Phase 5 step 2a: get_finance_timeline_total returns per-stance
+    weekly + cumulative receipts across all receipt types, rolling up
+    collision campaigns."""
+
+    def test_single_stance_cumulative_runs(self, fdb_v3):
+        raw = _v3_raw(fdb_v3)
+        for fid, week, amt in [
+            (1, "2020-01-06", 100_000),
+            (2, "2020-01-13", 50_000),
+            (3, "2020-01-27", 25_000),
+        ]:
+            _insert_flow(raw, flow_id=fid, finance_campaign_id="PROP_X_2020",
+                         measure_db_id=4000, stance="support",
+                         receipt_type="monetary_contribution", amount=amt,
+                         donor_name_canon=f"D{fid}")
+            raw.execute(
+                "UPDATE finance_flow_v3 SET week_start = ? WHERE flow_id = ?",
+                (week, fid),
+            )
+        raw.commit()
+
+        result = fdb_v3.get_finance_timeline_total(4000)
+        assert len(result) == 3
+        # Weekly amounts in order
+        assert result[0]["week_start"] == "2020-01-06"
+        assert result[0]["weekly_amount"] == 100_000.0
+        assert result[0]["cumulative_amount"] == 100_000.0
+        assert result[1]["cumulative_amount"] == 150_000.0
+        assert result[2]["cumulative_amount"] == 175_000.0
+
+    def test_per_stance_cumulative_independent(self, fdb_v3):
+        """Cumulative resets at the first week of each stance — they
+        don't share a running total."""
+        raw = _v3_raw(fdb_v3)
+        for fid, stance, week, amt in [
+            (1, "support", "2020-01-06", 10_000),
+            (2, "support", "2020-01-13", 5_000),
+            (3, "oppose", "2020-01-06", 8_000),
+            (4, "oppose", "2020-01-20", 12_000),
+        ]:
+            _insert_flow(raw, flow_id=fid, finance_campaign_id="PROP_X_2020",
+                         measure_db_id=4010, stance=stance,
+                         receipt_type="monetary_contribution", amount=amt,
+                         donor_name_canon=f"D{fid}")
+            raw.execute(
+                "UPDATE finance_flow_v3 SET week_start = ? WHERE flow_id = ?",
+                (week, fid),
+            )
+        raw.commit()
+
+        result = fdb_v3.get_finance_timeline_total(4010)
+        oppose = [r for r in result if r["stance"] == "oppose"]
+        support = [r for r in result if r["stance"] == "support"]
+        # Each stance's cumulative ends with its own total, not the sum
+        assert support[-1]["cumulative_amount"] == 15_000.0
+        assert oppose[-1]["cumulative_amount"] == 20_000.0
+
+    def test_rolls_up_across_collision_campaigns(self, fdb_v3):
+        """Two collision campaigns sharing a measure_db_id and a week
+        should collapse into one weekly row with summed amount."""
+        raw = _v3_raw(fdb_v3)
+        for fid, cid, amt in [
+            (1, "PROP_A_2008", 600_000),
+            (2, "PROP_A_2010", 400_000),
+        ]:
+            _insert_flow(raw, flow_id=fid, finance_campaign_id=cid,
+                         measure_db_id=4020, stance="oppose",
+                         receipt_type="monetary_contribution", amount=amt,
+                         donor_name_canon=f"D{fid}")
+            raw.execute(
+                "UPDATE finance_flow_v3 SET week_start = '2008-09-22' WHERE flow_id = ?",
+                (fid,),
+            )
+        raw.commit()
+
+        result = fdb_v3.get_finance_timeline_total(4020)
+        assert len(result) == 1, "single week, single stance, both campaigns merged"
+        assert result[0]["weekly_amount"] == 1_000_000.0
+
+    def test_quarantined_rows_excluded(self, fdb_v3):
+        raw = _v3_raw(fdb_v3)
+        _insert_flow(raw, flow_id=1, finance_campaign_id="PROP_X_2020",
+                     measure_db_id=4030, stance="support",
+                     receipt_type="monetary_contribution", amount=5_000,
+                     donor_name_canon="Good")
+        _insert_flow(raw, flow_id=2, finance_campaign_id="PROP_X_2020",
+                     measure_db_id=4030, stance="support",
+                     receipt_type="independent_expenditure", amount=10_000_000,
+                     donor_name_canon="Bad",
+                     quarantine_reason="ambiguous_multi_prop")
+        for fid in [1, 2]:
+            raw.execute(
+                "UPDATE finance_flow_v3 SET week_start = '2020-01-06' WHERE flow_id = ?",
+                (fid,),
+            )
+        raw.commit()
+
+        result = fdb_v3.get_finance_timeline_total(4030)
+        assert len(result) == 1
+        assert result[0]["weekly_amount"] == 5_000.0
+
+    def test_null_week_start_dropped(self, fdb_v3):
+        raw = _v3_raw(fdb_v3)
+        _insert_flow(raw, flow_id=1, finance_campaign_id="PROP_X_2020",
+                     measure_db_id=4040, stance="support",
+                     receipt_type="monetary_contribution", amount=5_000,
+                     donor_name_canon="Has Date")
+        raw.execute(
+            "UPDATE finance_flow_v3 SET week_start = '2020-01-06' WHERE flow_id = 1"
+        )
+        _insert_flow(raw, flow_id=2, finance_campaign_id="PROP_X_2020",
+                     measure_db_id=4040, stance="support",
+                     receipt_type="monetary_contribution", amount=99_999,
+                     donor_name_canon="No Date")
+        # week_start stays NULL (default)
+        raw.commit()
+
+        result = fdb_v3.get_finance_timeline_total(4040)
+        assert len(result) == 1
+        assert result[0]["weekly_amount"] == 5_000.0, (
+            "NULL-week_start rows must drop, not contribute"
+        )
+
+    def test_no_flows_returns_empty(self, fdb_v3):
+        assert fdb_v3.get_finance_timeline_total(99999) == []
+
+
+class TestCalendarYearReceiptsV3:
+    """Phase 5 step 2a: get_calendar_year_receipts_v3 is the v3
+    counterpart to v2's get_calendar_year_receipts — cross-measure
+    spending arc summed by year of week_start."""
+
+    def test_groups_by_year_of_week_start(self, fdb_v3):
+        raw = _v3_raw(fdb_v3)
+        for fid, week, amt, mid in [
+            (1, "2018-03-05", 100_000, 5000),
+            (2, "2018-11-19", 200_000, 5000),
+            (3, "2019-06-10", 50_000, 5010),
+        ]:
+            _insert_flow(raw, flow_id=fid, finance_campaign_id=f"PROP_{fid}_X",
+                         measure_db_id=mid, stance="support",
+                         receipt_type="monetary_contribution", amount=amt,
+                         donor_name_canon=f"D{fid}")
+            raw.execute(
+                "UPDATE finance_flow_v3 SET week_start = ? WHERE flow_id = ?",
+                (week, fid),
+            )
+        raw.commit()
+
+        result = fdb_v3.get_calendar_year_receipts_v3()
+        by_year = {r["year"]: r for r in result}
+        assert by_year[2018]["total_amount"] == 300_000.0
+        assert by_year[2018]["n_measures"] == 1  # both flows under measure 5000
+        assert by_year[2019]["total_amount"] == 50_000.0
+        assert by_year[2019]["n_measures"] == 1  # only measure 5010
+
+    def test_collision_campaigns_count_one_measure_per_year(self, fdb_v3):
+        """Two collision campaigns under one measure_db_id with flows
+        in the same calendar year should count as one measure."""
+        raw = _v3_raw(fdb_v3)
+        for fid, cid, week in [
+            (1, "PROP_A_2008", "2008-09-22"),
+            (2, "PROP_A_2010", "2008-12-15"),
+        ]:
+            _insert_flow(raw, flow_id=fid, finance_campaign_id=cid,
+                         measure_db_id=5100, stance="oppose",
+                         receipt_type="monetary_contribution", amount=10_000,
+                         donor_name_canon=f"D{fid}")
+            raw.execute(
+                "UPDATE finance_flow_v3 SET week_start = ? WHERE flow_id = ?",
+                (week, fid),
+            )
+        raw.commit()
+
+        result = fdb_v3.get_calendar_year_receipts_v3()
+        assert len(result) == 1
+        assert result[0]["year"] == 2008
+        assert result[0]["total_amount"] == 20_000.0
+        assert result[0]["n_measures"] == 1
+
+    def test_quarantined_rows_excluded(self, fdb_v3):
+        raw = _v3_raw(fdb_v3)
+        _insert_flow(raw, flow_id=1, finance_campaign_id="PROP_X_2020",
+                     measure_db_id=5200, stance="support",
+                     receipt_type="monetary_contribution", amount=5_000,
+                     donor_name_canon="Good")
+        _insert_flow(raw, flow_id=2, finance_campaign_id="PROP_X_2020",
+                     measure_db_id=5200, stance="support",
+                     receipt_type="independent_expenditure", amount=10_000_000,
+                     donor_name_canon="Bad",
+                     quarantine_reason="ambiguous_multi_prop")
+        for fid in [1, 2]:
+            raw.execute(
+                "UPDATE finance_flow_v3 SET week_start = '2020-01-06' WHERE flow_id = ?",
+                (fid,),
+            )
+        raw.commit()
+
+        result = fdb_v3.get_calendar_year_receipts_v3()
+        assert result[0]["total_amount"] == 5_000.0
+
+    def test_null_week_start_dropped(self, fdb_v3):
+        raw = _v3_raw(fdb_v3)
+        _insert_flow(raw, flow_id=1, finance_campaign_id="PROP_X_2020",
+                     measure_db_id=5300, stance="support",
+                     receipt_type="monetary_contribution", amount=1_000,
+                     donor_name_canon="No Date")
+        # week_start NULL by default
+        raw.commit()
+
+        result = fdb_v3.get_calendar_year_receipts_v3()
+        assert result == []
+
+    def test_no_flows_returns_empty(self, fdb_v3):
+        # Fresh fixture has no flows at all.
+        assert fdb_v3.get_calendar_year_receipts_v3() == []
+
+
 class TestAcceptedRowNullDonorInvariant:
     """Codex test gap: ingest acceptance gates should reject any row with
     NULL donor_name_canon. This test documents the expected invariant —
