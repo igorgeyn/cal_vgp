@@ -106,9 +106,11 @@ DONOR_SECTORS: dict[str, str] = {
     # ---- Gig Economy --------------------------------------------------
     "Lyft, Inc": "Gig Economy",
     "UBER TECHNOLOGIES, INC": "Gig Economy",
+    "Uber Technologies, Inc": "Gig Economy",  # post-alias canonical (donor_aliases.py)
     "DOORDASH, INC": "Gig Economy",
     "Instacart": "Gig Economy",  # post-canonicalization of Maplebear DBA
     "POSTMATES INC": "Gig Economy",  # acquired by Uber 2020 but filed under own name on PROP_22
+    "Postmates, Inc": "Gig Economy",  # post-alias canonical
 
     # ---- Tribal Gaming ------------------------------------------------
     # Casino-operating bands. Tribal-government status is preserved by
@@ -120,15 +122,19 @@ DONOR_SECTORS: dict[str, str] = {
     "AGUA CALIENTE BAND OF CAHUILLA INDIANS": "Tribal Gaming",
     "PALA CASINO RESORT SPA": "Tribal Gaming",
     "PALA BAND OF MISSION INDIANS": "Tribal Gaming",
+    "Pala Band of Mission Indians": "Tribal Gaming",  # post-alias canonical
     # Tribal coalition opposing online sports betting (PROP_27_2022)
     "CALIFORNIANS FOR COMMUNITY SAFETY, EQUALITY AND REINVESTMENT, SPONSORED BY TRIBAL ORGANIZATIONS": "Tribal Gaming",
 
     # ---- Commercial Gambling ------------------------------------------
     "FanDuel Sportsbook (Betfair Interactive US)": "Commercial Gambling",
+    "FanDuel Sportsbook (Betfair Interactive US LLC)": "Commercial Gambling",  # post-alias canonical
     "DraftKings (Crown Gaming Inc)": "Commercial Gambling",
     # Other PROP_27_2022 support-side sportsbook firms
     "FBG ENTERPRISES OPCO, LLC(RESPONSIBLE OFFICER: ARI BOROD)": "Commercial Gambling",  # Fanatics
+    "FBG Enterprises, LLC": "Commercial Gambling",  # post-alias canonical (Fanatics)
     "PENN INTERACTIVE VENTURES, LLC(RESPONSIBLE OFFICER: JON KAPLOWITZ)": "Commercial Gambling",  # Penn/Barstool
+    "Penn Interactive Ventures, LLC": "Commercial Gambling",  # post-alias canonical (Penn/Barstool)
     "BETMGM LLC(RESPONSIBLE OFFICER: ANDREW HAGOPIAN)": "Commercial Gambling",
 
     # ---- Healthcare ---------------------------------------------------
@@ -161,6 +167,10 @@ DONOR_SECTORS: dict[str, str] = {
     "CALIFORNIA ASSOCIATION OF REALTORS": "Real Estate",
     "California Association of Realtors Issues Mobilization PAC": "Real Estate",
     "NATIONAL ASSOCIATION OF REALTORS": "Real Estate",
+    # AIMCO (Apartment Investment and Management Company): public REIT,
+    # appeared on the rent-control PROP_21_2020 oppose side. Alias-merged
+    # in donor_aliases.py — canonical display form below.
+    "Apartment Investment and Management Company (AIMCO)": "Real Estate",
 
     # ---- Tobacco ------------------------------------------------------
     "Philip Morris USA Inc": "Tobacco",

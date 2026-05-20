@@ -190,6 +190,43 @@ class TestDonorSectorLookup:
         assert get_donor_sector("San Manuel Band of Mission Indians") == "Tribal Gaming"
         assert get_donor_sector("FanDuel Sportsbook (Betfair Interactive US)") == "Commercial Gambling"
 
+    @pytest.mark.parametrize("canonical_alias,expected_sector", [
+        # Codex round-5 closeout: when donor_aliases.py merges variants
+        # to a new canonical display name, the sector lookup must still
+        # succeed on that canonical form. Regression guard: adding a
+        # new alias requires adding the canonical to DONOR_SECTORS.
+        ("Uber Technologies, Inc", "Gig Economy"),
+        ("Postmates, Inc", "Gig Economy"),
+        ("Instacart", "Gig Economy"),
+        ("FanDuel Sportsbook (Betfair Interactive US LLC)", "Commercial Gambling"),
+        ("FBG Enterprises, LLC", "Commercial Gambling"),
+        ("Penn Interactive Ventures, LLC", "Commercial Gambling"),
+        ("Pala Band of Mission Indians", "Tribal Gaming"),
+        ("Apartment Investment and Management Company (AIMCO)", "Real Estate"),
+    ])
+    def test_aliased_marquee_donors_retain_sector(self, canonical_alias, expected_sector):
+        """Every canonical display name in donor_aliases.py that has a
+        meaningful sector must resolve to that sector via get_donor_sector.
+        Otherwise marquee/top-donor lists show a chip-less entry after
+        alias merging."""
+        assert get_donor_sector(canonical_alias) == expected_sector
+
+    def test_all_donor_alias_canonicals_round_trip(self):
+        """Stronger invariant: for every alias entry, if the source name
+        had a sector, the canonical output must also have one. (Catches
+        future aliases added to donor_aliases.py that don't get a
+        sector entry.)"""
+        from src.finance.donor_aliases import _DONOR_ALIASES_RAW
+        for source, canonical in _DONOR_ALIASES_RAW.items():
+            source_sector = get_donor_sector(source)
+            canonical_sector = get_donor_sector(canonical)
+            if source_sector is not None:
+                assert canonical_sector == source_sector, (
+                    f"alias source {source!r} has sector {source_sector!r}, "
+                    f"but canonical {canonical!r} resolves to {canonical_sector!r}. "
+                    "Add the canonical to donor_sectors.py."
+                )
+
     @pytest.mark.parametrize("raw_variant,expected_sector", [
         # DaVita: raw variants merge via canonicalize_donor then classify
         ("DAVITA", "Healthcare"),

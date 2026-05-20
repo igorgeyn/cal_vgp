@@ -14,7 +14,7 @@
     "county_count": 58,
     "year_min": 1911,
     "year_max": 2026,
-    "generated_at": "2026-05-20T10:28:14"
+    "generated_at": "2026-05-20T10:49:30"
   },
   "featured_findings": [
     {
@@ -5070,7 +5070,7 @@
         "name": "Uber Technologies, Inc",
         "total_amount": 65714727.73,
         "n_campaigns": 2,
-        "donor_sector": null
+        "donor_sector": "Gig Economy"
       },
       {
         "name": "R.J. Reynolds Tobacco Company",
@@ -5189,7 +5189,7 @@
           {
             "name": "Uber Technologies, Inc",
             "total_amount": 61214727.73,
-            "donor_sector": null
+            "donor_sector": "Gig Economy"
           },
           {
             "name": "DOORDASH, INC",
@@ -5209,7 +5209,7 @@
           {
             "name": "Postmates, Inc",
             "total_amount": 7007061.09,
-            "donor_sector": null
+            "donor_sector": "Gig Economy"
           }
         ],
         "oppose_top_donors": [
@@ -5257,7 +5257,7 @@
           {
             "name": "FanDuel Sportsbook (Betfair Interactive US LLC)",
             "total_amount": 36692058.38,
-            "donor_sector": null
+            "donor_sector": "Commercial Gambling"
           },
           {
             "name": "DraftKings (Crown Gaming Inc)",
@@ -5267,12 +5267,12 @@
           {
             "name": "FBG Enterprises, LLC",
             "total_amount": 25000000.0,
-            "donor_sector": null
+            "donor_sector": "Commercial Gambling"
           },
           {
             "name": "Penn Interactive Ventures, LLC",
             "total_amount": 25000000.0,
-            "donor_sector": null
+            "donor_sector": "Commercial Gambling"
           },
           {
             "name": "BETMGM LLC",

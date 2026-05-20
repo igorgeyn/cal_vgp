@@ -1153,7 +1153,8 @@ def build_finance_insights(measures_by_db_id):
     fdb.close()
 
     # Win-rate at the measure level. Each measure with a known outcome
-    # AND any v3 money on either side contributes one denominator unit.
+    # AND any combined v2+v3 money on either side contributes one
+    # denominator unit.
     better_funded_known = 0
     better_funded_won = 0
     for m in measures_out:
@@ -1234,14 +1235,17 @@ MARQUEE_FIGHT_IDS = [
 
 
 def _build_finance_supplements(campaigns_out, measures_by_db_id):
-    """Build the supplemental panel fields, now v3-sourced:
+    """Build the supplemental panel fields, sourced from combined v2 +
+    v3 (Codex round-5 closeout: docstring was stale "v3-sourced"):
 
-    1. annual_receipts — total v3 money grouped by ACTUAL election year
-       (using v2's match_via remap for year-offset recoveries).
-    2. calendar_year_receipts — total v3 money by transaction-week year.
-    3. top_donors_overall — top 15 v3 donors across all measures.
-    4. repeat_donors — v3 donors active in 3+ campaigns at ≥$1M.
-    5. marquee_fights — 3 hand-picked case studies with v3 per-side
+    1. annual_receipts — total combined money grouped by ACTUAL
+       election year (using v2's match_via remap for year-offset
+       recoveries).
+    2. calendar_year_receipts — total combined money by transaction-week
+       year.
+    3. top_donors_overall — top 15 combined donors across all measures.
+    4. repeat_donors — combined donors active in 3+ campaigns at ≥$1M.
+    5. marquee_fights — 3 hand-picked case studies with combined per-side
        totals + top 5 donors per stance.
     """
     if not FINANCE_DB_PATH.exists() or not FINANCE_DB_V3_PATH.exists():
