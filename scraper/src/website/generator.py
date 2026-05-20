@@ -5150,39 +5150,118 @@ class WebsiteGenerator:
             font-size: 0.8rem;
             color: var(--text-secondary);
         }
-        .finance-donors-list {
-            margin-top: 0.5rem;
-        }
-        .finance-donors-list h4 {
+        /* Source breakdown — v3 receipt-type panel between total + donor list. */
+        .finance-breakdown-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.15rem;
+            margin: 0.5rem 0 0.75rem 0;
+            padding: 0.5rem 0.6rem;
+            background: rgba(0, 0, 0, 0.03);
+            border-radius: calc(var(--radius) * 0.6);
             font-size: 0.78rem;
-            margin: 0 0 0.3rem 0;
-            color: var(--text-primary);
+            color: var(--text-secondary);
         }
-        .finance-donor-row {
+        .finance-breakdown-row {
             display: flex;
             justify-content: space-between;
-            align-items: center;
-            padding: 0.2rem 0;
-            font-size: 0.78rem;
-            border-bottom: 1px solid var(--border);
+            align-items: baseline;
+            gap: 0.5rem;
         }
-        .finance-donor-row:last-child { border-bottom: none; }
-        .finance-donor-name {
-            flex: 1;
+        .finance-breakdown-label {
+            color: var(--text-secondary);
+        }
+        .finance-breakdown-amount {
+            color: var(--text-primary);
+            font-variant-numeric: tabular-nums;
+        }
+
+        /* Modal Finance tab donor list — two-row entries: name on row 1
+           (wraps if long), sector chip + amount on row 2 (right-aligned
+           amount). Scoped under .finance-side to avoid colliding with
+           the Insights-panel marquee CSS later in this file (which uses
+           the same class names with a column-stacked layout). */
+        .finance-side .finance-donors-list {
+            margin-top: 0.5rem;
+        }
+        .finance-side .finance-donors-list h4 {
+            font-size: 0.78rem;
+            margin: 0 0 0.4rem 0;
+            color: var(--text-primary);
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+        .finance-side .finance-donor-ol {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            counter-reset: donor;
+        }
+        .finance-side .finance-donor-row {
+            display: grid;
+            grid-template-columns: 1.4rem 1fr;
+            column-gap: 0.5rem;
+            padding: 0.45rem 0;
+            border-bottom: 1px solid var(--border);
+            counter-increment: donor;
+            font-size: inherit;
+            align-items: start;
+        }
+        .finance-side .finance-donor-row:last-child { border-bottom: none; }
+        .finance-side .finance-donor-row::before {
+            content: counter(donor);
+            color: var(--text-tertiary, var(--text-secondary));
+            font-size: 0.78rem;
+            font-variant-numeric: tabular-nums;
+            grid-column: 1;
+            grid-row: 1 / span 2;
+            padding-top: 0.05rem;
+            text-align: right;
+        }
+        .finance-side .finance-donor-name {
+            grid-column: 2;
+            grid-row: 1;
+            font-size: 0.85rem;
+            line-height: 1.25;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            /* Override insights-panel CSS that turns this into a wrap-flex
+               container — modal layout puts the chip on row 2, not inline. */
+            display: block;
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+        .finance-side .finance-donor-meta {
+            grid-column: 2;
+            grid-row: 2;
+            display: flex;
+            flex-direction: row;
+            justify-content: space-between;
+            align-items: baseline;
+            gap: 0.5rem;
+            margin-top: 0.15rem;
+            white-space: normal;
+        }
+        .finance-side .finance-donor-tag {
+            font-size: 0.74rem;
+            color: var(--text-secondary);
+            min-width: 0;
             overflow: hidden;
             text-overflow: ellipsis;
-            white-space: nowrap;
-            padding-right: 0.5rem;
         }
-        .finance-donor-amount {
+        .finance-side .finance-donor-amount {
+            font-size: 0.82rem;
             font-weight: 600;
             white-space: nowrap;
+            font-variant-numeric: tabular-nums;
+            color: var(--text-primary);
         }
-        .finance-donor-type {
-            font-size: 0.75rem;
-            color: var(--text-secondary);
-            margin-left: 0.5rem;
-            white-space: nowrap;
+        /* Uncurated donor fallback label (when no sector chip). */
+        .finance-side .finance-donor-fallback {
+            font-size: 0.74rem;
+            color: var(--text-tertiary, var(--text-secondary));
+            font-style: italic;
+            text-transform: lowercase;
         }
         @media (max-width: 768px) {
             .finance-sides {
@@ -5225,6 +5304,68 @@ class WebsiteGenerator:
         .finance-chart-bar.oppose {
             background: var(--danger);
         }
+        /* Cumulative-line chart (SVG). Shared y-axis dollars; lines
+           (step-after) so big consolidated weeks show as visible
+           vertical steps. Codex-recommended idiom 2026-05. */
+        svg.finance-line-chart {
+            display: block;
+            width: 100%;
+            height: 180px;
+            overflow: visible;
+        }
+        svg.finance-line-chart .finance-line {
+            fill: none;
+            stroke-width: 2;
+            stroke-linejoin: round;
+            stroke-linecap: round;
+        }
+        svg.finance-line-chart .finance-line.support {
+            stroke: var(--success);
+        }
+        svg.finance-line-chart .finance-line.oppose {
+            stroke: var(--danger);
+        }
+        svg.finance-line-chart .finance-line-grid {
+            stroke: var(--border, #e2e8f0);
+            stroke-width: 0.5;
+            stroke-dasharray: 2 3;
+            opacity: 0.6;
+        }
+        svg.finance-line-chart .finance-line-election {
+            stroke: var(--text-secondary, #64748b);
+            stroke-width: 1;
+            stroke-dasharray: 3 2;
+            opacity: 0.7;
+        }
+        svg.finance-line-chart text.finance-line-yaxis {
+            font-size: 9px;
+            fill: var(--text-secondary, #64748b);
+            font-variant-numeric: tabular-nums;
+        }
+        svg.finance-line-chart circle.finance-line-dot {
+            stroke-width: 1.5;
+            fill: white;
+        }
+        svg.finance-line-chart circle.finance-line-dot.support {
+            stroke: var(--success);
+        }
+        svg.finance-line-chart circle.finance-line-dot.oppose {
+            stroke: var(--danger);
+        }
+        .finance-line-electionlabel {
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            font-style: italic;
+        }
+        .finance-chart-peaks .ratio-note {
+            color: var(--text-secondary);
+            font-style: italic;
+        }
+        .finance-chart-peaks .no-data {
+            color: var(--text-tertiary, var(--text-secondary));
+            font-style: italic;
+            opacity: 0.85;
+        }
         .finance-chart-legend {
             display: flex;
             justify-content: center;
@@ -5254,6 +5395,24 @@ class WebsiteGenerator:
             font-size: 0.7rem;
             color: var(--text-tertiary);
             margin-top: 0.25rem;
+        }
+        /* Peak-week annotations under the weekly-flow chart. */
+        .finance-chart-peaks {
+            display: flex;
+            flex-direction: column;
+            gap: 0.15rem;
+            font-size: 0.72rem;
+            color: var(--text-secondary);
+            margin-top: 0.4rem;
+            padding: 0.35rem 0.5rem;
+            background: rgba(0, 0, 0, 0.025);
+            border-radius: calc(var(--radius) * 0.5);
+        }
+        .finance-chart-peaks .peak-support {
+            color: var(--success);
+        }
+        .finance-chart-peaks .peak-oppose {
+            color: var(--danger);
         }
 
         /* Contribution Size Breakdown (Grassroots Score) */
@@ -7713,35 +7872,76 @@ class WebsiteGenerator:
             return '$' + n.toLocaleString();
         }}
 
-        function buildFinanceHTML(fd) {{
+        function buildFinanceHTML(fd, measure) {{
             let html = '<div class="finance-sides">';
             const sides = [{{'key': 'support', 'label': 'Support', 'cls': 'support'}}, {{'key': 'oppose', 'label': 'Oppose', 'cls': 'oppose'}}];
+            const receiptTypeLabels = {{
+                'monetary_contribution': 'Direct receipts',
+                'independent_expenditure': 'Independent spend',
+                'in_kind': 'In-kind',
+                'loan': 'Loans',
+            }};
+            const receiptTypeOrder = [
+                'monetary_contribution',
+                'independent_expenditure',
+                'in_kind',
+                'loan',
+            ];
             sides.forEach(side => {{
                 const summary = (fd.summary || []).find(s => s.stance === side.key);
                 const donors = (fd.donors || []).filter(d => d.stance === side.key);
+                const breakdown = (fd.breakdown_by_type || []).filter(b => b.stance === side.key);
                 html += '<div class="finance-side finance-side-' + side.cls + '">';
                 html += '<h4>' + side.label + '</h4>';
                 if (summary) {{
                     html += '<div class="finance-total">' + formatDollars(summary.total_receipts) + '</div>';
-                    html += '<div class="finance-meta">' + summary.n_committees + ' committee' + (summary.n_committees !== 1 ? 's' : '') + '</div>';
+                    const filerCount = summary.n_committees;
+                    if (filerCount) {{
+                        html += '<div class="finance-meta">' + filerCount + ' filer' + (filerCount !== 1 ? 's' : '') + '</div>';
+                    }}
                 }} else {{
                     html += '<div class="finance-total">—</div>';
                 }}
+
+                // Source breakdown (v3 by-receipt-type). Skip zero rows
+                // to avoid cluttering the panel with "Loans $0" lines for
+                // measures that have no loan activity.
+                if (breakdown.length > 0) {{
+                    const byType = {{}};
+                    breakdown.forEach(b => {{ byType[b.receipt_type] = b.total_amount; }});
+                    const lines = receiptTypeOrder
+                        .filter(rt => (byType[rt] || 0) > 0)
+                        .map(rt => (
+                            '<div class="finance-breakdown-row">' +
+                                '<span class="finance-breakdown-label">' + receiptTypeLabels[rt] + '</span>' +
+                                '<span class="finance-breakdown-amount">' + formatDollars(byType[rt]) + '</span>' +
+                            '</div>'
+                        ));
+                    if (lines.length > 0) {{
+                        html += '<div class="finance-breakdown-list">' + lines.join('') + '</div>';
+                    }}
+                }}
+
                 if (donors.length > 0) {{
-                    html += '<div class="finance-donors-list"><h4>Top Donors</h4>';
+                    html += '<div class="finance-donors-list"><h4>Top Donors</h4><ol class="finance-donor-ol">';
                     donors.slice(0, 5).forEach(d => {{
-                        // Modal mirrors the Insights panel: donor name +
-                        // sector chip when curated. donor_type stays as a
-                        // separate field (individual / committee / etc.)
-                        // since it's a different concept from sector.
+                        // Two-row layout: name on row 1 (wraps if long);
+                        // sector chip OR donor_type fallback + amount on row 2.
+                        // donor_type is shown only when no sector chip is
+                        // curated, since chip carries more signal.
                         const sectorChip = renderSectorChip(d.donor_sector);
-                        html += '<div class="finance-donor-row">' +
-                            '<span class="finance-donor-name">' + escapeHtml(d.donor_name_canon) + sectorChip + '</span>' +
-                            '<span class="finance-donor-amount">' + formatDollars(d.total_amount) + '</span>' +
-                            '<span class="finance-donor-type">' + escapeHtml(d.donor_type || '') + '</span>' +
-                        '</div>';
+                        const fallbackLabel = (!d.donor_sector && d.donor_type)
+                            ? '<span class="finance-donor-fallback">' + escapeHtml(d.donor_type) + '</span>'
+                            : '';
+                        html += '<li class="finance-donor-row">' +
+                            '<div class="finance-donor-name">' + escapeHtml(d.donor_name_canon || 'Unnamed donor') + '</div>' +
+                            '<div class="finance-donor-meta">' +
+                                '<span class="finance-donor-tag">' + (sectorChip || fallbackLabel) + '</span>' +
+                                '<span class="finance-donor-amount">' + formatDollars(d.total_amount) + '</span>' +
+                            '</div>' +
+                        '</li>';
                     }});
-                    html += '</div>';
+                    html += '</ol></div>';
                 }}
                 html += '</div>';
             }});
@@ -7750,7 +7950,7 @@ class WebsiteGenerator:
             // Timeline chart
             const timeline = fd.timeline || [];
             if (timeline.length > 0) {{
-                html += buildTimelineChart(timeline);
+                html += buildTimelineChart(timeline, measure);
             }}
 
             // Contribution size breakdown
@@ -7762,54 +7962,242 @@ class WebsiteGenerator:
             return html;
         }}
 
-        function buildTimelineChart(timeline) {{
-            // Group by week and stance
-            const supportData = timeline.filter(t => t.stance === 'support');
-            const opposeData = timeline.filter(t => t.stance === 'oppose');
+        function novGeneralElectionDate(year) {{
+            // First Tuesday after first Monday of November of `year`.
+            // Used as an ESTIMATE for measures where election_date isn't
+            // populated in the measure record. Correct for November
+            // general elections (most CA statewide props); WRONG by
+            // months for June primaries and special elections, so the
+            // chart labels this marker as estimated when used as
+            // fallback. Codex round-7 reviewed the honesty calibration.
+            if (!year) return null;
+            const y = parseInt(year, 10);
+            if (!y || y < 1900 || y > 2100) return null;
+            const nov1 = new Date(Date.UTC(y, 10, 1));  // Nov is month index 10
+            const dow = nov1.getUTCDay();  // 0=Sun..6=Sat
+            const firstMondayOffset = (1 - dow + 7) % 7;
+            const firstMonday = new Date(nov1.getTime() + firstMondayOffset * 86400000);
+            return new Date(firstMonday.getTime() + 86400000);
+        }}
+
+        function resolveElectionDate(measure) {{
+            // Returns {{date, isEstimated}} or null. Prefers measure's
+            // populated election_date column when present; falls back
+            // to the November-general approximation if only year is
+            // known. Caller uses isEstimated to qualify labels.
+            if (!measure) return null;
+            const raw = measure.election_date;
+            if (raw) {{
+                const parsed = new Date(raw.length === 10 ? raw + 'T00:00:00Z' : raw);
+                if (!isNaN(parsed.getTime())) {{
+                    return {{date: parsed, isEstimated: false}};
+                }}
+            }}
+            const fallback = novGeneralElectionDate(measure.year);
+            if (fallback) return {{date: fallback, isEstimated: true}};
+            return null;
+        }}
+
+        function weeksBefore(electionDate, weekStart) {{
+            if (!electionDate || !weekStart) return null;
+            const wd = new Date(weekStart + 'T00:00:00Z');
+            const diffDays = (electionDate.getTime() - wd.getTime()) / 86400000;
+            return Math.round(diffDays / 7);
+        }}
+
+        function buildTimelineChart(timeline, measure) {{
+            // Cumulative SVG line chart, shared y-axis. Lines (not bars)
+            // because the steep-vs-flat shape carries timing info even
+            // on lopsided fights — a single $141M consolidated week
+            // becomes a visible vertical step, while the smaller side
+            // stays readable as its own flatter line. Election-day
+            // marker contextualizes "this was N weeks before election."
+            // Codex-recommended idiom for this problem (May 2026).
+            const supportData = timeline.filter(t => t.stance === 'support')
+                .sort((a, b) => a.week_start.localeCompare(b.week_start));
+            const opposeData = timeline.filter(t => t.stance === 'oppose')
+                .sort((a, b) => a.week_start.localeCompare(b.week_start));
 
             if (supportData.length === 0 && opposeData.length === 0) return '';
 
-            // Find all unique weeks and max cumulative value
             const allWeeks = [...new Set(timeline.map(t => t.week_start))].sort();
             if (allWeeks.length < 2) return '';
 
-            // Get max cumulative for scaling
-            const maxCumulative = Math.max(
-                ...timeline.map(t => t.cumulative_receipts || 0)
-            );
-            if (maxCumulative === 0) return '';
+            const supportMax = supportData.length
+                ? supportData[supportData.length - 1].cumulative_receipts || 0
+                : 0;
+            const opposeMax = opposeData.length
+                ? opposeData[opposeData.length - 1].cumulative_receipts || 0
+                : 0;
+            const yMax = Math.max(supportMax, opposeMax, 1);
 
-            // Sample weeks if too many (max ~60 bars per side)
-            let sampledWeeks = allWeeks;
-            if (allWeeks.length > 60) {{
-                const step = Math.ceil(allWeeks.length / 60);
-                sampledWeeks = allWeeks.filter((_, i) => i % step === 0);
+            // Time axis: Date objects for support's first week through
+            // the chart's final week.
+            const firstWeek = new Date(allWeeks[0] + 'T00:00:00Z');
+            const lastWeek = new Date(allWeeks[allWeeks.length - 1] + 'T00:00:00Z');
+            // Resolve election date: real if available, fallback (Nov
+            // general approximation) otherwise. Flag tracks which.
+            const electionInfo = resolveElectionDate(measure);
+            const electionDate = electionInfo ? electionInfo.date : null;
+            const electionEstimated = electionInfo ? electionInfo.isEstimated : false;
+            // Stretch axis past last data week if election is after it.
+            const axisEnd = electionDate && electionDate.getTime() > lastWeek.getTime()
+                ? new Date(electionDate.getTime() + 14 * 86400000)
+                : lastWeek;
+            const axisSpanMs = Math.max(axisEnd.getTime() - firstWeek.getTime(), 1);
+
+            // SVG dimensions (viewBox; CSS scales). 700 wide is the
+            // modal content area; tall enough to read line shapes.
+            const W = 700, H = 180;
+            const padL = 8, padR = 8, padT = 12, padB = 24;
+            const plotW = W - padL - padR;
+            const plotH = H - padT - padB;
+
+            const xOf = (weekStart) => {{
+                const t = new Date(weekStart + 'T00:00:00Z').getTime();
+                return padL + ((t - firstWeek.getTime()) / axisSpanMs) * plotW;
+            }};
+            const yOf = (amount) => padT + plotH - (amount / yMax) * plotH;
+
+            const pathFor = (series) => {{
+                if (!series.length) return '';
+                // Step-after so each weekly jump shows as a vertical step,
+                // not a smoothed slope. Big consolidated payments become
+                // visible steps rather than slope changes.
+                let d = 'M ' + padL + ',' + yOf(0);
+                let lastY = yOf(0);
+                series.forEach(pt => {{
+                    const px = xOf(pt.week_start);
+                    const py = yOf(pt.cumulative_receipts || 0);
+                    d += ' L ' + px + ',' + lastY + ' L ' + px + ',' + py;
+                    lastY = py;
+                }});
+                // Extend the line flat to the right edge of the axis.
+                d += ' L ' + (padL + plotW) + ',' + lastY;
+                return d;
+            }};
+
+            // Find the biggest single-week jump per side for annotation.
+            const peakJump = (series) => {{
+                let best = {{week: null, amount: 0}};
+                for (let i = 0; i < series.length; i++) {{
+                    const w = series[i].weekly_receipts || 0;
+                    if (w > best.amount) best = {{week: series[i].week_start, amount: w}};
+                }}
+                return best;
+            }};
+            const sPeak = peakJump(supportData);
+            const oPeak = peakJump(opposeData);
+
+            // Build SVG.
+            // SVG uses preserveAspectRatio="xMidYMid meet" so the inset
+            // text/dot markers below stay legible; the chart scales
+            // proportionally to the modal width.
+            let svg = '<svg class="finance-line-chart" viewBox="0 0 ' + W + ' ' + H +
+                      '" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Cumulative fundraising over time">';
+            // Horizontal gridlines (25/50/75% of yMax) for visual scale.
+            [0.25, 0.5, 0.75].forEach(frac => {{
+                const y = yOf(yMax * frac);
+                svg += '<line class="finance-line-grid" x1="' + padL + '" x2="' + (padL + plotW) +
+                       '" y1="' + y + '" y2="' + y + '"/>';
+            }});
+            // Y-axis scale label: small "Max $X" at top-left so unlabeled
+            // gridlines aren't just texture. Codex round-7 nudge.
+            svg += '<text class="finance-line-yaxis" x="' + padL + '" y="' + (padT - 2) +
+                   '">Max ' + formatDollars(yMax) + '</text>';
+            // Election-day marker (if computable).
+            let electionLabel = '';
+            if (electionDate
+                && electionDate.getTime() >= firstWeek.getTime()
+                && electionDate.getTime() <= axisEnd.getTime()) {{
+                const xElection = padL + ((electionDate.getTime() - firstWeek.getTime()) / axisSpanMs) * plotW;
+                svg += '<line class="finance-line-election" x1="' + xElection + '" x2="' + xElection +
+                       '" y1="' + padT + '" y2="' + (padT + plotH) + '"/>';
+                const isoDate = electionDate.toISOString().slice(0, 10);
+                // Label qualifies estimated dates so viewers don't trust
+                // a Nov-general approximation for June primaries etc.
+                const labelText = electionEstimated
+                    ? 'Election day (est. Nov general): ' + isoDate
+                    : 'Election day: ' + isoDate;
+                electionLabel = '<span class="finance-line-electionlabel">' + labelText + '</span>';
+            }}
+            // Cumulative lines.
+            svg += '<path class="finance-line oppose" d="' + pathFor(opposeData) + '"/>';
+            svg += '<path class="finance-line support" d="' + pathFor(supportData) + '"/>';
+            // Peak-jump dots: small markers at the biggest weekly jump
+            // per side. Codex round-7 polish — pairs with the strip
+            // facts below; you read amount in the strip, see WHERE on
+            // the line via the dot.
+            if (sPeak.week) {{
+                const cx = xOf(sPeak.week);
+                const sCum = supportData.find(p => p.week_start === sPeak.week);
+                const cy = yOf(sCum ? sCum.cumulative_receipts || 0 : 0);
+                svg += '<circle class="finance-line-dot support" cx="' + cx + '" cy="' + cy + '" r="3.5"/>';
+            }}
+            if (oPeak.week) {{
+                const cx = xOf(oPeak.week);
+                const oCum = opposeData.find(p => p.week_start === oPeak.week);
+                const cy = yOf(oCum ? oCum.cumulative_receipts || 0 : 0);
+                svg += '<circle class="finance-line-dot oppose" cx="' + cx + '" cy="' + cy + '" r="3.5"/>';
+            }}
+            svg += '</svg>';
+
+            // Timing facts: peak-jump amounts + weeks-relative-to-election.
+            // Suffix is qualified as approximate when election_date is
+            // estimated (Nov-general fallback) so users don't over-trust
+            // the timing for June-primary / special-election props.
+            const facts = [];
+            const fmtRel = (w) => {{
+                const wb = weeksBefore(electionDate, w);
+                if (wb === null) return '';
+                const electionLabel = electionEstimated
+                    ? 'est. election day'
+                    : 'election day';
+                if (wb > 1) return ', ' + wb + ' weeks before ' + electionLabel;
+                if (wb === 1) return ', 1 week before ' + electionLabel;
+                if (wb === 0) return ', election week';
+                if (wb === -1) return ', 1 week after ' + electionLabel;
+                return ', ' + Math.abs(wb) + ' weeks after ' + electionLabel;
+            }};
+            if (sPeak.week) {{
+                facts.push('<span class="peak-support">Peak support week: ' +
+                           formatDollars(sPeak.amount) + ' (week of ' + sPeak.week +
+                           fmtRel(sPeak.week) + ')</span>');
+            }} else if (opposeData.length > 0) {{
+                facts.push('<span class="peak-support no-data">No support spending recorded.</span>');
+            }}
+            if (oPeak.week) {{
+                facts.push('<span class="peak-oppose">Peak oppose week: ' +
+                           formatDollars(oPeak.amount) + ' (week of ' + oPeak.week +
+                           fmtRel(oPeak.week) + ')</span>');
+            }} else if (supportData.length > 0) {{
+                facts.push('<span class="peak-oppose no-data">No oppose spending recorded.</span>');
+            }}
+            // Lopsided-fight note for ratios > 3x.
+            const big = Math.max(supportMax, opposeMax);
+            const small = Math.min(supportMax, opposeMax);
+            if (small > 0 && big / small >= 3) {{
+                const ratio = (big / small).toFixed(1);
+                const bigger = supportMax > opposeMax ? 'Support' : 'Oppose';
+                facts.push('<span class="ratio-note">' + bigger + ' raised ' + ratio + 'x more overall.</span>');
             }}
 
-            // Build bar chart
             let html = '<div class="finance-timeline">';
-            html += '<h4>Fundraising Over Time (cumulative)</h4>';
-            html += '<div class="finance-chart">';
-
-            sampledWeeks.forEach(week => {{
-                const sData = supportData.find(t => t.week_start === week);
-                const oData = opposeData.find(t => t.week_start === week);
-                const sHeight = sData ? (sData.cumulative_receipts / maxCumulative * 100) : 0;
-                const oHeight = oData ? (oData.cumulative_receipts / maxCumulative * 100) : 0;
-
-                if (sHeight > 0) {{
-                    html += '<div class="finance-chart-bar support" style="height:' + sHeight + '%" title="Support: ' + formatDollars(sData.cumulative_receipts) + ' (' + week + ')"></div>';
-                }}
-                if (oHeight > 0) {{
-                    html += '<div class="finance-chart-bar oppose" style="height:' + oHeight + '%" title="Oppose: ' + formatDollars(oData.cumulative_receipts) + ' (' + week + ')"></div>';
-                }}
-            }});
-
-            html += '</div>';
-            html += '<div class="finance-chart-dates"><span>' + allWeeks[0] + '</span><span>' + allWeeks[allWeeks.length - 1] + '</span></div>';
+            html += '<h4>Funding over time</h4>';
+            html += svg;
+            // Right-edge label is the END OF THE AXIS, not the election
+            // date. When data extends past election day, axisEnd is the
+            // last data week — using electionDate there would mislabel
+            // the right edge. Codex round-7 caught this.
+            const axisEndIso = axisEnd.toISOString().slice(0, 10);
+            html += '<div class="finance-chart-dates">' +
+                    '<span>' + allWeeks[0] + '</span>' +
+                    electionLabel +
+                    '<span>' + axisEndIso + '</span>' +
+                    '</div>';
+            html += '<div class="finance-chart-peaks">' + facts.join('') + '</div>';
             html += '<div class="finance-chart-legend"><span class="legend-support">Support</span><span class="legend-oppose">Oppose</span></div>';
             html += '</div>';
-
             return html;
         }}
 
@@ -12917,7 +13305,7 @@ class WebsiteGenerator:
             // bare measure_id ("PROP_1") isn't unique across cycles.
             const fd = financeData[String(measure.id)];
             if (fd) {{
-                financeContent.innerHTML = buildFinanceHTML(fd);
+                financeContent.innerHTML = buildFinanceHTML(fd, measure);
                 financeSection.style.display = 'block';
             }} else {{
                 financeSection.style.display = 'none';
