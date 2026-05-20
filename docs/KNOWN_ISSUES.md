@@ -140,6 +140,85 @@ See `plans/finance-rebuild-verification.md` and
 
 ---
 
+## 9. v2 monetary donor distribution capped at top-20
+
+**Severity:** Medium (affects concentration metrics on combined view)
+**Status:** Accepted; resolution path documented
+
+v2's `finance_top_donors` table is materialized at the top-20 donors
+per `(finance_campaign_id, stance)` only. The full per-donor
+distribution isn't stored — only summary totals are exact.
+
+In the post-Phase 5 combined view, this means computing HHI /
+top5_share against the merged v2+v3 donor list would systematically
+underestimate concentration for any measure where v2 monetary is
+non-trivial (the missing v2 tail donors don't get counted in the
+denominator). `FinanceDatabase.get_combined_summary` therefore
+returns `None` for `top5_share` / `hhi` on any row where
+`monetary_amount > 0`. v3-only rows pass through v3's exact metrics.
+
+**Resolution path (either of):**
+1. v2.1 rebuild that materializes the full monetary donor
+   distribution (a few GB; could go in a separate auxiliary table).
+2. v3 monetary ingest sub-phase that adds `monetary_contribution`
+   rows to `finance_flow_v3`. Then `get_combined_*` collapses into
+   v3-only counterparts and concentration metrics become exact for
+   all rows.
+
+Tracked in `docs/WORKING_LIST.md` Phase 6 follow-ups.
+
+---
+
+## 10. Cross-source donor canonicalization drift
+
+**Severity:** Low (display-side, doesn't affect totals)
+**Status:** Curated alias map covers visible cases; ongoing
+
+v2 (`finance_top_donors`) and v3 (`finance_flow_v3`) canonicalize
+donor names independently. The same legal entity sometimes appears
+under two slightly different canon strings — typically a comma diff
+(`UBER TECHNOLOGIES, INC` vs `UBER TECHNOLOGIES INC`), D/B/A
+wrapping (`FanDuel Sportsbook (Betfair Interactive US)` vs
+`BETFAIR INTERACTIVE US LLC D/B/A FANDUEL GROUP, INC`), or
+`(RESPONSIBLE OFFICER:...)` suffix.
+
+`src/finance/donor_aliases.py` curates ~18 entries covering all
+visible splits in marquee fights + top-N donor lists. Aliases apply
+only at combined-merge time — underlying v2/v3 storage
+canonicalization stays independent so source-table reconciliation
+remains exact.
+
+**Known limitations:**
+- Aliases are curated, not generic. Future visible splits in
+  lower-traffic measures need adding to `donor_aliases.py`.
+- Same-org-different-locals stays distinct (SEIU 1000 vs 1021,
+  UFCW 770 vs 135) — intentional, not a gap to close.
+
+---
+
+## 11. v3 doesn't ingest monetary contributions
+
+**Severity:** Architectural (workaround in place)
+**Status:** Non-blocking follow-up
+
+The v3 finance database (`finance_statewide_v3.db`) currently
+ingests only loans (`LOAN_CD`), in-kind contributions
+(`RCPT_CD` Schedule C), and independent expenditures
+(`EXPN_CD` + `S496_CD`). Monetary contributions (`RCPT_CD`
+Schedule A) still live in v2.
+
+The combined read layer (`FinanceDatabase.get_combined_*`) stitches
+the two at consumer call time. This works correctly but adds
+plumbing: every consumer of v3 reads goes through Python merging.
+
+**Resolution:** add a v3 monetary ingest pass (extends Phase 4)
+that puts `receipt_type='monetary_contribution'` rows in
+`finance_flow_v3`. Then `get_combined_*` methods can collapse into
+their underlying v3 counterparts, and the concentration-None
+caveat (issue #9) resolves automatically.
+
+---
+
 ## Appendix: Quality Score Breakdown
 
 **Current Overall Score: 86.7% (A-)**
@@ -163,3 +242,4 @@ See `plans/finance-rebuild-verification.md` and
 | Date | Changes |
 |------|---------|
 | 2026-02-05 | Initial document created after Codex audit |
+| 2026-05-20 | Phase 6 closeout: added v3-era issues #9 (concentration metrics None policy), #10 (donor canonicalization drift), #11 (v3 doesn't ingest monetary yet) |

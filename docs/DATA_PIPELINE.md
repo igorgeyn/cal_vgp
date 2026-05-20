@@ -7,13 +7,25 @@
 **Coverage:** 58 California counties + statewide propositions
 **Quality Score:** 86.7% (A-) — see [KNOWN_ISSUES.md](KNOWN_ISSUES.md)
 
-> **Finance section is a snapshot.** Section 9 below describes the original
-> `finance_statewide.db` design. The finance database was rebuilt 2026-05-04
-> as `finance_statewide_v2.db`, keyed by year-scoped `finance_campaign_id`
-> (e.g. `PROP_16_2020`), after a cross-cycle contamination bug was found.
-> Current state: 181 matched campaigns / $3.32B retained receipts. See
+> **Finance section is a snapshot — substantially expanded since this
+> doc was written.** Section 9 below describes the original
+> `finance_statewide.db` design (v1; contaminated). The finance pipeline
+> has had two major rebuilds since:
+>
+> - **v2 (2026-05-04, `finance_statewide_v2.db`):** keyed by year-scoped
+>   `finance_campaign_id` (e.g. `PROP_16_2020`), fixing the cross-cycle
+>   contamination bug. v2 scope is itemized monetary contributions only.
+> - **v3 (Phase 4–5, 2026-05-15 → 2026-05-20, `finance_statewide_v3.db`):**
+>   expanded scope. v3 carries loans (`LOAN_CD`), in-kind contributions
+>   (`RCPT_CD` Schedule C), and independent expenditures (`EXPN_CD` +
+>   `S496_CD`). Phase 5 stitched v2 monetary + v3 non-monetary into a
+>   single read layer (`FinanceDatabase.get_combined_*`).
+>
+> Current production state: **181 matched campaigns / $5.75B reportable
+> money** (v2 monetary $3.24B + v3 loans+in-kind+IE $2.51B). See
 > [`scraper/data/finance/README.md`](../scraper/data/finance/README.md)
-> and `plans/finance-rebuild-verification.md` for the live design.
+> for the live design + methodology and `plans/finance-rebuild-verification.md`
+> for the verification framework (Layers 1–3 + Phase G).
 
 ---
 
@@ -57,8 +69,9 @@ cal_vgp/
 ├── scraper/
 │   ├── data/
 │   │   ├── ballot_measures.db      # Main SQLite database (29 MB)
-│   │   ├── finance/                # Finance database
-│   │   │   ├── finance_statewide_v2.db   # Live (post-2026-05-04 rebuild)
+│   │   ├── finance/                # Finance databases (combined v2 + v3)
+│   │   │   ├── finance_statewide_v2.db   # v2: monetary contributions ($3.24B)
+│   │   │   ├── finance_statewide_v3.db   # v3: loans + in-kind + IE ($2.51B)
 │   │   │   └── finance_statewide.db      # Legacy v1, audit-only
 │   │   ├── embeddings.npz          # Semantic vectors (15.8 MB)
 │   │   ├── embedding_metadata.json # Measure IDs & recommendations
