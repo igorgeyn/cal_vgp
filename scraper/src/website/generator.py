@@ -452,7 +452,7 @@ class WebsiteGenerator:
                 }
             fdb.close()
             logger.info(
-                f"Loaded v3 finance data for {len(result)} measures "
+                f"Loaded combined v2+v3 finance data for {len(result)} measures "
                 f"(across {sum(len(r['all_campaign_ids']) for r in result.values())} campaigns)"
             )
             return result
@@ -12096,7 +12096,7 @@ class WebsiteGenerator:
                     ? Math.round((losses / finance.better_funded_known) * 100 * 10) / 10
                     : null;
                 panel.innerHTML = `
-                    <div class="mini-callout"><strong>${{formatDollars(finance.total_receipts || 0)}}</strong><span>linked statewide receipts (${{formatInsightNumber(finance.measure_count || 0)}} campaigns)</span></div>
+                    <div class="mini-callout"><strong>${{formatDollars(finance.total_receipts || 0)}}</strong><span>linked statewide reportable spending (${{formatInsightNumber(finance.measure_count || 0)}} measures)</span></div>
                     <div class="mini-callout"><strong>${{formatInsightPct(finance.better_funded_win_rate)}}</strong><span>better-funded side win rate</span></div>
                     <div class="mini-callout"><strong>${{formatInsightNumber(losses)}}</strong><span>times the better-funded side lost (${{lossPct != null ? lossPct + '%' : 'n/a'}})</span></div>
                 `;

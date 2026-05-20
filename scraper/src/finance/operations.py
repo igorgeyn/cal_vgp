@@ -1006,11 +1006,17 @@ class FinanceDatabase:
 
     def get_combined_summary(self, measure_db_id: int) -> List[Dict]:
         """Per-stance totals across MONETARY (v2) + LOAN + IN-KIND + IE
-        (v3). Each row: {stance, total_receipts, n_committees,
-        n_transactions, top5_share, hhi, monetary_amount,
-        non_monetary_amount}. top5_share / hhi recomputed against the
-        merged donor list. n_committees is best-effort sum (may
-        double-count committees that file across v2 and v3).
+        (v3). Each row: {stance, total_receipts, monetary_amount,
+        non_monetary_amount, n_committees, top5_share, hhi}.
+        top5_share / hhi recomputed against the merged donor list.
+        n_committees is best-effort sum (may double-count committees
+        that file across v2 and v3).
+
+        n_transactions is intentionally omitted: v2 doesn't carry a
+        transaction count, so a "combined" transaction count would be
+        v3-only and misleading next to combined dollar totals. Codex
+        round-4 flagged this; non-monetary-only consumers can call
+        get_finance_breakdown_by_type for v3 transaction counts.
         """
         v2_rollup = self.aggregate_for_measure(measure_db_id, donor_limit=10_000)
         v3_summary = self.get_finance_summary_total(measure_db_id)
@@ -1059,7 +1065,6 @@ class FinanceDatabase:
                 int(v2.get("n_committees") or 0)
                 + (int(v3["n_committees"]) if v3.get("n_committees") else 0)
             ) or None
-            n_transactions = (v3.get("n_transactions") or None)
             top5_share, hhi = self._recompute_top5_hhi(
                 total, donors_sorted.get(stance, [])
             )
@@ -1069,7 +1074,6 @@ class FinanceDatabase:
                 "monetary_amount": round(monetary, 2),
                 "non_monetary_amount": round(non_monetary, 2),
                 "n_committees": n_committees,
-                "n_transactions": n_transactions,
                 "top5_share": top5_share,
                 "hhi": hhi,
             })
@@ -1126,17 +1130,14 @@ class FinanceDatabase:
                    total_amount, flow_types}
         donor_sector resolved at query time.
         """
-        # Pull a large slice from each side so the merge doesn't lose
-        # donors that ranked low individually but pop on combined total.
-        v2_top = self.get_top_donors(
-            self.resolve_campaign(measure_db_id=measure_db_id) or "",
-            limit=10_000,
-        ) if False else []
-        # v2 get_top_donors keys on finance_campaign_id; for multi-
-        # campaign measures use aggregate_for_measure which merges.
+        # Use aggregate_for_measure for v2 (it merges across collision
+        # campaigns); v3's get_top_donors_total already does per-measure
+        # rollup. donor_limit=10_000 asks for "everything" — v2's
+        # underlying finance_top_donors table is capped at top-20 per
+        # campaign/stance, so the merge may miss low-rank monetary
+        # donors. Documented limitation; tracked separately.
         v2_rollup = self.aggregate_for_measure(measure_db_id, donor_limit=10_000)
-        if v2_rollup:
-            v2_top = v2_rollup["donors"]
+        v2_top = v2_rollup["donors"] if v2_rollup else []
         v3_top = self.get_top_donors_total(measure_db_id, limit=10_000)
 
         # Merge per (stance, donor_name_canon).
@@ -1230,35 +1231,57 @@ class FinanceDatabase:
         """Cross-measure spending arc, merged v2 monetary + v3
         (loans+in-kind+IE) by year. Each row:
         {year, total_receipts, n_measures}
+
+        n_measures is the TRUE union of measure_db_ids active in each
+        year, queried from v2's finance_timeline_weekly + v3's
+        finance_flow_v3. Previous implementation used max(v2_count,
+        v3_count), which undercounted any year where v2 and v3 had
+        disjoint measure sets (Codex round-4 caught 7 affected years,
+        e.g. 2005 max=20 vs union=25). Dollar totals delegate to the
+        existing per-source helpers so reconciliation stays exact.
         """
-        v2_rows = self.get_calendar_year_receipts()
-        v3_rows = self.get_calendar_year_receipts_v3()
-        merged: Dict[int, Dict] = {}
-        for r in v2_rows:
-            merged.setdefault(r["year"], {
-                "year": r["year"], "total": 0.0, "measures": set(),
-            })
-            merged[r["year"]]["total"] += float(r.get("total_receipts") or 0)
-            # v2 doesn't expose the measure set per year, just count; we
-            # approximate by storing the COUNT-as-set placeholder. Best
-            # effort: take MAX(v2_count, v3_count) for n_measures (since
-            # the actual sets likely overlap heavily).
-            merged[r["year"]]["v2_count"] = int(r.get("n_measures") or 0)
-        for r in v3_rows:
-            entry = merged.setdefault(r["year"], {
-                "year": r["year"], "total": 0.0, "measures": set(), "v2_count": 0,
-            })
-            entry["total"] += float(r.get("total_amount") or 0)
-            entry["v3_count"] = int(r.get("n_measures") or 0)
+        # Dollars merge: reuse existing per-source helpers.
+        merged_dollars: Dict[int, float] = defaultdict(float)
+        for r in self.get_calendar_year_receipts():
+            merged_dollars[r["year"]] += float(r.get("total_receipts") or 0)
+        for r in self.get_calendar_year_receipts_v3():
+            merged_dollars[r["year"]] += float(r.get("total_amount") or 0)
+
+        # True (year -> measure_db_id) union from both source tables.
+        year_measures: Dict[int, set] = defaultdict(set)
+        for row in self.conn.execute(
+            """
+            SELECT CAST(substr(t.week_start, 1, 4) AS INTEGER) AS year,
+                   c.measure_db_id AS mid
+            FROM   finance_timeline_weekly t
+            JOIN   finance_campaign c USING (finance_campaign_id)
+            WHERE  c.status = 'matched'
+              AND  c.measure_db_id IS NOT NULL
+              AND  t.week_start IS NOT NULL
+            """
+        ):
+            if row["year"] is not None:
+                year_measures[int(row["year"])].add(int(row["mid"]))
+        for row in self.v3_conn.execute(
+            """
+            SELECT CAST(substr(week_start, 1, 4) AS INTEGER) AS year,
+                   measure_db_id AS mid
+            FROM   finance_flow_v3
+            WHERE  quarantine_reason IS NULL
+              AND  week_start IS NOT NULL
+              AND  measure_db_id IS NOT NULL
+            """
+        ):
+            if row["year"] is not None:
+                year_measures[int(row["year"])].add(int(row["mid"]))
+
         return [
             {
-                "year": e["year"],
-                "total_receipts": round(e["total"], 2),
-                "n_measures": max(
-                    e.get("v2_count", 0), e.get("v3_count", 0)
-                ),
+                "year": year,
+                "total_receipts": round(merged_dollars.get(year, 0.0), 2),
+                "n_measures": len(year_measures[year]),
             }
-            for e in sorted(merged.values(), key=lambda x: x["year"])
+            for year in sorted(year_measures.keys())
         ]
 
 

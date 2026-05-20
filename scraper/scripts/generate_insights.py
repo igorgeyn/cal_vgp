@@ -1042,12 +1042,13 @@ def build_close_call_insights(measures, margin_stats):
 
 
 def build_finance_insights(measures_by_db_id):
-    """Build cross-measure finance aggregates from the v3 finance DB.
+    """Build cross-measure finance aggregates from the combined v2 +
+    v3 finance databases.
 
-    v3 scope: monetary contributions + loans + in-kind + independent
-    expenditures. One entry per measure_db_id (year-offset collisions
-    are rolled up via the v3 read methods, so multi-campaign measures
-    like PROP_4 / PROP_27 surface once with merged totals).
+    Combined scope: v2 monetary contributions + v3 loans + in-kind +
+    independent expenditures. One entry per measure_db_id (year-offset
+    collisions are rolled up via the v3 read methods, so multi-campaign
+    measures like PROP_4 / PROP_27 surface once with merged totals).
 
     insights.json field names (`total_receipts`, `support_receipts`,
     etc.) are kept historically-named for JS-template stability; their
@@ -1203,9 +1204,10 @@ def build_finance_insights(measures_by_db_id):
         "top_donors_overall": top_donors_overall,
         "repeat_donors": repeat_donors,
         "marquee_fights": marquee_fights,
-        # v3 methodology marker — JS / docs reference this to label
-        # the panel "all reportable money" vs "monetary only".
-        "data_source": "v3 — monetary + loan + in-kind + IE",
+        # Methodology marker — JS / docs reference this to label the
+        # panel as combined-scope (v2 monetary + v3 loan/in-kind/IE)
+        # vs the previous monetary-only era.
+        "data_source": "combined v2 monetary + v3 loan/in-kind/IE",
     }
 
 
@@ -1612,7 +1614,7 @@ def build_insights(db_path=DB_PATH):
             "sources": sorted(Counter(m.get("data_source") or "Unknown" for m in measures).items(), key=lambda x: x[1], reverse=True),
             "notes": [
                 "CEDA dominates local measure coverage and is strongest for outcomes, categories, and vote totals.",
-                "Campaign finance analysis uses the year-scoped statewide proposition finance database (finance_statewide_v2.db, last rebuilt 2026-05-12, keyed by finance_campaign_id). Scope: itemized monetary contributions to recipient committees tagged with each prop's CAL-ACCESS ballot number. Independent expenditures, in-kind contributions, loans, and contributions to untagged side-committees are not included — our totals therefore run lower than press citations (e.g. Ballotpedia) that combine those scopes. Not available for local measures.",
+                "Campaign finance analysis combines two year-scoped statewide proposition finance databases: v2 (finance_statewide_v2.db, monetary contributions) and v3 (finance_statewide_v3.db, loans + in-kind + independent expenditures). Scope: itemized monetary contributions to recipient committees tagged with each prop's CAL-ACCESS ballot number, plus loans (LOAN_CD), in-kind contributions (Form 460 Schedule C), and IE (Form 461 / 465 / S496) attributed to the measure via row-level fields, cover sheets, or curated overrides. Contributions to untagged side-committees and Schedule E party-passthroughs are still excluded. Our totals now approximate (but typically run somewhat below) press citations like Ballotpedia. Not available for local measures.",
                 "Pending-measure analogs are intentionally excluded from this MVP to avoid prediction framing.",
             ],
         },

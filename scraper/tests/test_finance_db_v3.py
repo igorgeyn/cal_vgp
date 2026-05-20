@@ -1536,6 +1536,83 @@ class TestCombinedMethods:
         total = sum(r["total_amount"] for r in result)
         assert total == 1_800_000.0
 
+    def test_combined_summary_omits_n_transactions(self, fdb_combined):
+        """Codex round-4 #4: n_transactions was v3-only but exposed in
+        the combined response as if it were combined. Fix: omit it
+        entirely from get_combined_summary rows."""
+        db = fdb_combined
+        db.conn.execute(
+            "INSERT INTO finance_campaign "
+            "(finance_campaign_id, prop_num, election_year, measure_db_id, "
+            " measure_id, status, match_via) "
+            "VALUES ('PROP_T_2020', 'T', 2020, 8000, 'PROP_T', 'matched', 'short_form')"
+        )
+        db.conn.execute(
+            "INSERT INTO finance_summary VALUES "
+            "('PROP_T_2020', 'support', 1000, 1, 100, 10000)"
+        )
+        db.conn.commit()
+        _insert_flow(db.v3_conn, flow_id=1, finance_campaign_id="PROP_T_2020",
+                     measure_db_id=8000, stance="support",
+                     receipt_type="independent_expenditure", amount=5000,
+                     donor_name_canon="IE Donor")
+        db.v3_conn.commit()
+
+        result = db.get_combined_summary(8000)
+        assert len(result) == 1
+        assert "n_transactions" not in result[0], (
+            "n_transactions must be omitted from combined summary — "
+            "v2 has no per-side transaction count so a 'combined' value "
+            "would be v3-only and misleading"
+        )
+
+    def test_combined_calendar_year_n_measures_is_true_union(self, fdb_combined):
+        """Codex round-4 #3: combined helper used max(v2_count, v3_count)
+        for n_measures, undercounting when v2 and v3 had disjoint
+        measure sets. Fix: query distinct (year, measure_db_id) from
+        both sources and union in Python."""
+        db = fdb_combined
+        # Year 2020: v2 has measure 9001 + 9002; v3 has measure 9003 + 9004.
+        # All disjoint. True union = 4. Max = 2 (the broken behavior).
+        for mid in [9001, 9002]:
+            db.conn.execute(
+                "INSERT INTO finance_campaign "
+                "(finance_campaign_id, prop_num, election_year, measure_db_id, "
+                " measure_id, status, match_via) "
+                f"VALUES ('PROP_{mid}_2020', '{mid}', 2020, {mid}, "
+                f"'PROP_{mid}', 'matched', 'short_form')"
+            )
+            db.conn.execute(
+                f"INSERT INTO finance_summary VALUES "
+                f"('PROP_{mid}_2020', 'support', 1000, 1, 100, 10000)"
+            )
+            db.conn.execute(
+                f"INSERT INTO finance_timeline_weekly VALUES "
+                f"('PROP_{mid}_2020', 'support', '2020-03-02', 1000, 1000)"
+            )
+        db.conn.commit()
+        for fid, mid in [(1, 9003), (2, 9004)]:
+            _insert_flow(db.v3_conn, flow_id=fid, finance_campaign_id=f"PROP_{mid}_2020",
+                         measure_db_id=mid, stance="oppose",
+                         receipt_type="independent_expenditure", amount=500,
+                         donor_name_canon=f"D{fid}")
+            db.v3_conn.execute(
+                "UPDATE finance_flow_v3 SET week_start = '2020-04-06' WHERE flow_id = ?",
+                (fid,),
+            )
+        db.v3_conn.commit()
+
+        result = db.get_combined_calendar_year_receipts()
+        by_year = {r["year"]: r for r in result}
+        assert 2020 in by_year
+        # Pre-fix this returned max(2, 2) = 2. Post-fix it returns the
+        # true union of {9001, 9002, 9003, 9004} = 4.
+        assert by_year[2020]["n_measures"] == 4, (
+            f"true union should be 4, got {by_year[2020]['n_measures']}"
+        )
+        # Dollars must still reconcile.
+        assert by_year[2020]["total_receipts"] == 3000.0  # 1000+1000+500+500
+
     def test_combined_timeline_merges_weeks(self, fdb_combined):
         """v2 has weekly $1000 on week W; v3 has weekly $500 on same
         week W. Combined weekly = $1500."""

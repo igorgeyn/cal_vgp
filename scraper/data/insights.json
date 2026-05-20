@@ -14,7 +14,7 @@
     "county_count": 58,
     "year_min": 1911,
     "year_max": 2026,
-    "generated_at": "2026-05-19T16:32:28"
+    "generated_at": "2026-05-20T10:14:52"
   },
   "featured_findings": [
     {
@@ -4872,7 +4872,7 @@
       {
         "year": 2001,
         "total_receipts": 14617147.24,
-        "n_measures": 11
+        "n_measures": 14
       },
       {
         "year": 2002,
@@ -4882,7 +4882,7 @@
       {
         "year": 2003,
         "total_receipts": 15303450.0,
-        "n_measures": 17
+        "n_measures": 18
       },
       {
         "year": 2004,
@@ -4892,7 +4892,7 @@
       {
         "year": 2005,
         "total_receipts": 307463799.62,
-        "n_measures": 20
+        "n_measures": 25
       },
       {
         "year": 2006,
@@ -4902,7 +4902,7 @@
       {
         "year": 2007,
         "total_receipts": 60959828.67,
-        "n_measures": 15
+        "n_measures": 17
       },
       {
         "year": 2008,
@@ -4912,12 +4912,12 @@
       {
         "year": 2009,
         "total_receipts": 31277657.32,
-        "n_measures": 12
+        "n_measures": 14
       },
       {
         "year": 2010,
         "total_receipts": 322508561.23,
-        "n_measures": 15
+        "n_measures": 16
       },
       {
         "year": 2011,
@@ -4932,7 +4932,7 @@
       {
         "year": 2013,
         "total_receipts": 1127117.92,
-        "n_measures": 6
+        "n_measures": 8
       },
       {
         "year": 2014,
@@ -5377,7 +5377,7 @@
         ]
       }
     ],
-    "data_source": "v3 \u2014 monetary + loan + in-kind + IE"
+    "data_source": "combined v2 monetary + v3 loan/in-kind/IE"
   },
   "methodology": {
     "scope": "Active, non-duplicate measures in scraper/data/ballot_measures.db.",
@@ -5405,7 +5405,7 @@
     ],
     "notes": [
       "CEDA dominates local measure coverage and is strongest for outcomes, categories, and vote totals.",
-      "Campaign finance analysis uses the year-scoped statewide proposition finance database (finance_statewide_v2.db, last rebuilt 2026-05-12, keyed by finance_campaign_id). Scope: itemized monetary contributions to recipient committees tagged with each prop's CAL-ACCESS ballot number. Independent expenditures, in-kind contributions, loans, and contributions to untagged side-committees are not included \u2014 our totals therefore run lower than press citations (e.g. Ballotpedia) that combine those scopes. Not available for local measures.",
+      "Campaign finance analysis combines two year-scoped statewide proposition finance databases: v2 (finance_statewide_v2.db, monetary contributions) and v3 (finance_statewide_v3.db, loans + in-kind + independent expenditures). Scope: itemized monetary contributions to recipient committees tagged with each prop's CAL-ACCESS ballot number, plus loans (LOAN_CD), in-kind contributions (Form 460 Schedule C), and IE (Form 461 / 465 / S496) attributed to the measure via row-level fields, cover sheets, or curated overrides. Contributions to untagged side-committees and Schedule E party-passthroughs are still excluded. Our totals now approximate (but typically run somewhat below) press citations like Ballotpedia. Not available for local measures.",
       "Pending-measure analogs are intentionally excluded from this MVP to avoid prediction framing."
     ]
   }

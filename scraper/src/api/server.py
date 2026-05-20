@@ -790,9 +790,11 @@ class FinanceSideResponse(BaseModel):
     # Optional because the count is best-effort across two data sources
     # and may not be defined for v3-only slices.
     n_committees: Optional[int]
-    n_transactions: Optional[int]
     top5_share: Optional[float]
     hhi: Optional[float]
+    # n_transactions intentionally omitted: v2 doesn't carry a per-side
+    # transaction count, so a combined transaction count would be
+    # v3-only and misleading next to combined dollar totals.
 
 class FinanceSummaryResponse(BaseModel):
     measure_id: str
