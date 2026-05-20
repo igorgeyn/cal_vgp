@@ -17,6 +17,7 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Iterable, List, Dict, Optional
 
+from .donor_aliases import canonicalize_display_donor
 from .donor_sectors import get_donor_sector
 from .schema import FINANCE_DB_PATH, FINANCE_DB_V3_PATH
 
@@ -1008,15 +1009,22 @@ class FinanceDatabase:
         """Per-stance totals across MONETARY (v2) + LOAN + IN-KIND + IE
         (v3). Each row: {stance, total_receipts, monetary_amount,
         non_monetary_amount, n_committees, top5_share, hhi}.
-        top5_share / hhi recomputed against the merged donor list.
-        n_committees is best-effort sum (may double-count committees
-        that file across v2 and v3).
+
+        **Concentration metrics (top5_share, hhi) policy (Codex
+        round-4 #1):** v2's per-donor distribution is materialized
+        as the top-20 per (campaign, stance) only — exact totals are
+        preserved but tail donors below the cap are missing. That
+        means top5/HHI computed against the merged donor list would
+        underestimate concentration for any measure whose v2 monetary
+        slice is non-trivial. To avoid presenting partial concentration
+        as exact, we return None for top5_share / hhi on any row where
+        monetary_amount > 0 (i.e., where the v2 truncation matters).
+        v3-only rows (monetary_amount = 0) get their v3 metrics
+        passed through, since the v3 donor list is complete.
 
         n_transactions is intentionally omitted: v2 doesn't carry a
         transaction count, so a "combined" transaction count would be
-        v3-only and misleading next to combined dollar totals. Codex
-        round-4 flagged this; non-monetary-only consumers can call
-        get_finance_breakdown_by_type for v3 transaction counts.
+        v3-only and misleading next to combined dollar totals.
         """
         v2_rollup = self.aggregate_for_measure(measure_db_id, donor_limit=10_000)
         v3_summary = self.get_finance_summary_total(measure_db_id)
@@ -1027,31 +1035,6 @@ class FinanceDatabase:
             for r in v2_rollup["summary"]:
                 v2_by_stance[r["stance"]] = r
         v3_by_stance = {r["stance"]: r for r in v3_summary}
-
-        # Merged donor list per stance for top5/hhi recompute.
-        # We pull "all donors" via aggregate_for_measure with a huge
-        # donor_limit and v3's top_donors_total with a high limit too.
-        v3_donors_full = self.get_top_donors_total(measure_db_id, limit=10_000)
-        donors_by_stance: Dict[str, Dict[str, float]] = defaultdict(dict)
-        if v2_rollup:
-            for d in v2_rollup["donors"]:
-                donors_by_stance[d["stance"]][d["donor_name_canon"]] = (
-                    donors_by_stance[d["stance"]].get(d["donor_name_canon"], 0.0)
-                    + float(d["total_amount"] or 0)
-                )
-        for d in v3_donors_full:
-            donors_by_stance[d["stance"]][d["donor_name_canon"]] = (
-                donors_by_stance[d["stance"]].get(d["donor_name_canon"], 0.0)
-                + float(d["total_amount"] or 0)
-            )
-        # Sort merged lists by amount desc for top5/hhi recompute.
-        donors_sorted: Dict[str, List[Dict]] = {}
-        for stance, dmap in donors_by_stance.items():
-            donors_sorted[stance] = sorted(
-                ({"donor_name_canon": n, "total_amount": a}
-                 for n, a in dmap.items()),
-                key=lambda d: (-d["total_amount"], d["donor_name_canon"]),
-            )
 
         all_stances = sorted(set(v2_by_stance) | set(v3_by_stance))
         out: List[Dict] = []
@@ -1065,9 +1048,19 @@ class FinanceDatabase:
                 int(v2.get("n_committees") or 0)
                 + (int(v3["n_committees"]) if v3.get("n_committees") else 0)
             ) or None
-            top5_share, hhi = self._recompute_top5_hhi(
-                total, donors_sorted.get(stance, [])
-            )
+
+            # Concentration metrics — conservative policy above.
+            if monetary > 0:
+                # v2 contributed; concentration would be biased low due
+                # to top-20 cap. Return None until v2's tail is
+                # materialized (separate phase, tracked in Phase 6 docs).
+                top5_share = None
+                hhi = None
+            else:
+                # v3-only — passthrough exact concentration from v3.
+                top5_share = v3.get("top5_share")
+                hhi = v3.get("hhi")
+
             out.append({
                 "stance": stance,
                 "total_receipts": round(total, 2),
@@ -1140,13 +1133,18 @@ class FinanceDatabase:
         v2_top = v2_rollup["donors"] if v2_rollup else []
         v3_top = self.get_top_donors_total(measure_db_id, limit=10_000)
 
-        # Merge per (stance, donor_name_canon).
+        # Merge per (stance, alias-canonicalized donor name). Aliases
+        # collapse cross-source canonicalization drift (Codex round-4
+        # #2 — e.g. v2's "UBER TECHNOLOGIES, INC" and v3's "UBER
+        # TECHNOLOGIES INC" into one entry); see donor_aliases.py.
+        # Unaliased names pass through unchanged.
         merged: Dict[tuple, Dict] = {}
         for d in v2_top:
-            key = (d["stance"], d["donor_name_canon"])
+            display_name = canonicalize_display_donor(d["donor_name_canon"])
+            key = (d["stance"], display_name)
             entry = merged.setdefault(key, {
                 "stance": d["stance"],
-                "donor_name_canon": d["donor_name_canon"],
+                "donor_name_canon": display_name,
                 "donor_type": d.get("donor_type"),
                 "total_amount": 0.0,
                 "flow_types": set(),
@@ -1154,10 +1152,11 @@ class FinanceDatabase:
             entry["total_amount"] += float(d.get("total_amount") or 0)
             entry["flow_types"].add("monetary_contribution")
         for d in v3_top:
-            key = (d["stance"], d["donor_name_canon"])
+            display_name = canonicalize_display_donor(d["donor_name_canon"])
+            key = (d["stance"], display_name)
             entry = merged.setdefault(key, {
                 "stance": d["stance"],
-                "donor_name_canon": d["donor_name_canon"],
+                "donor_name_canon": display_name,
                 "donor_type": d.get("donor_type"),
                 "total_amount": 0.0,
                 "flow_types": set(),

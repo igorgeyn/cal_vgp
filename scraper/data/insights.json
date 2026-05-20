@@ -14,7 +14,7 @@
     "county_count": 58,
     "year_min": 1911,
     "year_max": 2026,
-    "generated_at": "2026-05-20T10:14:52"
+    "generated_at": "2026-05-20T10:28:14"
   },
   "featured_findings": [
     {
@@ -4221,8 +4221,8 @@
         "better_funded_side": "oppose",
         "better_funded_won": true,
         "funding_ratio": 1.2,
-        "support_top5_share": 70.17152841683505,
-        "oppose_top5_share": 99.81738099453545
+        "support_top5_share": null,
+        "oppose_top5_share": null
       },
       {
         "finance_campaign_id": "PROP_50_2025",
@@ -4241,8 +4241,8 @@
         "better_funded_side": "support",
         "better_funded_won": true,
         "funding_ratio": 1.2,
-        "support_top5_share": 37.32207049623171,
-        "oppose_top5_share": 91.80948834567432
+        "support_top5_share": null,
+        "oppose_top5_share": null
       },
       {
         "finance_campaign_id": "PROP_22_2020",
@@ -4261,8 +4261,8 @@
         "better_funded_side": "support",
         "better_funded_won": true,
         "funding_ratio": 10.0,
-        "support_top5_share": 86.44315023315058,
-        "oppose_top5_share": 38.38186258139727
+        "support_top5_share": null,
+        "oppose_top5_share": null
       },
       {
         "finance_campaign_id": "PROP_32_2012",
@@ -4281,8 +4281,8 @@
         "better_funded_side": "support",
         "better_funded_won": false,
         "funding_ratio": 1.9,
-        "support_top5_share": 87.72678881902523,
-        "oppose_top5_share": 59.029756267529464
+        "support_top5_share": null,
+        "oppose_top5_share": null
       },
       {
         "finance_campaign_id": "PROP_87_2006",
@@ -4301,8 +4301,8 @@
         "better_funded_side": "oppose",
         "better_funded_won": true,
         "funding_ratio": 2.2,
-        "support_top5_share": 86.6706422145016,
-        "oppose_top5_share": 90.32975698761926
+        "support_top5_share": null,
+        "oppose_top5_share": null
       },
       {
         "finance_campaign_id": "PROP_21_2020",
@@ -4321,8 +4321,8 @@
         "better_funded_side": "oppose",
         "better_funded_won": true,
         "funding_ratio": 2.0,
-        "support_top5_share": 99.6885808567876,
-        "oppose_top5_share": 52.487329512809
+        "support_top5_share": null,
+        "oppose_top5_share": null
       },
       {
         "finance_campaign_id": "PROP_10_2018",
@@ -4341,8 +4341,8 @@
         "better_funded_side": "oppose",
         "better_funded_won": true,
         "funding_ratio": 2.1,
-        "support_top5_share": 93.90046691627056,
-        "oppose_top5_share": 36.008814228362255
+        "support_top5_share": null,
+        "oppose_top5_share": null
       },
       {
         "finance_campaign_id": "PROP_38_2000",
@@ -4361,8 +4361,8 @@
         "better_funded_side": "support",
         "better_funded_won": false,
         "funding_ratio": 2.9,
-        "support_top5_share": 93.31229920271952,
-        "oppose_top5_share": 94.2503728795639
+        "support_top5_share": null,
+        "oppose_top5_share": null
       },
       {
         "finance_campaign_id": "PROP_56_2016",
@@ -4381,8 +4381,8 @@
         "better_funded_side": "oppose",
         "better_funded_won": false,
         "funding_ratio": 2.8,
-        "support_top5_share": 82.68996627104988,
-        "oppose_top5_share": 96.70410365128025
+        "support_top5_share": null,
+        "oppose_top5_share": null
       },
       {
         "finance_campaign_id": "PROP_30_2022",
@@ -4401,8 +4401,8 @@
         "better_funded_side": "support",
         "better_funded_won": false,
         "funding_ratio": 1.0,
-        "support_top5_share": 96.4747733027013,
-        "oppose_top5_share": 26.854526295699856
+        "support_top5_share": null,
+        "oppose_top5_share": null
       },
       {
         "finance_campaign_id": "PROP_94_2008",
@@ -4421,8 +4421,8 @@
         "better_funded_side": "support",
         "better_funded_won": true,
         "funding_ratio": 3.1,
-        "support_top5_share": 99.92058009362107,
-        "oppose_top5_share": 90.81091020843174
+        "support_top5_share": null,
+        "oppose_top5_share": null
       },
       {
         "finance_campaign_id": "PROP_8_2018",
@@ -4441,8 +4441,8 @@
         "better_funded_side": "oppose",
         "better_funded_won": true,
         "funding_ratio": 4.4,
-        "support_top5_share": 99.77324301929832,
-        "oppose_top5_share": 99.33041111330392
+        "support_top5_share": null,
+        "oppose_top5_share": null
       }
     ],
     "better_funded_losses": [
@@ -4463,8 +4463,8 @@
         "better_funded_side": "support",
         "better_funded_won": false,
         "funding_ratio": 1.9,
-        "support_top5_share": 87.72678881902523,
-        "oppose_top5_share": 59.029756267529464
+        "support_top5_share": null,
+        "oppose_top5_share": null
       },
       {
         "finance_campaign_id": "PROP_38_2000",
@@ -4483,8 +4483,8 @@
         "better_funded_side": "support",
         "better_funded_won": false,
         "funding_ratio": 2.9,
-        "support_top5_share": 93.31229920271952,
-        "oppose_top5_share": 94.2503728795639
+        "support_top5_share": null,
+        "oppose_top5_share": null
       },
       {
         "finance_campaign_id": "PROP_56_2016",
@@ -4503,8 +4503,8 @@
         "better_funded_side": "oppose",
         "better_funded_won": false,
         "funding_ratio": 2.8,
-        "support_top5_share": 82.68996627104988,
-        "oppose_top5_share": 96.70410365128025
+        "support_top5_share": null,
+        "oppose_top5_share": null
       },
       {
         "finance_campaign_id": "PROP_30_2022",
@@ -4523,8 +4523,8 @@
         "better_funded_side": "support",
         "better_funded_won": false,
         "funding_ratio": 1.0,
-        "support_top5_share": 96.4747733027013,
-        "oppose_top5_share": 26.854526295699856
+        "support_top5_share": null,
+        "oppose_top5_share": null
       },
       {
         "finance_campaign_id": "PROP_15_2020",
@@ -4543,8 +4543,8 @@
         "better_funded_side": "support",
         "better_funded_won": false,
         "funding_ratio": 1.6,
-        "support_top5_share": 61.19560682980476,
-        "oppose_top5_share": 54.22166112018761
+        "support_top5_share": null,
+        "oppose_top5_share": null
       },
       {
         "finance_campaign_id": "PROP_38_2012",
@@ -4563,8 +4563,8 @@
         "better_funded_side": "support",
         "better_funded_won": false,
         "funding_ratio": 19.6,
-        "support_top5_share": 99.52655199972115,
-        "oppose_top5_share": 40.889034095899135
+        "support_top5_share": null,
+        "oppose_top5_share": null
       },
       {
         "finance_campaign_id": "PROP_8_2008",
@@ -4583,8 +4583,8 @@
         "better_funded_side": "oppose",
         "better_funded_won": false,
         "funding_ratio": 3.8,
-        "support_top5_share": 40.96974681381336,
-        "oppose_top5_share": 27.365955280942057
+        "support_top5_share": null,
+        "oppose_top5_share": null
       },
       {
         "finance_campaign_id": "PROP_78_2005",
@@ -4604,8 +4604,8 @@
         "better_funded_side": "support",
         "better_funded_won": false,
         "funding_ratio": 139.3,
-        "support_top5_share": 100.0,
-        "oppose_top5_share": 91.4129607126409
+        "support_top5_share": null,
+        "oppose_top5_share": null
       }
     ],
     "largest_imbalances": [
@@ -4626,8 +4626,8 @@
         "better_funded_side": "support",
         "better_funded_won": true,
         "funding_ratio": 222033.4,
-        "support_top5_share": 83.24862255062183,
-        "oppose_top5_share": 100.0
+        "support_top5_share": null,
+        "oppose_top5_share": null
       },
       {
         "finance_campaign_id": "PROP_1D_2006",
@@ -4646,7 +4646,7 @@
         "better_funded_side": "support",
         "better_funded_won": true,
         "funding_ratio": 49741.9,
-        "support_top5_share": 77.88105250852725,
+        "support_top5_share": null,
         "oppose_top5_share": 100.0
       },
       {
@@ -4666,7 +4666,7 @@
         "better_funded_side": "support",
         "better_funded_won": true,
         "funding_ratio": 29894.7,
-        "support_top5_share": 90.80743095096916,
+        "support_top5_share": null,
         "oppose_top5_share": 100.0
       },
       {
@@ -4686,7 +4686,7 @@
         "better_funded_side": "support",
         "better_funded_won": true,
         "funding_ratio": 10123.8,
-        "support_top5_share": 23.47323228511563,
+        "support_top5_share": null,
         "oppose_top5_share": 100.0
       },
       {
@@ -4706,7 +4706,7 @@
         "better_funded_side": "support",
         "better_funded_won": true,
         "funding_ratio": 9238.5,
-        "support_top5_share": 68.90673156390278,
+        "support_top5_share": null,
         "oppose_top5_share": 100.0
       },
       {
@@ -4726,8 +4726,8 @@
         "better_funded_side": "support",
         "better_funded_won": true,
         "funding_ratio": 4354.0,
-        "support_top5_share": 46.97321363064974,
-        "oppose_top5_share": 100.0
+        "support_top5_share": null,
+        "oppose_top5_share": null
       },
       {
         "finance_campaign_id": "PROP_1C_2009",
@@ -4746,7 +4746,7 @@
         "better_funded_side": "support",
         "better_funded_won": false,
         "funding_ratio": 2116.1,
-        "support_top5_share": 96.6189142961037,
+        "support_top5_share": null,
         "oppose_top5_share": 100.00000000000003
       },
       {
@@ -4767,7 +4767,7 @@
         "better_funded_side": "support",
         "better_funded_won": true,
         "funding_ratio": 1585.3,
-        "support_top5_share": 39.385181616750245,
+        "support_top5_share": null,
         "oppose_top5_share": 100.0
       }
     ],
@@ -5067,6 +5067,12 @@
         "donor_sector": "Healthcare"
       },
       {
+        "name": "Uber Technologies, Inc",
+        "total_amount": 65714727.73,
+        "n_campaigns": 2,
+        "donor_sector": null
+      },
+      {
         "name": "R.J. Reynolds Tobacco Company",
         "total_amount": 64115913.36,
         "n_campaigns": 6,
@@ -5089,12 +5095,6 @@
         "total_amount": 49429000.0,
         "n_campaigns": 17,
         "donor_sector": null
-      },
-      {
-        "name": "MORONGO BAND OF MISSION INDIANS",
-        "total_amount": 45592127.4,
-        "n_campaigns": 12,
-        "donor_sector": "Tribal Gaming"
       }
     ],
     "repeat_donors": [
@@ -5183,12 +5183,22 @@
         "support_receipts": 188602897.5,
         "oppose_receipts": 18931870.71,
         "total_receipts": 207534768.21,
-        "support_top5_share": 86.44315023315058,
-        "oppose_top5_share": 38.38186258139727,
+        "support_top5_share": null,
+        "oppose_top5_share": null,
         "support_top_donors": [
+          {
+            "name": "Uber Technologies, Inc",
+            "total_amount": 61214727.73,
+            "donor_sector": null
+          },
           {
             "name": "DOORDASH, INC",
             "total_amount": 41781814.4,
+            "donor_sector": "Gig Economy"
+          },
+          {
+            "name": "Instacart",
+            "total_amount": 39630508.84,
             "donor_sector": "Gig Economy"
           },
           {
@@ -5197,18 +5207,8 @@
             "donor_sector": "Gig Economy"
           },
           {
-            "name": "UBER TECHNOLOGIES, INC",
-            "total_amount": 31724214.54,
-            "donor_sector": "Gig Economy"
-          },
-          {
-            "name": "UBER TECHNOLOGIES INC",
-            "total_amount": 29490513.19,
-            "donor_sector": null
-          },
-          {
-            "name": "MAPLEBEAR INC. D/B/A INSTACART",
-            "total_amount": 21595580.28,
+            "name": "Postmates, Inc",
+            "total_amount": 7007061.09,
             "donor_sector": null
           }
         ],
@@ -5251,32 +5251,32 @@
         "support_receipts": 139773314.78,
         "oppose_receipts": 173495857.78,
         "total_receipts": 313269172.56,
-        "support_top5_share": 70.17152841683505,
-        "oppose_top5_share": 99.81738099453545,
+        "support_top5_share": null,
+        "oppose_top5_share": null,
         "support_top_donors": [
+          {
+            "name": "FanDuel Sportsbook (Betfair Interactive US LLC)",
+            "total_amount": 36692058.38,
+            "donor_sector": null
+          },
           {
             "name": "DraftKings (Crown Gaming Inc)",
             "total_amount": 36389012.92,
             "donor_sector": "Commercial Gambling"
           },
           {
-            "name": "FanDuel Sportsbook (Betfair Interactive US)",
-            "total_amount": 18351309.94,
-            "donor_sector": "Commercial Gambling"
-          },
-          {
-            "name": "BETFAIR INTERACTIVE US LLC D/B/A FANDUEL GROUP, INC",
-            "total_amount": 18340748.44,
+            "name": "FBG Enterprises, LLC",
+            "total_amount": 25000000.0,
             "donor_sector": null
           },
           {
-            "name": "FBG ENTERPRISES OPCO, LLC(RESPONSIBLE OFFICER: ARI BOROD)",
-            "total_amount": 12500000.0,
-            "donor_sector": "Commercial Gambling"
+            "name": "Penn Interactive Ventures, LLC",
+            "total_amount": 25000000.0,
+            "donor_sector": null
           },
           {
-            "name": "FBG ENTERPRISES, LLC",
-            "total_amount": 12500000.0,
+            "name": "BETMGM LLC",
+            "total_amount": 8333000.0,
             "donor_sector": null
           }
         ],
@@ -5319,8 +5319,8 @@
         "support_receipts": 23223060.14,
         "oppose_receipts": 101268840.25,
         "total_receipts": 124491900.39,
-        "support_top5_share": 99.77324301929832,
-        "oppose_top5_share": 99.33041111330392,
+        "support_top5_share": null,
+        "oppose_top5_share": null,
         "support_top_donors": [
           {
             "name": "SEIU-UHW Nonprofit 501(c)(5)",

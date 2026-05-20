@@ -1337,33 +1337,29 @@ def _build_finance_supplements(campaigns_out, measures_by_db_id):
     _fdb.close()
 
     # 2. Top donors overall — combined v2 (monetary) + v3 (non-monetary)
-    #    aggregated by donor_name_canon across all measures.
+    #    aggregated by alias-canonicalized donor name across all measures.
+    #    canonicalize_display_donor (see donor_aliases.py) collapses
+    #    known cross-source variants (FanDuel, Uber, Postmates, etc.)
+    #    Codex round-4 #2.
+    from src.finance.donor_aliases import canonicalize_display_donor
     donor_totals: dict[str, dict] = {}
     v2_donor = sqlite3.connect(str(FINANCE_DB_PATH))
     v2_donor.row_factory = sqlite3.Row
     for r in v2_donor.execute(
         """
         SELECT donor_name_canon AS name,
-               SUM(total_amount) AS total,
-               COUNT(DISTINCT finance_campaign_id) AS n_campaigns
+               finance_campaign_id,
+               SUM(total_amount) AS total
         FROM finance_top_donors
         WHERE donor_name_canon IS NOT NULL AND TRIM(donor_name_canon) != ''
-        GROUP BY donor_name_canon
+        GROUP BY donor_name_canon, finance_campaign_id
         """
     ):
-        donor_totals.setdefault(r["name"], {
-            "total": 0.0, "cids": set(),
-        })
-        donor_totals[r["name"]]["total"] += float(r["total"] or 0)
-    # v2 doesn't expose per-campaign cid list per donor in a single
-    # GROUP BY without a second query, so we record the v2 n_campaigns
-    # in a parallel field then merge with v3's distinct cid set.
-    for r in v2_donor.execute(
-        "SELECT donor_name_canon, finance_campaign_id "
-        "FROM finance_top_donors WHERE donor_name_canon IS NOT NULL"
-    ):
-        if r["donor_name_canon"] in donor_totals:
-            donor_totals[r["donor_name_canon"]]["cids"].add(r["finance_campaign_id"])
+        name = canonicalize_display_donor(r["name"])
+        entry = donor_totals.setdefault(name, {"total": 0.0, "cids": set()})
+        entry["total"] += float(r["total"] or 0)
+        if r["finance_campaign_id"]:
+            entry["cids"].add(r["finance_campaign_id"])
     v2_donor.close()
     for r in v3_conn.execute(
         """
@@ -1375,7 +1371,7 @@ def _build_finance_supplements(campaigns_out, measures_by_db_id):
         GROUP BY donor_name_canon, finance_campaign_id
         """
     ):
-        name = r["donor_name_canon"]
+        name = canonicalize_display_donor(r["donor_name_canon"])
         entry = donor_totals.setdefault(name, {"total": 0.0, "cids": set()})
         entry["total"] += float(r["total"] or 0)
         if r["finance_campaign_id"]:

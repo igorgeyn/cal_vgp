@@ -1536,6 +1536,133 @@ class TestCombinedMethods:
         total = sum(r["total_amount"] for r in result)
         assert total == 1_800_000.0
 
+    def test_combined_summary_concentration_none_when_v2_contributed(self, fdb_combined):
+        """Codex round-4 #1: v2's finance_top_donors is capped at top-20
+        per (campaign, stance), so computing HHI / top5_share against
+        the merged donor list would underestimate concentration. Until
+        the v2 tail is materialized (separate phase), get_combined_summary
+        returns None for these metrics on any row where monetary > 0."""
+        db = fdb_combined
+        # v2 monetary contributes — should mask concentration metrics.
+        db.conn.execute(
+            "INSERT INTO finance_campaign "
+            "(finance_campaign_id, prop_num, election_year, measure_db_id, "
+            " measure_id, status, match_via) "
+            "VALUES ('PROP_M_2020', 'M', 2020, 8100, 'PROP_M', 'matched', 'short_form')"
+        )
+        db.conn.execute(
+            "INSERT INTO finance_summary VALUES "
+            "('PROP_M_2020', 'support', 1000000, 1, 100, 10000)"
+        )
+        db.conn.commit()
+        _insert_flow(db.v3_conn, flow_id=1, finance_campaign_id="PROP_M_2020",
+                     measure_db_id=8100, stance="support",
+                     receipt_type="independent_expenditure", amount=500_000,
+                     donor_name_canon="IE Donor")
+        db.v3_conn.commit()
+
+        result = db.get_combined_summary(8100)
+        assert len(result) == 1
+        row = result[0]
+        assert row["monetary_amount"] == 1_000_000.0
+        assert row["non_monetary_amount"] == 500_000.0
+        assert row["top5_share"] is None, (
+            "concentration must be None when v2 contributed "
+            "(v2 donor tail truncated at top-20)"
+        )
+        assert row["hhi"] is None
+
+    def test_combined_summary_concentration_passthrough_when_v3_only(self, fdb_combined):
+        """When monetary_amount = 0, v3's exact concentration metrics
+        pass through unchanged (no v2 truncation to worry about)."""
+        db = fdb_combined
+        _insert_flow(db.v3_conn, flow_id=1, finance_campaign_id="PROP_N_2024",
+                     measure_db_id=8110, stance="oppose",
+                     receipt_type="independent_expenditure", amount=1_000_000,
+                     donor_name_canon="Sole Donor")
+        db.v3_conn.commit()
+
+        result = db.get_combined_summary(8110)
+        assert len(result) == 1
+        row = result[0]
+        assert row["monetary_amount"] == 0
+        # Sole donor = 100% concentration; HHI = 100^2 = 10000.
+        assert row["top5_share"] == pytest.approx(100.0)
+        assert row["hhi"] == pytest.approx(10000.0)
+
+    def test_combined_top_donors_aliases_merge_uber_variants(self, fdb_combined):
+        """Codex round-4 #2: v2 and v3 canonicalize donors independently,
+        so the same legal entity can appear under two names in the
+        combined merge (e.g. 'UBER TECHNOLOGIES, INC' vs 'UBER
+        TECHNOLOGIES INC'). donor_aliases.canonicalize_display_donor
+        collapses these. Same-org-different-locals stays distinct."""
+        db = fdb_combined
+        db.conn.execute(
+            "INSERT INTO finance_campaign "
+            "(finance_campaign_id, prop_num, election_year, measure_db_id, "
+            " measure_id, status, match_via) "
+            "VALUES ('PROP_U_2020', 'U', 2020, 8200, 'PROP_U', 'matched', 'short_form')"
+        )
+        db.conn.execute(
+            "INSERT INTO finance_summary VALUES "
+            "('PROP_U_2020', 'support', 5000000, 1, 100, 10000)"
+        )
+        db.conn.execute(
+            "INSERT INTO finance_top_donors VALUES "
+            "('PROP_U_2020', 'support', 'UBER TECHNOLOGIES, INC', 'committee', 5000000)"
+        )
+        db.conn.commit()
+        # v3 has the same entity with a different canon (no comma)
+        _insert_flow(db.v3_conn, flow_id=1, finance_campaign_id="PROP_U_2020",
+                     measure_db_id=8200, stance="support",
+                     receipt_type="independent_expenditure", amount=3_000_000,
+                     donor_name_canon="UBER TECHNOLOGIES INC")
+        db.v3_conn.commit()
+
+        result = db.get_combined_top_donors(8200, limit=10)
+        # Should be ONE row, with the canonical display name.
+        assert len(result) == 1
+        d = result[0]
+        assert d["donor_name_canon"] == "Uber Technologies, Inc"
+        assert d["total_amount"] == 8_000_000.0
+        assert set(d["flow_types"]) == {
+            "monetary_contribution", "independent_expenditure"
+        }
+
+    def test_combined_top_donors_does_not_alias_seiu_locals(self, fdb_combined):
+        """SEIU Local 1000 and SEIU Local 1021 are DIFFERENT legal
+        entities even though their parent union is related. Aliases
+        must NOT merge them. Codex round-4 #2 — Codex specifically
+        called out avoiding over-merging."""
+        db = fdb_combined
+        db.conn.execute(
+            "INSERT INTO finance_campaign "
+            "(finance_campaign_id, prop_num, election_year, measure_db_id, "
+            " measure_id, status, match_via) "
+            "VALUES ('PROP_S_2020', 'S', 2020, 8300, 'PROP_S', 'matched', 'short_form')"
+        )
+        db.conn.execute(
+            "INSERT INTO finance_summary VALUES "
+            "('PROP_S_2020', 'oppose', 2000000, 2, 100, 10000)"
+        )
+        for donor in [
+            "SERVICE EMPLOYEES INTERNATIONAL UNION LOCAL 1000 ISSUES PAC",
+            "SERVICE EMPLOYEES INTERNATIONAL UNION LOCAL 1021",
+        ]:
+            db.conn.execute(
+                "INSERT INTO finance_top_donors VALUES "
+                "('PROP_S_2020', 'oppose', ?, 'committee', 1000000)",
+                (donor,),
+            )
+        db.conn.commit()
+
+        result = db.get_combined_top_donors(8300, limit=10)
+        # Must remain as TWO distinct entries.
+        assert len(result) == 2
+        names = {d["donor_name_canon"] for d in result}
+        assert "SERVICE EMPLOYEES INTERNATIONAL UNION LOCAL 1000 ISSUES PAC" in names
+        assert "SERVICE EMPLOYEES INTERNATIONAL UNION LOCAL 1021" in names
+
     def test_combined_summary_omits_n_transactions(self, fdb_combined):
         """Codex round-4 #4: n_transactions was v3-only but exposed in
         the combined response as if it were combined. Fix: omit it
