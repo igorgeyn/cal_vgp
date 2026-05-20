@@ -133,6 +133,34 @@ The big visible-product shift. Order of operations:
   checks from `plans/finance-rebuild-verification.md`, add Phase G
   checks (IE / in-kind / loan integrity), update CHANGELOG +
   methodology + finance README.
+
+  **Methodology bullets Codex round-4 wants Phase 6 to formalize:**
+  1. Headline totals are **exact** under current methodology
+     ($5,750,344,165.78 reconciles to v2 + v3 sums to the penny).
+  2. **Donor lists** in combined view are **display/canonicalization-
+     limited**: cross-source aliases are curated in
+     `src/finance/donor_aliases.py`; underlying v2 / v3 storage
+     canonicalization runs independently and may still split entities
+     not yet in the alias map.
+  3. **Concentration metrics** (`top5_share`, `hhi`) for combined
+     rows are **unavailable** (returned as None) when monetary > 0,
+     because v2's `finance_top_donors` is materialized at top-20 per
+     campaign/stance only — the tail isn't stored. v3-only rows
+     (monetary = 0) get exact concentration. Resolve by materializing
+     full v2 monetary donor distributions in a future v2.1 rebuild
+     OR by adding monetary contributions to v3 ingest (the same
+     blocker as the v3 monetary ingest follow-up).
+  4. **Calendar-year n_measures** is now a **true union** of
+     measure_db_ids across v2 and v3 source tables (previously was
+     `max(v2_count, v3_count)` — Codex round-4 #3 fixed in
+     commit `a1582c8`).
+
+- **v3 monetary ingest** (non-blocking, would simplify everything).
+  Extends Phase 4 to add `receipt_type='monetary_contribution'`
+  rows to `finance_flow_v3` from RCPT_CD Schedule A. Would let the
+  `get_combined_*` methods collapse into their v3 counterparts and
+  resolve the top5_share/hhi None caveat.
+
 - **Schedule E sub-phase** (non-blocking). Diagnostic to identify
   true cross-prop IE in Schedule E rows. If material, ingest as
   separate sub-phase with explicit double-count safeguards.
