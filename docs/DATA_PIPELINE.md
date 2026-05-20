@@ -22,10 +22,10 @@
 >   `S496_CD`). Phase 5 stitched v2 monetary + v3 non-monetary into a
 >   single read layer (`FinanceDatabase.get_combined_*`).
 >
-> Current production state: **181 matched measures / $5.75B reportable
-> money** across 194 campaigns (v2 monetary $3.24B + v3 loans+in-kind+IE
-> $2.51B; some measures collide via year-offset recoveries, hence the
-> measure/campaign split). See
+> Current production state: **181 statewide measures/propositions /
+> $5.75B reportable money** across 194 campaign records (v2 monetary
+> $3.24B + v3 loans+in-kind+IE $2.51B; some measures collide via
+> year-offset recoveries, hence the measure/campaign split). See
 > [`scraper/data/finance/README.md`](../scraper/data/finance/README.md)
 > for the live design + methodology and `plans/finance-rebuild-verification.md`
 > for the verification framework (Layers 1–3 + Phase G).
