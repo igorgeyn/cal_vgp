@@ -9,6 +9,55 @@
 > and DATA_PIPELINE carry "snapshot, not current state" disclaimers where
 > applicable.
 
+## [2.3.0] - 2026-05-20
+
+**Finance v3 expansion + Phase 5 atomic UI flip.** The headline
+change since 2.2.0: total reportable money on the static site now
+combines monetary contributions ($3.24B in v2) with v3's
+loans + in-kind + independent expenditures ($2.51B), surfacing
+**$5.75B across 181 statewide propositions** — roughly +77% over
+the prior monetary-only total. `better_funded_win_rate` essentially
+unchanged at 65.2% (IE money tends to follow monetary lead).
+
+- **`finance_statewide_v3.db`** (Phase 4, 2026-05-15) — new
+  expanded-scope database. Single `finance_flow_v3` fact table
+  carrying loans (LOAN_CD), in-kind (RCPT_CD Schedule C), and
+  independent expenditures (EXPN_CD F461P5/F465P3 + S496_CD). 14
+  rounds of Codex review on the attribution resolver caught
+  successive bug families: AG queue IDs, multi-prop separators,
+  regional/local measures, bare local letter measures. Net
+  −$273M wrongly-attributed removed, +$232M valid attributions
+  recovered after BAL_NAME false-positive cleanup.
+- **Post-ingest cross-source dedup** — same economic transaction
+  often appears across S496 24-hour notice + Form 461 scheduled
+  report. `dedup_ies.py` runs source-table-priority dedup
+  (F461P5 > F465P3 > S496) on `economic_fingerprint` (payee +
+  campaign + stance + amount + date). $36.27M of IE double-counting
+  eliminated; dedup invariant verified to the penny.
+- **Combined read layer** (Phase 5, 2026-05-19) — 5 new
+  `FinanceDatabase.get_combined_*` methods stitching v2 monetary +
+  v3 non-monetary at consumer call time. All UI surfaces (modal,
+  briefing pipeline, insights generator, REST API) flipped together
+  in one atomic commit so headline numbers stay coherent.
+- **Cross-source donor aliases** — `src/finance/donor_aliases.py`
+  curates ~18 entries for known cross-source canonicalization
+  drift (FanDuel/Betfair, FBG, Uber, Postmates, etc.). Applied at
+  combined-merge time only; underlying v2/v3 storage canonicalization
+  stays independent so source reconciliation remains exact.
+- **Concentration-metrics honesty policy** — v2's `finance_top_donors`
+  is capped at top-20 per (campaign, stance), so HHI / top5_share
+  on combined data would systematically underestimate. Combined
+  summary now returns `None` for these metrics when monetary
+  contributes; v3-only rows pass through exact values.
+- **Verification layers** — 4 layers now: Layer 1 (v2 untouched),
+  Layer 2 (per-ingest source reconciliation, $0 diff), Layer 3
+  (10 source-row-anchored trace fixtures), Phase G (9 v3 + combined
+  integrity invariants). All green at the Phase 6 closeout.
+
+Codex review arc: 5 rounds on Phase 5 (3 on step 1, 1 on step 2b,
+1 closeout). All findings addressed. See `docs/codex/` for the
+review docs.
+
 ## [2.2.0] - 2026 (rolling)
 
 Major work landed since 2.1.0; this entry is a pointer, not exhaustive notes:

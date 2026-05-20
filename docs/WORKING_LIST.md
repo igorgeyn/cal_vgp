@@ -1,18 +1,19 @@
 # CalBallot Working List
 
-> Snapshot: **2026-05-19 evening**. Branch: `main` (ahead of
-> `origin/main`). Last shipped: commit `43dc55e` (Phase 5 step 1
-> Codex round-3 follow-up: NULL-last in SQL ORDER BY).
+> Snapshot: **2026-05-20**. Branch: `main` (ahead of `origin/main`).
+> Last shipped: Phase 6 closeout (commits `1a42413` → `8267343` and
+> following). **Phases 4, 5, and 6 all done.**
 >
-> **WHERE WE LEFT OFF — Phase 5 step 1 done, step 2 next.**
+> **WHERE WE LEFT OFF — finance v3 + UI flip + docs all shipped.**
 >
-> v3 finance expansion through Phase 4 is fully shipped and verified.
-> v3.db now carries **47,942 accepted rows / $2.510B** flowing across
-> loans + in-kind + independent expenditures (post-dedup). Phase 5
-> step 1 (library/API migration: 4 new v3 read methods on
-> `FinanceDatabase`) is shipped + reviewed across 3 Codex rounds.
-> 153 finance tests pass (118 v2 + 35 v3). Next: **Phase 5 step 2 —
-> atomic frontend commit** — see "Phase 5 step 2 next steps" below.
+> Combined v2 + v3 finance pipeline is live. Static site shows
+> **$5,750,344,165.78 across 181 statewide propositions** (v2
+> monetary $3.24B + v3 loans/in-kind/IE $2.51B), `better_funded_win_rate`
+> 65.2%. Full verification stack green: 187 finance unit tests +
+> Layer 1 (8/8) + Layer 2 reconciles ($0 diff) + Layer 3 traces
+> (10/10) + Phase G integrity (9/9). 5 Codex review rounds on
+> Phase 5 + closeout pass. Methodology bullets formalized in
+> `scraper/data/finance/README.md`.
 >
 > This is the canonical resume point. Memory in `.claude/projects/...` is
 > per-machine and won't follow you — start here when picking up on a new
@@ -20,150 +21,108 @@
 
 ---
 
-## Phase 5 step 2 next steps (resume here)
+## Next chunk (resume here)
 
-Phases 0-4 + step 1 of Phase 5 are shipped + verified. The v3.db
-now carries:
+Finance work is closeout-complete. The non-blocking follow-ups in
+priority order:
 
-  Loans:    269 accepted / $186.16M (LOAN_CD B1)
-  In-kind:  23,878 accepted / $416.01M (RCPT_CD Schedule C)
-  IE:       23,795 accepted / $1,907.89M (EXPN_CD F461P5/F465P3 + S496_CD, post-dedup)
-  TOTAL:    47,942 accepted / $2,510.05M
+1. **`origin/main` push** — local `main` is ~20 commits ahead.
+   Igor's decision when to push (currently un-pushed); Codex review
+   doesn't require origin sync.
 
-All 14 Phase 4 Codex rounds integrated, plus 3 rounds on step 1.
-107+ resolver unit tests + 10 trace tests pass. Source reconciliation
-checks (loans / in-kind / IE three-slice + dedup invariant) all $0
-diff. v2 baseline untouched (Layer 1 8/8 PASS). Full finance suite
-153/153 (118 v2 + 35 v3).
+2. **v3 monetary ingest** (medium effort, ~1-2 days) — the
+   architectural fix that would resolve the concentration-metrics
+   None caveat. Extends Phase 4 to add `receipt_type='monetary_contribution'`
+   rows to `finance_flow_v3` from `RCPT_CD` Schedule A. Then the
+   `get_combined_*` methods can collapse into their v3 counterparts
+   and `top5_share` / `hhi` become exact for all rows. Documented as
+   issue #11 in `docs/KNOWN_ISSUES.md`.
 
-**Bug-fix arc, rounds 10-14:** −$273M wrongly attributed removed
-(AG queue IDs, multi-prop separators, regional measures, bare local
-letter measures), +$232M valid attributions recovered (BAL_NAME
-false-positive cohort with legitimate commas in committee names).
-Net: cleaner attribution AND broader coverage. Field-specific
-ambiguity helpers (`has_ambiguous_bal_num` strict for BAL_NUM,
-`has_ambiguous_bal_name` semantic for BAL_NAME) keep the BAL_NUM /
-BAL_NAME signal asymmetry well-contained.
+3. **Schedule E sub-phase** (non-blocking diagnostic). Identify
+   true cross-prop IE in `EXPN_CD` Schedule E rows. If material,
+   ingest as separate sub-phase with explicit double-count
+   safeguards.
 
-**Step-1 Codex review arc (rounds 1-3 on the library/API):**
-- Round 1: surfaced 3 issues — n_committees NULL coercion,
-  primary_attribution_source not amount-weighted despite docstring,
-  measure_db_id guard missing.
-- Round 2: fixes introduced new issue — COALESCE short-circuits on
-  empty strings (CAL-ACCESS ships `cover_committee_id = ''` on all
-  47,942 accepted rows), making 278 IE slices wrong across ~$1.886B.
-  Fixed via `NULLIF(TRIM(col), '')` wrapping. Sort tiebreak also
-  fixed for NULL-donor crash.
-- Round 3: clean shape, one non-blocking SQL ORDER BY NULL-handling
-  fix applied. Live DB parity confirmed: app reads, view, and by-type
-  table all return identical n_committees per slice.
+4. **Donor alias coverage** — `src/finance/donor_aliases.py`
+   covers ~18 cross-source variants seen in marquee fights + top-N.
+   Lower-traffic measures may surface new splits over time; add
+   when noticed. (Issue #10 in KNOWN_ISSUES.)
 
-**Step 1 shape (shipped at commits 4542d4a → d2d2a5f → 7a3eb55 →
-43dc55e):**
-- 4 new methods on `FinanceDatabase` keying on measure_db_id:
-  `get_finance_summary_total`, `get_finance_breakdown_by_type`,
-  `get_top_donors_total`, `get_top_donors_by_type`
-- Aggregate directly from `finance_flow_v3` (not via derived
-  views/tables) for single-source-of-truth + correct cross-measure
-  semantics
-- Amount-weighted `attribution_source` (replaces broken
-  `attribution_source_mode`)
-- NULL-safe in both Python sort and SQL ORDER BY
-- 35 v3 tests covering rollup arithmetic, NULL preservation,
-  empty-string COALESCE, cross-measure guards, tie behavior
+5. **v2.1 donor distribution materialization** (alternative path to
+   concentration-metric exactness; mutually exclusive with #2 if
+   v3 monetary ingest happens). Could go in a separate auxiliary
+   v2 table to avoid disturbing the existing schema.
 
-**Concrete next chunk: Phase 5 step 2 — atomic frontend commit
-(~1 day).**
+The non-finance backlog is unchanged — see "Pending — by area"
+below for narrative/ideation, briefings, insights panels, data
+hygiene, etc.
 
-The big visible-product shift. Order of operations:
+## Phase 4 / 5 / 6 — shipped (2026-05-15 through 2026-05-20)
 
-1. ~~**Library / API migration**~~ **DONE 2026-05-19** (commits
-   4542d4a → d2d2a5f → 7a3eb55 → 43dc55e). 4 new `FinanceDatabase`
-   methods ready for UI consumption, all keying on `measure_db_id`
-   with built-in rollup for year-offset-collision campaigns:
-   - `get_finance_summary_total(measure_db_id)`
-   - `get_finance_breakdown_by_type(measure_db_id)`
-   - `get_top_donors_total(measure_db_id, *, stance=None, limit=10)`
-   - `get_top_donors_by_type(measure_db_id, receipt_type, *,
-     stance=None, limit=10)`
-   - Existing v2 methods (`get_top_donors`, `aggregate_for_measure`)
-     keep reading v2.db monetary-only tables — no breakage.
-   - Methods aggregate directly from `finance_flow_v3` for
-     single-source-of-truth + correct cross-measure semantics.
-   - 3 rounds of Codex review applied; final shape is reviewed-clean.
+**Phase 4: v3 expanded-scope ingest** (2026-05-15, commits
+through `4408f24`). New `finance_statewide_v3.db` carrying loans
+(LOAN_CD B1), in-kind (RCPT_CD Schedule C), and IE (EXPN_CD
+F461P5/F465P3 + S496_CD). 14 rounds of Codex review on the
+attribution resolver:
 
-2. **Atomic visible-change commit.** All UI surfaces flip in ONE
-   commit because half-flipped UIs make headline numbers
-   inconsistent. Touches:
-   - Modal Finance tab: total + breakdown layout ("Total
-     support-side money: $X · Direct receipts $Y · Independent
-     spending $Z")
-   - Hero card / Insights Module 1: total replaces monetary
-   - Insights Module 4 (marquee fights): includes IE
-   - Insights Module 3 (top donors): uses `_total` ranked list
-     across types
-   - Briefing pipeline finance facts: uses `_total` view
-   - API endpoint: returns both `total` and `breakdown` payloads
-   - **Methodology note**: updated to explain what's now included
-     and what's still out (Schedule E excluded, recalls excluded,
-     etc.)
-   - `insights.json` regenerated, `index.html` regenerated
+- Bug-fix arc: −$273M wrongly attributed removed (AG queue IDs,
+  multi-prop separators, regional measures, bare local letter
+  measures), +$232M valid attributions recovered (BAL_NAME
+  false-positive cohort with legitimate commas).
+- Field-specific ambiguity helpers (`has_ambiguous_bal_num` strict
+  for BAL_NUM, `has_ambiguous_bal_name` semantic for BAL_NAME).
+- Post-ingest cross-source dedup ($36.27M of IE double-counting
+  eliminated; F461P5 > F465P3 > S496 priority).
 
-3. **Win-rate math re-runs.** Current 65% "better-funded wins"
-   number uses v2 monetary only. With IE included, the math
-   changes — historically IE money is heavier on losing sides of
-   contentious props. Number will probably shift down. Document
-   the shift in the methodology copy.
+v3 accepted: 269 loans / $186M + 23,878 in-kind / $416M + 23,795
+IE / $1,908M = 47,942 rows / $2,510M.
 
-4. **Headline number shift.** Homepage total receipts going from
-   $3.24B (v2 monetary) to ~$5.75B (v3 = v2 monetary $3.24B + v3
-   loans/in-kind/IE $2.51B, post-dedup, before any cross-source
-   collision pass). Ship the methodology note in the same commit so
-   users see what changed and why.
+**Phase 5: library/API migration + atomic UI flip** (2026-05-19,
+commits `4542d4a` → `bec2abe` → round-4 fixes `a1582c8` + `df6e73f`
++ `76b5fb8`). 5 Codex rounds on Phase 5 (3 on step 1, 1 on step 2b,
+1 closeout):
 
-**Verification at end of Phase 5:**
-- Layer 1 still 8/8 (v2 untouched)
-- All 10 trace tests still pass
-- All 4 source reconciliation checks still $0 diff
-- Re-eyeball 3-5 specific prop modals against Ballotpedia
-- Codex round-15 sanity check on the visible-product result
+- Step 1: 4 new `FinanceDatabase.get_finance_*_total` methods
+  aggregating directly from `finance_flow_v3`.
+- Step 2a: 2 more (`get_finance_timeline_total`,
+  `get_calendar_year_receipts_v3`).
+- Step 2b: 5 `get_combined_*` methods stitching v2 monetary onto v3
+  non-monetary. All UI surfaces flipped atomically. Methodology
+  copy updated.
+- Round-4 fixes: empty-string COALESCE bug, NULL-donor sort crash,
+  n_measures union (was max), n_transactions removed from combined
+  summary, "v3" wording sweep to "combined".
+- Round-4 commit 2: donor aliases (`src/finance/donor_aliases.py`)
+  for cross-source canonicalization drift; concentration-None
+  policy when monetary > 0.
+- Closeout: alias canonicals added to `donor_sectors.py` so the
+  sector lookup survives merge; round-trip invariant test guards
+  future drift.
 
-**After Phase 5:**
-- **Phase 6: Final verification + docs** (~½ day). Re-run all 68
-  checks from `plans/finance-rebuild-verification.md`, add Phase G
-  checks (IE / in-kind / loan integrity), update CHANGELOG +
-  methodology + finance README.
+**Phase 6: closeout verification + docs** (2026-05-20, commits
+`1a42413` → `8267343` and following):
 
-  **Methodology bullets Codex round-4 wants Phase 6 to formalize:**
-  1. Headline totals are **exact** under current methodology
-     ($5,750,344,165.78 reconciles to v2 + v3 sums to the penny).
-  2. **Donor lists** in combined view are **display/canonicalization-
-     limited**: cross-source aliases are curated in
-     `src/finance/donor_aliases.py`; underlying v2 / v3 storage
-     canonicalization runs independently and may still split entities
-     not yet in the alias map.
-  3. **Concentration metrics** (`top5_share`, `hhi`) for combined
-     rows are **unavailable** (returned as None) when monetary > 0,
-     because v2's `finance_top_donors` is materialized at top-20 per
-     campaign/stance only — the tail isn't stored. v3-only rows
-     (monetary = 0) get exact concentration. Resolve by materializing
-     full v2 monetary donor distributions in a future v2.1 rebuild
-     OR by adding monetary contributions to v3 ingest (the same
-     blocker as the v3 monetary ingest follow-up).
-  4. **Calendar-year n_measures** is now a **true union** of
-     measure_db_ids across v2 and v3 source tables (previously was
-     `max(v2_count, v3_count)` — Codex round-4 #3 fixed in
-     commit `a1582c8`).
+- `scripts/v3/verify_phase_g.py` added (9 v3 + combined-layer
+  integrity checks). 9/9 PASS.
+- `scraper/data/finance/README.md` rewritten for combined v2+v3
+  scope. Includes 4 formalized methodology bullets.
+- `docs/DATA_PIPELINE.md` snapshot disclaimer updated.
+- `docs/KNOWN_ISSUES.md` adds 3 v3-era issues (#9 concentration
+  caveat, #10 alias drift, #11 v3 monetary ingest gap).
+- `scraper/CHANGELOG.md` 2.3.0 entry.
+- `plans/finance-rebuild-verification.md` Phase G section appended
+  with checks + execution results.
 
-- **v3 monetary ingest** (non-blocking, would simplify everything).
-  Extends Phase 4 to add `receipt_type='monetary_contribution'`
-  rows to `finance_flow_v3` from RCPT_CD Schedule A. Would let the
-  `get_combined_*` methods collapse into their v3 counterparts and
-  resolve the top5_share/hhi None caveat.
+**Verification stack** (all green at closeout):
 
-- **Schedule E sub-phase** (non-blocking). Diagnostic to identify
-  true cross-prop IE in Schedule E rows. If material, ingest as
-  separate sub-phase with explicit double-count safeguards.
+- Layer 0 — Unit tests: 187 finance tests pass (118 v2 + 60 v3 + 9
+  crosswalk).
+- Layer 1 — v2 untouched: 8/8 PASS (self-hash, value match, row
+  counts).
+- Layer 2 — Source reconcile: loans / in-kind / IE three-slice +
+  dedup invariant all $0 diff.
+- Layer 3 — Source-row traces: 10/10 PASS.
+- Phase G — v3 + combined integrity: 9/9 PASS.
 
 ## Recently shipped
 
