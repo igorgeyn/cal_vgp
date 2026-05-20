@@ -90,8 +90,13 @@ def main():
         # Get all measures from database
         logger.info("Loading measures from database...")
         
-        # Valid BallotMeasure fields
+        # Valid BallotMeasure fields. NOTE: `id` MUST be included — the
+        # JS modal looks up financeData[String(measure.id)] to render
+        # the Finance tab. Omitting it makes every measure show "no
+        # finance data" even when v3 data exists. (Bug surfaced
+        # 2026-05-20 looking at PROP_27_2022's Finance tab.)
         valid_fields = {
+            'id',
             'fingerprint', 'measure_fingerprint', 'content_hash',
             'measure_id', 'measure_letter', 'year', 'state', 'county', 'jurisdiction',
             'title', 'description', 'ballot_question',
