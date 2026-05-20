@@ -126,8 +126,11 @@ def main() -> int:
               f"(${cy_sum:,.2f})")
 
     # ---- G5: per-measure breakdown = summary total ----
+    # Codex round-6: full pass over all measures takes ~1.15s; the
+    # 30-measure sampling was unnecessarily cheap and could miss
+    # failure patterns on lower-rank measures.
     drift = 0
-    for mid in mids[:30]:  # sample 30; full check would 181x quadratic
+    for mid in mids:
         bt_sum = sum(
             r["total_amount"]
             for r in db.get_combined_breakdown_by_type(mid)
@@ -144,65 +147,142 @@ def main() -> int:
         )
     else:
         print(f"  [PASS] G5: breakdown sums = summary totals "
-              f"(30/30 sampled measures)")
+              f"({len(mids)}/{len(mids)} measures)")
 
-    # ---- G6: alias merge on a marquee fight ----
-    # PROP_22_2020 should show ONE Uber Technologies entry, not two
-    p22 = db.get_combined_top_donors(10933, stance="support", limit=10)
-    uber = [d for d in p22 if "uber" in (d["donor_name_canon"] or "").lower()]
-    if len(uber) != 1:
-        failures.append(
-            f"G6: PROP_22 support has {len(uber)} Uber entries; expected 1"
-        )
-    elif uber[0]["donor_name_canon"] != "Uber Technologies, Inc":
-        failures.append(
-            f"G6: Uber canonical = {uber[0]['donor_name_canon']!r}; "
-            f"expected 'Uber Technologies, Inc'"
-        )
+    # ---- G6: alias merge on the marquee fights ----
+    # Codex round-6: verify ALL known curated cross-source aliases
+    # collapse on the relevant marquee measures, not just Uber.
+    # Each entry: (measure_db_id, stance, expected canonical, substring hint).
+    alias_marquee = [
+        (10933, "support", "Uber Technologies, Inc", "uber"),
+        (10933, "support", "Postmates, Inc", "postmates"),
+        (10933, "support", "Instacart", "instacart"),
+        (10939, "support",
+         "FanDuel Sportsbook (Betfair Interactive US LLC)", "fanduel"),
+        (10939, "support", "FBG Enterprises, LLC", "fbg"),
+        (10939, "support",
+         "Penn Interactive Ventures, LLC", "penn interactive"),
+    ]
+    g6_misses = []
+    for mid, stance, expected_canonical, hint in alias_marquee:
+        donors = db.get_combined_top_donors(mid, stance=stance, limit=20)
+        hits = [
+            d for d in donors
+            if hint in (d["donor_name_canon"] or "").lower()
+        ]
+        if len(hits) != 1:
+            g6_misses.append(
+                f"measure {mid} {stance}: {len(hits)} entries match "
+                f"{hint!r}; expected 1"
+            )
+        elif hits[0]["donor_name_canon"] != expected_canonical:
+            g6_misses.append(
+                f"measure {mid} {stance}: canonical "
+                f"{hits[0]['donor_name_canon']!r} != {expected_canonical!r}"
+            )
+    if g6_misses:
+        for m in g6_misses:
+            failures.append(f"G6: {m}")
     else:
-        print(f"  [PASS] G6: alias merge collapses Uber variants on PROP_22 "
-              f"(${uber[0]['total_amount']:,.0f})")
+        print(f"  [PASS] G6: alias merge collapses {len(alias_marquee)} "
+              f"marquee cross-source variants")
 
     # ---- G7: concentration None policy ----
-    # Pick a measure with both v2 and v3 money; assert top5/hhi=None.
-    sample = db.get_combined_summary(10939)  # PROP_27_2022
-    monetary_rows = [r for r in sample if r["monetary_amount"] > 0]
-    bad = [
-        r for r in monetary_rows
-        if r["top5_share"] is not None or r["hhi"] is not None
-    ]
-    if bad:
+    # Codex round-6: scan ALL combined rows across all measures with
+    # monetary > 0, not just one measure. Also assert the sample is
+    # non-empty so we don't silently pass when the monetary > 0 branch
+    # isn't being exercised.
+    g7_bad = []
+    g7_monetary_rows = 0
+    for mid in mids:
+        for r in db.get_combined_summary(mid):
+            if r["monetary_amount"] > 0:
+                g7_monetary_rows += 1
+                if r["top5_share"] is not None or r["hhi"] is not None:
+                    g7_bad.append(
+                        f"measure {mid} {r['stance']}: "
+                        f"top5={r['top5_share']} hhi={r['hhi']}"
+                    )
+    if g7_monetary_rows == 0:
         failures.append(
-            f"G7: PROP_27_2022 rows with monetary>0 have non-None "
-            f"top5/hhi: {bad}"
+            "G7: 0 combined rows have monetary > 0 — the None-policy "
+            "branch isn't exercised, can't verify"
         )
+    elif g7_bad:
+        for m in g7_bad[:10]:
+            failures.append(f"G7: {m}")
+        if len(g7_bad) > 10:
+            failures.append(f"G7: ... and {len(g7_bad) - 10} more")
     else:
         print(f"  [PASS] G7: combined summary rows with monetary>0 have "
-              f"top5/hhi=None ({len(monetary_rows)} sampled)")
+              f"top5/hhi=None ({g7_monetary_rows} rows verified)")
 
     # ---- G8: every alias canonical with a source sector has a canonical sector ----
+    # Codex round-6: the base "source has sector -> canonical has same
+    # sector" invariant misses the case where neither side has a sector
+    # but the README claims the marquee canonicals carry sectors. Add
+    # an explicit expected-sector set for the curated marquee aliases.
     drift = []
     for source, canonical in _DONOR_ALIASES_RAW.items():
         source_sector = get_donor_sector(source)
         canonical_sector = get_donor_sector(canonical)
         if source_sector and canonical_sector != source_sector:
             drift.append((source, source_sector, canonical, canonical_sector))
+    expected_canonical_sectors = {
+        "Uber Technologies, Inc": "Gig Economy",
+        "Postmates, Inc": "Gig Economy",
+        "Instacart": "Gig Economy",
+        "FanDuel Sportsbook (Betfair Interactive US LLC)": "Commercial Gambling",
+        "FBG Enterprises, LLC": "Commercial Gambling",
+        "Penn Interactive Ventures, LLC": "Commercial Gambling",
+        "Pala Band of Mission Indians": "Tribal Gaming",
+        "Apartment Investment and Management Company (AIMCO)": "Real Estate",
+    }
+    for canonical, expected in expected_canonical_sectors.items():
+        got = get_donor_sector(canonical)
+        if got != expected:
+            drift.append(
+                (f"<marquee:{canonical}>", expected, canonical, got)
+            )
     if drift:
         for d in drift:
             failures.append(f"G8: alias drift {d[0]!r}({d[1]}) -> {d[2]!r}({d[3]})")
     else:
-        print(f"  [PASS] G8: all alias canonicals preserve source sectors "
-              f"({len(_DONOR_ALIASES_RAW)} entries scanned)")
+        print(f"  [PASS] G8: alias canonicals preserve source sectors "
+              f"({len(_DONOR_ALIASES_RAW)} round-trip + "
+              f"{len(expected_canonical_sectors)} marquee-explicit checks)")
 
-    # ---- G9: combined summary shape — no n_transactions ----
+    # ---- G9: combined summary shape + API response model -------------
+    # Codex round-6: also assert the API Pydantic model doesn't declare
+    # n_transactions. The method-shape check alone would still pass if
+    # someone reverted the API model field; the two-layer check catches
+    # that drift path.
+    g9_failed = False
     sample_row = db.get_combined_summary(10939)[0]
     if "n_transactions" in sample_row:
         failures.append(
-            "G9: combined summary still exposes n_transactions "
+            "G9: combined summary still exposes n_transactions in row dict "
             "(Codex round-4 #4 regression)"
         )
-    else:
-        print(f"  [PASS] G9: n_transactions absent from combined summary")
+        g9_failed = True
+    api_note = ""
+    try:
+        from src.api.server import FinanceSideResponse
+        if "n_transactions" in FinanceSideResponse.model_fields:
+            failures.append(
+                "G9: FinanceSideResponse Pydantic model still declares "
+                "n_transactions field (API regression)"
+            )
+            g9_failed = True
+        else:
+            api_note = " (incl. FinanceSideResponse model)"
+    except ImportError:
+        # API module unavailable (FastAPI not in this env). Don't fail
+        # Phase G on environment reasons.
+        api_note = " (API model check skipped: FastAPI not importable)"
+    if not g9_failed:
+        print(f"  [PASS] G9: n_transactions absent from combined summary"
+              f"{api_note}")
 
     db.close()
     v2.close()

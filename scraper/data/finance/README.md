@@ -209,10 +209,13 @@ combined-merge time only — underlying v2/v3 storage canonicalization
 stays independent so source-table reconciliation remains exact.
 
 Current alias entries cover Uber, Postmates, FanDuel, FBG, Penn
-Interactive, Pala Band, AIMCO, Instacart/Maplebear. SEIU
-Locals / UFCW Locals / "and affiliated entities" suffixes
-intentionally NOT merged (those represent distinct filing entities
-or could legitimately encompass different contributor sets).
+Interactive, Pala Band, AIMCO, Instacart/Maplebear. **Generic**
+"and affiliated entities" suffix merging is intentionally NOT done,
+but specific same-filer cases where the entity is clearly identical
+are merged (AIMCO's three formatting variants are curated; Pala Band's
+casino-name suffix is curated). SEIU Locals / UFCW Locals stay
+distinct (different filing entities, even though parent unions are
+related).
 
 Every alias canonical output that has a meaningful sector is also
 listed in `donor_sectors.py` so the sector-chip lookup survives the
@@ -310,7 +313,7 @@ Four layers, each runnable independently:
 
 | Layer | Script | What it verifies |
 |---|---|---|
-| 0 — Unit tests | `pytest scraper/tests/test_finance_db*.py` | 187 hermetic tests on FinanceDatabase methods + resolver |
+| 0 — Unit tests | `pytest scraper/tests/test_finance_db.py scraper/tests/test_finance_db_v3.py scraper/tests/test_finance_crosswalk.py` | 187 hermetic tests (114 v2 FinanceDatabase + 60 v3 + 13 crosswalk) |
 | 1 — v2 baseline | `python scripts/v3/verify_layer1.py` | v3 work hasn't touched v2 data (8 checks: row counts, value match to penny, self-hash) |
 | 2 — Source reconcile | `reconcile_loans.py`, `reconcile_inkind.py`, `reconcile_ies.py` | Each v3 ingest reconciles against direct source SUM to the penny |
 | 3 — Trace tests | `verify_traces.py` | 10 source-row-anchored fixtures (pin specific transactions to expected attribution) |

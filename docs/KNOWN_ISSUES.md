@@ -2,7 +2,8 @@
 
 > Issues identified but deferred for future investigation or accepted as data limitations.
 
-**Last Updated:** February 2026
+**Original snapshot:** February 2026
+**Most recently amended:** 2026-05-20 (added v3-era issues #9, #10, #11)
 
 ---
 

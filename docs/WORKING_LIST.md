@@ -11,9 +11,10 @@
 > monetary $3.24B + v3 loans/in-kind/IE $2.51B), `better_funded_win_rate`
 > 65.2%. Full verification stack green: 187 finance unit tests +
 > Layer 1 (8/8) + Layer 2 reconciles ($0 diff) + Layer 3 traces
-> (10/10) + Phase G integrity (9/9). 5 Codex review rounds on
-> Phase 5 + closeout pass. Methodology bullets formalized in
-> `scraper/data/finance/README.md`.
+> (10/10) + Phase G integrity (9/9). 5 Codex review passes total
+> on Phase 5 (including closeout), plus 1 action-plan request between
+> review rounds 4 and the round-4 fixes. Methodology bullets
+> formalized in `scraper/data/finance/README.md`.
 >
 > This is the canonical resume point. Memory in `.claude/projects/...` is
 > per-machine and won't follow you — start here when picking up on a new
@@ -115,7 +116,7 @@ commits `4542d4a` → `bec2abe` → round-4 fixes `a1582c8` + `df6e73f`
 
 **Verification stack** (all green at closeout):
 
-- Layer 0 — Unit tests: 187 finance tests pass (118 v2 + 60 v3 + 9
+- Layer 0 — Unit tests: 187 finance tests pass (114 v2 + 60 v3 + 13
   crosswalk).
 - Layer 1 — v2 untouched: 8/8 PASS (self-hash, value match, row
   counts).
