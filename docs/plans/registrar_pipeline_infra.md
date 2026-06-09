@@ -418,10 +418,17 @@ on:
     paths:
       - 'scraper/src/scrapers/registrar/**'
 
-# Codex round-1: concurrency group prevents cron and manual runs
-# from overlapping and racing the same R2 prefixes.
+# Codex round-1: concurrency group prevents runs that target the
+# same R2 prefix from racing. Keyed on env (dev/prod), not event:
+# - push (dev) and cron/manual (prod) can run concurrently because
+#   they write to different R2 prefixes.
+# - But two cron runs, two manual runs, or cron + manual all share
+#   the prod prefix and must serialize.
+# Self-audit fix to the earlier `github.event_name`-keyed version
+# which incorrectly put cron and manual in separate groups even
+# though they both target prod.
 concurrency:
-  group: registrar-pipeline-${{ github.event_name }}
+  group: registrar-pipeline-${{ github.event_name == 'push' && 'dev' || 'prod' }}
   cancel-in-progress: false
 
 jobs:
@@ -468,11 +475,16 @@ jobs:
 
 - **Single job, per-county concurrency in Python.** One workflow
   job iterates over counties using Python concurrency (e.g.
-  `concurrent.futures`). Per-county failures are isolated:
-  the runner catches each scraper's exception, records `status:
-  failed` in the run manifest, and continues. Process exits
-  nonzero only if **all** counties failed or the runner itself
-  crashed. Codex round-1 nudge.
+  `concurrent.futures`). Per-county failures are isolated: the
+  runner catches each scraper's exception, records `status:
+  failed` in the run manifest, and continues to the next county
+  (no early exit). After all counties have been attempted, the
+  process exits nonzero if **any** county failed (or the runner
+  itself crashed). This gives CI visibility into partial failures
+  — the run manifest carries per-county detail; CI red/green
+  signals "something needs attention." Self-audit refinement of
+  Codex round-1: earlier wording exited nonzero only when ALL
+  failed (fail-open), which would hide a 4-of-5 partial outage.
 - **Concurrency group** prevents cron + manual + push runs from
   racing. `cancel-in-progress: false` because we'd rather queue
   than abort a partially-complete scrape.
