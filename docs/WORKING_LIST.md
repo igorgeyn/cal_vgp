@@ -580,6 +580,25 @@ checks pass; Phase F manual checklist signed off via browser spot-check).
       modals, working-list items pointing at specific cards, faster
       "go look at this prop" chat workflow.
 
+### DOCUMENTATION
+
+- [ ] **Registrar developer guide** — "how to add a new county
+      scraper" walkthrough. Sits alongside the R2 setup doc as a
+      Phase 0.5 / Phase 1 deliverable. Likely lives at
+      `docs/setup/registrar_developer_guide.md` once Phase 0.5
+      ships and SB is the first worked example.
+
+- [ ] **Verification framework runbook** — Phase G + Layer 1/2/3
+      are referenced across docs but there's no consolidated
+      "how to actually run them" guide. Probably lives at
+      `docs/setup/verification_runbook.md`. Could fold into a
+      Phase 0.5-style deliverable or stand alone.
+
+- [ ] **"What Codex has taught us" synthesis doc** — possibly
+      redundant now that `docs/LESSONS_LEARNED.md` exists; revisit
+      after a few more Codex rounds to see if a separate digest
+      adds value or just duplicates lessons.
+
 ### DATA HYGIENE
 
 - [ ] **Audit other dead/null fields in JS data blob.** The
