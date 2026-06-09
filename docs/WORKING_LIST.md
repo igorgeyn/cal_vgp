@@ -1,62 +1,85 @@
 # CalBallot Working List
 
-> Snapshot: **2026-05-20**. Branch: `main` (ahead of `origin/main`).
-> Last shipped: Phase 6 closeout (commits `1a42413` → `8267343` and
-> following). **Phases 4, 5, and 6 all done.**
+> Snapshot: **2026-06-09**. Branch: `main`, in sync with `origin/main`.
+> Last commit: `c40c09c` (Phase 0.5 storage layer landed).
 >
-> **WHERE WE LEFT OFF — finance v3 + UI flip + docs all shipped.**
+> **WHERE WE LEFT OFF — Phase 0.5 of the registrar pipeline is mid-flight.**
 >
-> Combined v2 + v3 finance pipeline is live. Static site shows
-> **$5,750,344,165.78 across 181 statewide propositions** (v2
-> monetary $3.24B + v3 loans/in-kind/IE $2.51B), `better_funded_win_rate`
-> 65.2%. Full verification stack green: 187 finance unit tests +
-> Layer 1 (8/8) + Layer 2 reconciles ($0 diff) + Layer 3 traces
-> (10/10) + Phase G integrity (9/9). 5 Codex review passes total
-> on Phase 5 (including closeout), plus 1 action-plan request between
-> review rounds 4 and the round-4 fixes. Methodology bullets
-> formalized in `scraper/data/finance/README.md`.
+> Project shifted on 2026-05-21 from finance polish to building a real
+> recurring pipeline for local ballot measures from county registrar
+> sites. Decisions locked: **Cloudflare R2** for storage, **GH Actions
+> cron from day one**, **counties-only scope** to start. Phase 0
+> reconnaissance is complete (5 counties probed via the local
+> harness); Phase 0.5 infrastructure has the storage layer in (17
+> tests, all green) and is awaiting the base scraper / NoOp / runner
+> / workflow on top of it.
 >
-> This is the canonical resume point. Memory in `.claude/projects/...` is
-> per-machine and won't follow you — start here when picking up on a new
-> machine.
+> The finance v2+v3 era is shipped and stable: $5.75B across 181
+> statewide propositions, full verification stack green. Finance
+> backlog below is non-blocking follow-ups, not the active arc.
+>
+> This is the canonical resume point. Memory at
+> `.claude/projects/...` is per-machine and won't follow you — start
+> here when picking up on a new machine. See also new
+> [`/CLAUDE.md`](../CLAUDE.md) for rules of engagement and
+> [`docs/LESSONS_LEARNED.md`](LESSONS_LEARNED.md) for pitfalls.
 
 ---
 
 ## Next chunk (resume here)
 
-Finance work is closeout-complete. The non-blocking follow-ups in
-priority order:
+**Phase 0.5 implementation, picking up from `c40c09c`.** Storage
+layer is in. Remaining Phase 0.5 deliverables:
 
-1. **`origin/main` push** — local `main` is ~20 commits ahead.
-   Igor's decision when to push (currently un-pushed); Codex review
-   doesn't require origin sync.
+1. **`scraper/src/scrapers/registrar/base.py`** — `CountyRegistrarScraper`
+   abstract base with polite-scraping defaults (User-Agent from
+   recon harness, rate limit, retries, robots.txt check, two fetch
+   modes: `requests` and `playwright`).
 
-2. **v3 monetary ingest** (medium effort, ~1-2 days) — the
-   architectural fix that would resolve the concentration-metrics
-   None caveat. Extends Phase 4 to add `receipt_type='monetary_contribution'`
-   rows to `finance_flow_v3` from `RCPT_CD` Schedule A. Then the
-   `get_combined_*` methods can collapse into their v3 counterparts
-   and `top5_share` / `hhi` become exact for all rows. Documented as
-   issue #11 in `docs/KNOWN_ISSUES.md`.
+2. **`scraper/src/scrapers/registrar/noop.py`** — `NoOpCountyScraper`
+   that pretends to scrape a fake county, writes one HTML + one
+   PDF artifact + a manifest, returns success. Used by tests + the
+   first CI run to validate the wiring.
 
-3. **Schedule E sub-phase** (non-blocking diagnostic). Identify
-   true cross-prop IE in `EXPN_CD` Schedule E rows. If material,
-   ingest as separate sub-phase with explicit double-count
-   safeguards.
+3. **`scraper/scripts/run_registrar_pipeline.py`** — runner with
+   per-county failure isolation (catch each scraper's exception,
+   record `status: failed` in run manifest, continue), run-manifest
+   emission, `--counties=enabled` arg. **Exit nonzero if ANY county
+   failed** (not "all" — see Codex round-1 self-audit).
 
-4. **Donor alias coverage** — `src/finance/donor_aliases.py`
-   covers ~18 cross-source variants seen in marquee fights + top-N.
-   Lower-traffic measures may surface new splits over time; add
-   when noticed. (Issue #10 in KNOWN_ISSUES.)
+4. **`.github/workflows/registrar_pipeline.yml`** — cron Mon 4am PT
+   (12:00 UTC, accept ±1h DST shift) + `workflow_dispatch` + push
+   trigger on `scraper/src/scrapers/registrar/**`. **Concurrency
+   group keyed on env** (`push` → `dev`, everything else → `prod`),
+   `cancel-in-progress: false`. R2 secrets wired in (Igor sets up
+   the R2 account during this step).
 
-5. **v2.1 donor distribution materialization** (alternative path to
-   concentration-metric exactness; mutually exclusive with #2 if
-   v3 monetary ingest happens). Could go in a separate auxiliary
-   v2 table to avoid disturbing the existing schema.
+5. **`R2ArtifactStore` impl in `storage.py`** — boto3-based,
+   S3-compatible. Currently `make_store()` raises `NotImplementedError`
+   when R2 env vars are set; wire in the real impl once Igor has the
+   account provisioned.
 
-The non-finance backlog is unchanged — see "Pending — by area"
-below for narrative/ideation, briefings, insights panels, data
-hygiene, etc.
+6. **`docs/setup/registrar_r2_setup.md`** — walkthrough for Igor's
+   R2 account setup: create bucket, create API token, copy into GH
+   repo secrets. ~1-page doc.
+
+**After Phase 0.5 ships:** Phase 1 starts with **SB first** (cleanest
+data shape per recon), then **LA → OC → SD → Riverside**. Riverside
+needs Playwright (Cloudflare bot challenge confirmed at recon).
+
+**Finance follow-ups (deferred, not blocking):**
+
+1. **v3 monetary ingest** (medium effort, ~1-2 days) — resolves
+   the concentration-metrics None caveat. Extends Phase 4 to add
+   `receipt_type='monetary_contribution'` rows to `finance_flow_v3`
+   from `RCPT_CD` Schedule A. (Issue #11 in `docs/KNOWN_ISSUES.md`.)
+2. **Schedule E sub-phase** (non-blocking diagnostic).
+3. **Donor alias coverage** — add as new splits surface. (Issue #10.)
+4. **v2.1 donor distribution materialization** — alternative path
+   to concentration-metric exactness; mutually exclusive with #1.
+
+Non-finance backlog (narrative/ideation, briefings, insights panels,
+data hygiene) is unchanged — see "Pending — by area" below.
 
 ## Phase 4 / 5 / 6 — shipped (2026-05-15 through 2026-05-20)
 
@@ -127,6 +150,46 @@ commits `4542d4a` → `bec2abe` → round-4 fixes `a1582c8` + `df6e73f`
 
 ## Recently shipped
 
+### 2026-06-08/09 — Registrar pipeline Phase 0 + 0.5 (storage layer) (`046cb0b` → `c40c09c`)
+
+Project pivoted on 2026-05-21 from finance polish to recurring local-
+measure pipeline. Phase 0 (reconnaissance) and start of Phase 0.5
+(infrastructure):
+
+- **Phase 0 — recon harness + 5-county probe.** Built
+  `scraper/scripts/recon/probe.py` (polite UA, local FS, sha256-stamped
+  artifacts). Probed all top-5 counties. Findings in
+  [`docs/plans/registrar_manifest.md`](plans/registrar_manifest.md):
+  - **LA**: `results.lavote.gov/text-results/{election_id}` is static HTML
+    with full measure text + vote totals. Election IDs sequential.
+  - **SB**: `elections.sbcounty.gov/elections/{year}/{mmdd}/measures/` —
+    structured HTML table (Letter | Jurisdiction | Description | Analysis
+    | Arguments | Pass%). Cleanest of the five.
+  - **OC**: `/elections/{slug}/measures-on-the-ballot` (slug-based).
+  - **SD**: 403 with generic UA → 200 with polite UA. Measures page TBD.
+  - **Riverside**: Cloudflare bot challenge; needs Playwright.
+  - **One URL correction:** `sbcrov.com` in Jan plan was dead DNS; real is
+    `elections.sbcounty.gov`.
+  - **Phase 1 county order revised** to data-quality-driven (SB → LA →
+    OC → SD → Riverside), not population-driven.
+
+- **Phase 0.5 — storage layer.** `scraper/src/scrapers/registrar/storage.py`
+  carries `RawArtifactStore` Protocol + `LocalArtifactStore` impl +
+  `ArtifactRef`, `ArtifactMetadata` dataclasses + `ArtifactNotFound`,
+  `ArtifactIntegrityError` typed exceptions + `make_store()` factory.
+  Snapshots are immutable: layout is `{env}/{county}/{election_date}/
+  {snapshot_id}/`. `get_artifact` verifies sha256 on every read.
+  17 tests, all green (`scraper/tests/test_registrar_storage.py`).
+  R2 impl deferred until Igor's Cloudflare account is provisioned.
+
+- **Codex round-1 review + self-audit corrections** applied to
+  [`docs/plans/registrar_pipeline_infra.md`](plans/registrar_pipeline_infra.md)
+  before any code. Architectural correction (snapshot_id in prefix),
+  ArtifactRef/typed errors, run manifests, polite scraping defaults,
+  Playwright support all added. Two self-audit fixes after Codex:
+  concurrency-group keyed on env (not event_name), exit-nonzero on
+  ANY county failure (not ALL).
+
 ### 2026-05-04 — Finance v2 rebuild + Insights panel redesign (`fcd1345`)
 
 - **Finance DB v2** (`scraper/data/finance/finance_statewide_v2.db`):
@@ -159,6 +222,54 @@ checks pass; Phase F manual checklist signed off via browser spot-check).
 ---
 
 ## Pending — by area
+
+### REGISTRAR PIPELINE (active arc)
+
+> Phase 0 (recon) done; Phase 0.5 (infrastructure) mid-flight. See
+> **Next chunk (resume here)** above for the live punch list. The
+> items here are downstream from Phase 0.5 — they unblock once the
+> framework is live.
+
+- [ ] **Phase 1: first county scraper (San Bernardino).** Implements
+      `SbScraper(CountyRegistrarScraper)` against
+      `elections.sbcounty.gov/elections/{year}/{mmdd}/measures/`.
+      Parses the structured table (Letter | Jurisdiction | Description |
+      Analysis | Arguments | Pass%) and downloads linked analysis +
+      argument PDFs as artifacts. Validates the framework end-to-end
+      with a real source. ~2-3 days.
+
+- [ ] **Phase 1: LA county scraper.** Against
+      `results.lavote.gov/text-results/{election_id}`. Election ID
+      enumeration via `/election-list/text` or sequential walk from
+      known anchors. Parses the section-organized text (County Measures
+      / Cities / Schools / Community Services). Larger volume than SB
+      but still server-rendered HTML.
+
+- [ ] **Phase 1: OC county scraper.** Slug-based URL enumeration
+      from `/elections` then per-election `/measures-on-the-ballot`.
+      Inline measure text vs linked PDFs format still TBD — verify
+      against the 2024 primary first.
+
+- [ ] **Phase 1: SD county scraper.** Need to find SD's measures
+      page first (homepage probed; deeper pages TBD). Polite UA
+      already validated as sufficient.
+
+- [ ] **Phase 1: Riverside scraper (with Playwright).** Heaviest of
+      the five; needs JS-rendering to pass the Cloudflare challenge.
+      Defer until LA/OC/SB are stable so we know Playwright fits the
+      base scraper cleanly.
+
+- [ ] **Parser + loader stages.** Once raw artifacts are landing in
+      R2, build the per-county parser (R2 → normalized JSONL) and
+      the loader (JSONL → `ballot_measures.db`). Loader runs locally
+      in Phase 1, may move to CI-opens-PR in Phase 3.
+
+- [ ] **Open questions from recon** (deferred from Phase 0.5):
+      - OC for older elections — does `/elections/{slug}/measures-on-
+        the-ballot` exist for pre-2020 elections?
+      - SD measures page — where does SD publish per-election listings?
+      - LA text-results historical coverage — back to 2007 or modern only?
+      - Sample ballot booklet PDFs — URL pattern for LA / OC / SD?
 
 ### NARRATIVE / IDEATION (new product directions)
 
