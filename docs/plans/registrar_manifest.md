@@ -5,175 +5,231 @@
 > deliverable for the local-measure pipeline (see
 > `docs/plans/registrar_pipeline_infra.md`).
 >
-> **Status:** **First-pass reconnaissance only.** Initial probing
-> was done via WebFetch (returns markdown summaries, no JS rendering,
-> generic User-Agent). Several sites either blocked or returned
-> limited content; full reconnaissance for those will need real
-> browser fetches (Playwright) or curl with a polite-scraping
-> User-Agent. This doc captures what's confirmed; gaps are flagged.
+> **Status:** **second pass.** First pass via WebFetch surfaced the
+> shape; this pass uses the local probe harness
+> (`scraper/scripts/recon/probe.py`) with the planned polite
+> User-Agent + actual HTTP fetches. Raw artifacts saved under
+> `scraper/data/registrar_recon/` (gitignored). All 5 top-tier
+> counties now have at least a first-contact probe; 4 of 5 have
+> identified scraping entry points.
 
 ## Top-5 counties (Phase 1 targets)
 
 ### 1. Los Angeles County — `lavote.gov`
 
-**Status:** ✅ scraping entry point identified
+**Status:** ✅ scraping entry point confirmed via harness
 
 **Main site (`www.lavote.gov`):**
-- Built on Sitefinity CMS, primarily server-rendered HTML
-- Navigation pattern: `/home/voting-elections/[section]/[subsection]`
-- Past elections archive: `/home/voting-elections/current-elections/election-results/past-election-results` — lists elections back to 2007
-- Scheduled elections list: `/home/voting-elections/current-elections/election-results/past-scheduled-elections` — covers 2001 through 2025
-- **No public per-measure index page** — main site lists elections by date, not measures by letter/number
-- Interactive Sample Ballot at separate subdomain `isb.lavote.net` (per-voter, requires input, JS-heavy)
+- Sitefinity CMS, server-rendered HTML
+- Nav pattern: `/home/voting-elections/[section]/[subsection]`
+- Past elections archive: `/home/voting-elections/current-elections/election-results/past-election-results` — back to 2007
+- No public per-measure index on the main site
+- Interactive Sample Ballot at separate subdomain `isb.lavote.net` (per-voter, JS-heavy)
 
-**Results portal (`results.lavote.gov`):**
-- SPA at root path with anchor routing: `https://results.lavote.gov/#year=2026&election=4338`
-- **Static text version at `https://results.lavote.gov/text-results/{election_id}`** — this is the scraping entry point
-- Sample observed: `text-results/4338` = June 2, 2026 Statewide Direct Primary
-- Election ID is the path param; election list at `/election-list/text`
-- Content shape: county measures, board of supervisors, sheriff, judges, cities, schools, community services — each section lists contests with full measure text + vote totals
-- "COUNTY MEASURE ER" type entries with full ballot text + YES/NO counts + percentages
-- Static HTML, no JS dependency, scraper-friendly
+**Results portal (`results.lavote.gov`):** ⭐ **primary entry point**
+- Main portal is a SPA at `https://results.lavote.gov/#year=YYYY&election=ID`
+- **Static text version at `https://results.lavote.gov/text-results/{election_id}`** — confirmed via harness (562KB HTML)
+- Election IDs are sequential integers (`4338` = June 2, 2026 primary; older IDs decrement)
+- Content: full ballot measure text + YES/NO vote totals + percentages, organized by section (County Measures, Cities, Schools, Community Services, etc.)
+- No JS dependency for text version
 
 **Aggregate result PDFs:**
-- URL pattern: `https://content.lavote.gov/docs/rrcc/svc/{election_id}_{document_type}.pdf`
-  (e.g. `4324_final_svc_precinct_public_v2.pdf`, `4324_final_svc_district_v3.pdf`)
-- Document types: Statement of Votes Cast (by precinct/district), Precinct Bulletins, Votes Cast by Community
-- Excel format datasets also available alongside the PDFs
-- Election IDs appear sequential (4338, 4337, 4331…)
+- `https://content.lavote.gov/docs/rrcc/svc/{election_id}_{document_type}.pdf`
+- Document types: Statement of Votes Cast (precinct/district), Precinct Bulletins, Votes Cast by Community
+- Excel exports also available
+- Sequential election IDs make systematic enumeration trivial
 
-**Ballot language sources:**
-- Not visible as a public per-measure list on the main site
-- Likely lives in mailed Sample Ballot Booklets (PDFs); URL pattern not yet identified
-- Interactive Sample Ballot at `isb.lavote.net` carries it but per-voter access
-
-**Scraping verdict for Phase 1:**
-- **Use the text-results portal** as primary source — gives measure text + vote totals in one page per election
-- Enumerate by election ID (sequential integers from past scheduled-elections list, or query `/election-list/text`)
-- Save raw HTML to R2; parse per-section (County Measures, Cities, Schools, Community Services)
-- No Playwright needed for the text-results URL
-- Anti-scraping: no visible blocks during reconnaissance (WebFetch with generic UA worked)
-
-**Open questions:**
-- What's the earliest `election_id` the text-results portal covers? (Older results may only be in PDFs.)
-- For pre-election captures (before vote counts exist), does the same URL show measure text only?
-- Are draft / preliminary ballot measures listed somewhere before the official Statement of Vote?
+**Scraping verdict:**
+- Primary: `text-results/{election_id}` for measure text + outcomes
+- Supplement: aggregate SVC PDFs for precinct-level data if needed
+- Anti-scraping: none observed with polite UA
 
 ---
 
 ### 2. San Diego County — `sdvote.com`
 
-**Status:** ⚠️ blocked — generic User-Agent returned 403 Forbidden
+**Status:** ✅ polite UA bypasses the block; deeper probe needed
 
-**Confirmed finding:**
-- `https://www.sdvote.com` blocks generic User-Agents (HTTP 403)
-- Will require a real polite-scraping User-Agent for any access
-- This validates Codex's polite-scraping concern; the planned default UA
-  (`cal-vgp-registrar-scraper/0.1 (+https://github.com/igorgeyn/cal_vgp; contact: igorgeyn@gmail.com)`) is the right shape — clearly identifies us with a working contact
+**Confirmed via harness:**
+- `https://www.sdvote.com` returned **403 with generic UA, 200 with our polite UA** (`cal-vgp-registrar-recon/0.1 (+https://github.com/igorgeyn/cal_vgp; contact: igorgeyn@gmail.com)`)
+- 45KB of HTML at the root
+- Validates Codex's polite-scraping advice empirically
 
-**Not yet probed:**
-- Site structure, URL patterns, JS dependency, measure text availability — all pending real-browser fetch
-- Whether 403 is purely UA-based or also IP / rate-limited
+**Still TBD (next recon pass):**
+- Per-election measures URL pattern
+- Whether ballot text is published on a public page or only in mailed PDFs
+- JS dependency on internal pages
+- Whether deeper pages (results archive, sample ballots) also need polite UA
 
-**Next step for SD recon:** retry with a real User-Agent (curl `--user-agent` or Playwright with the polite-scraping default). If still blocked, may need to test from a different IP or check if registrar offers a public records request channel.
+**Scraping verdict:**
+- Will need polite UA from day one (non-negotiable per the 403 evidence)
+- Specific entry points TBD in next probe
 
 ---
 
 ### 3. Orange County — `ocvote.gov`
 
-**Status:** ⚠️ partial — landing pages reachable but content thin
+**Status:** ✅ URL pattern identified
 
-**Confirmed:**
-- Main site at `www.ocvote.gov` returns content via WebFetch (no UA block)
-- Top-level nav: `/elections`, `/candidates`, `/results`, `/data`, `/voting`
-- Past results archive lives at `/data/election-results-archives`
-- "Previous Results" link visible from data section
-- Site appears server-rendered, not a JS-heavy SPA
+**Confirmed via harness:**
+- Drupal-based site (Drupal Gutenberg block markup throughout)
+- Main: `https://www.ocvote.gov/` (32KB)
+- `/elections` lists upcoming + recent elections
+- Multilingual: `/es/`, `/vi/`, `/zh-hans/`, `/ko/` prefixes for Spanish, Vietnamese, Chinese, Korean
+- Per-election slug-based URLs: e.g. `/elections/2026-statewide-direct-primary-election`
+- **Per-election measures URL pattern: `/elections/{slug}/measures-on-the-ballot`** — observed for the 2024 primary
+- 2026 primary page currently has calendar PDFs but no measures-on-the-ballot link yet (election still upcoming, presumably populated closer to the date)
 
-**Not yet confirmed (WebFetch returned thin content on archive + results pages):**
-- Whether there's a per-election landing page with measure-level data
-- URL patterns for individual election result pages
-- Format of measure text (HTML, PDF, embedded)
-- Whether there's a structured data export (CSV / JSON)
+**Other useful patterns:**
+- `/elections/{slug}/contests-qualified-for-the-ballot` — qualified contests list
+- `/elections/{slug}/legal-election-documents` — legal docs
+- Calendar PDFs: `/sites/default/files/{year-mm}/...pdf`
+- Election Library, Data Central, Voter Trends sections — research-friendly
 
-**Likely shape (inferred, needs verification):**
-- "View" buttons on results landing page → per-election detail pages
-- May have downloadable result files in some structured format
-- Per-election URLs likely include election date or ID
+**Scraping verdict:**
+- Primary: `/elections/{slug}/measures-on-the-ballot` for measure listings
+- Slugs follow predictable naming (`{year}-{election-type-words}`); could be enumerated by scanning `/elections` list page
+- No anti-scraping observed
+- Likely server-rendered HTML; no Playwright needed
 
-**Next step for OC recon:** click through the "View" links from `/results` to see what per-election pages contain. Probable that the results pages need actual interaction (clicks/JS) rather than direct URL fetches; may need Playwright.
+**Open questions:**
+- What's the URL pattern for older elections (pre-2020)? Same slug pattern, or different?
+- Does the measures-on-the-ballot page link to ballot text PDFs, or carry the text inline?
+- Are there per-measure detail pages, or just one-page lists per election?
 
 ---
 
 ### 4. Riverside County — `voteinfo.net`
 
-**Status:** ⛔ not probed in this pass
+**Status:** ⛔ **Cloudflare bot challenge** — Playwright required
 
-The Jan 2026 plan noted `voteinfo.net` as the Riverside registrar
-URL. Not investigated in this reconnaissance pass. To probe:
-- Verify URL still active
-- Check if blocks generic User-Agents
-- Probe results / past elections / sample ballot pages
-- Identify if dedicated subdomain for results (like LA's
-  `results.lavote.gov`)
+**Confirmed via harness:**
+- HTTP 403 returned even with the polite UA
+- 5.5KB response body is a **Cloudflare "Just a moment..." challenge page** — the classic JS-based bot detection that requires a real browser to pass
+- Polite UA insufficient; needs Playwright (or headless Chrome) to execute the JS challenge
 
----
+**Implications:**
+- Riverside scraper will be the heaviest of the top-5: Playwright required for every fetch
+- Costs more CI minutes (browser cold-start ~30s)
+- Cloudflare challenge may also trigger CAPTCHAs in some sessions — need to handle gracefully
 
-### 5. San Bernardino County — `sbcrov.com`
-
-**Status:** ⛔ not probed in this pass
-
-Same as Riverside — not investigated. Plan doc lists `sbcrov.com`
-but reconnaissance pending.
+**Scraping verdict:**
+- Defer to last in Phase 1 county order — let LA / OC / SB validate the easier counties first
+- When tackled, use Playwright from the start with proper browser fingerprinting (real Chrome UA + viewport + cookies)
+- May want to evaluate whether Riverside's elections data is available via a different channel (state SOS feeds, CalAccess for finance, county GIS portal for boundaries, etc.) to reduce dependence on the scraping channel
 
 ---
 
-## Cross-county takeaways (first-pass observations)
+### 5. San Bernardino County — `elections.sbcounty.gov` ⭐
 
-### What's the same across counties
+**Status:** ✅ best-of-the-five — clean URL pattern + structured HTML tables
 
-- **No standardized format.** Every county has its own URL structure and content patterns. The pipeline architecture's per-county scraper module pattern is justified.
-- **Static text endpoints exist for at least some counties** — LA has the text-results portal; OC presumably has analogous per-election result pages. These are the scraper-friendly entry points.
-- **Aggregate result PDFs exist everywhere.** Statement of Votes Cast (SOVC) is a state-mandated document; every registrar publishes it. These are good for vote totals but not ballot language.
+**Important correction to Jan 2026 plan:**
+- The plan listed `sbcrov.com` — that domain doesn't resolve (DNS failure)
+- Actual URL is `https://elections.sbcounty.gov/` (also reachable via `https://www.sbcountyelections.com/` which redirects)
 
-### What varies
+**Confirmed via harness:**
+- Main: 188KB HTML at root
+- **Per-election measures URL pattern: `/elections/{year}/{mmdd}/measures/`**
+  - Example: `/elections/2026/0324/measures/` → March 24, 2026 election measures
+- Cross-election landing: `/elections/measures/`
+- Measures page is a **structured HTML table** with columns:
+  - `Letter` (e.g. V, W)
+  - `Jurisdiction` (e.g. "City of Ontario")
+  - `Measure Description` (full text including amendment chapter/title references)
+  - `Analysis` (link to Impartial Analysis)
+  - `Arguments` (links to Argument For, Rebuttal to Argument For, Argument Against, Rebuttal to Argument Against)
+  - `Percentage to Pass` (e.g. "50% + 1")
+- 3 rows in current March 2026 page: 1 header + Measure V + Measure W (both City of Ontario)
+- Per-measure analysis + argument PDFs linked inline
 
-- **Anti-scraping posture.** SD blocks generic UAs (403); LA + OC allowed WebFetch's default UA. We need to assume each county requires polite identification.
-- **Ballot language availability.** LA buries it in per-voter Interactive Sample Ballot tools or mailed PDFs. OC, Riverside, SB unknown.
-- **JS dependency.** LA's main results portal is SPA (anchor routing); LA's text portal is static. OC's pages need deeper inspection.
+**Scraping verdict:**
+- **Cleanest target of the five.** Structured table, predictable URL pattern, ballot text inline (not behind a paywall or per-voter tool), supplementary PDFs linked from the same page.
+- No anti-scraping observed.
+- Strongly recommend SB + LA as the Phase 1 pair (LA for breadth of coverage, SB for cleanest data shape).
 
-### Implications for the Phase 0.5 + Phase 1 plans
+---
 
-1. **Playwright is going to be needed sooner than "optional fallback."** OC's per-election pages, SD's anti-scraping defenses, and LA's main results portal all hint at JS-rendered or auth-required content. Plan should treat Playwright as a first-class fetch mode from Phase 1.
+## Cross-county takeaways (second pass)
 
-2. **Polite User-Agent is non-negotiable from day one.** SD's 403 confirms Codex's polite-scraping advice. Build the UA + contact info into the base scraper from the first commit.
+### Anti-scraping spectrum
 
-3. **Election-ID-based enumeration is realistic for LA.** Sequential integers (4338, 4337, …) mean we can systematically walk LA's history once we identify the lowest valid ID.
+| County | Block type | Bypass |
+|---|---|---|
+| LA | None | Generic UA works |
+| OC | None | Generic UA works |
+| SB | None | Generic UA works |
+| SD | UA filter | Polite UA defeats it |
+| Riverside | Cloudflare challenge | Needs Playwright |
 
-4. **"Ballot language" might require a different sourcing strategy than "results."** Results pages (LA text-results, OC View pages) carry measure titles + vote totals but may not carry full ballot text. Sample ballot booklets (PDFs mailed to voters) carry the language but aren't necessarily public-listed. We may need to source ballot text from:
-   - The voter information guide PDFs (when registrar publishes them publicly)
-   - Each county's "argument & rebuttal" archive (LA links to these in measure information pages)
-   - Cal SOS or Ballotpedia as supplements
+3 of 5 are wide-open; 1 needs polite UA; 1 needs Playwright. Codex's
+polite-scraping defaults handle SD; Playwright handles Riverside.
 
-5. **Phase 0 reconnaissance is incomplete.** Three of five counties not yet probed; the two that were probed need deeper inspection. **Recommend:** finish reconnaissance with curl/Playwright (not WebFetch) before Phase 0.5 implementation locks in any concrete scraper interfaces.
+### URL pattern shapes
 
-## Recommended next steps for Phase 0
+Three distinct shapes across counties:
 
-1. **Set up a reconnaissance harness** (local Python script with polite-scraping UA + Playwright + ability to save artifacts to local FS). ~half-day.
-2. **Probe SD with polite UA** — does the 403 go away with a real UA, or is it more aggressive?
-3. **Probe OC's per-election View pages** with the harness — confirm structure + format.
-4. **Probe Riverside + San Bernardino** from scratch — same set of questions as the LA probe.
-5. **Probe LA's text-results portal for a few historical election IDs** — confirm the URL pattern works back to 2007 or only for recent elections.
-6. **Find a sample ballot booklet for each county** — chase down URL patterns for the PDFs containing ballot language.
+1. **Integer election ID** (LA): `text-results/4338` — sequential, easy to enumerate
+2. **Slug-based** (OC): `2026-statewide-direct-primary-election` — predictable but needs name-to-slug logic
+3. **Date-based** (SB): `2026/0324` — most parseable, predictable format
 
-After that pass, the manifest gets a "Phase 1 county priority order" recommendation and Phase 0.5 implementation can start with realistic constraints baked in.
+For Phase 1 scrapers, each county module owns its URL composition logic. The shared `RawArtifactStore` just needs a `(county, election_date, snapshot_id)` key — agnostic to how the county constructs URLs.
+
+### Ballot text availability
+
+- **LA, SB**: ballot text included in the per-election measures page (inline or via linked Analysis PDFs)
+- **OC**: TBD — `measures-on-the-ballot` page exists for 2024 but content not yet inspected; likely linked PDFs
+- **SD**: TBD — homepage probed only
+- **Riverside**: TBD until Playwright integration
+
+### Recommended Phase 1 county order
+
+1. **SB** (cleanest data shape, structured tables, predictable URLs)
+2. **LA** (largest population, validates scale, text-results portal is concrete)
+3. **OC** (predictable slug pattern, but 2026 measures not yet populated)
+4. **SD** (need to find measures URL; polite UA works)
+5. **Riverside** (last; Playwright required)
+
+Original Jan 2026 plan listed LA → SD → OC → Riverside → SB by
+population. Recon-informed order is data-quality-driven: SB first
+because it validates the parsing layer with the cleanest input.
+
+### Implications for Phase 0.5
+
+Items the recon confirmed for the Phase 0.5 build:
+
+1. **Polite User-Agent from day one** ✅ already in the plan; validated by SD
+2. **Playwright as first-class fetch mode** ✅ already in the plan; validated by Riverside
+3. **R2 immutable snapshot folders keyed on `(county, election_date, snapshot_id)`** ✅ already in the plan; works for all 5 URL shapes
+4. **Per-county scraper modules** ✅ already in the plan; each county's URL composition is distinct enough to require module-level isolation
+
+Items the recon refined:
+
+5. **Add slug-discovery logic for OC** — OC scraper needs to first hit `/elections` to enumerate per-election slugs, then visit each `{slug}/measures-on-the-ballot`. SB and LA can enumerate elections via their own list endpoints.
+6. **Two-tier fetch mode** — most counties (LA, OC, SB) use plain `requests`; Riverside uses Playwright; SD uses requests + polite UA. The `CountyRegistrarScraper` base class should configure `fetch_mode` per subclass.
+7. **Update plan's county URL list** — replace `sbcrov.com` with `elections.sbcounty.gov`.
+
+## Open questions for Phase 0.5 implementation
+
+1. **OC for older elections** — does `/elections/{slug}/measures-on-the-ballot` exist for pre-2020 elections, or only recent ones?
+2. **SD measures page** — where does SD publish per-election measure listings? (Need a second-round probe.)
+3. **LA text-results historical coverage** — does the text-results portal cover all elections back to 2007, or only modern ones?
+4. **Sample ballot booklet PDFs** — most counties have these for voters; URL pattern unknown for LA / OC / SD / Riverside. SB embeds it in the measures page directly.
+5. **OC's measures-on-the-ballot internal format** — inline ballot text vs PDFs? Inspect a known election.
 
 ## Honest assessment
 
-This first pass surfaced enough to confirm the pipeline architecture
-is on the right track, identify one concrete scraping entry point
-(LA's text-results portal), validate Codex's polite-scraping concerns
-(SD 403), and flag that Playwright is going to be needed more than
-the plan anticipated. But it's not enough to start building scrapers
-against. The reconnaissance harness step above is the right next
-move before any code commits.
+This second pass replaces the first-pass placeholders. We now have:
+- **Confirmed entry points for 4 of 5 counties** (LA, OC, SB clean; SD with polite UA)
+- **One county requiring Playwright** (Riverside; expected per Codex)
+- **One URL correction** (SB)
+- **A recommended Phase 1 order** that's data-quality-driven, not just population-driven
+
+The recon harness (`scraper/scripts/recon/probe.py`) is committed and
+reusable — future second-pass probes (SD measures page, OC pre-2020,
+LA historical coverage) can use it. Snapshots from this pass live
+under `scraper/data/registrar_recon/` (gitignored; ~1MB total).
+
+**Ready to proceed to Phase 0.5 implementation.** Open questions
+above can be answered during Phase 1 implementation rather than
+blocking 0.5.

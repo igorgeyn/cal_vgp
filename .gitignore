@@ -73,3 +73,8 @@ plans/
 # Exception: docs/plans/ is for plans promoted for external review
 !docs/plans/
 !docs/plans/**
+
+# Reconnaissance scratch — raw fetched HTML/PDF/JSON from registrar
+# sites. Not for git; can be huge. Phase 0.5 promotes the canonical
+# store to Cloudflare R2.
+scraper/data/registrar_recon/
