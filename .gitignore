@@ -70,7 +70,10 @@ logs/
 
 # Local planning docs (not for publication)
 plans/
-# Exception: docs/plans/ is for plans promoted for external review
+# Exception: docs/plans/ is for plans promoted for external review.
+# NOTE: these negations also override .git/info/exclude entries, so a
+# "private" file placed under docs/plans/ WILL be committed by git add -A.
+# Private notes belong in plans/ (root), never in docs/plans/.
 !docs/plans/
 !docs/plans/**
 
