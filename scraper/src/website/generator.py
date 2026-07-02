@@ -53,6 +53,12 @@ class WebsiteGenerator:
         self.output_path.write_text(html, encoding='utf-8')
         logger.info(f"Website generated: {self.output_path}")
 
+        # Measures data ships as a separate file (page fetches it at startup);
+        # keeps index.html small and lets browsers cache the data independently.
+        data_path = self.output_path.parent / 'measures-data.json'
+        data_path.write_text(self._measures_json, encoding='utf-8')
+        logger.info(f"Measures data written: {data_path}")
+
         # Also save a scraper-local copy at scraper/index.html for local
         # testing (per scraper/Makefile). Only write if it would actually be a
         # second location — avoid overwriting the deploy copy when output_path
@@ -60,6 +66,7 @@ class WebsiteGenerator:
         scraper_local = BASE_DIR / 'index.html'
         if scraper_local.resolve() != self.output_path.resolve():
             scraper_local.write_text(html, encoding='utf-8')
+            (BASE_DIR / 'measures-data.json').write_text(self._measures_json, encoding='utf-8')
             logger.info(f"Also saved to: {scraper_local}")
         
         return html
@@ -485,6 +492,9 @@ class WebsiteGenerator:
 
         # Convert data to JSON for embedding
         measures_json = json.dumps(measures, default=str)
+        # Measures are no longer inlined into the HTML; generate() writes this
+        # to measures-data.json next to index.html and the page fetches it.
+        self._measures_json = measures_json
         topics_json = json.dumps(topics, default=str)
         recommendations_json = json.dumps(recommendations, default=str)
 
@@ -7747,7 +7757,7 @@ class WebsiteGenerator:
         """Get JavaScript code for the website"""
         return f"""
         // Data
-        const allMeasures = {measures_json};
+        let allMeasures = [];  // populated at startup from measures-data.json
         const topics = {topics_json};
         const recommendations = {recommendations_json};
         const quizQuestions = {quiz_json};
@@ -8347,7 +8357,19 @@ class WebsiteGenerator:
         let heroMeasures = [];
 
         // Initialize
-        document.addEventListener('DOMContentLoaded', () => {{
+        document.addEventListener('DOMContentLoaded', async () => {{
+            // Capture a #m=<id> deep link before init (applyFilters/updateURL rewrites the hash)
+            const initialMeasureLink = window.location.hash.match(/^#m=(\d+)/);
+            try {{
+                const resp = await fetch('measures-data.json');
+                if (!resp.ok) throw new Error('HTTP ' + resp.status);
+                allMeasures = await resp.json();
+            }} catch (err) {{
+                console.error('Failed to load measures data:', err);
+                const rc = document.getElementById('resultsContainer');
+                if (rc) rc.innerHTML = '<div style="padding: 2rem; text-align: center; color: var(--text-secondary);">Could not load the measures database. Please refresh the page to try again.</div>';
+                return;
+            }}
             selectHeroMeasures();
             selectFeaturedMeasures();
             populateRegionalNavigation();
@@ -8358,6 +8380,10 @@ class WebsiteGenerator:
             loadPageFromURL();
             applyFilters();
             initDuckDB();
+            if (initialMeasureLink) {{
+                const target = allMeasures.find(m => m.id === parseInt(initialMeasureLink[1]));
+                if (target) viewMeasure(target);
+            }}
         }});
 
         // DuckDB-WASM instance for SQL queries
@@ -12960,6 +12986,10 @@ class WebsiteGenerator:
         
         // View measure details in modal
         function viewMeasure(measure) {{
+            // Shareable permalink for this measure
+            if (measure && measure.id != null) {{
+                history.replaceState(null, '', '#m=' + measure.id);
+            }}
             const modal = document.getElementById('measureDetailModal');
             const isPending = isPendingMeasure(measure);
 
@@ -13352,6 +13382,9 @@ class WebsiteGenerator:
             const modal = document.getElementById('measureDetailModal');
             modal.style.display = 'none';
             document.body.style.overflow = ''; // Restore scrolling
+            if (window.location.hash.startsWith('#m=')) {{
+                history.replaceState(null, '', window.location.pathname);
+            }}
         }}
 
         // Toggle summary truncation
