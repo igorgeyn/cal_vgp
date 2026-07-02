@@ -618,6 +618,7 @@ class WebsiteGenerator:
                     <span><strong style="color: var(--primary);">Grid / List</strong> &mdash; browse and filter the full catalog</span>
                     <span><strong style="color: var(--primary);">Insights</strong> &mdash; trends and analysis from the data</span>
                     <span><strong style="color: var(--primary);">Explore</strong> &mdash; pass rates by topic and jurisdiction</span>
+                    <span><strong style="color: var(--primary);">Ask AI</strong> &mdash; query the data in plain English (bring your own key)</span>
                 </div>
                 <p style="margin: 0.9rem 0 0 0; font-size: 0.85rem;"><a href="#" onclick="openAboutModal(); return false;" style="color: var(--primary); font-weight: 600; text-decoration: none;">How this works &mdash; data sources &amp; methodology &rarr;</a></p>
             </section>
@@ -713,6 +714,11 @@ class WebsiteGenerator:
                         <span class="stat-value" id="statYearRange">—</span>
                         <span class="stat-label">Year Range</span>
                     </div>
+                    <div class="stat-divider"></div>
+                    <button class="stat-item stat-ask-ai" onclick="openChatFromRibbon()" title="Query this data in plain English — bring your own AI key, or use local Ollama">
+                        <span class="stat-value">&#10024; Ask AI</span>
+                        <span class="stat-label">about this data</span>
+                    </button>
                 </div>
             </div>
 
@@ -1339,8 +1345,8 @@ class WebsiteGenerator:
             <div id="chatMessages" class="chat-messages">
                 <div class="chat-message bot">
                     <div class="chat-message-content">
-                        <p>Hi! I can help you explore California ballot measures.</p>
-                        <p>To get started, configure your AI provider in settings (click the ⚙️ icon above).</p>
+                        <p>Hi! I can answer questions about 12,000+ California ballot measures in plain English.</p>
+                        <p>It runs on an AI key you bring: an <a href="https://openrouter.ai/keys" target="_blank" rel="noopener">OpenRouter key</a> (typically a fraction of a cent per question; stored only in your browser, sent only to OpenRouter) or a local Ollama model (free, offline). <a href="#" onclick="openChatSettings(); return false;">Set it up here</a> &mdash; it takes about two minutes.</p>
                         <div class="example-prompts">
                             <p><strong>Example questions:</strong></p>
                             <button class="example-prompt" onclick="askExample(this)">What were the 10 closest ballot measures in the last 5 years?</button>
@@ -3055,6 +3061,18 @@ class WebsiteGenerator:
             flex-direction: column;
             align-items: center;
             min-width: 72px;
+        }
+
+        button.stat-item {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font: inherit;
+            padding: 0;
+        }
+
+        button.stat-item:hover .stat-value {
+            color: var(--primary-dark);
         }
 
         .stat-value {
@@ -13606,6 +13624,14 @@ class WebsiteGenerator:
             }
         }
 
+        // Open the chat from the stats-ribbon entry (no-op if already open)
+        function openChatFromRibbon() {
+            const panel = document.getElementById('chatPanel');
+            if (panel && (panel.style.display === 'none' || !panel.style.display)) {
+                toggleChat();
+            }
+        }
+
         // Toggle chat panel
         function toggleChat() {
             const panel = document.getElementById('chatPanel');
@@ -14034,6 +14060,10 @@ Provide a clear, insightful answer based on these results. Include specific exam
         function askExample(button) {
             const question = button.textContent;
             document.getElementById('chatInput').value = question;
+            if (!aiConfig || !aiConfig.provider) {
+                openChatSettings();
+                return;
+            }
             sendMessage();
         }
 
