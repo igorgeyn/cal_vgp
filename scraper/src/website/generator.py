@@ -586,6 +586,22 @@ class WebsiteGenerator:
     <div class="main-container-full">
         <!-- Main Content Area -->
         <main class="content-full">
+            <!-- Welcome / first-time orientation -->
+            <section id="welcomeIntro" style="position: relative; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow-sm); padding: 1.5rem 3rem 1.4rem 1.75rem; margin-bottom: 1.25rem;">
+                <button onclick="localStorage.setItem('cbIntroDismissed','1'); document.getElementById('welcomeIntro').remove();" aria-label="Dismiss introduction" title="Dismiss (won't show again)" style="position: absolute; top: 0.6rem; right: 0.85rem; background: none; border: none; font-size: 1.35rem; line-height: 1; color: var(--text-tertiary); cursor: pointer;">&times;</button>
+                <h2 style="font-size: 1.4rem; font-weight: 800; color: var(--text-primary); margin-bottom: 0.4rem;">Every California ballot measure, in one place.</h2>
+                <p style="font-size: 0.95rem; line-height: 1.55; color: var(--text-secondary); max-width: 68ch; margin-bottom: 0.9rem;">
+                    CalBallot is a free explorer for California's statewide and local ballot measures, from {stats.get('year_min', 1911)} to the ones on the next ballot. Every measure comes with a plain-language AI summary alongside the official record: what it proposed, where it was voted on, and how it turned out.
+                </p>
+                <div style="display: flex; flex-wrap: wrap; gap: 0.4rem 1.75rem; font-size: 0.88rem; color: var(--text-secondary);">
+                    <span><strong style="color: var(--primary);">Search</strong> &mdash; look up any measure by title, topic, or year</span>
+                    <span><strong style="color: var(--primary);">Grid / List</strong> &mdash; browse and filter the full catalog</span>
+                    <span><strong style="color: var(--primary);">Insights</strong> &mdash; trends and analysis from the data</span>
+                    <span><strong style="color: var(--primary);">Explore</strong> &mdash; pass rates by topic and jurisdiction</span>
+                </div>
+            </section>
+            <script>if (localStorage.getItem('cbIntroDismissed')) document.getElementById('welcomeIntro').remove();</script>
+
             <!-- View Mode Switcher -->
             <div class="view-switcher">
                 <button class="view-card active" id="gridViewCard" onclick="setView('grid')">
@@ -647,15 +663,6 @@ class WebsiteGenerator:
                         <span class="view-card-desc">Pass-rate matrix by topic or measure type</span>
                     </div>
                 </button>
-            </div>
-
-            <!-- Site Introduction -->
-            <div class="site-intro">
-                <h1 class="intro-title">CalBallot</h1>
-                <p class="intro-text">
-                    Explore California ballot measures from {stats.get('year_min', 1998)} to the present.
-                    Filter by region, topic, year, or status. Click any measure for details, AI-generated summaries, and related measures.
-                </p>
             </div>
 
             <!-- Stats Ribbon -->
@@ -10770,7 +10777,7 @@ class WebsiteGenerator:
             if (insights) insights.style.display = isInsights ? 'block' : 'none';
 
             const visibility = {{
-                '.site-intro': isInsights,
+                '#welcomeIntro': isInsights || isExplore,
                 '#statsRibbon': isInsights || isExplore,
                 '.filter-section-wrapper': isInsights || isExplore,
                 '.results-header': isInsights || isExplore,
