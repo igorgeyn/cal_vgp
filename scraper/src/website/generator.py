@@ -558,6 +558,7 @@ class WebsiteGenerator:
                         <rect x="3" y="14" width="7" height="7"></rect>
                         <rect x="14" y="14" width="7" height="7"></rect>
                     </svg>
+                    Grid
                 </button>
                 <button class="view-btn" id="listView" onclick="setView('list')">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
@@ -565,6 +566,7 @@ class WebsiteGenerator:
                         <rect x="3" y="11" width="18" height="2"></rect>
                         <rect x="3" y="18" width="18" height="2"></rect>
                     </svg>
+                    List
                 </button>
                 <button class="view-btn" id="insightsView" onclick="setView('insights')" title="Insights: reported analysis from the data">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
@@ -589,6 +591,11 @@ class WebsiteGenerator:
                     Explore
                 </button>
                 <button class="view-btn" onclick="openAboutModal()" title="About CalBallot: data sources and methodology">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="9"></circle>
+                        <line x1="12" y1="11" x2="12" y2="16"></line>
+                        <circle cx="12" cy="8" r="1" fill="currentColor" stroke="none"></circle>
+                    </svg>
                     About
                 </button>
             </div>
@@ -1671,12 +1678,19 @@ class WebsiteGenerator:
         }
         
         .view-btn {
-            padding: 0.5rem 0.75rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.5rem 0.85rem;
             border: 1px solid #333;
             background: #1A1A1A;
             border-radius: var(--radius-sm);
             cursor: pointer;
             color: #999;
+            font-size: 0.85rem;
+            font-weight: 500;
+            line-height: 1;
+            white-space: nowrap;
             transition: var(--transition);
         }
 
