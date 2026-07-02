@@ -588,6 +588,9 @@ class WebsiteGenerator:
                     </svg>
                     Explore
                 </button>
+                <button class="view-btn" onclick="openAboutModal()" title="About CalBallot: data sources and methodology">
+                    About
+                </button>
             </div>
         </div>
     </header>
@@ -609,6 +612,7 @@ class WebsiteGenerator:
                     <span><strong style="color: var(--primary);">Insights</strong> &mdash; trends and analysis from the data</span>
                     <span><strong style="color: var(--primary);">Explore</strong> &mdash; pass rates by topic and jurisdiction</span>
                 </div>
+                <p style="margin: 0.9rem 0 0 0; font-size: 0.85rem;"><a href="#" onclick="openAboutModal(); return false;" style="color: var(--primary); font-weight: 600; text-decoration: none;">How this works &mdash; data sources &amp; methodology &rarr;</a></p>
             </section>
             <script>if (localStorage.getItem('cbIntroDismissed')) document.getElementById('welcomeIntro').remove();</script>
 
@@ -1216,7 +1220,7 @@ class WebsiteGenerator:
 
     <!-- Footer -->
     <footer class="footer">
-        <p>CalBallot • Updated {datetime.now().strftime('%B %d, %Y')}</p>
+        <p>CalBallot • Data last updated {datetime.now().strftime('%B %d, %Y')}</p>
         <p>Data sources: CA Secretary of State, NCSL, ICPSR, CEDA</p>
         <p class="footer-links">
             <a href="#" onclick="openAboutModal(); return false;">About</a>
