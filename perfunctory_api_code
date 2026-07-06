@@ -1,0 +1,1396 @@
+"""
+#The following is the final product of a conversation with Claude about building 
+an API code. Script must be parsed and editied to tailor to needs
+================================================================================
+ CALIFORNIA BALLOT MEASURES API — COMPLETE SINGLE-FILE VERSION
+ ca_ballot_api.py
+================================================================================
+
+ WHAT YOU NEED TO INSTALL BEFORE RUNNING THIS FILE:
+ ─────────────────────────────────────────────────────────────────────────────
+
+ 1. PYTHON 3.11+
+    Download: https://www.python.org/downloads/
+    ✓ Check "Add Python to PATH" during install on Windows
+
+ 2. POSTGRESQL 15+
+    Download: https://www.postgresql.org/download/
+    ✓ Install with default settings
+    ✓ Remember the password you set for the "postgres" user
+    ✓ pgAdmin (a visual database browser) installs automatically with it
+
+ 3. PYTHON PACKAGES  — paste this into your terminal:
+    pip install fastapi uvicorn[standard] sqlalchemy psycopg2-binary pydantic python-dotenv
+
+ ─────────────────────────────────────────────────────────────────────────────
+ SETUP STEPS (do these once, in order):
+ ─────────────────────────────────────────────────────────────────────────────
+
+ Step 1 — Create your database
+   Open pgAdmin → right-click "Databases" → Create → name it: ca_ballot_measures
+   OR in your terminal:
+     psql -U postgres -c "CREATE DATABASE ca_ballot_measures;"
+
+ Step 2 — Set your database password
+   Open this file, find the line that says:
+     YOUR_PASSWORD_HERE
+   Replace it with your actual PostgreSQL password.
+
+ Step 3 — Create all tables and seed reference data (run once)
+   python ca_ballot_api.py --setup
+
+ Step 4 — Start the API server
+   python ca_ballot_api.py
+
+ Step 5 — Open your browser
+   http://localhost:8000/docs   ← interactive API explorer
+
+ ─────────────────────────────────────────────────────────────────────────────
+ WHAT THIS FILE CONTAINS (in order):
+ ─────────────────────────────────────────────────────────────────────────────
+
+  SECTION 1 — CONFIGURATION         Database connection settings
+  SECTION 2 — PYTHON ENUMS          All allowed values for categorical fields
+  SECTION 3 — DATABASE TABLES       10 tables defined as Python classes
+  SECTION 4 — SEED DATA             58 counties, CAP topics, structural breaks
+  SECTION 5 — DATABASE SETUP        Creates tables, adds indexes, seeds data
+  SECTION 6 — RESPONSE MODELS       Defines the shape of JSON the API returns
+  SECTION 7 — API ENDPOINTS         Every URL the API responds to
+  SECTION 8 — ENTRY POINT           Starts the server or runs setup
+
+ ─────────────────────────────────────────────────────────────────────────────
+ ACADEMIC BASIS:
+   Matsusaka (2004)      — fiscal federalism, county heterogeneity
+   Gerber (1999)         — sponsor typology, outsider money
+   Bowler & Donovan (1998) — margin of victory, voter uncertainty
+   Lupia (1994)          — elite cue / endorsement theory
+   Stratmann (2006)      — spending asymmetry as predictor
+   Haider-Markel & Meier (1996) — morality policy classification
+   Comparative Agendas Project  — CAP topic codebook (comparativeagendas.net)
+================================================================================
+"""
+
+# ==============================================================================
+# IMPORTS
+# ==============================================================================
+
+import enum
+import json
+import os
+import subprocess
+import sys
+from typing import List, Optional
+from datetime import date
+
+import uvicorn
+from dotenv import load_dotenv
+from fastapi import Depends, FastAPI, HTTPException, Query
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+from sqlalchemy import (
+    ARRAY, Boolean, Column, Date, DateTime, Enum, ForeignKey,
+    Integer, Numeric, SmallInteger, String, Text, UniqueConstraint,
+    and_, create_engine, func, text
+)
+from sqlalchemy.orm import (
+    DeclarativeBase, Session, joinedload, relationship, sessionmaker
+)
+from sqlalchemy.sql import func
+
+load_dotenv()
+
+
+# ==============================================================================
+# SECTION 1 — CONFIGURATION
+# ==============================================================================
+
+# ── Change YOUR_PASSWORD_HERE to your PostgreSQL password ─────────────────────
+DATABASE_URL = os.getenv(
+    "DATABASE_URL",
+    "postgresql://postgres:YOUR_PASSWORD_HERE@localhost:5432/ca_ballot_measures"
+)
+# ──────────────────────────────────────────────────────────────────────────────
+
+engine       = create_engine(DATABASE_URL, echo=False)
+SessionLocal = sessionmaker(bind=engine)
+
+
+def get_db():
+    """
+    Opens a database session for each API request, then closes it when done.
+    FastAPI injects this automatically into every endpoint via Depends(get_db).
+    """
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+
+# ==============================================================================
+# SECTION 2 — PYTHON ENUMS
+# These define every allowed value for categorical fields.
+# If you try to insert a value not in this list, Python raises an error
+# before it even reaches the database — cleaner than a database constraint.
+# ==============================================================================
+
+class MeasureTypeEnum(str, enum.Enum):
+    initiative_statute                  = "initiative_statute"
+    initiative_constitutional_amendment = "initiative_constitutional_amendment"
+    referendum_statutory                = "referendum_statutory"
+    referendum_constitutional           = "referendum_constitutional"
+    bond_measure                        = "bond_measure"
+    charter_amendment                   = "charter_amendment"
+    special_tax                         = "special_tax"
+    advisory                            = "advisory"
+
+class JurisdictionLevelEnum(str, enum.Enum):
+    statewide        = "statewide"
+    county           = "county"
+    city             = "city"
+    special_district = "special_district"
+    school_district  = "school_district"
+
+class ElectionTypeEnum(str, enum.Enum):
+    primary      = "primary"
+    general      = "general"
+    special      = "special"
+    consolidated = "consolidated"
+    recall       = "recall"
+
+class SponsorTypeEnum(str, enum.Enum):
+    citizen_group   = "citizen_group"
+    industry        = "industry"
+    union           = "union"
+    government      = "government"
+    political_party = "political_party"
+    nonprofit       = "nonprofit"
+    mixed           = "mixed"
+    unknown         = "unknown"
+
+class FiscalMechanismEnum(str, enum.Enum):
+    general_fund = "general_fund"
+    special_fund = "special_fund"
+    bond         = "bond"
+    tax_increase = "tax_increase"
+    tax_decrease = "tax_decrease"
+    fee          = "fee"
+    neutral      = "neutral"
+    unknown      = "unknown"
+
+class ImplementationStatusEnum(str, enum.Enum):
+    implemented        = "implemented"
+    enjoined           = "enjoined"
+    partially_enjoined = "partially_enjoined"
+    repealed           = "repealed"
+    superseded         = "superseded"
+    pending            = "pending"
+    failed             = "failed"
+    not_applicable     = "not_applicable"
+
+
+# ==============================================================================
+# SECTION 3 — DATABASE TABLES
+# Each class = one database table.
+# Each Column(...) = one column in that table.
+# SQLAlchemy reads these classes and builds the actual database tables for you.
+# ==============================================================================
+
+class Base(DeclarativeBase):
+    """All table classes must inherit from this. SQLAlchemy requires it."""
+    pass
+
+
+# ── TABLE 1: CAP TOPICS ───────────────────────────────────────────────────────
+# The Comparative Agendas Project master codebook.
+# Download the full codebook at: comparativeagendas.net
+# This is the gold standard for policy topic classification in political science.
+# Using CAP codes makes your data interoperable with decades of published research.
+
+class CapTopic(Base):
+    __tablename__ = "cap_topics"
+
+    cap_code        = Column(Integer, primary_key=True)       # e.g. 1300 = Housing
+    cap_major       = Column(String(100), nullable=False)     # e.g. "Housing"
+    cap_minor       = Column(Integer)                         # subtopic code
+    cap_minor_label = Column(String(200))                     # subtopic label
+    notes           = Column(Text)
+
+    primary_measures   = relationship("BallotMeasure", foreign_keys="BallotMeasure.cap_primary_code",   back_populates="primary_topic")
+    secondary_measures = relationship("BallotMeasure", foreign_keys="BallotMeasure.cap_secondary_code", back_populates="secondary_topic")
+
+
+# ── TABLE 2: COUNTIES ─────────────────────────────────────────────────────────
+# All 58 California counties. Seeded automatically in Section 4.
+# FIPS codes are the federal standard — they let you join to NHGIS census data
+# and CAL-ACCESS campaign finance records without ambiguity.
+
+class County(Base):
+    __tablename__ = "counties"
+
+    county_fips   = Column(String(5),   primary_key=True)     # e.g. "06001" = Alameda
+    county_name   = Column(String(100), nullable=False)       # e.g. "Alameda"
+    region        = Column(String(50))                        # e.g. "Bay Area"
+    area_sq_miles = Column(Numeric(10, 2))
+    created_at    = Column(DateTime, server_default=func.now())
+
+    measures     = relationship("BallotMeasure",       back_populates="county")
+    outcomes     = relationship("MeasureOutcome",      back_populates="county")
+    demographics = relationship("CountyDemographic",   back_populates="county")
+    profiles     = relationship("CountyDomainProfile", back_populates="county")
+
+
+# ── TABLE 3: FISCAL ANALYSIS SOURCES ─────────────────────────────────────────
+# Tracks where fiscal estimates came from. Quality varies enormously,
+# especially pre-1970. Tag each estimate with its source and credibility score.
+
+class FiscalAnalysisSource(Base):
+    __tablename__ = "fiscal_analysis_sources"
+
+    source_id     = Column(Integer, primary_key=True, autoincrement=True)
+    source_name   = Column(String(200), nullable=False)       # e.g. "CA Legislative Analyst Office"
+    source_abbrev = Column(String(20))                        # e.g. "LAO"
+    credibility   = Column(SmallInteger)                      # 1 (low) to 5 (high)
+    notes         = Column(Text)
+
+    measures = relationship("BallotMeasure", back_populates="fiscal_source")
+
+
+# ── TABLE 4: BALLOT MEASURES ← THE CORE TABLE ────────────────────────────────
+# One row per ballot measure per jurisdiction.
+# Every other table connects back to this one via measure_id.
+
+class BallotMeasure(Base):
+    __tablename__ = "ballot_measures"
+
+    # Identity
+    measure_id       = Column(Integer, primary_key=True, autoincrement=True)
+    measure_uid      = Column(String(50), unique=True, nullable=False)  # e.g. "CA-1978-PROP13"
+    measure_number   = Column(String(20))                               # e.g. "Prop 13"
+    measure_title    = Column(Text, nullable=False)
+    measure_text_url = Column(Text)                                     # Link to full text archive
+
+    # Jurisdiction & Election
+    jurisdiction_level    = Column(Enum(JurisdictionLevelEnum), nullable=False)
+    county_fips           = Column(String(5), ForeignKey("counties.county_fips"))
+    city_name             = Column(String(100))
+    special_district_name = Column(String(200))
+    election_date         = Column(Date, nullable=False)
+    election_year         = Column(SmallInteger)             # Set in Python: election_date.year
+    election_type         = Column(Enum(ElectionTypeEnum), nullable=False)
+    consolidated_election = Column(Boolean, default=False)
+    ballot_position       = Column(SmallInteger)             # Position on ballot — voter fatigue proxy
+    statewide_flag        = Column(Boolean, default=False)
+
+    # Measure Classification
+    measure_type          = Column(Enum(MeasureTypeEnum), nullable=False)
+    constitutional_change = Column(Boolean, default=False)
+    reintroduction_flag   = Column(Boolean, default=False)   # Was this attempted before?
+    prior_measure_id      = Column(Integer, ForeignKey("ballot_measures.measure_id"))
+    morality_policy_flag  = Column(Boolean, default=False)   # Haider-Markel & Meier (1996)
+    federal_alignment     = Column(String(20))               # "mirrors","contradicts","neutral","unknown"
+
+    # Policy Domain (CAP codebook — see comparativeagendas.net)
+    cap_primary_code   = Column(Integer, ForeignKey("cap_topics.cap_code"))
+    cap_secondary_code = Column(Integer, ForeignKey("cap_topics.cap_code"))   # For hybrid measures
+    domain_decade_norm = Column(Numeric(6, 4))               # Frequency normalized within decade
+
+    # Fiscal Impact
+    fiscal_mechanism       = Column(Enum(FiscalMechanismEnum))
+    fiscal_impact_nominal  = Column(Numeric(15, 2))          # Raw dollar estimate at time of vote
+    fiscal_impact_2024     = Column(Numeric(15, 2))          # CPI-adjusted to 2024 dollars
+    per_household_cost     = Column(Numeric(10, 2))          # Normalized by county households
+    bond_amount_nominal    = Column(Numeric(15, 2))
+    bond_amount_2024       = Column(Numeric(15, 2))
+    tax_rate_change_pct    = Column(Numeric(8, 4))
+    fiscal_beneficiary     = Column(String(100))             # Who benefits
+    fiscal_analysis_source = Column(Integer, ForeignKey("fiscal_analysis_sources.source_id"))
+    fiscal_notes           = Column(Text)
+
+    # Sponsorship (Gerber 1999 framework)
+    sponsor_type          = Column(Enum(SponsorTypeEnum))
+    sponsor_name          = Column(Text)
+    sponsor_out_of_county = Column(Boolean)                  # Gerber outsider money flag
+    petition_method       = Column(String(20))               # "paid","volunteer","mixed","n/a"
+
+    # Legal History
+    legal_challenge       = Column(Boolean, default=False)
+    legal_outcome         = Column(String(100))
+    implementation_status = Column(Enum(ImplementationStatusEnum),
+                                   default=ImplementationStatusEnum.not_applicable)
+
+    # Metadata
+    data_source     = Column(String(200))
+    data_confidence = Column(SmallInteger)                   # 1 (low) to 5 (high)
+    notes           = Column(Text)
+    created_at      = Column(DateTime, server_default=func.now())
+    updated_at      = Column(DateTime, server_default=func.now(), onupdate=func.now())
+
+    # Relationships — Python shortcuts between related tables
+    county          = relationship("County",                foreign_keys=[county_fips],          back_populates="measures")
+    primary_topic   = relationship("CapTopic",              foreign_keys=[cap_primary_code],     back_populates="primary_measures")
+    secondary_topic = relationship("CapTopic",              foreign_keys=[cap_secondary_code],   back_populates="secondary_measures")
+    fiscal_source   = relationship("FiscalAnalysisSource",  foreign_keys=[fiscal_analysis_source], back_populates="measures")
+    prior_measure   = relationship("BallotMeasure",         remote_side="BallotMeasure.measure_id")
+    outcomes        = relationship("MeasureOutcome",        back_populates="measure")
+    finance         = relationship("CampaignFinance",       back_populates="measure", uselist=False)
+    endorsements    = relationship("Endorsement",           back_populates="measure")
+
+
+# ── TABLE 5: MEASURE OUTCOMES ─────────────────────────────────────────────────
+# Vote counts and percentages. Separated from BallotMeasure so we can store
+# both statewide totals AND county-level breakdowns for the same measure.
+# A row with county_fips = NULL means the statewide total.
+
+class MeasureOutcome(Base):
+    __tablename__ = "measure_outcomes"
+    __table_args__ = (
+        UniqueConstraint("measure_id", "county_fips", name="uq_outcome_measure_county"),
+    )
+
+    outcome_id   = Column(Integer, primary_key=True, autoincrement=True)
+    measure_id   = Column(Integer, ForeignKey("ballot_measures.measure_id"), nullable=False)
+    county_fips  = Column(String(5), ForeignKey("counties.county_fips"))    # NULL = statewide
+
+    # Vote totals
+    yes_votes    = Column(Integer)
+    no_votes     = Column(Integer)
+    yes_pct      = Column(Numeric(6, 4))   # e.g. 0.6234 means 62.34%
+    no_pct       = Column(Numeric(6, 4))
+    passed       = Column(Boolean, nullable=False)
+    margin_pct   = Column(Numeric(6, 4))   # yes_pct - 0.5  (positive = winning)
+
+    # Turnout
+    registered_voters    = Column(Integer)
+    turnout_rate         = Column(Numeric(6, 4))
+    roll_off_rate        = Column(Numeric(6, 4))    # Bowler, Donovan & Happ (1992) voter fatigue
+    absentee_yes_pct     = Column(Numeric(6, 4))
+    election_day_yes_pct = Column(Numeric(6, 4))
+
+    # Geographic dispersion (precinct-level variance within county)
+    precinct_yes_mean = Column(Numeric(6, 4))
+    precinct_yes_sd   = Column(Numeric(6, 4))       # Standard deviation across precincts
+    precinct_yes_gini = Column(Numeric(6, 4))       # Gini coefficient of precinct support
+
+    # Ballot context
+    measures_on_ballot = Column(SmallInteger)        # Total measures on this ballot
+    ballot_rank_by_yes = Column(SmallInteger)        # Ranked by support vs. other measures
+
+    created_at = Column(DateTime, server_default=func.now())
+
+    measure = relationship("BallotMeasure", back_populates="outcomes")
+    county  = relationship("County",        back_populates="outcomes")
+
+
+# ── TABLE 6: CAMPAIGN FINANCE ─────────────────────────────────────────────────
+# One row per measure. Both proponent and opposition spending.
+# Methodology follows Gerber (1999) and Stratmann (2006).
+# Pre-1974 data must be reconstructed — flag with pre_fppc_flag = True.
+
+class CampaignFinance(Base):
+    __tablename__ = "campaign_finance"
+
+    finance_id = Column(Integer, primary_key=True, autoincrement=True)
+    measure_id = Column(Integer, ForeignKey("ballot_measures.measure_id"), nullable=False)
+
+    # Proponent (Yes) side
+    yes_total_nominal     = Column(Numeric(15, 2))
+    yes_total_2024        = Column(Numeric(15, 2))   # CPI-adjusted
+    yes_pac_count         = Column(SmallInteger)
+    yes_out_of_county_pct = Column(Numeric(6, 4))    # Gerber (1999) outsider money variable
+    yes_union_pct         = Column(Numeric(6, 4))
+    yes_corporate_pct     = Column(Numeric(6, 4))
+    yes_citizen_pct       = Column(Numeric(6, 4))
+    yes_top_donor         = Column(Text)
+    yes_top_donor_amount  = Column(Numeric(15, 2))
+
+    # Opposition (No) side
+    no_total_nominal      = Column(Numeric(15, 2))
+    no_total_2024         = Column(Numeric(15, 2))
+    no_pac_count          = Column(SmallInteger)
+    no_out_of_county_pct  = Column(Numeric(6, 4))
+    no_union_pct          = Column(Numeric(6, 4))
+    no_corporate_pct      = Column(Numeric(6, 4))
+    no_citizen_pct        = Column(Numeric(6, 4))
+    no_top_donor          = Column(Text)
+    no_top_donor_amount   = Column(Numeric(15, 2))
+
+    # Derived ratios — key predictors per Stratmann (2006)
+    spending_ratio      = Column(Numeric(10, 4))     # yes_total / no_total
+    spending_asymmetry  = Column(Numeric(15, 2))     # yes_total - no_total (2024 $)
+
+    data_source    = Column(String(100))             # "CAL-ACCESS", "FPPC", "reconstructed"
+    pre_fppc_flag  = Column(Boolean, default=False)  # Pre-1974 data quality flag
+    notes          = Column(Text)
+    created_at     = Column(DateTime, server_default=func.now())
+
+    measure = relationship("BallotMeasure", back_populates="finance")
+
+
+# ── TABLE 7: ENDORSEMENTS ─────────────────────────────────────────────────────
+# Who publicly supported or opposed each measure.
+# Grounds Lupia (1994) elite cue theory — voters use endorsements as shortcuts
+# to make decisions without reading the full measure text.
+
+class Endorsement(Base):
+    __tablename__ = "endorsements"
+
+    endorsement_id    = Column(Integer, primary_key=True, autoincrement=True)
+    measure_id        = Column(Integer, ForeignKey("ballot_measures.measure_id"), nullable=False)
+    position          = Column(String(10), nullable=False)    # "yes" or "no"
+    endorser_type     = Column(String(50))                    # "newspaper","elected_official","org","union"
+    endorser_name     = Column(Text, nullable=False)
+    endorser_partisan = Column(String(20))                    # "dem","rep","nonpartisan","unknown"
+    endorser_tier     = Column(SmallInteger)                  # 1 = major, 3 = minor
+    created_at        = Column(DateTime, server_default=func.now())
+
+    measure = relationship("BallotMeasure", back_populates="endorsements")
+
+
+# ── TABLE 8: COUNTY DEMOGRAPHICS ─────────────────────────────────────────────
+# Census snapshots by county. Join to measures using the nearest census year.
+# Source: NHGIS (nhgis.org) — historical census data matched to county boundaries.
+# IMPORTANT: Race/ethnicity categories changed significantly across census decades.
+
+class CountyDemographic(Base):
+    __tablename__ = "county_demographics"
+    __table_args__ = (
+        UniqueConstraint("county_fips", "census_year", name="uq_demo_county_year"),
+    )
+
+    demo_id     = Column(Integer, primary_key=True, autoincrement=True)
+    county_fips = Column(String(5), ForeignKey("counties.county_fips"), nullable=False)
+    census_year = Column(SmallInteger, nullable=False)        # 1920, 1930, ... 2020
+
+    # Population
+    total_population   = Column(Integer)
+    population_density = Column(Numeric(10, 2))               # Per square mile
+    urban_pct          = Column(Numeric(6, 4))
+    median_age         = Column(Numeric(5, 2))
+
+    # Race / Ethnicity (categories vary by census era — handle carefully)
+    white_pct      = Column(Numeric(6, 4))
+    black_pct      = Column(Numeric(6, 4))
+    hispanic_pct   = Column(Numeric(6, 4))
+    asian_pct      = Column(Numeric(6, 4))
+    other_race_pct = Column(Numeric(6, 4))
+
+    # Socioeconomic
+    median_household_income = Column(Numeric(12, 2))
+    median_income_2024      = Column(Numeric(12, 2))
+    poverty_rate            = Column(Numeric(6, 4))
+    unemployment_rate       = Column(Numeric(6, 4))
+    college_edu_pct         = Column(Numeric(6, 4))           # % with bachelor's or higher
+    homeownership_rate      = Column(Numeric(6, 4))
+    median_home_value       = Column(Numeric(12, 2))
+    median_home_value_2024  = Column(Numeric(12, 2))
+
+    # Political registration
+    registered_dem_pct   = Column(Numeric(6, 4))
+    registered_rep_pct   = Column(Numeric(6, 4))
+    registered_other_pct = Column(Numeric(6, 4))
+    presidential_dem_pct = Column(Numeric(6, 4))              # Most recent presidential vote share
+
+    total_households = Column(Integer)
+    notes            = Column(Text)
+    created_at       = Column(DateTime, server_default=func.now())
+
+    county = relationship("County", back_populates="demographics")
+
+
+# ── TABLE 9: COUNTY DOMAIN PROFILES ──────────────────────────────────────────
+# Pre-aggregated rolling window statistics. The core unit for the R prediction model.
+# Run compute_profiles() to populate this table after loading measure data.
+# Inspired by Matsusaka (2004) fiscal federalism framing.
+
+class CountyDomainProfile(Base):
+    __tablename__ = "county_domain_profiles"
+    __table_args__ = (
+        UniqueConstraint("county_fips", "cap_primary_code", "window_end_year", "window_years",
+                         name="uq_profile"),
+    )
+
+    profile_id       = Column(Integer, primary_key=True, autoincrement=True)
+    county_fips      = Column(String(5), ForeignKey("counties.county_fips"), nullable=False)
+    cap_primary_code = Column(Integer,   ForeignKey("cap_topics.cap_code"),  nullable=False)
+    window_end_year  = Column(SmallInteger, nullable=False)
+    window_years     = Column(SmallInteger, nullable=False)   # 5, 10, 15, or 20
+
+    # Volume
+    n_measures = Column(SmallInteger, nullable=False)
+    n_passed   = Column(SmallInteger)
+    n_failed   = Column(SmallInteger)
+    pass_rate  = Column(Numeric(6, 4))
+
+    # Margins
+    median_margin_pct = Column(Numeric(6, 4))
+    mean_yes_pct      = Column(Numeric(6, 4))
+    margin_sd         = Column(Numeric(6, 4))
+
+    # Finance
+    median_yes_spend_2024 = Column(Numeric(15, 2))
+    median_no_spend_2024  = Column(Numeric(15, 2))
+    median_spending_ratio = Column(Numeric(10, 4))
+
+    # Turnout
+    mean_turnout_rate  = Column(Numeric(6, 4))
+    mean_roll_off_rate = Column(Numeric(6, 4))
+
+    computed_at = Column(DateTime, server_default=func.now())
+
+    county = relationship("County",   back_populates="profiles")
+    topic  = relationship("CapTopic")
+
+
+# ── TABLE 10: STRUCTURAL BREAKS ───────────────────────────────────────────────
+# Historical discontinuities that require segmented modeling.
+# Pre/post these years should be modeled separately or flagged as covariates.
+# Seeded automatically in Section 4.
+
+class StructuralBreak(Base):
+    __tablename__ = "structural_breaks"
+
+    break_id          = Column(Integer, primary_key=True, autoincrement=True)
+    break_year        = Column(SmallInteger, nullable=False)
+    break_name        = Column(String(200),  nullable=False)
+    break_description = Column(Text)
+    affected_domains  = Column(ARRAY(Integer))               # Array of CAP codes affected
+    scope             = Column(String(20))                   # "statewide","national","local"
+    citation          = Column(Text)
+
+
+# ==============================================================================
+# SECTION 4 — SEED DATA
+# Reference data that gets loaded once when you run --setup.
+# ==============================================================================
+
+# All 58 California counties with FIPS codes and regions
+CALIFORNIA_COUNTIES = [
+    ("06001", "Alameda",         "Bay Area"),
+    ("06003", "Alpine",          "Sierra Nevada"),
+    ("06005", "Amador",          "Sierra Nevada"),
+    ("06007", "Butte",           "Sacramento Valley"),
+    ("06009", "Calaveras",       "Sierra Nevada"),
+    ("06011", "Colusa",          "Sacramento Valley"),
+    ("06013", "Contra Costa",    "Bay Area"),
+    ("06015", "Del Norte",       "North Coast"),
+    ("06017", "El Dorado",       "Sierra Nevada"),
+    ("06019", "Fresno",          "San Joaquin Valley"),
+    ("06021", "Glenn",           "Sacramento Valley"),
+    ("06023", "Humboldt",        "North Coast"),
+    ("06025", "Imperial",        "Southern California"),
+    ("06027", "Inyo",            "Eastern California"),
+    ("06029", "Kern",            "San Joaquin Valley"),
+    ("06031", "Kings",           "San Joaquin Valley"),
+    ("06033", "Lake",            "North Coast"),
+    ("06035", "Lassen",          "Northeast"),
+    ("06037", "Los Angeles",     "Southern California"),
+    ("06039", "Madera",          "San Joaquin Valley"),
+    ("06041", "Marin",           "Bay Area"),
+    ("06043", "Mariposa",        "Sierra Nevada"),
+    ("06045", "Mendocino",       "North Coast"),
+    ("06047", "Merced",          "San Joaquin Valley"),
+    ("06049", "Modoc",           "Northeast"),
+    ("06051", "Mono",            "Eastern California"),
+    ("06053", "Monterey",        "Central Coast"),
+    ("06055", "Napa",            "Bay Area"),
+    ("06057", "Nevada",          "Sierra Nevada"),
+    ("06059", "Orange",          "Southern California"),
+    ("06061", "Placer",          "Sierra Nevada"),
+    ("06063", "Plumas",          "Sierra Nevada"),
+    ("06065", "Riverside",       "Southern California"),
+    ("06067", "Sacramento",      "Sacramento Valley"),
+    ("06069", "San Benito",      "Central Coast"),
+    ("06071", "San Bernardino",  "Southern California"),
+    ("06073", "San Diego",       "Southern California"),
+    ("06075", "San Francisco",   "Bay Area"),
+    ("06077", "San Joaquin",     "San Joaquin Valley"),
+    ("06079", "San Luis Obispo", "Central Coast"),
+    ("06081", "San Mateo",       "Bay Area"),
+    ("06083", "Santa Barbara",   "Central Coast"),
+    ("06085", "Santa Clara",     "Bay Area"),
+    ("06087", "Santa Cruz",      "Central Coast"),
+    ("06089", "Shasta",          "Northeast"),
+    ("06091", "Sierra",          "Sierra Nevada"),
+    ("06093", "Siskiyou",        "Northeast"),
+    ("06095", "Solano",          "Bay Area"),
+    ("06097", "Sonoma",          "Bay Area"),
+    ("06099", "Stanislaus",      "San Joaquin Valley"),
+    ("06101", "Sutter",          "Sacramento Valley"),
+    ("06103", "Tehama",          "Sacramento Valley"),
+    ("06105", "Trinity",         "North Coast"),
+    ("06107", "Tulare",          "San Joaquin Valley"),
+    ("06109", "Tuolumne",        "Sierra Nevada"),
+    ("06111", "Ventura",         "Southern California"),
+    ("06113", "Yolo",            "Sacramento Valley"),
+    ("06115", "Yuba",            "Sacramento Valley"),
+]
+
+# CAP master topic codes — full codebook at comparativeagendas.net
+# Add cap_minor codes later for finer-grained classification
+CAP_TOPICS = [
+    (100,  "Macroeconomics"),
+    (200,  "Civil Rights"),
+    (300,  "Health"),
+    (400,  "Agriculture"),
+    (500,  "Labor and Employment"),
+    (600,  "Education"),
+    (700,  "Environment"),
+    (800,  "Energy"),
+    (900,  "Immigration"),
+    (1000, "Transportation"),
+    (1100, "Law and Crime"),
+    (1200, "Social Welfare"),
+    (1300, "Housing"),
+    (1400, "Domestic Commerce"),
+    (1500, "Defense"),
+    (1600, "Technology"),
+    (1700, "Foreign Trade"),
+    (1800, "International Affairs"),
+    (1900, "Government Operations"),
+    (2000, "Public Lands"),
+    (2100, "Culture and Entertainment"),
+    (2300, "Elections and Redistricting"),
+    (9900, "Other"),
+]
+
+# Known historical discontinuities — segment your R model at these years
+STRUCTURAL_BREAKS = [
+    (1911, "Direct Democracy Established",
+     "California adopts initiative, referendum, and recall via constitutional amendment.",
+     [2300], "statewide", "Crouch (1950); Magleby (1984)"),
+
+    (1974, "FPPC / CAL-ACCESS Era Begins",
+     "Political Reform Act establishes campaign finance disclosure. Pre-1974 data must be reconstructed.",
+     None, "statewide", "Stratmann (2006)"),
+
+    (1978, "Proposition 13",
+     "Property tax cap restructured local fiscal initiative landscape. Major break for housing and taxation.",
+     [100, 1300], "statewide", "Sears & Citrin (1982); Lo (1990)"),
+
+    (1990, "Proposition 140 — Term Limits",
+     "Legislative term limits altered initiative strategy and coalition formation.",
+     [1900, 2300], "statewide", "Cain & Levin (1999)"),
+
+    (2010, "Citizens United v. FEC",
+     "Unlimited independent expenditures allowed. Affects PAC spending dynamics in state campaigns.",
+     None, "national", "La Raja & Schaffner (2015)"),
+
+    (2016, "Proposition 54 — Transparency",
+     "72-hour bill print requirement changed legislative dynamics affecting referendum strategy.",
+     [1900], "statewide", "CA Secretary of State archives"),
+]
+
+FISCAL_SOURCES = [
+    ("California Legislative Analyst Office", "LAO", 5, "Primary fiscal authority post-1941"),
+    ("County Fiscal Officer",                 "CFO", 3, "Quality varies by county and era"),
+    ("Reconstructed / Estimated",             "EST", 1, "Pre-1941 or pre-digital era estimates"),
+    ("Ballot Pamphlet Analysis",              "BPA", 4, "Official voter guide fiscal statements"),
+]
+
+
+# ==============================================================================
+# SECTION 5 — DATABASE SETUP
+# Run: python ca_ballot_api.py --setup
+# ==============================================================================
+
+def run_setup():
+    """Creates all tables, adds indexes, and seeds reference data. Run once."""
+
+    print("\n=== California Ballot Measures — Database Setup ===\n")
+
+    # Step 1: Create all tables from the classes defined in Section 3
+    print("Creating tables...")
+    Base.metadata.create_all(engine)
+
+    # Step 2: Add query performance indexes
+    print("Adding indexes...")
+    with engine.connect() as conn:
+        for idx_sql in [
+            "CREATE INDEX IF NOT EXISTS idx_measures_county      ON ballot_measures(county_fips)",
+            "CREATE INDEX IF NOT EXISTS idx_measures_year        ON ballot_measures(election_year)",
+            "CREATE INDEX IF NOT EXISTS idx_measures_cap         ON ballot_measures(cap_primary_code)",
+            "CREATE INDEX IF NOT EXISTS idx_measures_county_year ON ballot_measures(county_fips, election_year)",
+            "CREATE INDEX IF NOT EXISTS idx_measures_domain_year ON ballot_measures(cap_primary_code, election_year)",
+            "CREATE INDEX IF NOT EXISTS idx_outcomes_measure     ON measure_outcomes(measure_id)",
+            "CREATE INDEX IF NOT EXISTS idx_outcomes_county      ON measure_outcomes(county_fips)",
+            "CREATE INDEX IF NOT EXISTS idx_profiles_county      ON county_domain_profiles(county_fips, cap_primary_code)",
+            "CREATE INDEX IF NOT EXISTS idx_demo_county_year     ON county_demographics(county_fips, census_year)",
+        ]:
+            conn.execute(text(idx_sql))
+        conn.commit()
+
+    # Step 3: Seed reference data
+    db = SessionLocal()
+    try:
+        # Counties
+        existing_fips = {c.county_fips for c in db.query(County).all()}
+        new_counties = [
+            County(county_fips=fips, county_name=name, region=region)
+            for fips, name, region in CALIFORNIA_COUNTIES
+            if fips not in existing_fips
+        ]
+        if new_counties:
+            db.add_all(new_counties)
+            db.commit()
+            print(f"  Seeded {len(new_counties)} counties.")
+
+        # CAP topics
+        existing_codes = {t.cap_code for t in db.query(CapTopic).all()}
+        new_topics = [
+            CapTopic(cap_code=code, cap_major=major)
+            for code, major in CAP_TOPICS
+            if code not in existing_codes
+        ]
+        if new_topics:
+            db.add_all(new_topics)
+            db.commit()
+            print(f"  Seeded {len(new_topics)} CAP topic codes.")
+
+        # Structural breaks
+        existing_years = {b.break_year for b in db.query(StructuralBreak).all()}
+        new_breaks = [
+            StructuralBreak(break_year=year, break_name=name, break_description=desc,
+                            affected_domains=domains, scope=scope, citation=citation)
+            for year, name, desc, domains, scope, citation in STRUCTURAL_BREAKS
+            if year not in existing_years
+        ]
+        if new_breaks:
+            db.add_all(new_breaks)
+            db.commit()
+            print(f"  Seeded {len(new_breaks)} structural breaks.")
+
+        # Fiscal sources
+        if db.query(FiscalAnalysisSource).count() == 0:
+            db.add_all([
+                FiscalAnalysisSource(source_name=n, source_abbrev=a, credibility=c, notes=notes)
+                for n, a, c, notes in FISCAL_SOURCES
+            ])
+            db.commit()
+            print(f"  Seeded {len(FISCAL_SOURCES)} fiscal analysis sources.")
+
+    finally:
+        db.close()
+
+    print("\nSetup complete.")
+    print("Now run:  python ca_ballot_api.py")
+    print("Then open: http://localhost:8000/docs\n")
+
+
+# ==============================================================================
+# SECTION 6 — RESPONSE MODELS
+# Pydantic classes define the exact shape of JSON each endpoint returns.
+# If a field is missing or the wrong type, Pydantic raises a clear error.
+# ==============================================================================
+
+class HealthCheck(BaseModel):
+    status:       str
+    db_connected: bool
+    version:      str
+
+class CountyOut(BaseModel):
+    county_fips: str
+    county_name: str
+    region:      Optional[str]
+    class Config:
+        from_attributes = True
+
+class MeasureSummary(BaseModel):
+    measure_id:     int
+    measure_uid:    str
+    measure_number: Optional[str]
+    measure_title:  str
+    election_date:  date
+    election_year:  Optional[int]
+    county_name:    Optional[str]
+    measure_type:   str
+    primary_domain: Optional[str]
+    passed:         Optional[bool]
+    yes_pct:        Optional[float]
+    margin_pct:     Optional[float]
+    turnout_rate:   Optional[float]
+    yes_total_2024: Optional[float]
+    spending_ratio: Optional[float]
+    class Config:
+        from_attributes = True
+
+class MeasureDetail(BaseModel):
+    measure_id:            int
+    measure_uid:           str
+    measure_number:        Optional[str]
+    measure_title:         str
+    election_date:         date
+    election_year:         Optional[int]
+    county_name:           Optional[str]
+    region:                Optional[str]
+    measure_type:          str
+    jurisdiction_level:    str
+    primary_domain:        Optional[str]
+    secondary_domain:      Optional[str]
+    constitutional_change: Optional[bool]
+    reintroduction_flag:   Optional[bool]
+    morality_policy_flag:  Optional[bool]
+    federal_alignment:     Optional[str]
+    fiscal_mechanism:      Optional[str]
+    fiscal_impact_2024:    Optional[float]
+    per_household_cost:    Optional[float]
+    bond_amount_2024:      Optional[float]
+    sponsor_type:          Optional[str]
+    sponsor_name:          Optional[str]
+    legal_challenge:       Optional[bool]
+    implementation_status: Optional[str]
+    passed:                Optional[bool]
+    yes_pct:               Optional[float]
+    margin_pct:            Optional[float]
+    turnout_rate:          Optional[float]
+    roll_off_rate:         Optional[float]
+    yes_total_2024:        Optional[float]
+    no_total_2024:         Optional[float]
+    spending_ratio:        Optional[float]
+    data_source:           Optional[str]
+    data_confidence:       Optional[int]
+    notes:                 Optional[str]
+    class Config:
+        from_attributes = True
+
+class CountyProfileOut(BaseModel):
+    county_fips:           str
+    county_name:           str
+    domain:                str
+    window_end_year:       int
+    window_years:          int
+    n_measures:            int
+    n_passed:              Optional[int]
+    n_failed:              Optional[int]
+    pass_rate:             Optional[float]
+    median_margin_pct:     Optional[float]
+    mean_yes_pct:          Optional[float]
+    mean_turnout_rate:     Optional[float]
+    median_spending_ratio: Optional[float]
+    class Config:
+        from_attributes = True
+
+class PredictionResult(BaseModel):
+    county_fips:                str
+    county_name:                str
+    domain:                     str
+    horizon_years:              int
+    predicted_n_measures:       float
+    predicted_pass_probability: Optional[float]
+    joint_probability:          Optional[float]
+    confidence_note:            str
+
+
+# ==============================================================================
+# SECTION 7 — API ENDPOINTS
+# ==============================================================================
+
+app = FastAPI(
+    title="California Ballot Measures API",
+    description="""
+Longitudinal database of California ballot measures (1911–present).
+
+Supports county-level querying, domain filtering, rolling-window profiles,
+and predictive modeling of ballot measure frequency and passage probability.
+
+**Academic basis:** Matsusaka (2004), Gerber (1999), Bowler & Donovan (1998),
+Comparative Agendas Project, Lupia (1994), Stratmann (2006).
+
+**Quick start:**
+1. `/counties` → find your county's FIPS code
+2. `/domains` → find a CAP topic label (e.g. "Housing")
+3. `/measures?county_name=Alameda&domain=Housing` → explore data
+4. `/counties/06001/profile` → get rolling-window stats
+5. `/predict?county_fips=06001&domain=Housing&horizon_years=10` → get prediction
+    """,
+    version="0.1.0",
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["GET"],
+    allow_headers=["*"],
+)
+
+
+# ── HELPER ────────────────────────────────────────────────────────────────────
+
+def measure_to_dict(m: BallotMeasure) -> dict:
+    """
+    Flatten a BallotMeasure ORM object and all its related tables into one dict.
+    The statewide outcome is the row in measure_outcomes where county_fips is None.
+    """
+    statewide = next((o for o in m.outcomes if o.county_fips is None), None)
+    finance   = m.finance
+    return {
+        "measure_id":            m.measure_id,
+        "measure_uid":           m.measure_uid,
+        "measure_number":        m.measure_number,
+        "measure_title":         m.measure_title,
+        "election_date":         m.election_date,
+        "election_year":         m.election_year,
+        "county_name":           m.county.county_name       if m.county         else None,
+        "region":                m.county.region             if m.county         else None,
+        "measure_type":          m.measure_type.value        if m.measure_type   else None,
+        "jurisdiction_level":    m.jurisdiction_level.value  if m.jurisdiction_level else None,
+        "primary_domain":        m.primary_topic.cap_major   if m.primary_topic  else None,
+        "secondary_domain":      m.secondary_topic.cap_major if m.secondary_topic else None,
+        "constitutional_change": m.constitutional_change,
+        "reintroduction_flag":   m.reintroduction_flag,
+        "morality_policy_flag":  m.morality_policy_flag,
+        "federal_alignment":     m.federal_alignment,
+        "fiscal_mechanism":      m.fiscal_mechanism.value    if m.fiscal_mechanism else None,
+        "fiscal_impact_2024":    float(m.fiscal_impact_2024)  if m.fiscal_impact_2024  else None,
+        "per_household_cost":    float(m.per_household_cost)  if m.per_household_cost  else None,
+        "bond_amount_2024":      float(m.bond_amount_2024)    if m.bond_amount_2024    else None,
+        "sponsor_type":          m.sponsor_type.value          if m.sponsor_type        else None,
+        "sponsor_name":          m.sponsor_name,
+        "legal_challenge":       m.legal_challenge,
+        "implementation_status": m.implementation_status.value if m.implementation_status else None,
+        "passed":                statewide.passed                                        if statewide else None,
+        "yes_pct":               float(statewide.yes_pct)       if statewide and statewide.yes_pct       else None,
+        "margin_pct":            float(statewide.margin_pct)    if statewide and statewide.margin_pct    else None,
+        "turnout_rate":          float(statewide.turnout_rate)  if statewide and statewide.turnout_rate  else None,
+        "roll_off_rate":         float(statewide.roll_off_rate) if statewide and statewide.roll_off_rate else None,
+        "yes_total_2024":        float(finance.yes_total_2024)  if finance and finance.yes_total_2024    else None,
+        "no_total_2024":         float(finance.no_total_2024)   if finance and finance.no_total_2024     else None,
+        "spending_ratio":        float(finance.spending_ratio)  if finance and finance.spending_ratio    else None,
+        "data_source":           m.data_source,
+        "data_confidence":       m.data_confidence,
+        "notes":                 m.notes,
+    }
+
+
+# ── SYSTEM ────────────────────────────────────────────────────────────────────
+
+@app.get("/health", response_model=HealthCheck, tags=["System"])
+def health_check(db: Session = Depends(get_db)):
+    """Check that the API and database connection are working."""
+    try:
+        db.query(County).limit(1).all()
+        db_ok = True
+    except Exception:
+        db_ok = False
+    return {"status": "ok" if db_ok else "degraded", "db_connected": db_ok, "version": "0.1.0"}
+
+
+# ── REFERENCE DATA ────────────────────────────────────────────────────────────
+
+@app.get("/counties", response_model=List[CountyOut], tags=["Reference"])
+def list_counties(
+    region: Optional[str] = Query(None, description="Filter by region e.g. 'Bay Area'"),
+    db: Session = Depends(get_db)
+):
+    """
+    All 58 California counties with FIPS codes.
+    Use the FIPS code (e.g. '06001') in all other endpoints that ask for county_fips.
+    """
+    q = db.query(County).order_by(County.county_name)
+    if region:
+        q = q.filter(County.region.ilike(f"%{region}%"))
+    return q.all()
+
+
+@app.get("/domains", tags=["Reference"])
+def list_domains(db: Session = Depends(get_db)):
+    """
+    All CAP policy topic codes in the database.
+    Use the cap_major label (e.g. 'Housing') to filter measures by domain.
+    Full codebook: comparativeagendas.net
+    """
+    return [
+        {"cap_code": t.cap_code, "cap_major": t.cap_major,
+         "cap_minor": t.cap_minor, "cap_minor_label": t.cap_minor_label}
+        for t in db.query(CapTopic).order_by(CapTopic.cap_major).all()
+    ]
+
+
+@app.get("/structural-breaks", tags=["Reference"])
+def list_structural_breaks(db: Session = Depends(get_db)):
+    """
+    Historical discontinuities requiring segmented modeling.
+    Use these break years to split your R model (pre/post Prop 13, etc.).
+    """
+    return [
+        {"break_year": b.break_year, "break_name": b.break_name,
+         "break_description": b.break_description, "affected_domains": b.affected_domains,
+         "scope": b.scope, "citation": b.citation}
+        for b in db.query(StructuralBreak).order_by(StructuralBreak.break_year).all()
+    ]
+
+
+# ── MEASURES ──────────────────────────────────────────────────────────────────
+
+@app.get("/measures", response_model=List[MeasureSummary], tags=["Measures"])
+def list_measures(
+    # Location
+    county_fips: Optional[str]  = Query(None, description="5-digit FIPS e.g. '06001'"),
+    county_name: Optional[str]  = Query(None, description="Partial match e.g. 'Los Angeles'"),
+    statewide:   Optional[bool] = Query(None, description="True = statewide only"),
+    # Domain
+    domain:      Optional[str]  = Query(None, description="CAP topic e.g. 'Housing'"),
+    cap_code:    Optional[int]  = Query(None, description="Exact CAP code e.g. 1300"),
+    # Time
+    year_from:   Optional[int]  = Query(None, ge=1911, le=2030),
+    year_to:     Optional[int]  = Query(None, ge=1911, le=2030),
+    # Outcome
+    passed:      Optional[bool] = Query(None, description="True = passed, False = failed"),
+    measure_type:Optional[str]  = Query(None, description="e.g. 'bond_measure'"),
+    # Fiscal
+    min_fiscal_impact: Optional[float] = Query(None, description="Min fiscal impact (2024 $)"),
+    max_fiscal_impact: Optional[float] = Query(None, description="Max fiscal impact (2024 $)"),
+    # Pagination
+    limit:  int = Query(100, le=1000),
+    offset: int = Query(0),
+    db: Session = Depends(get_db),
+):
+    """
+    Query ballot measures with flexible filters.
+    For full detail on one measure use /measures/{measure_id}.
+    """
+    q = (
+        db.query(BallotMeasure)
+        .options(
+            joinedload(BallotMeasure.county),
+            joinedload(BallotMeasure.primary_topic),
+            joinedload(BallotMeasure.outcomes),
+            joinedload(BallotMeasure.finance),
+        )
+        .order_by(BallotMeasure.election_date.desc())
+    )
+
+    if county_fips:
+        q = q.filter(BallotMeasure.county_fips == county_fips)
+    if county_name:
+        q = q.join(County, BallotMeasure.county_fips == County.county_fips)\
+              .filter(County.county_name.ilike(f"%{county_name}%"))
+    if statewide is not None:
+        q = q.filter(BallotMeasure.statewide_flag == statewide)
+    if domain:
+        q = q.join(BallotMeasure.primary_topic)\
+              .filter(CapTopic.cap_major.ilike(f"%{domain}%"))
+    if cap_code:
+        q = q.filter(BallotMeasure.cap_primary_code == cap_code)
+    if year_from:
+        q = q.filter(BallotMeasure.election_year >= year_from)
+    if year_to:
+        q = q.filter(BallotMeasure.election_year <= year_to)
+    if measure_type:
+        q = q.filter(BallotMeasure.measure_type == measure_type)
+    if min_fiscal_impact is not None:
+        q = q.filter(BallotMeasure.fiscal_impact_2024 >= min_fiscal_impact)
+    if max_fiscal_impact is not None:
+        q = q.filter(BallotMeasure.fiscal_impact_2024 <= max_fiscal_impact)
+    if passed is not None:
+        q = q.join(MeasureOutcome, and_(
+            MeasureOutcome.measure_id == BallotMeasure.measure_id,
+            MeasureOutcome.county_fips == None
+        )).filter(MeasureOutcome.passed == passed)
+
+    return [measure_to_dict(m) for m in q.offset(offset).limit(limit).all()]
+
+
+@app.get("/measures/{measure_id}", response_model=MeasureDetail, tags=["Measures"])
+def get_measure(measure_id: int, db: Session = Depends(get_db)):
+    """Full detail for one measure including fiscal, sponsorship, and legal data."""
+    m = (
+        db.query(BallotMeasure)
+        .options(
+            joinedload(BallotMeasure.county),
+            joinedload(BallotMeasure.primary_topic),
+            joinedload(BallotMeasure.secondary_topic),
+            joinedload(BallotMeasure.outcomes),
+            joinedload(BallotMeasure.finance),
+            joinedload(BallotMeasure.endorsements),
+        )
+        .filter(BallotMeasure.measure_id == measure_id)
+        .first()
+    )
+    if not m:
+        raise HTTPException(status_code=404, detail=f"Measure {measure_id} not found")
+    return measure_to_dict(m)
+
+
+@app.get("/measures/{measure_id}/endorsements", tags=["Measures"])
+def get_endorsements(measure_id: int, db: Session = Depends(get_db)):
+    """
+    All endorsements for a measure.
+    Grounded in Lupia (1994) elite cue theory — voters use endorsements
+    as information shortcuts when evaluating complex ballot language.
+    """
+    rows = (
+        db.query(Endorsement)
+        .filter(Endorsement.measure_id == measure_id)
+        .order_by(Endorsement.position, Endorsement.endorser_tier)
+        .all()
+    )
+    return [
+        {"position": e.position, "endorser_type": e.endorser_type,
+         "endorser_name": e.endorser_name, "endorser_partisan": e.endorser_partisan,
+         "endorser_tier": e.endorser_tier}
+        for e in rows
+    ]
+
+
+# ── COUNTIES ──────────────────────────────────────────────────────────────────
+
+@app.get("/counties/{county_fips}", tags=["Counties"])
+def get_county(county_fips: str, db: Session = Depends(get_db)):
+    """Get one county by FIPS code."""
+    c = db.query(County).filter(County.county_fips == county_fips).first()
+    if not c:
+        raise HTTPException(status_code=404, detail="County not found")
+    return {"county_fips": c.county_fips, "county_name": c.county_name, "region": c.region}
+
+
+@app.get("/counties/{county_fips}/summary", tags=["Counties"])
+def get_county_summary(
+    county_fips: str,
+    year_from:   Optional[int] = Query(None),
+    year_to:     Optional[int] = Query(None),
+    db: Session = Depends(get_db),
+):
+    """
+    Pass/fail counts by domain and year for one county.
+    Use this to build historical timelines and charts.
+    """
+    if not db.query(County).filter(County.county_fips == county_fips).first():
+        raise HTTPException(status_code=404, detail="County not found")
+
+    q = (
+        db.query(
+            CapTopic.cap_major.label("domain"),
+            BallotMeasure.election_year,
+            func.count().label("n_measures"),
+            func.sum(func.cast(MeasureOutcome.passed, Integer)).label("n_passed"),
+            func.avg(MeasureOutcome.yes_pct).label("avg_yes_pct"),
+            func.avg(MeasureOutcome.turnout_rate).label("avg_turnout"),
+        )
+        .join(CapTopic,       BallotMeasure.cap_primary_code == CapTopic.cap_code)
+        .join(MeasureOutcome, and_(
+            MeasureOutcome.measure_id == BallotMeasure.measure_id,
+            MeasureOutcome.county_fips == None
+        ))
+        .filter(BallotMeasure.county_fips == county_fips)
+    )
+    if year_from: q = q.filter(BallotMeasure.election_year >= year_from)
+    if year_to:   q = q.filter(BallotMeasure.election_year <= year_to)
+
+    return [
+        {"domain": r.domain, "year": r.election_year, "n_measures": r.n_measures,
+         "n_passed": r.n_passed,
+         "avg_yes_pct": round(float(r.avg_yes_pct), 4) if r.avg_yes_pct else None,
+         "avg_turnout": round(float(r.avg_turnout),  4) if r.avg_turnout else None}
+        for r in q.group_by(CapTopic.cap_major, BallotMeasure.election_year)
+                   .order_by(BallotMeasure.election_year, CapTopic.cap_major).all()
+    ]
+
+
+@app.get("/counties/{county_fips}/profile", response_model=List[CountyProfileOut], tags=["Counties"])
+def get_county_profile(
+    county_fips:  str,
+    window_years: int           = Query(10, description="5, 10, 15, or 20"),
+    end_year:     Optional[int] = Query(None),
+    domain:       Optional[str] = Query(None),
+    db: Session = Depends(get_db),
+):
+    """
+    Rolling-window domain statistics for a county.
+    Primary input for the R prediction model.
+    Shows pass rates, vote margins, spending ratios, and turnout
+    over a defined time window.
+    """
+    if not db.query(County).filter(County.county_fips == county_fips).first():
+        raise HTTPException(status_code=404, detail="County not found")
+
+    q = (
+        db.query(CountyDomainProfile, CapTopic.cap_major.label("domain"), County.county_name)
+        .join(CapTopic, CountyDomainProfile.cap_primary_code == CapTopic.cap_code)
+        .join(County,   CountyDomainProfile.county_fips == County.county_fips)
+        .filter(CountyDomainProfile.county_fips == county_fips,
+                CountyDomainProfile.window_years == window_years)
+    )
+    if end_year: q = q.filter(CountyDomainProfile.window_end_year == end_year)
+    if domain:   q = q.filter(CapTopic.cap_major.ilike(f"%{domain}%"))
+
+    results = q.order_by(CapTopic.cap_major, CountyDomainProfile.window_end_year).all()
+    if not results:
+        raise HTTPException(status_code=404,
+            detail="No profile data. Run compute_profiles() after loading measure data.")
+
+    return [
+        {
+            "county_fips":           r.CountyDomainProfile.county_fips,
+            "county_name":           r.county_name,
+            "domain":                r.domain,
+            "window_end_year":       r.CountyDomainProfile.window_end_year,
+            "window_years":          r.CountyDomainProfile.window_years,
+            "n_measures":            r.CountyDomainProfile.n_measures,
+            "n_passed":              r.CountyDomainProfile.n_passed,
+            "n_failed":              r.CountyDomainProfile.n_failed,
+            "pass_rate":             float(r.CountyDomainProfile.pass_rate)             if r.CountyDomainProfile.pass_rate             else None,
+            "median_margin_pct":     float(r.CountyDomainProfile.median_margin_pct)     if r.CountyDomainProfile.median_margin_pct     else None,
+            "mean_yes_pct":          float(r.CountyDomainProfile.mean_yes_pct)          if r.CountyDomainProfile.mean_yes_pct          else None,
+            "mean_turnout_rate":     float(r.CountyDomainProfile.mean_turnout_rate)     if r.CountyDomainProfile.mean_turnout_rate     else None,
+            "median_spending_ratio": float(r.CountyDomainProfile.median_spending_ratio) if r.CountyDomainProfile.median_spending_ratio else None,
+        }
+        for r in results
+    ]
+
+
+@app.get("/counties/{county_fips}/demographics", tags=["Counties"])
+def get_county_demographics(
+    county_fips: str,
+    census_year: Optional[int] = Query(None, description="e.g. 2020"),
+    db: Session = Depends(get_db),
+):
+    """
+    Census demographic snapshots for a county.
+    Source: NHGIS (nhgis.org) — historical census matched to county boundaries.
+    Note: Race/ethnicity categories changed significantly across census decades.
+    """
+    q = db.query(CountyDemographic).filter(CountyDemographic.county_fips == county_fips)
+    if census_year:
+        q = q.filter(CountyDemographic.census_year == census_year)
+    results = q.order_by(CountyDemographic.census_year).all()
+    if not results:
+        raise HTTPException(status_code=404, detail="No demographic data for this county")
+    return [
+        {"census_year": r.census_year, "total_population": r.total_population,
+         "urban_pct":            float(r.urban_pct)            if r.urban_pct            else None,
+         "median_income_2024":   float(r.median_income_2024)   if r.median_income_2024   else None,
+         "college_edu_pct":      float(r.college_edu_pct)      if r.college_edu_pct      else None,
+         "homeownership_rate":   float(r.homeownership_rate)   if r.homeownership_rate   else None,
+         "registered_dem_pct":   float(r.registered_dem_pct)   if r.registered_dem_pct   else None,
+         "registered_rep_pct":   float(r.registered_rep_pct)   if r.registered_rep_pct   else None,
+         "presidential_dem_pct": float(r.presidential_dem_pct) if r.presidential_dem_pct else None,
+         "poverty_rate":         float(r.poverty_rate)         if r.poverty_rate         else None,
+         "unemployment_rate":    float(r.unemployment_rate)    if r.unemployment_rate    else None}
+        for r in results
+    ]
+
+
+# ── ANALYSIS ──────────────────────────────────────────────────────────────────
+
+@app.get("/compare", tags=["Analysis"])
+def compare_counties(
+    county_fips: List[str] = Query(..., description="2+ FIPS codes e.g. 06001&county_fips=06075"),
+    domain:      str       = Query(..., description="CAP topic e.g. 'Housing'"),
+    year_from:   int       = Query(1970),
+    year_to:     int       = Query(2024),
+    db: Session = Depends(get_db),
+):
+    """
+    Compare pass rates, spending ratios, and turnout across multiple counties
+    for a given domain and time range.
+    """
+    results = (
+        db.query(
+            County.county_name,
+            CapTopic.cap_major.label("domain"),
+            func.count().label("n_measures"),
+            func.avg(MeasureOutcome.yes_pct).label("avg_yes_pct"),
+            func.sum(func.cast(MeasureOutcome.passed, Integer)).label("n_passed"),
+            func.avg(MeasureOutcome.turnout_rate).label("avg_turnout"),
+            func.avg(CampaignFinance.spending_ratio).label("avg_spending_ratio"),
+        )
+        .join(County,         BallotMeasure.county_fips == County.county_fips)
+        .join(CapTopic,       BallotMeasure.cap_primary_code == CapTopic.cap_code)
+        .join(MeasureOutcome, and_(MeasureOutcome.measure_id == BallotMeasure.measure_id,
+                                   MeasureOutcome.county_fips == None))
+        .outerjoin(CampaignFinance, CampaignFinance.measure_id == BallotMeasure.measure_id)
+        .filter(BallotMeasure.county_fips.in_(county_fips),
+                CapTopic.cap_major.ilike(f"%{domain}%"),
+                BallotMeasure.election_year.between(year_from, year_to))
+        .group_by(County.county_name, CapTopic.cap_major)
+        .order_by(func.avg(MeasureOutcome.yes_pct).desc())
+        .all()
+    )
+    return [
+        {"county_name": r.county_name, "domain": r.domain,
+         "n_measures": r.n_measures, "n_passed": r.n_passed,
+         "avg_yes_pct":        round(float(r.avg_yes_pct),        4) if r.avg_yes_pct        else None,
+         "avg_turnout":        round(float(r.avg_turnout),         4) if r.avg_turnout         else None,
+         "avg_spending_ratio": round(float(r.avg_spending_ratio),  4) if r.avg_spending_ratio  else None}
+        for r in results
+    ]
+
+
+# ── PREDICTION ────────────────────────────────────────────────────────────────
+
+@app.get("/predict", response_model=PredictionResult, tags=["Prediction"])
+def predict_measure_probability(
+    county_fips:   str = Query(..., description="5-digit FIPS code"),
+    domain:        str = Query(..., description="CAP topic e.g. 'Housing'"),
+    horizon_years: int = Query(10, ge=1, le=30, description="Forecast horizon in years"),
+    db: Session = Depends(get_db),
+):
+    """
+    Predict: in county X, how likely is a ballot measure on domain Z
+    in the next T years, and what is the estimated passage probability?
+
+    **Formula:** joint_probability = P(measure occurs) × P(passes | occurs)
+
+    **To connect your R model**, replace the STUB section with:
+
+        result = subprocess.run(
+            ["Rscript", "model.R", county_fips, domain, str(horizon_years)],
+            capture_output=True, text=True
+        )
+        return json.loads(result.stdout)
+
+    Your R script should write one JSON object to stdout:
+        {"predicted_n_measures": 3.2, "predicted_pass_probability": 0.61, "joint_probability": 0.49}
+    """
+    county = db.query(County).filter(County.county_fips == county_fips).first()
+    if not county:
+        raise HTTPException(status_code=404, detail="County not found")
+
+    profile = (
+        db.query(CountyDomainProfile)
+        .join(CapTopic, CountyDomainProfile.cap_primary_code == CapTopic.cap_code)
+        .filter(CountyDomainProfile.county_fips == county_fips,
+                CapTopic.cap_major.ilike(f"%{domain}%"),
+                CountyDomainProfile.window_years == 10)
+        .order_by(CountyDomainProfile.window_end_year.desc())
+        .first()
+    )
+    if not profile:
+        raise HTTPException(status_code=404,
+            detail="No 10-year profile found. Load measure data and run compute_profiles() first.")
+
+    # ── STUB: replace this with subprocess.run(["Rscript", "model.R", ...]) ──
+    annual_rate = profile.n_measures / 10.0
+    predicted_n = annual_rate * horizon_years
+    pass_prob   = float(profile.pass_rate) if profile.pass_rate else 0.5
+    joint_prob  = min(1.0, predicted_n / horizon_years) * pass_prob
+    # ─────────────────────────────────────────────────────────────────────────
+
+    return {
+        "county_fips":                county_fips,
+        "county_name":                county.county_name,
+        "domain":                     domain,
+        "horizon_years":              horizon_years,
+        "predicted_n_measures":       round(predicted_n, 2),
+        "predicted_pass_probability": round(pass_prob, 4),
+        "joint_probability":          round(joint_prob, 4),
+        "confidence_note":            "Heuristic stub — replace with brms model for credible intervals.",
+    }
+
+
+# ==============================================================================
+# SECTION 8 — ENTRY POINT
+# python ca_ballot_api.py --setup   → creates tables and seeds data
+# python ca_ballot_api.py           → starts the API server
+# ==============================================================================
+
+if __name__ == "__main__":
+    if "--setup" in sys.argv:
+        run_setup()
+    else:
+        print("\nStarting California Ballot Measures API...")
+        print("Docs:    http://localhost:8000/docs")
+        print("Health:  http://localhost:8000/health")
+        print("Press Ctrl+C to stop.\n")
+        uvicorn.run("ca_ballot_api:app", host="0.0.0.0", port=8000, reload=True)
