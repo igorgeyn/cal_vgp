@@ -626,6 +626,23 @@ checks pass; Phase F manual checklist signed off via browser spot-check).
 
 ### DATA HYGIENE
 
+- [ ] **Fix 18 pre-existing test failures in the legacy suite**
+      (small, ~10-30 min). Found 2026-07-06 during the registrar
+      Phase 0.5 full-suite run; unrelated to registrar code (files
+      last touched at `fcd1345`, 2026-05-04). Two distinct causes:
+      - 17 setup errors in `tests/test_database.py` +
+        `tests/test_deduplication.py`: fixtures pass a `str` to
+        `Database(db_path)` but `_ensure_database` calls
+        `self.db_path.exists()`. Fix: coerce
+        `self.db_path = Path(db_path)` in `Database.__init__`
+        (more robust than touching each fixture).
+      - 1 failure in `tests/test_models.py::
+        test_ballot_measure_optional_fields`: asserts
+        `measure.county is None` but `BallotMeasure` now defaults
+        county to `'Statewide'`. Decide whether the default is
+        intentional (likely — update the test) or a regression.
+      Rest of the suite: 267 passed, 1 skipped, 57/57 registrar.
+
 - [ ] **Audit other dead/null fields in JS data blob.** The
       `campaign_finance` rip shed 313 KB; `research_status`,
       `research_depth`, etc. may have similar opportunities.
