@@ -1,18 +1,20 @@
 # CalBallot Working List
 
-> Snapshot: **2026-06-09**. Branch: `main`, in sync with `origin/main`.
-> Last commit: `c40c09c` (Phase 0.5 storage layer landed).
+> Snapshot: **2026-07-06**. Branch: `main`, local commits not yet
+> pushed. Last commit: `97fd6d9` (Phase 0.5 runner + workflow).
 >
-> **WHERE WE LEFT OFF — Phase 0.5 of the registrar pipeline is mid-flight.**
+> **WHERE WE LEFT OFF — Phase 0.5 is code-complete except the R2
+> store impl; Igor's Cloudflare provisioning is the blocker.**
 >
 > Project shifted on 2026-05-21 from finance polish to building a real
 > recurring pipeline for local ballot measures from county registrar
 > sites. Decisions locked: **Cloudflare R2** for storage, **GH Actions
 > cron from day one**, **counties-only scope** to start. Phase 0
 > reconnaissance is complete (5 counties probed via the local
-> harness); Phase 0.5 infrastructure has the storage layer in (17
-> tests, all green) and is awaiting the base scraper / NoOp / runner
-> / workflow on top of it.
+> harness). Phase 0.5 infrastructure is in: storage layer + base
+> scraper + NoOp wiring scraper + runner + GH Actions workflow, 57
+> registrar tests green, CLI smoke verified end to end. Playwright is
+> a full dependency already (Igor's call 2026-07-06).
 >
 > The finance v2+v3 era is shipped and stable: $5.75B across 181
 > statewide propositions, full verification stack green. Finance
@@ -28,44 +30,32 @@
 
 ## Next chunk (resume here)
 
-**Phase 0.5 implementation, picking up from `c40c09c`.** Storage
-layer is in. Remaining Phase 0.5 deliverables:
+**Phase 0.5 closeout, picking up from `97fd6d9`.** Deliverables
+#1–#4 and #6 shipped (see Recently shipped); remaining:
 
-1. **`scraper/src/scrapers/registrar/base.py`** — `CountyRegistrarScraper`
-   abstract base with polite-scraping defaults (User-Agent from
-   recon harness, rate limit, retries, robots.txt check, two fetch
-   modes: `requests` and `playwright`).
+1. **Igor: provision Cloudflare R2** following
+   [`docs/setup/registrar_r2_setup.md`](setup/registrar_r2_setup.md)
+   — account, `cal-vgp-registrar-raw` bucket, scoped API token,
+   3 GH repo secrets. ~15 min, human-only step.
 
-2. **`scraper/src/scrapers/registrar/noop.py`** — `NoOpCountyScraper`
-   that pretends to scrape a fake county, writes one HTML + one
-   PDF artifact + a manifest, returns success. Used by tests + the
-   first CI run to validate the wiring.
+2. **`R2ArtifactStore` impl in `storage.py`** — boto3-based,
+   S3-compatible (add boto3 to requirements). Currently
+   `make_store()` raises `NotImplementedError` when R2 env vars are
+   set; wire in the real impl once #1 is done, then verify via a
+   manual `workflow_dispatch` run (checklist in the setup doc §6).
 
-3. **`scraper/scripts/run_registrar_pipeline.py`** — runner with
-   per-county failure isolation (catch each scraper's exception,
-   record `status: failed` in run manifest, continue), run-manifest
-   emission, `--counties=enabled` arg. **Exit nonzero if ANY county
-   failed** (not "all" — see Codex round-1 self-audit).
+3. **Push the Phase 0.5 commits** (`4b9cb94`, `97fd6d9`, docs) —
+   Igor's call on timing. Note the push itself triggers the new
+   workflow (registrar paths changed) as a dev-env wiring smoke.
 
-4. **`.github/workflows/registrar_pipeline.yml`** — cron Mon 4am PT
-   (12:00 UTC, accept ±1h DST shift) + `workflow_dispatch` + push
-   trigger on `scraper/src/scrapers/registrar/**`. **Concurrency
-   group keyed on env** (`push` → `dev`, everything else → `prod`),
-   `cancel-in-progress: false`. R2 secrets wired in (Igor sets up
-   the R2 account during this step).
-
-5. **`R2ArtifactStore` impl in `storage.py`** — boto3-based,
-   S3-compatible. Currently `make_store()` raises `NotImplementedError`
-   when R2 env vars are set; wire in the real impl once Igor has the
-   account provisioned.
-
-6. **`docs/setup/registrar_r2_setup.md`** — walkthrough for Igor's
-   R2 account setup: create bucket, create API token, copy into GH
-   repo secrets. ~1-page doc.
+4. **Flip the workflow from `--counties=noop` to
+   `--counties=enabled`** — happens in Phase 1 when SB lands in
+   `ENABLED_COUNTIES` (runner.py).
 
 **After Phase 0.5 ships:** Phase 1 starts with **SB first** (cleanest
 data shape per recon), then **LA → OC → SD → Riverside**. Riverside
-needs Playwright (Cloudflare bot challenge confirmed at recon).
+needs Playwright (Cloudflare bot challenge confirmed at recon;
+dependency already installed).
 
 **Finance follow-ups (deferred, not blocking):**
 
@@ -149,6 +139,41 @@ commits `4542d4a` → `bec2abe` → round-4 fixes `a1582c8` + `df6e73f`
 - Phase G — v3 + combined integrity: 9/9 PASS.
 
 ## Recently shipped
+
+### 2026-07-06 — Registrar Phase 0.5: base scraper → workflow (`4b9cb94` → `97fd6d9`)
+
+Phase 0.5 deliverables #1–#4 + #6 in one session; design
+direction-checked with Igor before code (base class shape approved
+as sketched; Playwright chosen as full dep now, not deferred):
+
+- **`base.py`** — `CountyRegistrarScraper` ABC. One abstract
+  `scrape()`; base provides `fetch()` (polite UA
+  `cal-vgp-registrar-scraper/0.1`, per-domain 2s rate limit, 3×
+  exponential backoff on 5xx/connection errors, never-retry 4xx,
+  robots.txt cached per domain, unfetchable = allowed) and
+  `open_snapshot()` → `SnapshotWriter` (manifest-last enforced:
+  save-after-finalize raises). Two fetch modes (`requests` /
+  `playwright`), overridable per call. Typed errors
+  (`ScraperError` / `FetchError` / `RobotsDisallowedError`) as the
+  runner's isolation boundary. Clock/session/sleep injectable.
+- **`noop.py`** — `NoOpCountyScraper`: one HTML + one PDF +
+  manifest for fake county `noop`, zero network. Wiring proof.
+- **`runner.py`** (+ thin CLI shim
+  `scripts/run_registrar_pipeline.py`) — per-county failure
+  isolation, run-manifest emission to `scraper/data/registrar_runs/`,
+  `--counties=enabled` (empty until SB) vs explicit slugs, **exit
+  nonzero on ANY county failure**. Runner threads one clock into
+  scrapers so run_id and snapshot ids agree.
+- **`registrar_pipeline.yml`** — cron Mon 12:00 UTC + dispatch +
+  push-on-registrar-paths; concurrency group keyed on env
+  (push→dev, cron/manual→prod), `cancel-in-progress: false`;
+  R2 secrets wired but absent → clean LocalArtifactStore fallback;
+  Playwright chromium install step; run manifest uploaded
+  `always()`.
+- **`docs/setup/registrar_r2_setup.md`** — Igor's R2 provisioning
+  walkthrough (bucket, scoped token, 3 GH secrets, verify).
+- 57/57 registrar tests (17 storage + 27 base/noop + 13 runner);
+  CLI smoke from repo root verified plan-shaped output.
 
 ### 2026-06-08/09 — Registrar pipeline Phase 0 + 0.5 (storage layer) (`046cb0b` → `c40c09c`)
 
