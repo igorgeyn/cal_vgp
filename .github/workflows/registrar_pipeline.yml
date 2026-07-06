@@ -1,0 +1,81 @@
+name: registrar-pipeline
+
+on:
+  schedule:
+    # GitHub cron is UTC and doesn't follow DST. '0 12 * * 1' is
+    # Monday 4am PST / 5am PDT — the accepted ±1h drift is documented
+    # in docs/plans/registrar_pipeline_infra.md.
+    - cron: '0 12 * * 1'
+  workflow_dispatch:  # manual trigger; targets the prod env
+  push:
+    paths:
+      - 'scraper/src/scrapers/registrar/**'
+      - 'scraper/scripts/run_registrar_pipeline.py'
+      - '.github/workflows/registrar_pipeline.yml'
+
+# Runs that share an R2 prefix must serialize; runs on different
+# prefixes may overlap. push → dev prefix; cron + manual → prod
+# prefix. Keyed on env, NOT github.event_name — cron and manual both
+# target prod and must share one group (self-audit fix to the Codex
+# round-1 design).
+concurrency:
+  group: registrar-pipeline-${{ github.event_name == 'push' && 'dev' || 'prod' }}
+  cancel-in-progress: false  # queue, don't abort a mid-flight scrape
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: scraper/requirements.txt
+
+      - name: Install dependencies
+        run: pip install -r scraper/requirements.txt
+
+      - name: Install Playwright browser
+        # ~30s per run; accepted in the plan. Needed once Riverside
+        # (Cloudflare JS challenge) lands in Phase 1.
+        run: python -m playwright install --with-deps chromium
+
+      - name: Run registrar pipeline
+        env:
+          # Until the R2 account is provisioned these secrets are
+          # unset, so make_store() falls back to LocalArtifactStore
+          # (artifacts stay in the CI workspace; the run manifest
+          # below is the wiring proof). Once secrets + the
+          # R2ArtifactStore impl exist, this flips to R2 with no
+          # workflow change.
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_ENDPOINT_URL: ${{ secrets.R2_ENDPOINT_URL }}
+          R2_BUCKET: cal-vgp-registrar-raw
+          R2_ENV: ${{ github.event_name == 'push' && 'dev' || 'prod' }}
+        # --counties=noop until the first real scraper (SB) lands in
+        # Phase 1; then flip to --counties=enabled.
+        run: |
+          python scraper/scripts/run_registrar_pipeline.py --counties=noop
+
+      - name: Upload run manifest
+        # always(): failed runs still produce diagnostics.
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: run-manifest
+          path: scraper/data/registrar_runs/*.json
+          retention-days: 90
+
+      - name: Upload normalized JSONL
+        # Parser stage doesn't exist yet (Phase 1); ignore until then.
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: registrar-normalized
+          path: scraper/data/registrar_normalized/*.jsonl
+          retention-days: 30
+          if-no-files-found: ignore

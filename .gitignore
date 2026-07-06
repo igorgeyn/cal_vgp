@@ -81,3 +81,11 @@ plans/
 # sites. Not for git; can be huge. Phase 0.5 promotes the canonical
 # store to Cloudflare R2.
 scraper/data/registrar_recon/
+
+# Registrar pipeline outputs — LocalArtifactStore snapshots (dev
+# stand-in for R2), run manifests, and normalized JSONL. Data
+# artifacts, not source; CI uploads run manifests as workflow
+# artifacts instead.
+scraper/data/registrar_raw/
+scraper/data/registrar_runs/
+scraper/data/registrar_normalized/
