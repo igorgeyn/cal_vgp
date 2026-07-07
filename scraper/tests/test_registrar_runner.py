@@ -166,6 +166,48 @@ def test_run_pipeline_artifacts_land_in_store(store, manifest_dir):
     assert len(stored["artifacts"]) == 2
 
 
+def test_run_pipeline_mirrors_run_manifest_to_store(
+    store, manifest_dir, tmp_path
+):
+    run_pipeline(
+        ["noop"],
+        store=store,
+        env="dev",
+        manifest_dir=manifest_dir,
+        clock=lambda: FIXED_NOW,
+    )
+    mirrored = (
+        tmp_path
+        / "artifacts"
+        / "runs"
+        / "dev"
+        / "20260706T120000Z"
+        / "run_manifest.json"
+    )
+    assert mirrored.exists()
+    assert json.loads(mirrored.read_text())["run_id"] == "20260706T120000Z"
+
+
+def test_run_pipeline_mirror_failure_does_not_fail_run(
+    store, manifest_dir, monkeypatch
+):
+    def explode(**kwargs):
+        raise ConnectionError("R2 is having a day")
+
+    monkeypatch.setattr(store, "put_run_manifest", explode, raising=False)
+
+    manifest = run_pipeline(
+        ["noop"],
+        store=store,
+        env="dev",
+        manifest_dir=manifest_dir,
+        clock=lambda: FIXED_NOW,
+    )
+    # Run stays green; local manifest copy still written.
+    assert exit_code_for(manifest) == 0
+    assert (manifest_dir / "run_manifest_20260706T120000Z.json").exists()
+
+
 def test_run_pipeline_trigger_and_sha_from_ci_env(
     store, manifest_dir, monkeypatch
 ):

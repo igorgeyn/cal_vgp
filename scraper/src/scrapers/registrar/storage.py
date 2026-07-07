@@ -8,9 +8,10 @@ implementations:
 
 - LocalArtifactStore: writes under scraper/data/registrar_raw/.
   Default for dev (no creds needed) and tests.
-- R2ArtifactStore: writes to a Cloudflare R2 bucket. Used in CI and
-  production runs. Not yet implemented — added when R2 account is
-  provisioned.
+- R2ArtifactStore: writes to a Cloudflare R2 bucket via boto3
+  (S3-compatible). Used in CI and production runs; selected by
+  make_store() when all four R2_* env vars are set. Provisioning
+  walkthrough: docs/setup/registrar_r2_setup.md.
 
 Snapshots are immutable: each scraping run gets a fresh snapshot_id
 (typically a UTC timestamp like 20260608T142200Z). Re-scrapes never
@@ -124,6 +125,14 @@ class RawArtifactStore(Protocol):
         """Write the per-snapshot manifest. Returns its storage URI.
         Scraper is responsible for building the manifest dict;
         store does not enforce its schema."""
+        ...
+
+    def put_run_manifest(self, *, run_id: str, manifest: dict) -> str:
+        """Write the run-level manifest under
+        runs/{env}/{run_id}/run_manifest.json (a namespace separate
+        from the per-county snapshot tree). Returns its storage URI.
+        The runner also keeps a local copy for CI artifact upload;
+        this is the durable mirror."""
         ...
 
     def get_artifact(self, ref: ArtifactRef) -> bytes:
@@ -246,6 +255,15 @@ class LocalArtifactStore:
         path.write_text(json.dumps(manifest, indent=2))
         return str(path.resolve())
 
+    def put_run_manifest(self, *, run_id: str, manifest: dict) -> str:
+        # runs/ sits beside the {env}/ snapshot tree, mirroring the
+        # bucket layout (county slugs never collide with "runs").
+        d = self._base / "runs" / self._env / run_id
+        d.mkdir(parents=True, exist_ok=True)
+        path = d / "run_manifest.json"
+        path.write_text(json.dumps(manifest, indent=2))
+        return str(path.resolve())
+
     def get_artifact(self, ref: ArtifactRef) -> bytes:
         path = (
             self._snap_dir(ref.county, ref.election_date, ref.snapshot_id)
@@ -333,6 +351,255 @@ class LocalArtifactStore:
         return (d / filename).is_file()
 
 
+# Object keys that S3 reports as missing, across get/head variants.
+_S3_NOT_FOUND_CODES = {"NoSuchKey", "404", "NotFound"}
+
+
+def _s3_error_code(exc: BaseException) -> str:
+    """Extract the S3 error code from a botocore ClientError without
+    importing botocore (duck-typed so tests can use stub errors)."""
+    response = getattr(exc, "response", None)
+    if isinstance(response, dict):
+        return response.get("Error", {}).get("Code", "")
+    return ""
+
+
+class R2ArtifactStore:
+    """Cloudflare R2-backed RawArtifactStore (S3-compatible, boto3).
+
+    Config from env vars unless passed explicitly:
+        R2_ACCESS_KEY_ID / R2_SECRET_ACCESS_KEY / R2_ENDPOINT_URL
+        R2_BUCKET (default: cal-vgp-registrar-raw)
+        R2_ENV    (dev/prod key prefix; default "dev")
+
+    boto3 is imported lazily on first request so this module stays
+    importable without it; tests inject a fake `client`.
+
+    Key layout mirrors LocalArtifactStore:
+        {env}/{county}/{election_date}/{snapshot_id}/{filename}
+        runs/{env}/{run_id}/run_manifest.json
+    """
+
+    def __init__(
+        self,
+        *,
+        bucket: Optional[str] = None,
+        endpoint_url: Optional[str] = None,
+        access_key_id: Optional[str] = None,
+        secret_access_key: Optional[str] = None,
+        env: Optional[str] = None,
+        client=None,
+    ):
+        self._bucket = bucket or os.environ.get(
+            "R2_BUCKET", "cal-vgp-registrar-raw"
+        )
+        self._endpoint_url = endpoint_url or os.environ.get("R2_ENDPOINT_URL")
+        self._access_key_id = access_key_id or os.environ.get(
+            "R2_ACCESS_KEY_ID"
+        )
+        self._secret_access_key = secret_access_key or os.environ.get(
+            "R2_SECRET_ACCESS_KEY"
+        )
+        self._env = env or os.environ.get("R2_ENV", "dev")
+        self._client = client
+
+    @property
+    def client(self):
+        if self._client is None:
+            import boto3  # lazy: only real R2 use needs it
+
+            self._client = boto3.client(
+                "s3",
+                endpoint_url=self._endpoint_url,
+                aws_access_key_id=self._access_key_id,
+                aws_secret_access_key=self._secret_access_key,
+                region_name="auto",  # R2 convention
+            )
+        return self._client
+
+    def _key(
+        self,
+        county: County,
+        election_date: ElectionDate,
+        snapshot_id: SnapshotID,
+        filename: str,
+    ) -> str:
+        return f"{self._env}/{county}/{election_date}/{snapshot_id}/{filename}"
+
+    def _uri(self, key: str) -> str:
+        return f"s3://{self._bucket}/{key}"
+
+    def put_artifact(
+        self,
+        *,
+        county: County,
+        election_date: ElectionDate,
+        snapshot_id: SnapshotID,
+        filename: str,
+        body: bytes,
+        metadata: ArtifactMetadata,
+    ) -> ArtifactRef:
+        key = self._key(county, election_date, snapshot_id, filename)
+        sha256 = hashlib.sha256(body).hexdigest()
+        self.client.put_object(
+            Bucket=self._bucket,
+            Key=key,
+            Body=body,
+            ContentType=metadata.content_type or "application/octet-stream",
+            Metadata={"sha256": sha256},
+        )
+        return ArtifactRef(
+            county=county,
+            election_date=election_date,
+            snapshot_id=snapshot_id,
+            filename=filename,
+            sha256=sha256,
+            size_bytes=len(body),
+            content_type=metadata.content_type,
+            storage_uri=self._uri(key),
+        )
+
+    def put_manifest(
+        self,
+        *,
+        county: County,
+        election_date: ElectionDate,
+        snapshot_id: SnapshotID,
+        manifest: dict,
+    ) -> str:
+        key = self._key(county, election_date, snapshot_id, "manifest.json")
+        self.client.put_object(
+            Bucket=self._bucket,
+            Key=key,
+            Body=json.dumps(manifest, indent=2).encode("utf-8"),
+            ContentType="application/json",
+        )
+        return self._uri(key)
+
+    def put_run_manifest(self, *, run_id: str, manifest: dict) -> str:
+        key = f"runs/{self._env}/{run_id}/run_manifest.json"
+        self.client.put_object(
+            Bucket=self._bucket,
+            Key=key,
+            Body=json.dumps(manifest, indent=2).encode("utf-8"),
+            ContentType="application/json",
+        )
+        return self._uri(key)
+
+    def _get_object_bytes(self, key: str, describe: str) -> bytes:
+        try:
+            resp = self.client.get_object(Bucket=self._bucket, Key=key)
+        except Exception as e:
+            if _s3_error_code(e) in _S3_NOT_FOUND_CODES:
+                raise ArtifactNotFound(f"{describe}: {key}") from e
+            raise
+        return resp["Body"].read()
+
+    def get_artifact(self, ref: ArtifactRef) -> bytes:
+        key = self._key(
+            ref.county, ref.election_date, ref.snapshot_id, ref.filename
+        )
+        body = self._get_object_bytes(key, "artifact not found")
+        actual = hashlib.sha256(body).hexdigest()
+        if actual != ref.sha256:
+            raise ArtifactIntegrityError(
+                f"sha256 mismatch for {self._uri(key)}: "
+                f"expected {ref.sha256}, got {actual}"
+            )
+        return body
+
+    def get_manifest(
+        self,
+        *,
+        county: County,
+        election_date: ElectionDate,
+        snapshot_id: SnapshotID,
+    ) -> dict:
+        key = self._key(county, election_date, snapshot_id, "manifest.json")
+        return json.loads(self._get_object_bytes(key, "manifest not found"))
+
+    def list_artifacts(
+        self,
+        *,
+        county: County,
+        election_date: ElectionDate,
+        snapshot_id: SnapshotID,
+    ) -> list[ArtifactRef]:
+        manifest = self.get_manifest(
+            county=county,
+            election_date=election_date,
+            snapshot_id=snapshot_id,
+        )
+        refs: list[ArtifactRef] = []
+        for entry in manifest.get("artifacts", []):
+            key = self._key(
+                county, election_date, snapshot_id, entry["filename"]
+            )
+            refs.append(
+                ArtifactRef(
+                    county=county,
+                    election_date=election_date,
+                    snapshot_id=snapshot_id,
+                    filename=entry["filename"],
+                    sha256=entry["sha256"],
+                    size_bytes=entry["size_bytes"],
+                    content_type=entry.get("content_type", ""),
+                    storage_uri=self._uri(key),
+                )
+            )
+        return refs
+
+    def list_snapshots(
+        self,
+        *,
+        county: County,
+        election_date: ElectionDate,
+    ) -> list[SnapshotID]:
+        prefix = f"{self._env}/{county}/{election_date}/"
+        snapshot_ids: list[str] = []
+        token: Optional[str] = None
+        while True:
+            kwargs: dict = {
+                "Bucket": self._bucket,
+                "Prefix": prefix,
+                "Delimiter": "/",
+            }
+            if token:
+                kwargs["ContinuationToken"] = token
+            resp = self.client.list_objects_v2(**kwargs)
+            for cp in resp.get("CommonPrefixes", []):
+                snapshot_ids.append(cp["Prefix"][len(prefix):].rstrip("/"))
+            if not resp.get("IsTruncated"):
+                break
+            token = resp.get("NextContinuationToken")
+        return sorted(snapshot_ids)
+
+    def exists(
+        self,
+        *,
+        county: County,
+        election_date: ElectionDate,
+        snapshot_id: SnapshotID,
+        filename: Optional[str] = None,
+    ) -> bool:
+        if filename is None:
+            prefix = f"{self._env}/{county}/{election_date}/{snapshot_id}/"
+            resp = self.client.list_objects_v2(
+                Bucket=self._bucket, Prefix=prefix, MaxKeys=1
+            )
+            return resp.get("KeyCount", 0) > 0
+        try:
+            self.client.head_object(
+                Bucket=self._bucket,
+                Key=self._key(county, election_date, snapshot_id, filename),
+            )
+        except Exception as e:
+            if _s3_error_code(e) in _S3_NOT_FOUND_CODES:
+                return False
+            raise
+        return True
+
+
 _R2_ENV_KEYS = (
     "R2_ACCESS_KEY_ID",
     "R2_SECRET_ACCESS_KEY",
@@ -344,10 +611,8 @@ _R2_ENV_KEYS = (
 def make_store(*, env: Optional[str] = None) -> RawArtifactStore:
     """Factory. Picks a backend based on env vars.
 
-    - All four R2_* vars set → returns R2ArtifactStore (when impl
-      exists). Currently raises NotImplementedError — R2 impl is
-      added once the Cloudflare account is provisioned.
-    - Otherwise → returns LocalArtifactStore.
+    - All four R2_* vars set → R2ArtifactStore (CI/prod).
+    - Otherwise → LocalArtifactStore (dev, tests).
 
     `env` override defaults to R2_ENV env var, then "dev". Used to
     pin the dev/prod prefix without needing to touch the env vars
@@ -356,9 +621,6 @@ def make_store(*, env: Optional[str] = None) -> RawArtifactStore:
     resolved_env = env or os.environ.get("R2_ENV", "dev")
 
     if all(os.environ.get(k) for k in _R2_ENV_KEYS):
-        raise NotImplementedError(
-            "R2ArtifactStore not yet implemented. "
-            "Unset R2_* env vars to fall back to LocalArtifactStore."
-        )
+        return R2ArtifactStore(env=resolved_env)
 
     return LocalArtifactStore(env=resolved_env)

@@ -12,9 +12,9 @@ fix to Codex round-1; see docs/plans/registrar_pipeline_infra.md).
 
 The run manifest is written to a local directory
 (scraper/data/registrar_runs/, repo-root-relative like the local
-artifact store) and uploaded as a CI workflow artifact. Mirroring it
-into the store under runs/{env}/{run_id}/ arrives with the
-R2ArtifactStore implementation (Phase 0.5 deliverable #5).
+artifact store) for CI workflow-artifact upload, and mirrored into
+the store under runs/{env}/{run_id}/ (best-effort — a mirror failure
+logs a warning but never fails the run).
 
 Counties run sequentially: per-domain rate limits dominate runtime
 and counties are distinct domains, so parallelism buys little until
@@ -153,6 +153,14 @@ def run_pipeline(
     manifest_path = manifest_dir / f"run_manifest_{run_id}.json"
     manifest_path.write_text(json.dumps(manifest, indent=2))
     log.info("run manifest written to %s", manifest_path)
+    try:
+        store_uri = store.put_run_manifest(run_id=run_id, manifest=manifest)
+        log.info("run manifest mirrored to %s", store_uri)
+    except Exception:
+        # Observability artifact, not pipeline truth — a failed
+        # mirror must not turn an otherwise-good run red. The local
+        # copy above still reaches CI as a workflow artifact.
+        log.warning("run manifest mirror to store failed", exc_info=True)
     return manifest
 
 

@@ -30,25 +30,22 @@
 
 ## Next chunk (resume here)
 
-**Phase 0.5 closeout, picking up from `97fd6d9`.** Deliverables
-#1–#4 and #6 shipped (see Recently shipped); remaining:
+**Phase 0.5 closeout.** ALL six deliverables shipped, including the
+`R2ArtifactStore` impl (2026-07-06; boto3-based, lazy import, tested
+against a fake S3 client — 71/71 registrar tests). Remaining:
 
 1. **Igor: provision Cloudflare R2** following
    [`docs/setup/registrar_r2_setup.md`](setup/registrar_r2_setup.md)
    — account, `cal-vgp-registrar-raw` bucket, scoped API token,
    3 GH repo secrets. ~15 min, human-only step.
 
-2. **`R2ArtifactStore` impl in `storage.py`** — boto3-based,
-   S3-compatible (add boto3 to requirements). Currently
-   `make_store()` raises `NotImplementedError` when R2 env vars are
-   set; wire in the real impl once #1 is done, then verify via a
-   manual `workflow_dispatch` run (checklist in the setup doc §6).
+2. **Push the Phase 0.5 commits** — Igor's call on timing. The push
+   itself triggers the new workflow (registrar paths changed) as a
+   dev-env wiring smoke; after secrets exist, a manual
+   `workflow_dispatch` run should show noop objects in the bucket
+   (verify checklist: setup doc §6).
 
-3. **Push the Phase 0.5 commits** (`4b9cb94`, `97fd6d9`, docs) —
-   Igor's call on timing. Note the push itself triggers the new
-   workflow (registrar paths changed) as a dev-env wiring smoke.
-
-4. **Flip the workflow from `--counties=noop` to
+3. **Flip the workflow from `--counties=noop` to
    `--counties=enabled`** — happens in Phase 1 when SB lands in
    `ENABLED_COUNTIES` (runner.py).
 
