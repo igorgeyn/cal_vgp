@@ -48,10 +48,13 @@ capture time. Design: `docs/plans/registrar_phase1_sb.md`.
    cells = announced-not-published = zero expected docs, NOT a
    schema failure. A valid snapshot of this page has
    `pdf_counts {expected: 0, saved: 0}` with `table_row_count: 2`.
-5. **Encoding hazard** — the 1103 page declares UTF-8 but contains
-   at least one non-UTF-8 byte (Windows-1252 apostrophe in the
-   clerk prose). Parse with tolerant decoding; raw artifact bytes
-   stay pristine regardless.
+5. **Encoding: valid strict UTF-8** (corrected 2026-07-09, Codex
+   round-5). An earlier claim of a Windows-1252 byte was a console
+   rendering artifact during inspection — the file decodes cleanly
+   under strict UTF-8 (`\xe2\x80\x99` curly apostrophe in the clerk
+   prose). Tolerant decoding remains DEFENSIVE behavior in the
+   extractor; if that path needs test coverage, use a small
+   synthetic invalid-byte fixture, not this file.
 6. **Landing/discovery** — exactly ONE canonical
    `/elections/{yyyy}/{mmdd}/measures/` link on the landing page
    today (2026/1103). Other elections are linked WITHOUT the
@@ -62,3 +65,14 @@ capture time. Design: `docs/plans/registrar_phase1_sb.md`.
    links a measures page ~4 months early, but the page EXISTS (200,
    announced state) — no linked-but-404 observed. Discovery
    criterion 4 works as designed for this case.
+8. **Out-of-table links exist on measures pages** (Codex round-5):
+   the announced page carries resource links OUTSIDE the measures
+   table (e.g., a generic Form 9600 statement-by-proponents PDF).
+   Extraction must inspect only cells of the identified measures
+   table — a global anchor scan would break the valid 0-expected
+   observation.
+9. **The landing page's canonical measures link lives in duplicated
+   site navigation**, not the page's content table (Codex round-5).
+   Discovery must scan the whole page and deduplicate canonical
+   same-origin URLs by election date — restricting discovery to the
+   content table would miss the candidate.

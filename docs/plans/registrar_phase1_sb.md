@@ -450,10 +450,13 @@ refinements to the design above, all fixture-driven:
    allowance is the main path, not the exception. (Separate domain =
    separate rate-limit bucket + its own robots check, both already
    base-class behavior.)
-4. **Encoding + header quirks**: header "Percentage to Pass"
-   contains an internal `<br/>`; the announced-state page declares
-   UTF-8 but carries at least one Windows-1252 byte. The extractor
-   decodes tolerantly; raw bytes stay pristine in the artifact.
+4. **Header quirk**: "Percentage to Pass" contains an internal
+   `<br/>` — normalization collapses internal whitespace/breaks.
+   ~~An encoding hazard claim (Windows-1252 byte in declared
+   UTF-8)~~ was **corrected in round 5**: the fixture is valid
+   strict UTF-8; the observation was a console rendering artifact.
+   Tolerant decoding stays as defensive extractor behavior, tested
+   via a synthetic fixture if at all.
 
 Red-team watch-item #1 is resolved for the observed case: SB links
 measures pages months early, but the page exists in announced state
@@ -462,9 +465,62 @@ canonical candidate today (2026-11-03); past elections (2026-03-24,
 2026-06-02) are linked without the `/measures/` suffix and enter via
 anchors/backfill, as designed.
 
-**Proposed answers to §9** (for Igor's sign-off): initial anchor
-list `("2026-11-03",)` — the sole forward election, self-confirming
-via discovery; forward-window cutoff = run date (past elections
-excluded until a reviewed backfill batch); first production run
-collects anchors only, with 2026-03-24 entering as the first
-bounded backfill batch once two forward runs are clean.
+~~**Proposed answers to §9**: initial anchor list
+`("2026-11-03",)`; forward-window cutoff = run date; first
+production run anchors only.~~ **Superseded by the round-5 anchor
+lifecycle below** (the as-proposed rule would have gone permanently
+red the week after election day).
+
+---
+
+## Round-5 review amendments (2026-07-09) — Codex verdict: extractor may begin; cron gated on these
+
+Codex round-5 (`docs/codex/registrar_round5_fixture_review.md`)
+reviewed the fixture findings. Confirmed: announced-state handling
+preserves the fail-on-missing-PDF guarantee (expected documents are
+defined by the CURRENT page's advertised links; a removed link is a
+valid observed retraction, and comparing against last week's
+manifest would turn raw capture into policy enforcement); mixed
+published/announced rows need no extra rule (expected docs computed
+per cell); `_text.pdf` naming approved over `_ordinance.pdf`.
+Binding amendments:
+
+1. **BLOCKER — anchor lifecycle** (replaces the superseded §9
+   proposal; the exact rule, from Codex):
+   - `as_of_date` is computed in **America/Los_Angeles**.
+   - An anchor is **active** when `election_date >= as_of_date`.
+   - Discovery must contain every **active** anchor only.
+   - Anchors retire automatically once `election_date < as_of_date`;
+     reviewed pruning of the list is cosmetic, not correctness.
+   - No active anchors AND no future discovered candidate → a
+     **successful idle** SbScraper result with zero snapshots.
+   - Empty discovery is a failure ONLY while ≥1 active anchor
+     exists.
+   - Clock-controlled tests required: missing 2026-11-03 on Nov 2 =
+     red; missing it on Nov 9 = green idle; a newly discovered
+     future election = collected.
+2. **Should-fix — explicit link cardinality per cell.**
+   Jurisdiction, Description, and Analysis cells contain zero or
+   exactly ONE link; more than one is a schema failure (never "take
+   the first" — an amended-ordinance second link must not be
+   silently dropped). The Arguments cell contains zero to four
+   uniquely labelled links; duplicate or unknown labels are schema
+   failures.
+3. **Should-fix — table-scoped extraction, page-wide discovery.**
+   Measures pages carry resource links OUTSIDE the measures table
+   (e.g., Form 9600 PDF): expected-document extraction inspects
+   only the identified table's cells. Conversely, the landing
+   page's canonical candidate link lives in duplicated site
+   NAVIGATION, not the content table: discovery scans the whole
+   page and deduplicates canonical same-origin URLs by election
+   date.
+4. **Test additions**: published→link-free regression fixture test
+   (succeeds with zero expected PDFs); the three clock-controlled
+   anchor tests above; out-of-table link exclusion against the
+   announced fixture; nav-duplication dedup against the landing
+   fixture.
+
+**Remaining for Igor (§9, restated post-round-5):** approve anchor
+list `("2026-11-03",)` under the active-anchor lifecycle above, and
+first production run = anchors only (2026-03-24 as the first
+bounded backfill batch after two clean forward runs).
