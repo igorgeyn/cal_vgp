@@ -418,3 +418,53 @@ fixture phase:
 3. Rollout step 5's local `--counties=sb --env=dev` check is a live
    smoke against the county site, not a fixture run — fine, just
    naming.
+
+---
+
+## Fixture findings (2026-07-09) — design refinements
+
+Rollout step 1 executed same day; fixtures + facts at
+`scraper/tests/fixtures/registrar/sb/` (see its README). Four
+refinements to the design above, all fixture-driven:
+
+1. **Seven roles, not five.** Published rows link from every cell:
+   Jurisdiction → resolution (`RES_*`), Measure Description →
+   ordinance/full measure text (`ORD_*`), plus the five planned
+   (analysis + four argument variants). Filename scheme extends:
+   `measure_{letter}_resolution.pdf`, `measure_{letter}_text.pdf`.
+   Role assignment is by COLUMN for jurisdiction/description (their
+   link labels are variable text — jurisdiction name / measure
+   title), by LABEL within the Arguments list. The Analysis link
+   label is exactly "Impartial".
+2. **"Announced" state is a first-class page state** (Nov 2026
+   fixture): rows exist with Letter "TBD" and ZERO links — Analysis
+   cell is plain text, Arguments cell is clerk-contact prose.
+   Expected documents = cells that CONTAIN links; link-free rows are
+   announced-not-published, a valid observation, not a schema
+   failure. Such a snapshot finalizes with
+   `pdf_counts {expected: 0, saved: 0}` and a nonzero
+   `table_row_count`. §3 step 4's "unrecognized nonblank PDF-link
+   labels" rule applies to LINKS in the Arguments list only.
+3. **Off-origin PDFs are the norm**: every document lives on
+   `uploads.rov.sbcounty.gov`. The design's off-domain-HTTPS
+   allowance is the main path, not the exception. (Separate domain =
+   separate rate-limit bucket + its own robots check, both already
+   base-class behavior.)
+4. **Encoding + header quirks**: header "Percentage to Pass"
+   contains an internal `<br/>`; the announced-state page declares
+   UTF-8 but carries at least one Windows-1252 byte. The extractor
+   decodes tolerantly; raw bytes stay pristine in the artifact.
+
+Red-team watch-item #1 is resolved for the observed case: SB links
+measures pages months early, but the page exists in announced state
+(200) rather than 404. The strict discovery rule found exactly one
+canonical candidate today (2026-11-03); past elections (2026-03-24,
+2026-06-02) are linked without the `/measures/` suffix and enter via
+anchors/backfill, as designed.
+
+**Proposed answers to §9** (for Igor's sign-off): initial anchor
+list `("2026-11-03",)` — the sole forward election, self-confirming
+via discovery; forward-window cutoff = run date (past elections
+excluded until a reviewed backfill batch); first production run
+collects anchors only, with 2026-03-24 entering as the first
+bounded backfill batch once two forward runs are clean.

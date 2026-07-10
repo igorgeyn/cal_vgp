@@ -1,0 +1,13 @@
+{
+  "source_url": "https://elections.sbcounty.gov/elections/2026/1103/measures/",
+  "final_url": "https://elections.sbcounty.gov/elections/2026/1103/measures/",
+  "redirect_chain": [],
+  "http_status": 200,
+  "content_type": "text/html; charset=UTF-8",
+  "etag": "\"cd69ebe191b83217f8a319ea57935798\"",
+  "last_modified": "Fri, 10 Jul 2026 02:25:12 GMT",
+  "size_bytes": 169814,
+  "sha256": "7625ee94ace0fadbfbbb90f86683e2f2d31bad3a45336ce8d2ffb5f837226ce1",
+  "captured_at": "2026-07-10T02:25:10.469831+00:00",
+  "user_agent": "cal-vgp-registrar-scraper/0.1 (+https://github.com/igorgeyn/cal_vgp; contact: igorgeyn@gmail.com)"
+}
