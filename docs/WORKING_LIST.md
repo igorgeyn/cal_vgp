@@ -54,6 +54,35 @@ artifacts, add `"sb"` to `ENABLED_COUNTIES`, flip the workflow to
 source. ~2-3 days. (Direction-check with Igor before starting —
 tier transition.)
 
+**Design inputs locked by Codex round-3 Part B (2026-07-09):**
+
+1. **Hybrid election enumeration** — versioned static anchor list
+   as the coverage contract + weekly discovery from the SB index
+   page; discovered dates accepted only after strict validation
+   (ISO date, expected table headers, same-origin URL). Discovery
+   yielding nothing or losing a known anchor = fail loudly.
+2. **Forward-only first, then bounded manual backfill** in explicit
+   date-bounded batches — historical template drift stays out of
+   the first live run.
+3. **Always snapshot** — byte-identical weekly content is still
+   audit information ("source was checked"). Checksums/ETags in
+   manifests for later comparison; no skip logic in Phase 1.
+4. **Semantic deterministic PDF filenames**
+   (`measure_v_analysis.pdf`, `measure_v_argument_for.pdf`), never
+   URL basenames or link text. Resolve relative links; off-domain
+   HTTPS allowed only when linked by the official page; reject
+   non-HTTP(S) schemes; require PDF content-type or `%PDF-`
+   signature before saving.
+5. **Fail the county on a missing expected PDF** — a page
+   advertising nine documents with seven stored is not raw truth.
+   Partial artifacts stay orphaned (no manifest), county recorded
+   failed, retry next week. Blank table cells = "not expected."
+6. **Fixtures before code** — pin live HTML/PDF fixtures; pure
+   testable table extraction identified by full header set (not
+   position); preserve response bytes for encoding; distinguish
+   zero-measure elections from unpublished/404; manifest extras:
+   `election_url`, discovered date, expected-vs-saved PDF counts.
+
 **After Phase 0.5 ships:** Phase 1 starts with **SB first** (cleanest
 data shape per recon), then **LA → OC → SD → Riverside**. Riverside
 needs Playwright (Cloudflare bot challenge confirmed at recon;
@@ -141,6 +170,31 @@ commits `4542d4a` → `bec2abe` → round-4 fixes `a1582c8` + `df6e73f`
 - Phase G — v3 + combined integrity: 9/9 PASS.
 
 ## Recently shipped
+
+### 2026-07-09 — Codex round-3: fix verification passed + 3 gaps closed + Phase 1 design locked
+
+Round-3 (`docs/codex/registrar_round3_fixes_and_phase1.md`) verified
+all round-2 fixes as applied correctly and found 3 residual gaps +
+1 deferred nit, all fixed same day (109/109 registrar tests):
+
+- **Manifest create-only in both stores** — closes the
+  open_snapshot check-then-write race at the last writer. Local
+  uses atomic `open('x')`; R2 uses conditional `IfNoneMatch="*"`
+  (S3 conditional writes, R2-supported). Overwriting a manifest now
+  raises FileExistsError.
+- **Redirect holes** — 3xx without a Location header raises
+  FetchError instead of passing as success; robots.txt fetch no
+  longer auto-follows redirects (redirected robots = unfetchable =
+  allow), so no request anywhere auto-follows.
+- **Validation hardening** — `env` validated at store construction
+  (it's a path component controllable via R2_ENV/--env); validator
+  also rejects Windows trailing dots and reserved device names
+  (NUL, COM1, `com1.pdf`, ...).
+- **Deferred to Riverside** (recorded as explicit prerequisite):
+  per-hop politeness for Playwright's browser-managed redirects.
+
+Part B locked the six SB design decisions now listed under "Next
+chunk" above.
 
 ### 2026-07-09 — Codex round-2 review applied (1 blocker + 6 should-fix + 1 nit, all accepted)
 
@@ -315,7 +369,11 @@ checks pass; Phase F manual checklist signed off via browser spot-check).
 - [ ] **Phase 1: Riverside scraper (with Playwright).** Heaviest of
       the five; needs JS-rendering to pass the Cloudflare challenge.
       Defer until LA/OC/SB are stable so we know Playwright fits the
-      base scraper cleanly.
+      base scraper cleanly. **Explicit prerequisite (Codex round-3):**
+      per-hop robots/rate-limit policy for browser-managed redirects
+      — the Playwright fetch path delegates redirects to the browser,
+      so the requests-mode per-hop politeness guarantees don't apply
+      to it yet.
 
 - [ ] **Parser + loader stages.** Once raw artifacts are landing in
       R2, build the per-county parser (R2 → normalized JSONL) and

@@ -426,8 +426,17 @@ class CountyRegistrarScraper(ABC):
         current = url
         for _hop in range(self.config.max_redirects + 1):
             resp = self._request_with_retries(current)
-            location = resp.headers.get("Location")
-            if resp.status_code in _REDIRECT_STATUSES and location:
+            if resp.status_code in _REDIRECT_STATUSES:
+                location = resp.headers.get("Location")
+                if not location:
+                    # A redirect that points nowhere is a broken
+                    # response, not a successful fetch (Codex round-3).
+                    raise FetchError(
+                        f"HTTP {resp.status_code} redirect from {current} "
+                        "without a Location header",
+                        url=url,
+                        http_status=resp.status_code,
+                    )
                 current = urljoin(current, location)
                 continue
             return self._result_from_response(url, resp)
@@ -631,20 +640,26 @@ class CountyRegistrarScraper(ABC):
     ) -> Optional[urllib.robotparser.RobotFileParser]:
         robots_url = f"{origin}/robots.txt"
         # The robots fetch is itself a request to the domain — it
-        # participates in the rate limit like any other.
+        # participates in the rate limit like any other. Redirects
+        # are NOT followed: auto-following could fetch a different
+        # origin without that origin's own policy check (Codex
+        # round-3), so a redirected robots.txt counts as unfetchable
+        # (= allow, per convention).
         self._rate_limit(robots_url)
         try:
             resp = self._session.get(
                 robots_url,
                 headers={"User-Agent": self.config.user_agent},
                 timeout=self.config.timeout_seconds,
+                allow_redirects=False,
             )
         except requests.RequestException as e:
             self._log.info("robots.txt unfetchable for %s (%s)", origin, e)
             return None
-        if resp.status_code >= 400:
+        if resp.status_code >= 300:
             self._log.info(
-                "robots.txt returned %d for %s", resp.status_code, origin
+                "robots.txt returned %d for %s; treating as unfetchable",
+                resp.status_code, origin,
             )
             return None
         parser = urllib.robotparser.RobotFileParser()

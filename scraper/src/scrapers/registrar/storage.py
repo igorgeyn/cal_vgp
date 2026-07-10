@@ -52,19 +52,31 @@ DEFAULT_LOCAL_BASE = Path("scraper/data/registrar_raw")
 MANIFEST_FILENAME = "manifest.json"
 
 
+# Windows refuses (or silently mangles) these as file basenames.
+_WINDOWS_RESERVED_NAMES = frozenset(
+    {"CON", "PRN", "AUX", "NUL"}
+    | {f"COM{i}" for i in range(1, 10)}
+    | {f"LPT{i}" for i in range(1, 10)}
+)
+
+
 def _validate_component(value: str, name: str) -> str:
     """Reject values that could escape the storage root or collide
     with key structure when joined into a filesystem path or object
     key (Codex round-2: a scraper deriving a filename from a URL
-    must not be able to smuggle '../' or an absolute path)."""
+    must not be able to smuggle '../' or an absolute path; round-3:
+    also env itself, Windows trailing dots, and reserved device
+    names like NUL/COM1)."""
     if (
         not value
         or value != value.strip()
+        or value != value.rstrip(". ")  # Windows strips trailing dots
         or value in (".", "..")
         or "/" in value
         or "\\" in value
         or ":" in value
         or "\x00" in value
+        or value.split(".")[0].upper() in _WINDOWS_RESERVED_NAMES
     ):
         raise ValueError(f"unsafe {name} for storage key: {value!r}")
     return value
@@ -237,7 +249,9 @@ class LocalArtifactStore:
         env: str = "dev",
     ):
         self._base = Path(base_dir)
-        self._env = env
+        # env is a path component too (settable via R2_ENV / --env),
+        # so it passes through the same gate as everything else.
+        self._env = _validate_component(env, "env")
 
     def _snap_dir(
         self,
@@ -294,7 +308,17 @@ class LocalArtifactStore:
         d = self._snap_dir(county, election_date, snapshot_id)
         d.mkdir(parents=True, exist_ok=True)
         path = d / "manifest.json"
-        path.write_text(json.dumps(manifest, indent=2))
+        try:
+            # 'x' = atomic create-only: the manifest is the snapshot's
+            # completeness marker, so overwriting one would rewrite
+            # history. Closes the open_snapshot check-then-write race
+            # at the last writer (Codex round-3).
+            with path.open("x") as f:
+                f.write(json.dumps(manifest, indent=2))
+        except FileExistsError:
+            raise FileExistsError(
+                f"manifest already exists (snapshots are immutable): {path}"
+            ) from None
         return str(path.resolve())
 
     def put_run_manifest(self, *, run_id: str, manifest: dict) -> str:
@@ -454,7 +478,9 @@ class R2ArtifactStore:
         self._secret_access_key = secret_access_key or os.environ.get(
             "R2_SECRET_ACCESS_KEY"
         )
-        self._env = env or os.environ.get("R2_ENV", "dev")
+        self._env = _validate_component(
+            env or os.environ.get("R2_ENV", "dev"), "env"
+        )
         self._client = client
 
     @property
@@ -530,12 +556,26 @@ class R2ArtifactStore:
         manifest: dict,
     ) -> str:
         key = self._key(county, election_date, snapshot_id, "manifest.json")
-        self.client.put_object(
-            Bucket=self._bucket,
-            Key=key,
-            Body=json.dumps(manifest, indent=2).encode("utf-8"),
-            ContentType="application/json",
-        )
+        try:
+            # IfNoneMatch="*" = conditional create-only (R2 supports
+            # S3 conditional writes). Mirrors the local store's 'x'
+            # mode: a manifest is never overwritten. If the backend
+            # ever rejected the header the put would fail loudly —
+            # it can't silently regress to overwriting.
+            self.client.put_object(
+                Bucket=self._bucket,
+                Key=key,
+                Body=json.dumps(manifest, indent=2).encode("utf-8"),
+                ContentType="application/json",
+                IfNoneMatch="*",
+            )
+        except Exception as e:
+            if _s3_error_code(e) in ("PreconditionFailed", "412"):
+                raise FileExistsError(
+                    f"manifest already exists (snapshots are immutable): "
+                    f"{self._uri(key)}"
+                ) from e
+            raise
         return self._uri(key)
 
     def put_run_manifest(self, *, run_id: str, manifest: dict) -> str:

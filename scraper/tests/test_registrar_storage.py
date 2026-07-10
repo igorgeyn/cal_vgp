@@ -389,7 +389,13 @@ def test_dev_and_prod_envs_are_isolated(tmp_path, sample_meta):
 
 @pytest.mark.parametrize(
     "bad_filename",
-    ["../evil.html", "a/b.html", "a\\b.html", "..", "", " padded.html", "c:evil"],
+    [
+        "../evil.html", "a/b.html", "a\\b.html", "..", "",
+        " padded.html", "c:evil",
+        "page.html.",   # Windows strips trailing dots
+        "NUL",          # Windows reserved device name
+        "com1.pdf",     # reserved name survives an extension
+    ],
 )
 def test_put_artifact_rejects_unsafe_filenames(store, sample_meta, bad_filename):
     with pytest.raises(ValueError, match="unsafe"):
@@ -427,6 +433,26 @@ def test_unsafe_county_rejected_across_stores(store, sample_meta):
                 body=b"x",
                 metadata=sample_meta,
             )
+
+
+def test_env_validated_at_construction():
+    """env is a path/key component controllable via R2_ENV / --env
+    (Codex round-3) — same gate as everything else."""
+    with pytest.raises(ValueError, match="unsafe env"):
+        LocalArtifactStore(base_dir="unused", env="../prod")
+    with pytest.raises(ValueError, match="unsafe env"):
+        R2ArtifactStore(bucket="b", env="prod/../dev", client=object())
+
+
+def test_manifest_is_create_only_local(store):
+    """Closing the open_snapshot check-then-write race at the last
+    writer: a manifest can never be overwritten."""
+    kwargs = dict(county="sb", election_date="2026-03-24", snapshot_id="snap1")
+    store.put_manifest(**kwargs, manifest={"artifacts": []})
+    with pytest.raises(FileExistsError, match="immutable"):
+        store.put_manifest(**kwargs, manifest={"artifacts": ["spoofed"]})
+    # Original manifest untouched.
+    assert store.get_manifest(**kwargs) == {"artifacts": []}
 
 
 def test_get_artifact_rejects_unsafe_ref_filename(store):
@@ -574,7 +600,12 @@ class FakeS3Client:
         # (bucket, key) -> {"Body": bytes, "ContentType": str, "Metadata": dict}
         self.objects: dict[tuple[str, str], dict] = {}
 
-    def put_object(self, *, Bucket, Key, Body, ContentType=None, Metadata=None):
+    def put_object(
+        self, *, Bucket, Key, Body, ContentType=None, Metadata=None,
+        IfNoneMatch=None,
+    ):
+        if IfNoneMatch == "*" and (Bucket, Key) in self.objects:
+            raise FakeClientError("PreconditionFailed")
         self.objects[(Bucket, Key)] = {
             "Body": bytes(Body),
             "ContentType": ContentType,
@@ -869,6 +900,14 @@ def test_r2_env_prefixes_are_isolated(s3, sample_meta):
     assert not prod.exists(
         county="sb", election_date="2026-03-24", snapshot_id="snap1"
     )
+
+
+def test_r2_manifest_is_create_only(r2):
+    kwargs = dict(county="sb", election_date="2026-03-24", snapshot_id="snap1")
+    r2.put_manifest(**kwargs, manifest={"artifacts": []})
+    with pytest.raises(FileExistsError, match="immutable"):
+        r2.put_manifest(**kwargs, manifest={"artifacts": ["spoofed"]})
+    assert r2.get_manifest(**kwargs) == {"artifacts": []}
 
 
 def test_r2_put_run_manifest_key_layout(r2, s3):

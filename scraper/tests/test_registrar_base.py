@@ -57,9 +57,11 @@ class FakeSession:
     def __init__(self, responses: dict[str, list] | None = None):
         self.responses = responses or {}
         self.calls: list[tuple[str, dict]] = []  # (url, headers)
+        self.redirect_policy: list[tuple[str, bool]] = []  # (url, allow_redirects)
 
     def get(self, url, headers=None, timeout=None, allow_redirects=True):
         self.calls.append((url, headers or {}))
+        self.redirect_policy.append((url, allow_redirects))
         queue = self.responses.get(url)
         if not queue:
             return FakeResponse(status_code=404, url=url)
@@ -471,6 +473,38 @@ def test_redirect_to_new_origin_checks_that_origins_robots():
 
     # The disallowed origin's page was never requested.
     assert other_page not in session.urls_called()
+
+
+def test_redirect_without_location_raises():
+    """A 3xx with no Location header is a broken response, not a
+    successful fetch (Codex round-3)."""
+    session = FakeSession({PAGE_URL: [FakeResponse(status_code=302, headers={})]})
+    scraper, _ = make_scraper(session=session, config=NO_ROBOTS)
+    with pytest.raises(FetchError, match="without a Location header"):
+        scraper.fetch(PAGE_URL)
+
+
+def test_robots_redirect_treated_as_unfetchable():
+    """robots.txt redirecting (e.g. to another origin) must not be
+    auto-followed — a redirected robots is unfetchable = allow."""
+    session = FakeSession(
+        {
+            ROBOTS_URL: [
+                FakeResponse(
+                    status_code=301,
+                    headers={"Location": "https://other.gov/robots.txt"},
+                )
+            ],
+            PAGE_URL: [FakeResponse(content=b"ok")],
+        }
+    )
+    scraper, _ = make_scraper(session=session)
+    assert scraper.fetch(PAGE_URL).body == b"ok"
+
+    # The other origin's robots.txt was never fetched, and no
+    # request anywhere auto-follows redirects.
+    assert "https://other.gov/robots.txt" not in session.urls_called()
+    assert all(flag is False for _, flag in session.redirect_policy)
 
 
 def test_redirect_loop_raises():
