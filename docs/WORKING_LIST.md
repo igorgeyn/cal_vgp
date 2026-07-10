@@ -699,6 +699,17 @@ checks pass; Phase F manual checklist signed off via browser spot-check).
       pass. Also a likely prerequisite for the thematic-policy narrative
       work above.
 
+- [ ] **Harvest Georgia's API-scaffold ideas** (branch
+      `georgia/api-scaffold`, reviewed + reverted from main 2026-07-09).
+      Her Claude-generated PostgreSQL/FastAPI scaffold is a parallel
+      universe as code (never executed, no ingest path, second API) —
+      but the schema ideas are directly relevant: CAP topic codebook
+      (Comparative Agendas Project — candidate taxonomy for the
+      topic-classification gap above), seeded structural-breaks table
+      (Prop 13 / FPPC 1974 / Citizens United — useful for narrative
+      arcs), endorsements schema (Lupia elite-cue framing), county
+      FIPS/region reference data. Mine for design input, don't merge.
+
 - [ ] **Audit topic-flag accuracy in `ca_historical_measures`**.
 
 - [ ] **Expand statewide-measure historical coverage.** Separate from
