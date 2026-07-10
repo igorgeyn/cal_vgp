@@ -208,6 +208,23 @@ def test_fetch_retries_connection_errors_then_raises():
     assert sleeps == [2.0, 4.0]
 
 
+def test_fetch_retries_429_with_backoff():
+    """429 means 'slow down', not 'go away' — retry politely."""
+    session = FakeSession(
+        {
+            PAGE_URL: [
+                FakeResponse(status_code=429),
+                FakeResponse(content=b"welcomed back"),
+            ]
+        }
+    )
+    sleeps: list[float] = []
+    result = make_scraper(session=session, sleeps=sleeps).fetch(PAGE_URL)
+
+    assert result.body == b"welcomed back"
+    assert 2.0 in sleeps
+
+
 def test_fetch_does_not_retry_4xx():
     session = FakeSession({PAGE_URL: [FakeResponse(status_code=403)]})
     with pytest.raises(FetchError) as exc_info:

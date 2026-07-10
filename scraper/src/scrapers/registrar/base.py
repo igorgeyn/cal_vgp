@@ -7,7 +7,8 @@ blocks scrape() needs:
 
 - fetch(url): polite HTTP fetch. Project-identifying User-Agent,
   per-domain rate limiting, retries with exponential backoff for
-  5xx/connection errors (never 4xx), robots.txt check per domain.
+  429/5xx/connection errors (never other 4xx), robots.txt check
+  per domain.
   Two fetch modes: "requests" (default) and "playwright" for
   JS-challenged sites (Riverside's Cloudflare wall).
 - open_snapshot(election_date): returns a SnapshotWriter that
@@ -89,7 +90,7 @@ class ScraperConfig:
     user_agent: str = DEFAULT_USER_AGENT
     rate_limit_seconds: float = 2.0     # min interval between requests, per domain
     timeout_seconds: float = 30.0
-    max_retries: int = 3                # attempts for 5xx/connection errors
+    max_retries: int = 3                # attempts for 429/5xx/connection errors
     backoff_base_seconds: float = 2.0   # 2s, 4s, 8s...
     respect_robots: bool = True
 
@@ -389,7 +390,9 @@ class CountyRegistrarScraper(ABC):
                     self._backoff(attempt)
                 continue
 
-            if 500 <= resp.status_code < 600:
+            # 429 is the site telling us to slow down — backing off
+            # and retrying IS the polite response, unlike other 4xx.
+            if resp.status_code == 429 or 500 <= resp.status_code < 600:
                 last_error = FetchError(
                     f"HTTP {resp.status_code} from {url}",
                     url=url,
