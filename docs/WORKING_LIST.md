@@ -703,16 +703,17 @@ checks pass; Phase F manual checklist signed off via browser spot-check).
       pass. Also a likely prerequisite for the thematic-policy narrative
       work above.
 
-- [ ] **Harvest Georgia's API-scaffold ideas** (branch
-      `georgia/api-scaffold`, reviewed + reverted from main 2026-07-09).
-      Her Claude-generated PostgreSQL/FastAPI scaffold is a parallel
-      universe as code (never executed, no ingest path, second API) —
-      but the schema ideas are directly relevant: CAP topic codebook
-      (Comparative Agendas Project — candidate taxonomy for the
-      topic-classification gap above), seeded structural-breaks table
-      (Prop 13 / FPPC 1974 / Citizens United — useful for narrative
-      arcs), endorsements schema (Lupia elite-cue framing), county
-      FIPS/region reference data. Mine for design input, don't merge.
+- [ ] **Harvest Georgia's API-scaffold ideas** — full review +
+      integration roadmap at
+      [`docs/plans/georgia_scaffold_integration.md`](plans/georgia_scaffold_integration.md)
+      (2026-07-09; work preserved on branch `georgia/api-scaffold`).
+      Headline: adopt CAP as the topic taxonomy for the
+      classification-gap fix above (⭐ flagship graft), ride
+      structural-breaks table + county FIPS along with it, then a
+      Georgia-led analysis-dataset export (CSV/parquet from
+      `ballot_measures.db`) for her R prediction model instead of a
+      parallel Postgres. Not integrating: her CampaignFinance table,
+      the second FastAPI app, endorsements (no data source).
 
 - [ ] **Audit topic-flag accuracy in `ca_historical_measures`**.
 
