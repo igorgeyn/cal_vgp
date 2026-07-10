@@ -30,20 +30,21 @@
 
 ## Next chunk (resume here)
 
-**Phase 0.5 closeout.** ALL six deliverables shipped, including the
-`R2ArtifactStore` impl (2026-07-06; boto3-based, lazy import, tested
-against a fake S3 client — 71/71 registrar tests). Remaining:
+**Phase 0.5 closeout.** ALL six deliverables shipped, Codex round-2
+review applied (see Recently shipped), and **R2 is provisioned
+(2026-07-09)**: bucket `cal-vgp-registrar-raw` live, scoped token
+created, 3 GH secrets set via `gh secret set`, and a real noop run
+verified against the live bucket (plan-shaped layout, sha-verified
+round trips, run manifest mirrored to `runs/dev/`). Remaining:
 
-1. **Igor: provision Cloudflare R2** following
-   [`docs/setup/registrar_r2_setup.md`](setup/registrar_r2_setup.md)
-   — account, `cal-vgp-registrar-raw` bucket, scoped API token,
-   3 GH repo secrets. ~15 min, human-only step.
+1. **Push the Phase 0.5 commits** — Igor's call on timing. The push
+   itself triggers the workflow (registrar paths changed) as a
+   dev-env smoke that now writes to the real bucket's `dev/` prefix.
 
-2. **Push the Phase 0.5 commits** — Igor's call on timing. The push
-   itself triggers the new workflow (registrar paths changed) as a
-   dev-env wiring smoke; after secrets exist, a manual
-   `workflow_dispatch` run should show noop objects in the bucket
-   (verify checklist: setup doc §6).
+2. **Manual `workflow_dispatch` run** after the push — verifies the
+   prod path end to end (checklist: setup doc §6; expect noop
+   objects under `prod/` + green run + `store_backend: r2` in the
+   run-manifest artifact).
 
 3. **Flip the workflow from `--counties=noop` to
    `--counties=enabled`** — happens in Phase 1 when SB lands in
