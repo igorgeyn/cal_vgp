@@ -15,6 +15,7 @@ from src.scrapers.registrar.storage import (
     LocalArtifactStore,
     R2ArtifactStore,
     RawArtifactStore,
+    StoreConfigurationError,
     make_store,
 )
 
@@ -257,6 +258,12 @@ def test_list_snapshots_sorted_ascending(store, sample_meta):
             body=b"x",
             metadata=sample_meta,
         )
+        store.put_manifest(
+            county="sb",
+            election_date="2026-03-24",
+            snapshot_id=snap,
+            manifest={"artifacts": []},
+        )
     snaps = store.list_snapshots(county="sb", election_date="2026-03-24")
     assert snaps == [
         "20260101T120000Z",
@@ -267,6 +274,37 @@ def test_list_snapshots_sorted_ascending(store, sample_meta):
 
 def test_list_snapshots_empty_for_unknown(store):
     assert store.list_snapshots(county="sb", election_date="2099-01-01") == []
+
+
+def test_incomplete_snapshot_invisible_until_manifest(store, sample_meta):
+    """Manifest presence defines snapshot existence — a crashed run's
+    orphan artifacts must not surface to parsers."""
+    store.put_artifact(
+        county="sb",
+        election_date="2026-03-24",
+        snapshot_id="orphan",
+        filename="page.html",
+        body=b"crashed before finalize",
+        metadata=sample_meta,
+    )
+
+    assert store.list_snapshots(county="sb", election_date="2026-03-24") == []
+    assert not store.exists(
+        county="sb", election_date="2026-03-24", snapshot_id="orphan"
+    )
+
+    store.put_manifest(
+        county="sb",
+        election_date="2026-03-24",
+        snapshot_id="orphan",
+        manifest={"artifacts": []},
+    )
+    assert store.list_snapshots(county="sb", election_date="2026-03-24") == [
+        "orphan"
+    ]
+    assert store.exists(
+        county="sb", election_date="2026-03-24", snapshot_id="orphan"
+    )
 
 
 # ---------------------------------------------------------------- exists
@@ -282,14 +320,26 @@ def test_exists_snapshot_and_artifact(store, sample_meta):
         metadata=sample_meta,
     )
 
-    assert store.exists(
-        county="sb", election_date="2026-03-24", snapshot_id="snap1"
-    )
+    # Artifact-level exists is immediate; snapshot-level requires
+    # the manifest (completeness marker).
     assert store.exists(
         county="sb",
         election_date="2026-03-24",
         snapshot_id="snap1",
         filename="page.html",
+    )
+    assert not store.exists(
+        county="sb", election_date="2026-03-24", snapshot_id="snap1"
+    )
+
+    store.put_manifest(
+        county="sb",
+        election_date="2026-03-24",
+        snapshot_id="snap1",
+        manifest={"artifacts": []},
+    )
+    assert store.exists(
+        county="sb", election_date="2026-03-24", snapshot_id="snap1"
     )
     assert not store.exists(
         county="sb",
@@ -319,6 +369,12 @@ def test_dev_and_prod_envs_are_isolated(tmp_path, sample_meta):
         body=b"DEV ONLY",
         metadata=sample_meta,
     )
+    dev.put_manifest(
+        county="sb",
+        election_date="2026-03-24",
+        snapshot_id="snap1",
+        manifest={"artifacts": []},
+    )
 
     assert dev.exists(
         county="sb", election_date="2026-03-24", snapshot_id="snap1"
@@ -328,20 +384,120 @@ def test_dev_and_prod_envs_are_isolated(tmp_path, sample_meta):
     )
 
 
+# ---------------------------------------------------------------- path safety
+
+
+@pytest.mark.parametrize(
+    "bad_filename",
+    ["../evil.html", "a/b.html", "a\\b.html", "..", "", " padded.html", "c:evil"],
+)
+def test_put_artifact_rejects_unsafe_filenames(store, sample_meta, bad_filename):
+    with pytest.raises(ValueError, match="unsafe"):
+        store.put_artifact(
+            county="sb",
+            election_date="2026-03-24",
+            snapshot_id="snap1",
+            filename=bad_filename,
+            body=b"x",
+            metadata=sample_meta,
+        )
+
+
+def test_put_artifact_rejects_reserved_manifest_filename(store, sample_meta):
+    with pytest.raises(ValueError, match="reserved"):
+        store.put_artifact(
+            county="sb",
+            election_date="2026-03-24",
+            snapshot_id="snap1",
+            filename="manifest.json",
+            body=b"{}",
+            metadata=sample_meta,
+        )
+
+
+def test_unsafe_county_rejected_across_stores(store, sample_meta):
+    r2 = R2ArtifactStore(bucket="b", env="dev", client=object())
+    for s in (store, r2):
+        with pytest.raises(ValueError, match="unsafe"):
+            s.put_artifact(
+                county="../prod",
+                election_date="2026-03-24",
+                snapshot_id="snap1",
+                filename="page.html",
+                body=b"x",
+                metadata=sample_meta,
+            )
+
+
+def test_get_artifact_rejects_unsafe_ref_filename(store):
+    hostile = ArtifactRef(
+        county="sb",
+        election_date="2026-03-24",
+        snapshot_id="snap1",
+        filename="../../secrets.txt",
+        sha256="0" * 64,
+        size_bytes=0,
+        content_type="text/plain",
+        storage_uri="",
+    )
+    with pytest.raises(ValueError, match="unsafe"):
+        store.get_artifact(hostile)
+
+
 # ---------------------------------------------------------------- factory
 
 
-def test_make_store_returns_local_when_no_r2_env(monkeypatch):
+def _clear_r2_env(monkeypatch):
     for k in (
         "R2_ACCESS_KEY_ID",
         "R2_SECRET_ACCESS_KEY",
         "R2_ENDPOINT_URL",
         "R2_BUCKET",
+        "R2_ENV",
+        "GITHUB_ACTIONS",
     ):
         monkeypatch.delenv(k, raising=False)
 
+
+def test_make_store_returns_local_when_no_r2_env(monkeypatch):
+    _clear_r2_env(monkeypatch)
+
     store = make_store()
     assert isinstance(store, LocalArtifactStore)
+
+
+def test_make_store_prod_in_ci_without_r2_fails_loudly(monkeypatch):
+    """A missing secret must never let a prod cron silently write to
+    ephemeral CI disk and report green (Codex round-2 blocker)."""
+    _clear_r2_env(monkeypatch)
+    monkeypatch.setenv("GITHUB_ACTIONS", "true")
+    monkeypatch.setenv("R2_ENV", "prod")
+    monkeypatch.setenv("R2_ACCESS_KEY_ID", "key")  # partial config
+
+    with pytest.raises(StoreConfigurationError) as exc_info:
+        make_store()
+    # Error names the missing variables for fast diagnosis.
+    message = str(exc_info.value)
+    assert "R2_SECRET_ACCESS_KEY" in message
+    assert "R2_ENDPOINT_URL" in message
+    assert "R2_ACCESS_KEY_ID" not in message  # that one IS set
+
+
+def test_make_store_dev_in_ci_keeps_local_fallback(monkeypatch):
+    """Pre-provisioning wiring smoke tests run in CI against dev."""
+    _clear_r2_env(monkeypatch)
+    monkeypatch.setenv("GITHUB_ACTIONS", "true")
+    monkeypatch.setenv("R2_ENV", "dev")
+
+    assert isinstance(make_store(), LocalArtifactStore)
+
+
+def test_make_store_prod_outside_ci_allows_local(monkeypatch):
+    """A local prod-prefix run on a dev machine is legitimate."""
+    _clear_r2_env(monkeypatch)
+    monkeypatch.setenv("R2_ENV", "prod")
+
+    assert isinstance(make_store(), LocalArtifactStore)
 
 
 def test_make_store_returns_r2_when_r2_env_set(monkeypatch):
@@ -606,11 +762,46 @@ def test_r2_list_snapshots_sorted(r2, sample_meta):
             body=b"x",
             metadata=sample_meta,
         )
+        r2.put_manifest(
+            county="sb",
+            election_date="2026-03-24",
+            snapshot_id=snap,
+            manifest={"artifacts": []},
+        )
     assert r2.list_snapshots(county="sb", election_date="2026-03-24") == [
         "20260101T120000Z",
         "20260102T120000Z",
     ]
     assert r2.list_snapshots(county="sb", election_date="2099-01-01") == []
+
+
+def test_r2_incomplete_snapshot_invisible_until_manifest(r2, sample_meta):
+    r2.put_artifact(
+        county="sb",
+        election_date="2026-03-24",
+        snapshot_id="orphan",
+        filename="page.html",
+        body=b"crashed before finalize",
+        metadata=sample_meta,
+    )
+
+    assert r2.list_snapshots(county="sb", election_date="2026-03-24") == []
+    assert not r2.exists(
+        county="sb", election_date="2026-03-24", snapshot_id="orphan"
+    )
+
+    r2.put_manifest(
+        county="sb",
+        election_date="2026-03-24",
+        snapshot_id="orphan",
+        manifest={"artifacts": []},
+    )
+    assert r2.list_snapshots(county="sb", election_date="2026-03-24") == [
+        "orphan"
+    ]
+    assert r2.exists(
+        county="sb", election_date="2026-03-24", snapshot_id="orphan"
+    )
 
 
 def test_r2_exists_snapshot_and_artifact(r2, sample_meta):
@@ -622,14 +813,26 @@ def test_r2_exists_snapshot_and_artifact(r2, sample_meta):
         body=b"x",
         metadata=sample_meta,
     )
-    assert r2.exists(
-        county="sb", election_date="2026-03-24", snapshot_id="snap1"
-    )
+    # Artifact-level exists is immediate; snapshot-level requires
+    # the manifest (completeness marker).
     assert r2.exists(
         county="sb",
         election_date="2026-03-24",
         snapshot_id="snap1",
         filename="page.html",
+    )
+    assert not r2.exists(
+        county="sb", election_date="2026-03-24", snapshot_id="snap1"
+    )
+
+    r2.put_manifest(
+        county="sb",
+        election_date="2026-03-24",
+        snapshot_id="snap1",
+        manifest={"artifacts": []},
+    )
+    assert r2.exists(
+        county="sb", election_date="2026-03-24", snapshot_id="snap1"
     )
     assert not r2.exists(
         county="sb",
@@ -653,6 +856,12 @@ def test_r2_env_prefixes_are_isolated(s3, sample_meta):
         filename="page.html",
         body=b"DEV ONLY",
         metadata=sample_meta,
+    )
+    dev.put_manifest(
+        county="sb",
+        election_date="2026-03-24",
+        snapshot_id="snap1",
+        manifest={"artifacts": []},
     )
     assert dev.exists(
         county="sb", election_date="2026-03-24", snapshot_id="snap1"

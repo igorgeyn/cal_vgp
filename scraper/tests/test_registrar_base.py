@@ -74,6 +74,22 @@ class FakeSession:
         return [url for url, _ in self.calls]
 
 
+class FakeTime:
+    """Linked sleep + monotonic: sleeping advances the clock, so
+    rate-limit arithmetic is exact and assertions deterministic."""
+
+    def __init__(self):
+        self.now = 0.0
+        self.sleeps: list[float] = []
+
+    def sleep(self, seconds: float) -> None:
+        self.sleeps.append(seconds)
+        self.now += seconds
+
+    def monotonic(self) -> float:
+        return self.now
+
+
 class DummyScraper(CountyRegistrarScraper):
     county = "dummy"
 
@@ -84,17 +100,22 @@ class DummyScraper(CountyRegistrarScraper):
 FIXED_NOW = datetime(2026, 7, 6, 12, 0, 0, tzinfo=timezone.utc)
 
 
-def make_scraper(session=None, config=None, clock=None, sleeps=None):
-    """DummyScraper with fakes wired in. `sleeps` (a list) records
-    every sleep call instead of actually sleeping."""
-    return DummyScraper(
+def make_scraper(session=None, config=None, clock=None):
+    """DummyScraper with fakes wired in. Returns (scraper, faketime);
+    faketime.sleeps records every sleep."""
+    ft = FakeTime()
+    scraper = DummyScraper(
         LocalArtifactStore(base_dir="unused-in-fetch-tests"),
         config=config or ScraperConfig(),
         clock=clock or (lambda: FIXED_NOW),
         session=session or FakeSession(),
-        sleep=(sleeps.append if sleeps is not None else lambda s: None),
+        sleep=ft.sleep,
+        monotonic=ft.monotonic,
     )
+    return scraper, ft
 
+
+NO_ROBOTS = ScraperConfig(respect_robots=False)
 
 PAGE_URL = "https://example.gov/elections/measures/"
 ROBOTS_URL = "https://example.gov/robots.txt"
@@ -105,7 +126,7 @@ ROBOTS_URL = "https://example.gov/robots.txt"
 
 def test_fetch_sends_polite_user_agent_everywhere():
     session = FakeSession({PAGE_URL: [FakeResponse(content=b"<html/>")]})
-    scraper = make_scraper(session=session)
+    scraper, _ = make_scraper(session=session)
 
     scraper.fetch(PAGE_URL)
 
@@ -132,7 +153,8 @@ def test_fetch_result_carries_response_fields():
             ]
         }
     )
-    result = make_scraper(session=session).fetch(PAGE_URL)
+    scraper, _ = make_scraper(session=session)
+    result = scraper.fetch(PAGE_URL)
 
     assert result.url == PAGE_URL
     assert result.final_url == PAGE_URL + "final"
@@ -180,12 +202,13 @@ def test_fetch_retries_5xx_then_succeeds_with_backoff():
             ]
         }
     )
-    sleeps: list[float] = []
-    result = make_scraper(session=session, sleeps=sleeps).fetch(PAGE_URL)
+    scraper, ft = make_scraper(session=session)
+    result = scraper.fetch(PAGE_URL)
 
     assert result.body == b"recovered"
     assert session.urls_called().count(PAGE_URL) == 2
-    assert 2.0 in sleeps  # backoff_base * 2^0
+    # robots->page rate-limit spacing, then the 2s backoff.
+    assert ft.sleeps == [2.0, 2.0]
 
 
 def test_fetch_retries_connection_errors_then_raises():
@@ -198,14 +221,15 @@ def test_fetch_retries_connection_errors_then_raises():
             ]
         }
     )
-    sleeps: list[float] = []
+    scraper, ft = make_scraper(session=session)
     with pytest.raises(FetchError) as exc_info:
-        make_scraper(session=session, sleeps=sleeps).fetch(PAGE_URL)
+        scraper.fetch(PAGE_URL)
 
     assert session.urls_called().count(PAGE_URL) == 3  # max_retries
     assert exc_info.value.url == PAGE_URL
-    # Exponential backoff between attempts, none after the last.
-    assert sleeps == [2.0, 4.0]
+    # Rate-limit spacing after robots, then exponential backoff
+    # between attempts (none after the last).
+    assert ft.sleeps == [2.0, 2.0, 4.0]
 
 
 def test_fetch_retries_429_with_backoff():
@@ -218,17 +242,18 @@ def test_fetch_retries_429_with_backoff():
             ]
         }
     )
-    sleeps: list[float] = []
-    result = make_scraper(session=session, sleeps=sleeps).fetch(PAGE_URL)
+    scraper, ft = make_scraper(session=session)
+    result = scraper.fetch(PAGE_URL)
 
     assert result.body == b"welcomed back"
-    assert 2.0 in sleeps
+    assert 2.0 in ft.sleeps  # default backoff (no Retry-After sent)
 
 
 def test_fetch_does_not_retry_4xx():
     session = FakeSession({PAGE_URL: [FakeResponse(status_code=403)]})
+    scraper, _ = make_scraper(session=session)
     with pytest.raises(FetchError) as exc_info:
-        make_scraper(session=session).fetch(PAGE_URL)
+        scraper.fetch(PAGE_URL)
 
     assert exc_info.value.http_status == 403
     assert session.urls_called().count(PAGE_URL) == 1
@@ -236,11 +261,62 @@ def test_fetch_does_not_retry_4xx():
 
 def test_fetch_exhausted_5xx_raises_with_status():
     session = FakeSession({PAGE_URL: [FakeResponse(status_code=500)] * 3})
+    scraper, _ = make_scraper(session=session)
     with pytest.raises(FetchError) as exc_info:
-        make_scraper(session=session).fetch(PAGE_URL)
+        scraper.fetch(PAGE_URL)
 
     assert exc_info.value.http_status == 500
     assert session.urls_called().count(PAGE_URL) == 3
+
+
+# ---------------------------------------------------------------- fetch: Retry-After
+
+
+def retry_after_scraper(header_value: str):
+    session = FakeSession(
+        {
+            PAGE_URL: [
+                FakeResponse(
+                    status_code=429, headers={"Retry-After": header_value}
+                ),
+                FakeResponse(content=b"ok"),
+            ]
+        }
+    )
+    return make_scraper(session=session, config=NO_ROBOTS)
+
+
+def test_retry_after_delta_seconds_honored():
+    scraper, ft = retry_after_scraper("60")
+    assert scraper.fetch(PAGE_URL).body == b"ok"
+    assert ft.sleeps == [60.0]
+
+
+def test_retry_after_http_date_honored():
+    # 90 seconds after the injected clock's FIXED_NOW.
+    scraper, ft = retry_after_scraper("Mon, 06 Jul 2026 12:01:30 GMT")
+    assert scraper.fetch(PAGE_URL).body == b"ok"
+    assert ft.sleeps == [90.0]
+
+
+def test_retry_after_malformed_falls_back_to_backoff():
+    scraper, ft = retry_after_scraper("soon-ish")
+    assert scraper.fetch(PAGE_URL).body == b"ok"
+    assert ft.sleeps == [2.0]
+
+
+def test_retry_after_capped():
+    scraper, ft = retry_after_scraper("100000")
+    assert scraper.fetch(PAGE_URL).body == b"ok"
+    assert ft.sleeps == [300.0]  # retry_after_cap_seconds
+
+
+def test_retry_after_past_http_date_clamps_to_zero():
+    scraper, ft = retry_after_scraper("Mon, 06 Jul 2026 11:00:00 GMT")
+    assert scraper.fetch(PAGE_URL).body == b"ok"
+    # Clamped Retry-After of 0.0, then the per-domain rate limit
+    # still spaces the retry — "now" never beats the 2s interval.
+    assert ft.sleeps == [0.0, 2.0]
 
 
 # ---------------------------------------------------------------- fetch: rate limit
@@ -250,15 +326,12 @@ def test_rate_limit_spaces_same_domain_requests():
     session = FakeSession(
         {PAGE_URL: [FakeResponse(content=b"1"), FakeResponse(content=b"2")]}
     )
-    sleeps: list[float] = []
-    scraper = make_scraper(session=session, sleeps=sleeps)
+    scraper, ft = make_scraper(session=session, config=NO_ROBOTS)
 
     scraper.fetch(PAGE_URL)
-    assert sleeps == []  # first request: no wait
+    assert ft.sleeps == []  # first request on the domain: no wait
     scraper.fetch(PAGE_URL)
-
-    assert len(sleeps) == 1
-    assert 0 < sleeps[0] <= 2.0  # remaining slice of the 2s interval
+    assert ft.sleeps == [2.0]  # full interval (fake clock: 0s elapsed)
 
 
 def test_rate_limit_does_not_couple_distinct_domains():
@@ -269,13 +342,24 @@ def test_rate_limit_does_not_couple_distinct_domains():
             other_url: [FakeResponse(content=b"2")],
         }
     )
-    sleeps: list[float] = []
-    scraper = make_scraper(session=session, sleeps=sleeps)
+    scraper, ft = make_scraper(session=session, config=NO_ROBOTS)
 
     scraper.fetch(PAGE_URL)
     scraper.fetch(other_url)
 
-    assert sleeps == []
+    assert ft.sleeps == []
+
+
+def test_robots_fetch_counts_against_rate_limit():
+    """The robots request is a request; the page fetch right after
+    it must wait out the interval."""
+    session = FakeSession({PAGE_URL: [FakeResponse(content=b"ok")]})
+    scraper, ft = make_scraper(session=session)
+
+    scraper.fetch(PAGE_URL)
+
+    assert session.urls_called() == [ROBOTS_URL, PAGE_URL]
+    assert ft.sleeps == [2.0]
 
 
 # ---------------------------------------------------------------- fetch: robots
@@ -289,8 +373,9 @@ def test_robots_disallow_raises_without_fetching_page():
             ]
         }
     )
+    scraper, _ = make_scraper(session=session)
     with pytest.raises(RobotsDisallowedError):
-        make_scraper(session=session).fetch(PAGE_URL)
+        scraper.fetch(PAGE_URL)
 
     assert PAGE_URL not in session.urls_called()
 
@@ -304,7 +389,8 @@ def test_robots_allow_list_permits_fetch():
             PAGE_URL: [FakeResponse(content=b"ok")],
         }
     )
-    assert make_scraper(session=session).fetch(PAGE_URL).body == b"ok"
+    scraper, _ = make_scraper(session=session)
+    assert scraper.fetch(PAGE_URL).body == b"ok"
 
 
 def test_robots_unfetchable_defaults_to_allowed():
@@ -314,7 +400,8 @@ def test_robots_unfetchable_defaults_to_allowed():
             PAGE_URL: [FakeResponse(content=b"ok")],
         }
     )
-    assert make_scraper(session=session).fetch(PAGE_URL).body == b"ok"
+    scraper, _ = make_scraper(session=session)
+    assert scraper.fetch(PAGE_URL).body == b"ok"
 
 
 def test_robots_fetched_once_per_domain():
@@ -326,7 +413,7 @@ def test_robots_fetched_once_per_domain():
             ]
         }
     )
-    scraper = make_scraper(session=session)
+    scraper, _ = make_scraper(session=session)
     scraper.fetch(PAGE_URL)
     scraper.fetch(PAGE_URL)
 
@@ -335,32 +422,88 @@ def test_robots_fetched_once_per_domain():
 
 def test_respect_robots_false_skips_the_check():
     session = FakeSession({PAGE_URL: [FakeResponse(content=b"ok")]})
-    scraper = make_scraper(
-        session=session, config=ScraperConfig(respect_robots=False)
-    )
+    scraper, _ = make_scraper(session=session, config=NO_ROBOTS)
     scraper.fetch(PAGE_URL)
 
     assert ROBOTS_URL not in session.urls_called()
+
+
+# ---------------------------------------------------------------- fetch: redirects
+
+
+def test_redirect_followed_with_result_from_final_hop():
+    moved_url = "https://example.gov/moved/"
+    session = FakeSession(
+        {
+            PAGE_URL: [
+                FakeResponse(
+                    status_code=302, headers={"Location": "/moved/"}
+                )
+            ],
+            moved_url: [FakeResponse(content=b"final content")],
+        }
+    )
+    scraper, _ = make_scraper(session=session, config=NO_ROBOTS)
+    result = scraper.fetch(PAGE_URL)
+
+    assert result.body == b"final content"
+    assert result.url == PAGE_URL          # what we asked for
+    assert result.final_url == moved_url   # where we ended up
+
+
+def test_redirect_to_new_origin_checks_that_origins_robots():
+    other_page = "https://other.gov/measures"
+    session = FakeSession(
+        {
+            PAGE_URL: [
+                FakeResponse(
+                    status_code=301, headers={"Location": other_page}
+                )
+            ],
+            "https://other.gov/robots.txt": [
+                FakeResponse(content=b"User-agent: *\nDisallow: /\n")
+            ],
+        }
+    )
+    scraper, _ = make_scraper(session=session)
+    with pytest.raises(RobotsDisallowedError):
+        scraper.fetch(PAGE_URL)
+
+    # The disallowed origin's page was never requested.
+    assert other_page not in session.urls_called()
+
+
+def test_redirect_loop_raises():
+    bounce = FakeResponse(status_code=302, headers={"Location": PAGE_URL})
+    session = FakeSession({PAGE_URL: [bounce] * 4})
+    scraper, _ = make_scraper(
+        session=session,
+        config=ScraperConfig(respect_robots=False, max_redirects=2),
+    )
+    with pytest.raises(FetchError, match="redirect chain"):
+        scraper.fetch(PAGE_URL)
 
 
 # ---------------------------------------------------------------- fetch: modes
 
 
 def test_unknown_fetch_mode_raises():
+    scraper, _ = make_scraper(
+        session=FakeSession({PAGE_URL: [FakeResponse()]})
+    )
     with pytest.raises(ScraperError, match="unknown fetch mode"):
-        make_scraper(
-            session=FakeSession({PAGE_URL: [FakeResponse()]})
-        ).fetch(PAGE_URL, mode="carrier-pigeon")
+        scraper.fetch(PAGE_URL, mode="carrier-pigeon")
 
 
 def test_playwright_mode_missing_dep_raises_install_hint(monkeypatch):
     # Force the lazy import to fail even when playwright is installed.
     monkeypatch.setitem(sys.modules, "playwright.sync_api", None)
     monkeypatch.setitem(sys.modules, "playwright", None)
+    scraper, _ = make_scraper(
+        session=FakeSession({PAGE_URL: [FakeResponse()]})
+    )
     with pytest.raises(ScraperError, match="pip install playwright"):
-        make_scraper(
-            session=FakeSession({PAGE_URL: [FakeResponse()]})
-        ).fetch(PAGE_URL, mode="playwright")
+        scraper.fetch(PAGE_URL, mode="playwright")
 
 
 # ---------------------------------------------------------------- base contract
@@ -461,6 +604,22 @@ def test_snapshot_writer_save_after_finalize_raises(store):
         writer.finalize()
 
 
+def test_snapshot_writer_rejects_duplicate_filename(store):
+    """A second write would silently invalidate the first entry's
+    checksum in the manifest."""
+    writer = writer_scraper(store).open_snapshot("2026-03-24")
+    writer.save_bytes("page.html", b"first", sample_meta())
+
+    with pytest.raises(ScraperError, match="duplicate filename"):
+        writer.save_bytes("page.html", b"second", sample_meta())
+
+
+def test_snapshot_writer_finalize_extra_cannot_override_core(store):
+    writer = writer_scraper(store).open_snapshot("2026-03-24")
+    with pytest.raises(ScraperError, match="core manifest fields"):
+        writer.finalize(extra={"county": "spoofed", "note": "fine"})
+
+
 def test_snapshot_writer_finalize_extra_merges_top_level(store):
     writer = writer_scraper(store).open_snapshot("2026-03-24")
     writer.finalize(extra={"source_base_url": "https://example.gov"})
@@ -471,6 +630,33 @@ def test_snapshot_writer_finalize_extra_merges_top_level(store):
         snapshot_id=writer.snapshot_id,
     )
     assert manifest["source_base_url"] == "https://example.gov"
+
+
+def test_open_snapshot_rejects_completed_snapshot_id(store):
+    """Snapshots are immutable: a finalized snapshot's ID can't be
+    reopened. Orphans (no manifest) don't block — retry self-heals."""
+    scraper = writer_scraper(store)
+    first = scraper.open_snapshot("2026-03-24", snapshot_id="snap-x")
+    first.finalize()
+
+    with pytest.raises(ScraperError, match="immutable"):
+        scraper.open_snapshot("2026-03-24", snapshot_id="snap-x")
+
+
+def test_open_snapshot_allows_retry_over_orphan(store):
+    scraper = writer_scraper(store)
+    orphan = scraper.open_snapshot("2026-03-24", snapshot_id="snap-x")
+    orphan.save_bytes("page.html", b"crashed run", sample_meta())
+    # No finalize — simulates a crash. Same ID can be retried.
+
+    retry = scraper.open_snapshot("2026-03-24", snapshot_id="snap-x")
+    retry.save_bytes("page.html", b"healed", sample_meta())
+    retry.finalize()
+
+    refs = store.list_artifacts(
+        county="dummy", election_date="2026-03-24", snapshot_id="snap-x"
+    )
+    assert store.get_artifact(refs[0]) == b"healed"
 
 
 def test_snapshot_writer_save_records_fetch_result_fields(store):

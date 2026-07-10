@@ -137,6 +137,37 @@ commits `4542d4a` → `bec2abe` → round-4 fixes `a1582c8` + `df6e73f`
 
 ## Recently shipped
 
+### 2026-07-09 — Codex round-2 review applied (1 blocker + 6 should-fix + 1 nit, all accepted)
+
+Implementation review of Phase 0.5 (`docs/codex/registrar_phase05_impl_review.md`).
+Findings and fixes, all with tests (101/101 registrar tests green,
+CLI smoke re-verified):
+
+- **Blocker:** prod run in CI with incomplete R2 config now raises
+  `StoreConfigurationError` naming the missing vars — never a
+  silent LocalArtifactStore fallback reporting green. Dev keeps the
+  fallback for pre-provisioning smoke tests. Run manifest gains a
+  `store_backend: r2|local` observability field.
+- Snapshot existence = manifest existence in both stores
+  (`list_snapshots` / snapshot-level `exists`); orphan artifacts
+  from crashed runs are invisible to parsers.
+- Immutability enforced: duplicate filenames in a snapshot raise;
+  `open_snapshot` rejects completed snapshot IDs (orphans may be
+  retried — self-heal); `finalize(extra=...)` can't override core
+  manifest fields.
+- `Retry-After` honored on 429/5xx (delta-seconds + HTTP-date,
+  NaN-guarded, capped at 300s), falling back to exponential backoff.
+- Politeness per actual request: rate limit applies to every
+  attempt including retries and the robots.txt fetch; redirects
+  followed manually (cap 10) so each hop — including cross-origin —
+  gets its own robots check + rate limit.
+- Path components validated at the storage boundary (both stores):
+  no separators, `..`, drive colons; `manifest.json` reserved.
+- `--counties=enabled` resolving empty exits nonzero once real
+  (non-noop) scrapers are registered.
+- Playwright `goto()` returning None is now a `FetchError`, not a
+  fake success.
+
 ### 2026-07-06 — Registrar Phase 0.5: base scraper → workflow (`4b9cb94` → `97fd6d9`)
 
 Phase 0.5 deliverables #1–#4 + #6 in one session; design

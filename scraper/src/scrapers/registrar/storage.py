@@ -48,9 +48,37 @@ SnapshotID = str      # immutable per-run; recommended: "YYYYMMDDTHHMMSSZ"
 
 DEFAULT_LOCAL_BASE = Path("scraper/data/registrar_raw")
 
+# Reserved: written by put_manifest, never by put_artifact.
+MANIFEST_FILENAME = "manifest.json"
+
+
+def _validate_component(value: str, name: str) -> str:
+    """Reject values that could escape the storage root or collide
+    with key structure when joined into a filesystem path or object
+    key (Codex round-2: a scraper deriving a filename from a URL
+    must not be able to smuggle '../' or an absolute path)."""
+    if (
+        not value
+        or value != value.strip()
+        or value in (".", "..")
+        or "/" in value
+        or "\\" in value
+        or ":" in value
+        or "\x00" in value
+    ):
+        raise ValueError(f"unsafe {name} for storage key: {value!r}")
+    return value
+
 
 class ArtifactNotFound(KeyError):
     """Raised when a requested artifact or manifest does not exist."""
+
+
+class StoreConfigurationError(RuntimeError):
+    """Raised when the environment demands a backend that cannot be
+    constructed — e.g. a prod run in CI without complete R2
+    credentials must fail loudly, never fall back to ephemeral
+    local storage."""
 
 
 class ArtifactIntegrityError(ValueError):
@@ -169,8 +197,10 @@ class RawArtifactStore(Protocol):
         county: County,
         election_date: ElectionDate,
     ) -> list[SnapshotID]:
-        """List snapshot IDs for a (county, election_date), sorted
-        ascending. Returns empty list if no snapshots exist."""
+        """List COMPLETE snapshot IDs for a (county, election_date),
+        sorted ascending. A snapshot is complete iff its manifest
+        has been written; orphan artifacts from a crashed run are
+        invisible here. Returns empty list if none exist."""
         ...
 
     def exists(
@@ -182,8 +212,9 @@ class RawArtifactStore(Protocol):
         filename: Optional[str] = None,
     ) -> bool:
         """Cheap existence check. With filename, checks for that
-        specific artifact; without, checks whether the snapshot
-        exists at all. Used for idempotency in re-scrapes."""
+        specific artifact; without, checks whether the snapshot is
+        COMPLETE (manifest written). Used for idempotency in
+        re-scrapes."""
         ...
 
 
@@ -214,7 +245,13 @@ class LocalArtifactStore:
         election_date: ElectionDate,
         snapshot_id: SnapshotID,
     ) -> Path:
-        return self._base / self._env / county / election_date / snapshot_id
+        return (
+            self._base
+            / self._env
+            / _validate_component(county, "county")
+            / _validate_component(election_date, "election_date")
+            / _validate_component(snapshot_id, "snapshot_id")
+        )
 
     def put_artifact(
         self,
@@ -226,6 +263,11 @@ class LocalArtifactStore:
         body: bytes,
         metadata: ArtifactMetadata,
     ) -> ArtifactRef:
+        _validate_component(filename, "filename")
+        if filename == MANIFEST_FILENAME:
+            raise ValueError(
+                f"{MANIFEST_FILENAME!r} is reserved for put_manifest"
+            )
         d = self._snap_dir(county, election_date, snapshot_id)
         d.mkdir(parents=True, exist_ok=True)
         path = d / filename
@@ -258,7 +300,7 @@ class LocalArtifactStore:
     def put_run_manifest(self, *, run_id: str, manifest: dict) -> str:
         # runs/ sits beside the {env}/ snapshot tree, mirroring the
         # bucket layout (county slugs never collide with "runs").
-        d = self._base / "runs" / self._env / run_id
+        d = self._base / "runs" / self._env / _validate_component(run_id, "run_id")
         d.mkdir(parents=True, exist_ok=True)
         path = d / "run_manifest.json"
         path.write_text(json.dumps(manifest, indent=2))
@@ -267,7 +309,7 @@ class LocalArtifactStore:
     def get_artifact(self, ref: ArtifactRef) -> bytes:
         path = (
             self._snap_dir(ref.county, ref.election_date, ref.snapshot_id)
-            / ref.filename
+            / _validate_component(ref.filename, "filename")
         )
         if not path.exists():
             raise ArtifactNotFound(
@@ -332,10 +374,21 @@ class LocalArtifactStore:
         county: County,
         election_date: ElectionDate,
     ) -> list[SnapshotID]:
-        d = self._base / self._env / county / election_date
+        d = (
+            self._base
+            / self._env
+            / _validate_component(county, "county")
+            / _validate_component(election_date, "election_date")
+        )
         if not d.is_dir():
             return []
-        return sorted(p.name for p in d.iterdir() if p.is_dir())
+        # Manifest presence defines snapshot existence — orphan
+        # artifact folders from a crashed run stay invisible.
+        return sorted(
+            p.name
+            for p in d.iterdir()
+            if p.is_dir() and (p / MANIFEST_FILENAME).is_file()
+        )
 
     def exists(
         self,
@@ -347,8 +400,9 @@ class LocalArtifactStore:
     ) -> bool:
         d = self._snap_dir(county, election_date, snapshot_id)
         if filename is None:
-            return d.is_dir()
-        return (d / filename).is_file()
+            # Snapshot exists iff complete (manifest written).
+            return (d / MANIFEST_FILENAME).is_file()
+        return (d / _validate_component(filename, "filename")).is_file()
 
 
 # Object keys that S3 reports as missing, across get/head variants.
@@ -424,6 +478,10 @@ class R2ArtifactStore:
         snapshot_id: SnapshotID,
         filename: str,
     ) -> str:
+        _validate_component(county, "county")
+        _validate_component(election_date, "election_date")
+        _validate_component(snapshot_id, "snapshot_id")
+        _validate_component(filename, "filename")
         return f"{self._env}/{county}/{election_date}/{snapshot_id}/{filename}"
 
     def _uri(self, key: str) -> str:
@@ -439,6 +497,10 @@ class R2ArtifactStore:
         body: bytes,
         metadata: ArtifactMetadata,
     ) -> ArtifactRef:
+        if filename == MANIFEST_FILENAME:
+            raise ValueError(
+                f"{MANIFEST_FILENAME!r} is reserved for put_manifest"
+            )
         key = self._key(county, election_date, snapshot_id, filename)
         sha256 = hashlib.sha256(body).hexdigest()
         self.client.put_object(
@@ -477,6 +539,7 @@ class R2ArtifactStore:
         return self._uri(key)
 
     def put_run_manifest(self, *, run_id: str, manifest: dict) -> str:
+        _validate_component(run_id, "run_id")
         key = f"runs/{self._env}/{run_id}/run_manifest.json"
         self.client.put_object(
             Bucket=self._bucket,
@@ -555,20 +618,23 @@ class R2ArtifactStore:
         county: County,
         election_date: ElectionDate,
     ) -> list[SnapshotID]:
+        _validate_component(county, "county")
+        _validate_component(election_date, "election_date")
         prefix = f"{self._env}/{county}/{election_date}/"
         snapshot_ids: list[str] = []
         token: Optional[str] = None
         while True:
-            kwargs: dict = {
-                "Bucket": self._bucket,
-                "Prefix": prefix,
-                "Delimiter": "/",
-            }
+            kwargs: dict = {"Bucket": self._bucket, "Prefix": prefix}
             if token:
                 kwargs["ContinuationToken"] = token
             resp = self.client.list_objects_v2(**kwargs)
-            for cp in resp.get("CommonPrefixes", []):
-                snapshot_ids.append(cp["Prefix"][len(prefix):].rstrip("/"))
+            # Manifest presence defines snapshot existence — filter
+            # for {snapshot_id}/manifest.json keys so orphan
+            # artifacts from a crashed run stay invisible.
+            for obj in resp.get("Contents", []):
+                parts = obj["Key"][len(prefix):].split("/")
+                if len(parts) == 2 and parts[1] == MANIFEST_FILENAME:
+                    snapshot_ids.append(parts[0])
             if not resp.get("IsTruncated"):
                 break
             token = resp.get("NextContinuationToken")
@@ -582,16 +648,12 @@ class R2ArtifactStore:
         snapshot_id: SnapshotID,
         filename: Optional[str] = None,
     ) -> bool:
-        if filename is None:
-            prefix = f"{self._env}/{county}/{election_date}/{snapshot_id}/"
-            resp = self.client.list_objects_v2(
-                Bucket=self._bucket, Prefix=prefix, MaxKeys=1
-            )
-            return resp.get("KeyCount", 0) > 0
+        # No filename → snapshot completeness check = manifest HEAD.
+        target = filename if filename is not None else MANIFEST_FILENAME
         try:
             self.client.head_object(
                 Bucket=self._bucket,
-                Key=self._key(county, election_date, snapshot_id, filename),
+                Key=self._key(county, election_date, snapshot_id, target),
             )
         except Exception as e:
             if _s3_error_code(e) in _S3_NOT_FOUND_CODES:
@@ -612,7 +674,13 @@ def make_store(*, env: Optional[str] = None) -> RawArtifactStore:
     """Factory. Picks a backend based on env vars.
 
     - All four R2_* vars set → R2ArtifactStore (CI/prod).
-    - Otherwise → LocalArtifactStore (dev, tests).
+    - Otherwise → LocalArtifactStore (dev, tests)...
+    - ...EXCEPT a prod run inside GitHub Actions, which raises
+      StoreConfigurationError naming the missing variables. A
+      deleted or typo'd secret must never let a prod cron silently
+      write to ephemeral CI disk and report green (Codex round-2
+      blocker). Dev runs in CI keep the local fallback so wiring
+      smoke tests work pre-provisioning.
 
     `env` override defaults to R2_ENV env var, then "dev". Used to
     pin the dev/prod prefix without needing to touch the env vars
@@ -620,7 +688,15 @@ def make_store(*, env: Optional[str] = None) -> RawArtifactStore:
     """
     resolved_env = env or os.environ.get("R2_ENV", "dev")
 
-    if all(os.environ.get(k) for k in _R2_ENV_KEYS):
+    missing = [k for k in _R2_ENV_KEYS if not os.environ.get(k)]
+    if not missing:
         return R2ArtifactStore(env=resolved_env)
+
+    if resolved_env == "prod" and os.environ.get("GITHUB_ACTIONS"):
+        raise StoreConfigurationError(
+            "prod run in CI requires complete R2 configuration; "
+            f"missing: {', '.join(missing)}. Refusing to fall back "
+            "to ephemeral local storage."
+        )
 
     return LocalArtifactStore(env=resolved_env)

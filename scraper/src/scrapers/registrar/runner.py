@@ -35,7 +35,7 @@ from typing import Callable, Optional
 
 from .base import CountyRegistrarScraper
 from .noop import NoOpCountyScraper
-from .storage import RawArtifactStore, make_store
+from .storage import R2ArtifactStore, RawArtifactStore, make_store
 
 RUNNER_VERSION = "0.1.0"
 RUN_ID_FORMAT = "%Y%m%dT%H%M%SZ"
@@ -136,6 +136,12 @@ def run_pipeline(
         "schema_version": 1,
         "run_id": run_id,
         "env": env,
+        # Observability for the storage-backend guard: a prod run
+        # showing "local" here means something is misconfigured
+        # (make_store refuses that combination in CI outright).
+        "store_backend": (
+            "r2" if isinstance(store, R2ArtifactStore) else "local"
+        ),
         "trigger": os.environ.get("GITHUB_EVENT_NAME", "local"),
         "runner_version": RUNNER_VERSION,
         "runner_git_sha": os.environ.get("GITHUB_SHA"),
@@ -203,6 +209,18 @@ def main(argv: Optional[list[str]] = None) -> int:
         parser.error(str(e))  # exits 2
 
     if not counties:
+        real_counties = sorted(c for c in REGISTRY if c != "noop")
+        if args.counties == "enabled" and real_counties:
+            # Real scrapers registered but none enabled: someone
+            # forgot ENABLED_COUNTIES. A silently-green no-op cron
+            # would mask it (Codex round-2).
+            log.error(
+                "--counties=enabled resolved to an empty set even "
+                "though real scrapers are registered (%s); refusing "
+                "to no-op silently",
+                ", ".join(real_counties),
+            )
+            return 1
         log.warning(
             "no counties selected (--counties=%s resolved to an empty "
             "set); nothing to do", args.counties,

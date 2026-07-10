@@ -26,13 +26,15 @@ See docs/plans/registrar_pipeline_infra.md for design rationale.
 from __future__ import annotations
 
 import logging
+import math
 import time
 import urllib.robotparser
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import datetime, timezone
+from email.utils import parsedate_to_datetime
 from typing import Callable, ClassVar, Optional
-from urllib.parse import urlparse
+from urllib.parse import urljoin, urlparse
 
 import requests
 
@@ -52,6 +54,8 @@ DEFAULT_USER_AGENT = (
 )
 
 SNAPSHOT_ID_FORMAT = "%Y%m%dT%H%M%SZ"  # matches storage.py recommendation
+
+_REDIRECT_STATUSES = {301, 302, 303, 307, 308}
 
 
 class ScraperError(Exception):
@@ -93,6 +97,8 @@ class ScraperConfig:
     max_retries: int = 3                # attempts for 429/5xx/connection errors
     backoff_base_seconds: float = 2.0   # 2s, 4s, 8s...
     respect_robots: bool = True
+    max_redirects: int = 10             # manual redirect chain limit
+    retry_after_cap_seconds: float = 300.0  # ceiling on honored Retry-After
 
 
 @dataclass(frozen=True)
@@ -182,6 +188,7 @@ class SnapshotWriter:
         self._fetch_mode = fetch_mode
         self._clock = clock
         self._entries: list[dict] = []
+        self._filenames: set[str] = set()
         self._finalized = False
 
     def save(self, filename: str, result: FetchResult) -> ArtifactRef:
@@ -210,6 +217,14 @@ class SnapshotWriter:
                 f"{self.snapshot_id} already finalized; cannot add "
                 f"{filename}"
             )
+        if filename in self._filenames:
+            # A second write would silently invalidate the first
+            # entry's checksum in the manifest (Codex round-2).
+            raise ScraperError(
+                f"duplicate filename in snapshot "
+                f"{self.county}/{self.election_date}/{self.snapshot_id}: "
+                f"{filename}"
+            )
         ref = self._store.put_artifact(
             county=self.county,
             election_date=self.election_date,
@@ -233,6 +248,7 @@ class SnapshotWriter:
                 "size_bytes": ref.size_bytes,
             }
         )
+        self._filenames.add(filename)
         return ref
 
     def finalize(self, extra: Optional[dict] = None) -> str:
@@ -256,6 +272,12 @@ class SnapshotWriter:
             "artifacts": self._entries,
         }
         if extra:
+            clash = manifest.keys() & extra.keys()
+            if clash:
+                raise ScraperError(
+                    "finalize(extra=...) cannot override core manifest "
+                    f"fields: {sorted(clash)}"
+                )
             manifest.update(extra)
         uri = self._store.put_manifest(
             county=self.county,
@@ -299,6 +321,7 @@ class CountyRegistrarScraper(ABC):
         clock: Optional[Callable[[], datetime]] = None,
         session: Optional[requests.Session] = None,
         sleep: Optional[Callable[[float], None]] = None,
+        monotonic: Optional[Callable[[], float]] = None,
     ):
         if not getattr(self, "county", None):
             raise TypeError(
@@ -310,6 +333,7 @@ class CountyRegistrarScraper(ABC):
         self._run_id = run_id or self._clock().strftime(SNAPSHOT_ID_FORMAT)
         self._session = session or requests.Session()
         self._sleep = sleep or time.sleep
+        self._monotonic = monotonic or time.monotonic
         self._last_request_at: dict[str, float] = {}  # domain -> monotonic secs
         # origin -> parser, or None when robots.txt is unfetchable (= allow)
         self._robots: dict[str, Optional[urllib.robotparser.RobotFileParser]] = {}
@@ -333,12 +357,28 @@ class CountyRegistrarScraper(ABC):
     ) -> SnapshotWriter:
         """Start a new immutable snapshot for one election. The
         snapshot_id defaults to the current UTC timestamp; re-scrapes
-        of the same election get fresh IDs, never overwrite."""
+        of the same election get fresh IDs, never overwrite.
+
+        Raises ScraperError if a COMPLETE snapshot (manifest
+        written) already exists under this ID. Orphan artifacts from
+        a crashed earlier attempt don't block — retrying with the
+        same ID overwrites them, which is the desired self-heal."""
+        sid = snapshot_id or self._new_snapshot_id()
+        if self._store.exists(
+            county=self.county,
+            election_date=election_date,
+            snapshot_id=sid,
+        ):
+            raise ScraperError(
+                f"snapshot {self.county}/{election_date}/{sid} already "
+                "exists and snapshots are immutable; use a fresh "
+                "snapshot_id to re-scrape"
+            )
         return SnapshotWriter(
             store=self._store,
             county=self.county,
             election_date=election_date,
-            snapshot_id=snapshot_id or self._new_snapshot_id(),
+            snapshot_id=sid,
             run_id=self._run_id,
             scraper_version=self.version,
             fetch_mode=self.fetch_mode,
@@ -351,34 +391,67 @@ class CountyRegistrarScraper(ABC):
     # ------------------------------------------------------------ fetching
 
     def fetch(self, url: str, *, mode: Optional[str] = None) -> FetchResult:
-        """Polite fetch. Checks robots.txt (once per domain), waits
-        out the per-domain rate limit, then fetches via the given
-        mode (default: the class's fetch_mode). Per-call mode
-        override supports mixed counties — e.g. Playwright for
-        Riverside's pages but plain requests for its PDFs."""
+        """Polite fetch via the given mode (default: the class's
+        fetch_mode). Per-call mode override supports mixed counties
+        — e.g. Playwright for Riverside's pages but plain requests
+        for its PDFs.
+
+        Politeness applies per actual HTTP request: every attempt
+        (including retries and each manually-followed redirect hop)
+        gets its own robots.txt check and per-domain rate-limit
+        wait, so a redirect onto a different origin cannot bypass
+        that origin's rules (Codex round-2)."""
         mode = mode or self.fetch_mode
-        if self.config.respect_robots and not self._robots_allowed(url):
-            self._log.info("robots.txt disallows %s; skipping", url)
-            raise RobotsDisallowedError(
-                f"robots.txt disallows {url} for our User-Agent", url=url
-            )
-        self._rate_limit(url)
         if mode == "playwright":
+            # Browser handles redirects internally; robots + rate
+            # limit apply to the navigation as a whole.
+            self._check_robots(url)
+            self._rate_limit(url)
             return self._fetch_playwright(url)
         if mode == "requests":
             return self._fetch_requests(url)
         raise ScraperError(f"unknown fetch mode: {mode!r}")
 
+    def _check_robots(self, url: str) -> None:
+        if self.config.respect_robots and not self._robots_allowed(url):
+            self._log.info("robots.txt disallows %s; skipping", url)
+            raise RobotsDisallowedError(
+                f"robots.txt disallows {url} for our User-Agent", url=url
+            )
+
     def _fetch_requests(self, url: str) -> FetchResult:
+        """Fetch with manual redirect following so each hop — even
+        onto a different origin — passes its own robots check and
+        rate limit."""
+        current = url
+        for _hop in range(self.config.max_redirects + 1):
+            resp = self._request_with_retries(current)
+            location = resp.headers.get("Location")
+            if resp.status_code in _REDIRECT_STATUSES and location:
+                current = urljoin(current, location)
+                continue
+            return self._result_from_response(url, resp)
+        raise FetchError(
+            f"redirect chain from {url} exceeded "
+            f"{self.config.max_redirects} hops",
+            url=url,
+        )
+
+    def _request_with_retries(self, url: str) -> requests.Response:
+        """One URL, polite: robots check, then per-attempt rate
+        limit, retrying 429/5xx/connection errors with backoff
+        (honoring Retry-After) and never retrying other 4xx."""
+        self._check_robots(url)
         attempts = self.config.max_retries
         last_error: Optional[BaseException] = None
         for attempt in range(attempts):
+            self._rate_limit(url)
             try:
                 resp = self._session.get(
                     url,
                     headers={"User-Agent": self.config.user_agent},
                     timeout=self.config.timeout_seconds,
-                    allow_redirects=True,
+                    allow_redirects=False,
                 )
             except requests.RequestException as e:
                 last_error = e
@@ -403,11 +476,11 @@ class CountyRegistrarScraper(ABC):
                     attempt + 1, attempts, resp.status_code, url,
                 )
                 if attempt < attempts - 1:
-                    self._backoff(attempt)
+                    self._sleep(self._retry_delay(resp, attempt))
                 continue
 
             if resp.status_code >= 400:
-                # 4xx is a programming/permission problem, not
+                # Other 4xx is a programming/permission problem, not
                 # transient — retrying would just hammer the site.
                 raise FetchError(
                     f"HTTP {resp.status_code} from {url} (not retried)",
@@ -415,7 +488,7 @@ class CountyRegistrarScraper(ABC):
                     http_status=resp.status_code,
                 )
 
-            return self._result_from_response(url, resp)
+            return resp
 
         if isinstance(last_error, FetchError):
             raise last_error
@@ -423,6 +496,28 @@ class CountyRegistrarScraper(ABC):
             f"fetch failed after {attempts} attempts: {last_error}",
             url=url,
         ) from last_error
+
+    def _retry_delay(self, resp: requests.Response, attempt: int) -> float:
+        """Server-provided Retry-After (delta-seconds or HTTP-date)
+        when present and sane, else exponential backoff. Capped so a
+        misconfigured header can't stall the run."""
+        backoff = self.config.backoff_base_seconds * (2 ** attempt)
+        header = (resp.headers.get("Retry-After") or "").strip()
+        if not header:
+            return backoff
+        try:
+            delay = float(header)
+        except ValueError:
+            try:
+                when = parsedate_to_datetime(header)
+            except (TypeError, ValueError):
+                return backoff
+            if when.tzinfo is None:
+                when = when.replace(tzinfo=timezone.utc)
+            delay = (when - self._clock()).total_seconds()
+        if not math.isfinite(delay):
+            return backoff
+        return min(max(delay, 0.0), self.config.retry_after_cap_seconds)
 
     def _result_from_response(
         self, url: str, resp: requests.Response
@@ -471,7 +566,15 @@ class CountyRegistrarScraper(ABC):
                     timeout=self.config.timeout_seconds * 1000,
                     wait_until="networkidle",
                 )
-                http_status = resp.status if resp else 0
+                if resp is None:
+                    # goto() returns None for same-URL/anchor
+                    # navigations — never a successful fetch here.
+                    raise FetchError(
+                        f"playwright navigation to {url} produced no "
+                        "response",
+                        url=url,
+                    )
+                http_status = resp.status
                 final_url = page.url
                 body = page.content().encode("utf-8")
             finally:
@@ -506,10 +609,10 @@ class CountyRegistrarScraper(ABC):
         domain = urlparse(url).netloc
         last = self._last_request_at.get(domain)
         if last is not None:
-            wait = self.config.rate_limit_seconds - (time.monotonic() - last)
+            wait = self.config.rate_limit_seconds - (self._monotonic() - last)
             if wait > 0:
                 self._sleep(wait)
-        self._last_request_at[domain] = time.monotonic()
+        self._last_request_at[domain] = self._monotonic()
 
     def _robots_allowed(self, url: str) -> bool:
         parsed = urlparse(url)
@@ -527,6 +630,9 @@ class CountyRegistrarScraper(ABC):
         self, origin: str
     ) -> Optional[urllib.robotparser.RobotFileParser]:
         robots_url = f"{origin}/robots.txt"
+        # The robots fetch is itself a request to the domain — it
+        # participates in the rate limit like any other.
+        self._rate_limit(robots_url)
         try:
             resp = self._session.get(
                 robots_url,

@@ -72,6 +72,7 @@ def test_run_pipeline_success_writes_manifest(store, manifest_dir):
     assert manifest["schema_version"] == 1
     assert manifest["run_id"] == "20260706T120000Z"
     assert manifest["env"] == "dev"
+    assert manifest["store_backend"] == "local"
     assert manifest["totals"] == {
         "counties_attempted": 1,
         "counties_succeeded": 1,
@@ -243,6 +244,7 @@ def test_main_smoke_noop(tmp_path, monkeypatch):
 
 
 def test_main_empty_selection_exits_zero(tmp_path):
+    # Legitimate only while no real counties are registered.
     assert (
         runner.main(
             ["--counties=enabled", "--manifest-dir", str(tmp_path / "runs")]
@@ -251,6 +253,21 @@ def test_main_empty_selection_exits_zero(tmp_path):
     )
     # No manifest for a run that did nothing.
     assert not (tmp_path / "runs").exists()
+
+
+def test_main_empty_enabled_fails_once_real_counties_exist(
+    tmp_path, monkeypatch
+):
+    """Someone registered a real county but forgot ENABLED_COUNTIES —
+    a silently-green no-op cron would mask it (Codex round-2)."""
+    monkeypatch.setitem(runner.REGISTRY, "sb", ExplodingScraper)
+
+    assert (
+        runner.main(
+            ["--counties=enabled", "--manifest-dir", str(tmp_path / "runs")]
+        )
+        == 1
+    )
 
 
 def test_main_unknown_county_exits_two(tmp_path):
