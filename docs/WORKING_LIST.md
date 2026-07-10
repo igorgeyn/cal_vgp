@@ -30,25 +30,29 @@
 
 ## Next chunk (resume here)
 
-**Phase 0.5 closeout.** ALL six deliverables shipped, Codex round-2
-review applied (see Recently shipped), and **R2 is provisioned
-(2026-07-09)**: bucket `cal-vgp-registrar-raw` live, scoped token
-created, 3 GH secrets set via `gh secret set`, and a real noop run
-verified against the live bucket (plan-shaped layout, sha-verified
-round trips, run manifest mirrored to `runs/dev/`). Remaining:
+**PHASE 0.5 IS COMPLETE (2026-07-09).** All six deliverables, Codex
+round-2 applied, R2 provisioned, pushed to origin, and both CI paths
+verified live: push-triggered dev run green (objects under `dev/`),
+manual `workflow_dispatch` prod run green (`prod/noop/...` objects +
+`runs/prod/` manifest with `store_backend: r2`, 1/1 counties). Setup
+doc §6 checklist fully satisfied.
 
-1. **Push the Phase 0.5 commits** — Igor's call on timing. The push
-   itself triggers the workflow (registrar paths changed) as a
-   dev-env smoke that now writes to the real bucket's `dev/` prefix.
+Repo hygiene same day: `main` now has branch protection (PRs
+required for write-access collaborators; admin direct-push still
+allowed). Georgia's direct-to-main `perfunctory_api_code` commit was
+reviewed (benign, never executed, parallel-universe architecture),
+preserved on branch `georgia/api-scaffold`, reverted from main, and
+its good ideas captured under DATA below.
 
-2. **Manual `workflow_dispatch` run** after the push — verifies the
-   prod path end to end (checklist: setup doc §6; expect noop
-   objects under `prod/` + green run + `store_backend: r2` in the
-   run-manifest artifact).
-
-3. **Flip the workflow from `--counties=noop` to
-   `--counties=enabled`** — happens in Phase 1 when SB lands in
-   `ENABLED_COUNTIES` (runner.py).
+**Next chunk: Phase 1 — San Bernardino scraper.**
+`SbScraper(CountyRegistrarScraper)` against
+`elections.sbcounty.gov/elections/{year}/{mmdd}/measures/`. Parse
+the structured table (Letter | Jurisdiction | Description | Analysis
+| Arguments | Pass%), download linked analysis/argument PDFs as
+artifacts, add `"sb"` to `ENABLED_COUNTIES`, flip the workflow to
+`--counties=enabled`. Validates the framework end to end with a real
+source. ~2-3 days. (Direction-check with Igor before starting —
+tier transition.)
 
 **After Phase 0.5 ships:** Phase 1 starts with **SB first** (cleanest
 data shape per recon), then **LA → OC → SD → Riverside**. Riverside
