@@ -1,10 +1,12 @@
 # CalBallot Working List
 
-> Snapshot: **2026-07-06**. Branch: `main`, local commits not yet
-> pushed. Last commit: `97fd6d9` (Phase 0.5 runner + workflow).
+> Snapshot: **2026-07-27**. Branch: `main`, in sync with
+> `origin/main`. Last commit: `1e73f70` (SB scraper live).
 >
-> **WHERE WE LEFT OFF — Phase 0.5 is code-complete except the R2
-> store impl; Igor's Cloudflare provisioning is the blocker.**
+> **WHERE WE LEFT OFF — Phase 1 San Bernardino is LIVE IN
+> PRODUCTION.** First real snapshot captured 2026-07-27: the Nov
+> 2026 election, 8 measure rows across 6 jurisdictions, 16/16 PDFs,
+> verified in the prod R2 bucket. Weekly cron now scrapes SB.
 >
 > Project shifted on 2026-05-21 from finance polish to building a real
 > recurring pipeline for local ballot measures from county registrar
@@ -44,15 +46,23 @@ reviewed (benign, never executed, parallel-universe architecture),
 preserved on branch `georgia/api-scaffold`, reverted from main, and
 its good ideas captured under DATA below.
 
-**Next chunk: Phase 1 — San Bernardino scraper.**
-`SbScraper(CountyRegistrarScraper)` against
-`elections.sbcounty.gov/elections/{year}/{mmdd}/measures/`. Parse
-the structured table (Letter | Jurisdiction | Description | Analysis
-| Arguments | Pass%), download linked analysis/argument PDFs as
-artifacts, add `"sb"` to `ENABLED_COUNTIES`, flip the workflow to
-`--counties=enabled`. Validates the framework end to end with a real
-source. ~2-3 days. (Direction-check with Igor before starting —
-tier transition.)
+**Phase 1 SB SHIPPED 2026-07-27** (`1e73f70`; see Recently
+shipped). Next chunk, in rough priority order:
+
+1. **Codex round-6: SB implementation review** — sb.py + tests
+   shipped fast on top of a five-round-reviewed design; an
+   implementation pass closes the loop before LA builds on the
+   same patterns.
+2. **Watch the next two scheduled cron runs** (Aug 3, Aug 10) —
+   two clean forward runs gate the March 2026 backfill batch per
+   the rollout plan.
+3. **March 2026 backfill** (first bounded batch) after #2.
+4. **Phase 1: LA scraper** — `results.lavote.gov/text-results/
+   {election_id}`, sequential integer IDs; fixtures-first per the
+   SB playbook.
+5. **Parser stage design** — raw SB artifacts → normalized JSONL;
+   the audit map (`pdf_artifacts`) was built for exactly this
+   consumer.
 
 **Design inputs locked by Codex round-3 Part B (2026-07-09):**
 
@@ -170,6 +180,34 @@ commits `4542d4a` → `bec2abe` → round-4 fixes `a1582c8` + `df6e73f`
 - Phase G — v3 + combined integrity: 9/9 PASS.
 
 ## Recently shipped
+
+### 2026-07-27 — Phase 1: San Bernardino scraper LIVE (`1e73f70`)
+
+First real county in production, built to the round-4/5 design in
+one session (design + fixtures made it execution, not invention):
+
+- **`sb.py`**: pure `extract_measures_page` (header-set table
+  identification, role-by-column + role-by-label, per-cell
+  cardinality, collision suffixes, HTTPS-only links) + pure
+  discovery (page-wide canonical-link scan, deduped by date) +
+  `SbScraper` with the round-5 active-anchor lifecycle
+  (America/Los_Angeles, auto-retirement, successful-idle).
+- 35 new tests (144 registrar total): fixture-pinned extraction,
+  synthetic schema-failure matrix, the three clock-controlled
+  anchor tests + an LA/UTC boundary case, integration incl.
+  published→link-free regression and HTML-as-PDF rejection.
+- Runner: `ENABLED_COUNTIES=("sb",)`; workflow flipped
+  `--counties=noop` → `--counties=enabled`. + tzdata dep.
+- **Live validation exceeded the plan**: between the July 9
+  fixtures and go-live, SB's announced page came alive — 6
+  jurisdictions published (County, Adelanto, Chino Hills, Colton,
+  Highland, Needles), letters still TBD (collision-suffix rule
+  fired on day one), mixed per-row states, drifted URL prefixes
+  (FT_/AIF_) absorbed because roles derive from labels/columns.
+- **Rollout step 7 verified on prod R2**: dev CI push run green;
+  workflow_dispatch prod run green; `prod/sb/2026-11-03/
+  20260727T171800Z/` holds 17 artifacts (16/16 PDFs), sha-verified
+  read-back; `runs/prod/` manifest shows `store_backend: r2`, 1/1.
 
 ### 2026-07-09 — Codex round-3: fix verification passed + 3 gaps closed + Phase 1 design locked
 
