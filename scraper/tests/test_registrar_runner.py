@@ -42,9 +42,9 @@ def manifest_dir(tmp_path):
 # ---------------------------------------------------------------- resolve
 
 
-def test_resolve_enabled_is_currently_empty():
-    # Phase 1 flips this by adding real counties to ENABLED_COUNTIES.
-    assert resolve_counties("enabled") == []
+def test_resolve_enabled_lists_sb():
+    # Phase 1: SB is the first production county.
+    assert resolve_counties("enabled") == ["sb"]
 
 
 def test_resolve_explicit_names():
@@ -53,8 +53,8 @@ def test_resolve_explicit_names():
 
 
 def test_resolve_unknown_county_raises():
-    with pytest.raises(ValueError, match="unknown counties: sb"):
-        resolve_counties("noop,sb")
+    with pytest.raises(ValueError, match="unknown counties: atlantis"):
+        resolve_counties("noop,atlantis")
 
 
 # ---------------------------------------------------------------- run
@@ -243,8 +243,15 @@ def test_main_smoke_noop(tmp_path, monkeypatch):
     assert len(manifests) == 1
 
 
-def test_main_empty_selection_exits_zero(tmp_path):
-    # Legitimate only while no real counties are registered.
+def test_main_empty_selection_exits_zero_when_no_real_counties(
+    tmp_path, monkeypatch
+):
+    # Legitimate only while no real counties are registered
+    # (pre-Phase-1 state, preserved here via monkeypatch).
+    monkeypatch.setattr(
+        runner, "REGISTRY", {"noop": runner.REGISTRY["noop"]}
+    )
+    monkeypatch.setattr(runner, "ENABLED_COUNTIES", ())
     assert (
         runner.main(
             ["--counties=enabled", "--manifest-dir", str(tmp_path / "runs")]
@@ -258,9 +265,9 @@ def test_main_empty_selection_exits_zero(tmp_path):
 def test_main_empty_enabled_fails_once_real_counties_exist(
     tmp_path, monkeypatch
 ):
-    """Someone registered a real county but forgot ENABLED_COUNTIES —
+    """A real county registered (sb) but ENABLED_COUNTIES empty —
     a silently-green no-op cron would mask it (Codex round-2)."""
-    monkeypatch.setitem(runner.REGISTRY, "sb", ExplodingScraper)
+    monkeypatch.setattr(runner, "ENABLED_COUNTIES", ())
 
     assert (
         runner.main(

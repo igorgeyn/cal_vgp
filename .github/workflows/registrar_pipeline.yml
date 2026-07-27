@@ -56,10 +56,11 @@ jobs:
           R2_ENDPOINT_URL: ${{ secrets.R2_ENDPOINT_URL }}
           R2_BUCKET: cal-vgp-registrar-raw
           R2_ENV: ${{ github.event_name == 'push' && 'dev' || 'prod' }}
-        # --counties=noop until the first real scraper (SB) lands in
-        # Phase 1; then flip to --counties=enabled.
+        # Production set: ENABLED_COUNTIES in runner.py (SB as of
+        # Phase 1). The noop wiring scraper stays available via
+        # explicit --counties=noop on a manual dispatch if needed.
         run: |
-          python scraper/scripts/run_registrar_pipeline.py --counties=noop
+          python scraper/scripts/run_registrar_pipeline.py --counties=enabled
 
       - name: Upload run manifest
         # always(): failed runs still produce diagnostics.

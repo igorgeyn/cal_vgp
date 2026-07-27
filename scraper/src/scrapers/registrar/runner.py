@@ -35,6 +35,7 @@ from typing import Callable, Optional
 
 from .base import CountyRegistrarScraper
 from .noop import NoOpCountyScraper
+from .sb import SbScraper
 from .storage import R2ArtifactStore, RawArtifactStore, make_store
 
 RUNNER_VERSION = "0.1.0"
@@ -46,12 +47,13 @@ DEFAULT_MANIFEST_DIR = Path("scraper/data/registrar_runs")
 # All known county scrapers, keyed by slug.
 REGISTRY: dict[str, type[CountyRegistrarScraper]] = {
     "noop": NoOpCountyScraper,
+    "sb": SbScraper,
 }
 
-# Counties selected by --counties=enabled. Phase 1 adds real ones
-# ("sb" first). "noop" stays opt-in by explicit name — it exists to
-# validate wiring, not to run on every production cron.
-ENABLED_COUNTIES: tuple[str, ...] = ()
+# Counties selected by --counties=enabled. "noop" stays opt-in by
+# explicit name — it exists to validate wiring, not to run on every
+# production cron. Phase 1 order after SB: la, oc, sd, riverside.
+ENABLED_COUNTIES: tuple[str, ...] = ("sb",)
 
 log = logging.getLogger("registrar.runner")
 
