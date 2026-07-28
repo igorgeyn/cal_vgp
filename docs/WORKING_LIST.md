@@ -46,23 +46,23 @@ reviewed (benign, never executed, parallel-universe architecture),
 preserved on branch `georgia/api-scaffold`, reverted from main, and
 its good ideas captured under DATA below.
 
-**Phase 1 SB SHIPPED 2026-07-27** (`1e73f70`; see Recently
-shipped). Next chunk, in rough priority order:
+**Phase 1 SB SHIPPED 2026-07-27** (`1e73f70`) **+ Codex round-6
+review applied same day** (`8c46e18`; see Recently shipped). Next
+chunk, in rough priority order:
 
-1. **Codex round-6: SB implementation review** — sb.py + tests
-   shipped fast on top of a five-round-reviewed design; an
-   implementation pass closes the loop before LA builds on the
-   same patterns.
-2. **Watch the next two scheduled cron runs** (Aug 3, Aug 10) —
+1. **Watch the next two scheduled cron runs** (Aug 3, Aug 10) —
    two clean forward runs gate the March 2026 backfill batch per
-   the rollout plan.
-3. **March 2026 backfill** (first bounded batch) after #2.
-4. **Phase 1: LA scraper** — `results.lavote.gov/text-results/
+   the rollout plan. (The Nov 2026 page is actively growing:
+   16 PDFs at 10am on go-live day, 18 by 5pm.)
+2. **March 2026 backfill** (first bounded batch) after #1.
+3. **Phase 1: LA scraper** — `results.lavote.gov/text-results/
    {election_id}`, sequential integer IDs; fixtures-first per the
-   SB playbook.
-5. **Parser stage design** — raw SB artifacts → normalized JSONL;
+   SB playbook (incl. ownership-scoped extraction from day one).
+4. **Parser stage design** — raw SB artifacts → normalized JSONL;
    the audit map (`pdf_artifacts`) was built for exactly this
-   consumer.
+   consumer. Note from round-6: filenames are snapshot-local keys;
+   cross-snapshot measure lineage is the parser's job (source_url
+   = continuity hint, sha256 = byte identity).
 
 **Design inputs locked by Codex round-3 Part B (2026-07-09):**
 
@@ -180,6 +180,29 @@ commits `4542d4a` → `bec2abe` → round-4 fixes `a1582c8` + `df6e73f`
 - Phase G — v3 + combined integrity: 9/9 PASS.
 
 ## Recently shipped
+
+### 2026-07-27 — Codex round-6 applied: extraction ownership + redirect hardening (`8c46e18`)
+
+Implementation review of the shipped scraper (no blocker; cron
+stayed enabled throughout). Five should-fixes, all applied with 13
+new tests (157/157 registrar):
+
+- **Ownership-scoped extraction** — the serious one: Codex
+  reproduced a nested-`<th>` case where a whole measure row was
+  silently skipped, and since zero rows is valid, the snapshot
+  published silently empty. Row/cell/link scans now respect
+  nearest-ancestor-table ownership; only the recognized header row
+  is skipped; works inside `<thead>`; pre-header content fails loud.
+- **Final-URL validation** — same-origin redirect onto a different
+  election's page can't be stored under the wrong date; PDF fetches
+  reject HTTP downgrades (cross-origin HTTPS still fine).
+- **Mixed-state fixture pinned** from the first production run's
+  stored bytes (8 TBD rows / 16 links) with an exact-contract test.
+- Workflow: stale R2 comment fixed; `workflow_dispatch` gains a
+  `counties` input so the noop smoke path actually exists.
+- Agreed-without-change: TBD filename churn (snapshot-local keys;
+  lineage is the parser's job) and scrape-time anchor parsing
+  (import-time failure would bypass county isolation).
 
 ### 2026-07-27 — Phase 1: San Bernardino scraper LIVE (`1e73f70`)
 
