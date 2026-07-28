@@ -1,0 +1,12 @@
+{
+  "source_url": "https://elections.sbcounty.gov/elections/2026/1103/measures/",
+  "final_url": "https://elections.sbcounty.gov/elections/2026/1103/measures/",
+  "http_status": 200,
+  "content_type": "text/html",
+  "etag": "\"1f36ce61f2e0a5ad6c5f9aa4313a91b3\"",
+  "last_modified": "Mon, 27 Jul 2026 17:00:15 GMT",
+  "size_bytes": 173547,
+  "sha256": "288f51f07fb8a27fb4c5183f54c3600b511d7a1765950776b646c28ec45c49b4",
+  "captured_at": "2026-07-27T17:00:14.917046+00:00",
+  "provenance": "copied verbatim from dev-store snapshot dev/sb/2026-11-03/20260727T170014Z (first live SbScraper run)"
+}

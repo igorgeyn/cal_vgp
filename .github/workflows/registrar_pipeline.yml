@@ -7,6 +7,11 @@ on:
     # in docs/plans/registrar_pipeline_infra.md.
     - cron: '0 12 * * 1'
   workflow_dispatch:  # manual trigger; targets the prod env
+    inputs:
+      counties:
+        description: "Counties selector for the runner (e.g. enabled, noop, sb)"
+        required: false
+        default: "enabled"
   push:
     paths:
       - 'scraper/src/scrapers/registrar/**'
@@ -45,22 +50,21 @@ jobs:
 
       - name: Run registrar pipeline
         env:
-          # Until the R2 account is provisioned these secrets are
-          # unset, so make_store() falls back to LocalArtifactStore
-          # (artifacts stay in the CI workspace; the run manifest
-          # below is the wiring proof). Once secrets + the
-          # R2ArtifactStore impl exist, this flips to R2 with no
-          # workflow change.
+          # R2 is provisioned; make_store() selects R2ArtifactStore.
+          # A prod run in CI with incomplete R2 config fails loudly
+          # (StoreConfigurationError) — it never silently falls back
+          # to ephemeral local storage.
           R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
           R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
           R2_ENDPOINT_URL: ${{ secrets.R2_ENDPOINT_URL }}
           R2_BUCKET: cal-vgp-registrar-raw
           R2_ENV: ${{ github.event_name == 'push' && 'dev' || 'prod' }}
         # Production set: ENABLED_COUNTIES in runner.py (SB as of
-        # Phase 1). The noop wiring scraper stays available via
-        # explicit --counties=noop on a manual dispatch if needed.
+        # Phase 1). Manual dispatch can override the selector (e.g.
+        # counties=noop for a wiring smoke test); cron and push
+        # always run the enabled set.
         run: |
-          python scraper/scripts/run_registrar_pipeline.py --counties=enabled
+          python scraper/scripts/run_registrar_pipeline.py --counties=${{ github.event.inputs.counties || 'enabled' }}
 
       - name: Upload run manifest
         # always(): failed runs still produce diagnostics.

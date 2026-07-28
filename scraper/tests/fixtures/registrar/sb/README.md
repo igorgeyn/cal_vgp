@@ -13,6 +13,7 @@ capture time. Design: `docs/plans/registrar_phase1_sb.md`.
 | `landing_measures.html` | Cross-election landing `/elections/measures/` — discovery input |
 | `measures_2026_0324.html` | March 2026 measures page — **published state** (2 rows, all links live) |
 | `measures_2026_1103.html` | Nov 2026 measures page — **announced state** (2 rows, zero links) |
+| `measures_2026_1103_mixed.html` | Same page 18 days later — **mixed state** (8 TBD rows, 16 links across partial per-row publication; pinned from the first production run's stored bytes, Codex round-6) |
 | `pdf_res_v.pdf` | Measure V resolution (Jurisdiction-cell link, `RES_*`) |
 | `pdf_ord_v.pdf` | Measure V ordinance = full measure text (Description-cell link, `ORD_*`) |
 | `pdf_ia_v.pdf` | Measure V impartial analysis (`IA_*`) |

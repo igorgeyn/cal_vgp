@@ -158,6 +158,40 @@ def _letter_slug(letter: str) -> str:
     return "_".join(runs)
 
 
+# --- ownership-scoped traversal (Codex round-6) -----------------------
+# All row/cell/link scans consider only nodes whose NEAREST ancestor
+# table is the selected measures table. Without this, a nested table
+# (or a future <th scope="row"> accessibility change) could silently
+# drop measure rows — and zero rows is a VALID state, so the failure
+# mode was a silently empty published snapshot.
+
+
+def _owned_rows(table) -> list:
+    return [tr for tr in table.find_all("tr") if tr.find_parent("table") is table]
+
+
+def _direct_cells(tr) -> list:
+    return tr.find_all(["th", "td"], recursive=False)
+
+
+def _owned_links(cell, table) -> list:
+    return [
+        a
+        for a in cell.find_all("a", href=True)
+        if a.find_parent("table") is table
+    ]
+
+
+def _find_header_row(table):
+    """First owned row whose direct cells are all <th>. Returns
+    (row, normalized_headers) or (None, ())."""
+    for tr in _owned_rows(table):
+        cells = _direct_cells(tr)
+        if cells and all(c.name == "th" for c in cells):
+            return tr, tuple(_norm_text(c).lower() for c in cells)
+    return None, ()
+
+
 def extract_measures_page(body: bytes, page_url: str) -> MeasuresPage:
     """Pure extraction of an SB measures page.
 
@@ -177,14 +211,12 @@ def extract_measures_page(body: bytes, page_url: str) -> MeasuresPage:
 
     matches = []
     for table in soup.find_all("table"):
-        header_row = table.find("tr")
-        if header_row is None:
-            continue
-        ths = header_row.find_all("th")
-        if not ths:
-            continue
-        headers = tuple(_norm_text(th).lower() for th in ths)
-        if len(headers) == len(EXPECTED_HEADERS) and set(headers) == EXPECTED_HEADERS:
+        header_row, headers = _find_header_row(table)
+        if (
+            header_row is not None
+            and len(headers) == len(EXPECTED_HEADERS)
+            and set(headers) == EXPECTED_HEADERS
+        ):
             matches.append((table, header_row, headers))
 
     if len(matches) != 1:
@@ -195,11 +227,20 @@ def extract_measures_page(body: bytes, page_url: str) -> MeasuresPage:
     table, header_row, headers = matches[0]
     col = {name: i for i, name in enumerate(headers)}
 
+    owned = _owned_rows(table)
+    header_index = owned.index(header_row)
+    # Fail loud, not silent: content rows BEFORE the header row are
+    # out of contract (we would otherwise ignore them).
+    for tr in owned[:header_index]:
+        if _direct_cells(tr):
+            raise SbSchemaError("unexpected content row before the header row")
+
     raw_rows = []
-    for tr in table.find_all("tr"):
-        if tr is header_row or tr.find_all("th"):
-            continue
-        cells = tr.find_all("td", recursive=False)
+    for tr in owned[header_index + 1:]:
+        # Direct th OR td: tolerates a future <th scope="row"> letter
+        # cell. Only the recognized header row is skipped — never a
+        # data row that happens to contain a descendant <th>.
+        cells = _direct_cells(tr)
         if not cells:
             continue
         if len(cells) != len(headers):
@@ -223,7 +264,7 @@ def extract_measures_page(body: bytes, page_url: str) -> MeasuresPage:
         # Letter / Percentage cells must not carry links at all —
         # a link we have no role for would violate complete capture.
         for plain_col in ("letter", "percentage to pass"):
-            if cells[col[plain_col]].find("a", href=True):
+            if _owned_links(cells[col[plain_col]], table):
                 raise SbSchemaError(
                     f"unexpected link in {plain_col!r} cell (row {idx})"
                 )
@@ -232,7 +273,7 @@ def extract_measures_page(body: bytes, page_url: str) -> MeasuresPage:
 
         # Single-link columns: zero or exactly one link, role by column.
         for col_name, role in COLUMN_ROLES.items():
-            links = cells[col[col_name]].find_all("a", href=True)
+            links = _owned_links(cells[col[col_name]], table)
             if len(links) > 1:
                 raise SbSchemaError(
                     f"{col_name!r} cell has {len(links)} links (row {idx}); "
@@ -254,7 +295,7 @@ def extract_measures_page(body: bytes, page_url: str) -> MeasuresPage:
 
         # Arguments: 0-4 links, role by unique label.
         seen_labels: set[str] = set()
-        for link in cells[col["arguments"]].find_all("a", href=True):
+        for link in _owned_links(cells[col["arguments"]], table):
             label = _norm_text(link).lower()
             role = ARGUMENT_ROLES.get(label)
             if role is None:
@@ -393,11 +434,26 @@ class SbScraper(CountyRegistrarScraper):
     def _scrape_election(self, d: date, provenance: str):
         url = measures_url(d)
         page_fetch = self.fetch(url)
+        # Round-6: validate the FULL final URL, not just the origin —
+        # a same-origin redirect to another election's measures page
+        # would otherwise be silently stored under the wrong date.
         final = urlparse(page_fetch.final_url)
-        if final.scheme != "https" or final.netloc.lower() != SB_HOST:
+        final_date = None
+        m = _CANDIDATE_PATH.match(final.path or "")
+        if m:
+            try:
+                mmdd = m.group(2)
+                final_date = date(int(m.group(1)), int(mmdd[:2]), int(mmdd[2:]))
+            except ValueError:
+                final_date = None
+        if (
+            final.scheme != "https"
+            or final.netloc.lower() != SB_HOST
+            or final_date != d
+        ):
             raise SbSchemaError(
-                f"measures page for {d.isoformat()} redirected off-origin: "
-                f"{page_fetch.final_url}"
+                f"measures page for {d.isoformat()} ended off-origin or on "
+                f"a different election: {page_fetch.final_url}"
             )
 
         writer = self.open_snapshot(d.isoformat())
@@ -410,6 +466,14 @@ class SbScraper(CountyRegistrarScraper):
         pdf_audit = []
         for doc in page.expected_documents:
             pdf = self.fetch(doc.url)
+            # Round-6: cross-origin HTTPS redirects are fine (the
+            # official page advertised the source), but a downgrade
+            # to plain HTTP is never acceptable for saved documents.
+            if urlparse(pdf.final_url).scheme != "https":
+                raise SbSchemaError(
+                    f"PDF fetch ended on a non-HTTPS URL (role {doc.role}, "
+                    f"{doc.url} -> {pdf.final_url})"
+                )
             content_type = pdf.content_type or ""
             if content_type != "application/pdf" and not pdf.body.startswith(
                 b"%PDF-"
@@ -419,6 +483,11 @@ class SbScraper(CountyRegistrarScraper):
                     f"{doc.url}): content-type {content_type!r}"
                 )
             writer.save(doc.filename, pdf)
+            # Audit map for the parser. Filenames are snapshot-local
+            # storage keys; source_url is a continuity HINT across
+            # snapshots, sha256 (in the artifact entry) identifies
+            # exact bytes — neither is a measure identity. Lineage
+            # is the parser's job (Codex round-6).
             pdf_audit.append(
                 {
                     "filename": doc.filename,

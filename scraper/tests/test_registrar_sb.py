@@ -155,6 +155,32 @@ def test_extract_announced_page_zero_expected_documents():
     assert page.expected_documents == ()
 
 
+def test_extract_mixed_state_fixture_exact_contract():
+    """The 2026-07-27 live page (pinned from the first production
+    run): 8 rows, all letters still TBD (collision suffixes on every
+    filename), 16 docs across mixed per-row publication states."""
+    page = extract_measures_page(
+        fixture_bytes("measures_2026_1103_mixed.html"), URL_1103
+    )
+
+    assert len(page.rows) == 8
+    assert all(r.letter == "TBD" for r in page.rows)
+    assert len(page.expected_documents) == 16
+
+    pairs = [(d.table_row, d.role) for d in page.expected_documents]
+    assert pairs == [
+        (2, "resolution"),
+        (3, "resolution"), (3, "text"), (3, "analysis"),
+        (4, "resolution"), (4, "text"),
+        (5, "resolution"), (5, "analysis"), (5, "argument_for"),
+        (6, "resolution"), (6, "text"), (6, "analysis"), (6, "argument_for"),
+        (7, "resolution"), (7, "text"), (7, "analysis"),
+    ]
+    names = [d.filename for d in page.expected_documents]
+    assert all(n.startswith("measure_tbd_r") for n in names)
+    assert len(names) == len(set(names))
+
+
 def test_discovery_finds_single_deduped_candidate():
     """The landing page links 2026-11-03 from duplicated site nav;
     other elections are linked without the /measures/ suffix."""
@@ -317,6 +343,74 @@ def test_empty_letter_slug_is_schema_failure():
     row = ROW_PUBLISHED.replace("<td>V</td>", "<td>--</td>")
     with pytest.raises(SbSchemaError, match="empty slug"):
         extract_measures_page(table_html(HEADERS_OK, row), URL_1103)
+
+
+def test_nested_th_does_not_hide_data_row():
+    """Codex round-6: a nested table (with its own <th>) inside a
+    cell must not cause the outer row to be skipped — zero rows is
+    valid, so silent skipping publishes a silently empty snapshot."""
+    nested = (
+        "<table><tr><th>Inner</th></tr>"
+        '<tr><td><a href="https://uploads.rov.sbcounty.gov/leak.pdf">x</a>'
+        "</td></tr></table>"
+    )
+    row = ROW_PUBLISHED.replace("<td>50% + 1</td>", f"<td>50% + 1{nested}</td>")
+    page = extract_measures_page(table_html(HEADERS_OK, row), URL_1103)
+
+    assert len(page.rows) == 1  # row survives the nested <th>
+    # ...and the nested table's link does NOT leak into the row's
+    # documents (nor trip the no-links rule for the Percentage cell).
+    assert {d.role for d in page.expected_documents} == {
+        "resolution", "text", "analysis", "argument_for",
+    }
+    assert not any("leak.pdf" in d.url for d in page.expected_documents)
+
+
+def test_th_scope_row_letter_cell_still_parsed():
+    row = ROW_PUBLISHED.replace("<td>V</td>", '<th scope="row">V</th>')
+    page = extract_measures_page(table_html(HEADERS_OK, row), URL_1103)
+    assert page.rows[0].letter == "V"
+
+
+def test_nested_full_measures_table_is_ambiguous():
+    inner = table_html(HEADERS_OK, "").decode()
+    inner_table = inner[inner.index("<table"): inner.index("</table>") + 8]
+    row = ROW_PUBLISHED.replace("<td>50% + 1</td>", f"<td>50% + 1{inner_table}</td>")
+    with pytest.raises(SbSchemaError, match="exactly 1 measures table"):
+        extract_measures_page(table_html(HEADERS_OK, row), URL_1103)
+
+
+def test_header_row_inside_thead_is_found():
+    body = (
+        f"<html><body><table><thead><tr>{HEADERS_OK}</tr></thead>"
+        f"<tbody>{ROW_PUBLISHED}</tbody></table></body></html>"
+    ).encode()
+    page = extract_measures_page(body, URL_1103)
+    assert len(page.rows) == 1
+
+
+def test_header_cells_containing_links_still_match():
+    headers = HEADERS_OK.replace(
+        "<th>Analysis</th>", '<th><a href="/help">Analysis</a></th>'
+    )
+    page = extract_measures_page(table_html(headers, ROW_PUBLISHED), URL_1103)
+    assert len(page.rows) == 1
+
+
+def test_content_row_before_header_fails_loud():
+    body = (
+        "<html><body><table><tbody><tr><td>preamble</td></tr>"
+        f"<tr>{HEADERS_OK}</tr>{ROW_PUBLISHED}</tbody></table></body></html>"
+    ).encode()
+    with pytest.raises(SbSchemaError, match="before the header row"):
+        extract_measures_page(body, URL_1103)
+
+
+def test_shipped_anchors_parse():
+    from src.scrapers.registrar.sb import SB_FORWARD_ANCHORS
+
+    for a in SB_FORWARD_ANCHORS:
+        date.fromisoformat(a)  # raises on a typo'd anchor
 
 
 def test_tolerant_decode_of_invalid_bytes():
@@ -549,6 +643,93 @@ def test_published_to_linkfree_regression_is_valid_observation(store):
     )
     assert manifest["pdf_counts"] == {"expected": 0, "saved": 0}
     assert manifest["table_row_count"] == 1
+
+
+def test_same_origin_redirect_to_wrong_election_fails(store):
+    """Codex round-6: a same-origin redirect onto ANOTHER election's
+    measures page must not be stored under the requested date."""
+    responses = landing_with(["2027/0302"])
+    page_url = "https://elections.sbcounty.gov/elections/2027/0302/measures/"
+    responses[page_url] = [
+        html_response(
+            table_html(HEADERS_OK, ""),
+            "https://elections.sbcounty.gov/elections/2026/1103/measures/",
+        )
+    ]
+    scraper = make_sb(store, responses, when=NOV_9)
+    with pytest.raises(SbSchemaError, match="different election"):
+        scraper.scrape()
+
+
+def test_pdf_cross_origin_https_redirect_accepted(store):
+    responses = published_election_responses()
+    ia = "https://uploads.rov.sbcounty.gov/d/ia.pdf"
+    responses[ia] = [
+        FakeResponse(
+            content=b"%PDF-1.4\nfake",
+            headers={"Content-Type": "application/pdf"},
+            url="https://cdn.sbcounty.example/d/ia.pdf",  # off-origin, HTTPS
+        )
+    ]
+    result = make_sb(store, responses, when=NOV_9).scrape()
+    assert result.artifacts_written == 3
+
+
+def test_pdf_http_downgrade_rejected(store):
+    """Codex round-6: an HTTPS source redirecting to plain HTTP must
+    never be accepted as a saved document."""
+    responses = published_election_responses()
+    ia = "https://uploads.rov.sbcounty.gov/d/ia.pdf"
+    responses[ia] = [
+        FakeResponse(
+            content=b"%PDF-1.4\nfake",
+            headers={"Content-Type": "application/pdf"},
+            url="http://uploads.rov.sbcounty.gov/d/ia.pdf",  # downgraded
+        )
+    ]
+    scraper = make_sb(store, responses, when=NOV_9)
+    with pytest.raises(SbSchemaError, match="non-HTTPS"):
+        scraper.scrape()
+    assert store.list_snapshots(county="sb", election_date="2027-03-02") == []
+
+
+def test_pdf_signature_fallback_with_generic_mime(store):
+    responses = published_election_responses()
+    ia = "https://uploads.rov.sbcounty.gov/d/ia.pdf"
+    responses[ia] = [
+        FakeResponse(
+            content=b"%PDF-1.7\nreal enough",
+            headers={"Content-Type": "application/octet-stream"},
+            url=ia,
+        )
+    ]
+    result = make_sb(store, responses, when=NOV_9).scrape()
+    assert result.artifacts_written == 3
+
+
+def test_multi_election_ordering_and_earlier_snapshot_survival(store):
+    """Two elections: the earlier one completes; the later one fails
+    on a missing PDF. County fails, but the completed earlier
+    snapshot remains a valid immutable observation."""
+    url_a = "https://elections.sbcounty.gov/elections/2027/0302/measures/"
+    url_b = "https://elections.sbcounty.gov/elections/2027/0602/measures/"
+    bad_row = (
+        "<tr><td>Q</td><td>City of Y</td><td>Desc</td>"
+        '<td><a href="https://uploads.rov.sbcounty.gov/gone.pdf">Impartial</a></td>'
+        "<td></td><td>50% + 1</td></tr>"
+    )
+    responses = landing_with(["2027/0302", "2027/0602"])
+    responses[url_a] = [html_response(table_html(HEADERS_OK, ""), url_a)]
+    responses[url_b] = [html_response(table_html(HEADERS_OK, bad_row), url_b)]
+    # gone.pdf unscripted -> 404 -> FetchError
+
+    scraper = make_sb(store, responses, when=NOV_9)
+    with pytest.raises(ScraperError):
+        scraper.scrape()
+
+    # Earlier election published; failed one left no manifest.
+    assert store.list_snapshots(county="sb", election_date="2027-03-02") != []
+    assert store.list_snapshots(county="sb", election_date="2027-06-02") == []
 
 
 def test_manifest_extras_survive_json_round_trip(store):
