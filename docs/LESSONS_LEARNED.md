@@ -167,6 +167,71 @@ pre-flip period is the design space.
 
 ## Scraping / external source traps
 
+### When "zero results" is a valid state, silent skipping becomes invisible
+
+**Trap:** The SB extractor treated any table row containing a
+descendant `<th>` as a header row and skipped it. A nested table
+(or a future `<th scope="row">` accessibility change) would
+therefore silently drop measure rows — and because a zero-measure
+page is a VALID observation (announced-state elections), the
+pipeline would publish a silently empty snapshot and report green.
+Codex round-6 reproduced this with a synthetic probe.
+
+**Fix:** Ownership-scoped traversal (commit `8c46e18`): every
+row/cell/link scan considers only nodes whose NEAREST ancestor
+table is the selected table, and only the recognized header row is
+skipped. `scraper/src/scrapers/registrar/sb.py`.
+
+**Lesson:** Whenever "empty" is a legitimate result, any silent
+per-item skip converts bugs into invisible data loss. Scope DOM
+traversal by ownership, skip only specifically-recognized nodes,
+and make everything else either captured or a loud failure. Apply
+to every future county extractor (LA next).
+
+---
+
+### Fixtures-first catches what recon and design cannot
+
+**Trap avoided:** The Codex-drafted SB design assumed five document
+roles per measure. The first pinned fixture showed SEVEN — the
+Jurisdiction cell links a resolution PDF and the Description cell
+links the ordinance (the full measure text, the most valuable
+artifact on the page). The design's own strictness would have
+rejected both as schema failures. Fixtures also surfaced the
+"announced" page state (rows with no links), which no design
+session had imagined.
+
+**Bonus validation:** the site then drifted BETWEEN fixture-pinning
+and go-live (announced → mixed state, new `FT_`/`AIF_` URL
+prefixes) and the scraper absorbed it, because roles derive from
+labels/columns, not URLs.
+
+**Lesson:** For any new scraping target: pin raw fixtures BEFORE
+writing extraction code, test extraction as a pure function against
+those bytes, and re-pin when the site shows a new state. Recon
+tells you the shape; only fixtures tell you the contract.
+`scraper/tests/fixtures/registrar/sb/README.md` is the worked
+example.
+
+---
+
+### Verify bytes, not terminal output
+
+**Trap:** During fixture inspection, a valid UTF-8 curly apostrophe
+(`\xe2\x80\x99`) rendered as `�` in the Windows console, and got
+recorded as "the page contains a Windows-1252 byte in declared
+UTF-8" — a false fixture fact that briefly steered the design
+toward an encoding hazard that didn't exist. Codex round-5 caught
+it by checking the actual bytes.
+
+**Lesson:** Console rendering passes through a code page and lies.
+Claims about file encoding or content must be verified against raw
+bytes (`open(..., 'rb')` + explicit decode), never against what
+happened to print. Correct the record explicitly when a claim
+turns out false — the correction is itself documentation.
+
+---
+
 ### Polite User-Agent is non-negotiable
 
 **Trap:** Generic User-Agent strings (Python `requests` default,

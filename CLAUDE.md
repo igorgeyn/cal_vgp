@@ -71,6 +71,15 @@ These are non-obvious traps the project has hit. Full context in
 - **For registrar scraping: polite User-Agent is non-negotiable.**
   San Diego returns 403 with generic UAs (validated 2026-06-08).
   Always identify with project + contact in the UA string.
+- **County extractors: pin fixtures before code, and scope DOM
+  traversal by table ownership.** Fixtures caught 7 document roles
+  where the design assumed 5 (SB, 2026-07); a nested-`<th>` skip
+  bug would have published silently EMPTY snapshots because zero
+  rows is a valid state. See LESSONS_LEARNED + `sb.py` for the
+  pattern every new county (LA next) must follow.
+- **Verify bytes, not terminal output.** A valid UTF-8 apostrophe
+  rendering as `�` in the Windows console became a false "encoding
+  hazard" fixture fact until Codex checked the raw bytes.
 - **For finance v2/v3 stitching: read the combined-totals
   invariants** before changing aggregation SQL. See `Phase G`
   integrity checks in `scripts/v3/verify_phase_g.py`.

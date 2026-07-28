@@ -8,6 +8,16 @@
 **Coverage:** 58 California counties + statewide propositions
 **Quality Score:** 86.7% (A-) — see [KNOWN_ISSUES.md](KNOWN_ISSUES.md)
 
+> **This doc predates the registrar pipeline (2026-06+) entirely.**
+> A recurring county-registrar scraping pipeline now runs weekly in
+> production (San Bernardino live as of 2026-07-27; raw artifacts in
+> Cloudflare R2). It is documented separately:
+> [`docs/plans/registrar_pipeline_infra.md`](plans/registrar_pipeline_infra.md)
+> (architecture) and
+> [`docs/plans/registrar_phase1_sb.md`](plans/registrar_phase1_sb.md)
+> (first county). Its parser/loader stage — which will feed
+> `ballot_measures.db` and thus this doc's scope — is not yet built.
+
 > **Finance section is a snapshot — substantially expanded since this
 > doc was written.** Section 9 below describes the original
 > `finance_statewide.db` design (v1; contaminated). The finance pipeline

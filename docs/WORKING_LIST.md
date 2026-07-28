@@ -1,12 +1,19 @@
 # CalBallot Working List
 
-> Snapshot: **2026-07-27**. Branch: `main`, in sync with
-> `origin/main`. Last commit: `1e73f70` (SB scraper live).
+> Snapshot: **2026-07-27 (end of day)**. Branch: `main`, in sync
+> with `origin/main`.
 >
 > **WHERE WE LEFT OFF — Phase 1 San Bernardino is LIVE IN
-> PRODUCTION.** First real snapshot captured 2026-07-27: the Nov
-> 2026 election, 8 measure rows across 6 jurisdictions, 16/16 PDFs,
-> verified in the prod R2 bucket. Weekly cron now scrapes SB.
+> PRODUCTION and round-6 hardened.** First real snapshot captured
+> 2026-07-27 (`1e73f70`): the Nov 2026 election, 8 measure rows
+> across 6 jurisdictions, 16/16 PDFs, verified in the prod R2
+> bucket — the page grew to 18 PDFs by end of day. Codex round-6
+> implementation review applied same day (`8c46e18`): ownership-
+> scoped extraction, redirect validations, mixed-state fixture.
+> 157 registrar tests. Weekly cron scrapes SB unattended; nothing
+> is blocked on anyone. Next milestones are calendar-driven (clean
+> cron runs Aug 3 + Aug 10 gate the March 2026 backfill), then LA
+> scraper + parser design when the next arc opens.
 >
 > Project shifted on 2026-05-21 from finance polish to building a real
 > recurring pipeline for local ballot measures from county registrar
