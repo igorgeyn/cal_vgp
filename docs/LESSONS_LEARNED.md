@@ -190,6 +190,35 @@ to every future county extractor (LA next).
 
 ---
 
+### Fail-loud on cardinality catches misattribution, not just loss
+
+**The event:** the Aug 10 2026 SB cron failed with "'analysis' cell
+has 2 links (row 14); zero or one allowed." The county had started
+publishing **Tax Rate Statements** (required for tax/bond measures)
+in the same table cell as impartial analyses.
+
+**What the rule actually saved:** the obvious reading is "we would
+have dropped a document." The real damage was worse and quieter —
+6 of 14 analysis-cell links were tax rate statements, and 5 rows
+carried ONLY one. Under role-by-column, those five would have been
+stored as `measure_X_analysis.pdf`: not missing, just *wrong*, with
+no gate anywhere downstream able to notice. The strict rule fired
+on the new document type's first appearance, before any bad row
+landed (audit of prior snapshots confirmed zero affected).
+
+**Fix:** the column became label-keyed — role comes from each
+link's own label, unknown labels still fail loudly, so the ninth
+document type will break the cron too. That is the intended cost.
+
+**Lesson:** "take the first and move on" trades a loud failure for
+a silent lie. When a source can add a document type you have never
+seen, prefer a rule that stops the pipeline over one that guesses —
+and expect the stop to happen months later, in production, on a
+Monday. Design the failure to be diagnosable (the message named the
+cell, the row, and the rule) because that is the moment it pays.
+
+---
+
 ### Fixtures-first catches what recon and design cannot
 
 **Trap avoided:** The Codex-drafted SB design assumed five document

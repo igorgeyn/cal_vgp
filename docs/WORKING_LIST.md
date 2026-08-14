@@ -1,19 +1,17 @@
 # CalBallot Working List
 
-> Snapshot: **2026-07-27 (end of day)**. Branch: `main`, in sync
-> with `origin/main`.
+> Snapshot: **2026-08-13**. Branch: `main`, in sync with
+> `origin/main`. Last commit: `f799227`.
 >
-> **WHERE WE LEFT OFF — Phase 1 San Bernardino is LIVE IN
-> PRODUCTION and round-6 hardened.** First real snapshot captured
-> 2026-07-27 (`1e73f70`): the Nov 2026 election, 8 measure rows
-> across 6 jurisdictions, 16/16 PDFs, verified in the prod R2
-> bucket — the page grew to 18 PDFs by end of day. Codex round-6
-> implementation review applied same day (`8c46e18`): ownership-
-> scoped extraction, redirect validations, mixed-state fixture.
-> 157 registrar tests. Weekly cron scrapes SB unattended; nothing
-> is blocked on anyone. Next milestones are calendar-driven (clean
-> cron runs Aug 3 + Aug 10 gate the March 2026 backfill), then LA
-> scraper + parser design when the next arc opens.
+> **WHERE WE LEFT OFF — Phase 1 San Bernardino is LIVE and has
+> survived its first real site drift.** The Aug 10 cron failed
+> loudly on a new document type (Tax Rate Statement); diagnosed and
+> fixed 2026-08-13, prod restored and verified. The Nov 2026
+> election now has 20 measures / 56 PDFs archived. 161 registrar
+> tests. Weekly cron scrapes SB unattended; **nothing is blocked on
+> anyone.** Next milestones are calendar-driven (clean unattended
+> cron runs Aug 17 + Aug 24 re-gate the March 2026 backfill), then
+> the LA scraper + parser design when the next arc opens.
 >
 > Project shifted on 2026-05-21 from finance polish to building a real
 > recurring pipeline for local ballot measures from county registrar
@@ -53,14 +51,15 @@ reviewed (benign, never executed, parallel-universe architecture),
 preserved on branch `georgia/api-scaffold`, reverted from main, and
 its good ideas captured under DATA below.
 
-**Phase 1 SB SHIPPED 2026-07-27** (`1e73f70`) **+ Codex round-6
-review applied same day** (`8c46e18`; see Recently shipped). Next
-chunk, in rough priority order:
+**Phase 1 SB shipped 2026-07-27; first real site drift caught and
+fixed 2026-08-13** (`f799227`; see Recently shipped). Next chunk,
+in rough priority order:
 
-1. **Watch the next two scheduled cron runs** (Aug 3, Aug 10) —
-   two clean forward runs gate the March 2026 backfill batch per
-   the rollout plan. (The Nov 2026 page is actively growing:
-   16 PDFs at 10am on go-live day, 18 by 5pm.)
+1. **Watch the next two scheduled cron runs** (Aug 17, Aug 24) —
+   the backfill gate resets after the Aug 10 failure + fix. Two
+   clean *unattended* runs gate the March 2026 backfill batch.
+   (Nov 2026 is filling fast: 8 rows on Jul 27 → 20 rows / 56 PDFs
+   now, letters assigned.)
 2. **March 2026 backfill** (first bounded batch) after #1.
 3. **Phase 1: LA scraper** — `results.lavote.gov/text-results/
    {election_id}`, sequential integer IDs; fixtures-first per the
@@ -187,6 +186,36 @@ commits `4542d4a` → `bec2abe` → round-4 fixes `a1582c8` + `df6e73f`
 - Phase G — v3 + combined integrity: 9/9 PASS.
 
 ## Recently shipped
+
+### 2026-08-13 — First production site drift: caught, diagnosed, fixed (`f799227`)
+
+The Aug 10 cron **failed loudly** — the system working as designed:
+
+```
+SbSchemaError: 'analysis' cell has 2 links (row 14);
+zero or one allowed — never silently drop a document
+```
+
+- **What changed:** SB's Nov-2026 page grew 9 → 20 rows with
+  letters now ASSIGNED, and the Analysis column revealed a second
+  document type — the **Tax Rate Statement** California requires
+  for tax/bond measures. City of Needles Measure L advertises both.
+- **Why it mattered more than it looked:** 6 of 14 analysis-cell
+  links are tax rate statements, and 5 rows carry ONLY one. Under
+  role-by-column those five would have been silently filed as
+  `_analysis.pdf` — a misattribution no gate would have caught.
+  Audited both prior prod snapshots (Jul 27, Aug 3): zero affected,
+  because TRs first appeared after Aug 3. The cron broke on their
+  first appearance, before any bad data landed.
+- **Fix:** the Analysis column is now label-keyed like Arguments
+  (`ANALYSIS_ROLES`); role-by-column is left to Jurisdiction and
+  Measure Description, whose labels are variable text. Unknown or
+  duplicate labels stay schema failures, so a ninth document type
+  will also fail loudly — by design. Up to 8 roles per measure.
+- New fixtures (lettered page + a TR PDF), +4 tests (161 total),
+  live smoke green, prod restored by manual dispatch: `rows=20,
+  56/56 PDFs, 57 artifacts` in `prod/sb/2026-11-03/20260814T035115Z/`,
+  sha-verified.
 
 ### 2026-07-27 — Codex round-6 applied: extraction ownership + redirect hardening (`8c46e18`)
 
