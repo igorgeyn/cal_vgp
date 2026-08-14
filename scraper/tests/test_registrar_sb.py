@@ -4,6 +4,7 @@ lifecycle (clock-controlled), and fixture-session integration."""
 from __future__ import annotations
 
 import json
+from collections import Counter
 from datetime import date, datetime, timezone
 from pathlib import Path
 
@@ -181,6 +182,79 @@ def test_extract_mixed_state_fixture_exact_contract():
     assert len(names) == len(set(names))
 
 
+def test_extract_lettered_fixture_with_tax_rate_statements():
+    """The 2026-08-13 live page: letters assigned (no TBD, so no
+    collision suffixes), 20 rows, and the Analysis cell carrying two
+    document types — the drift that failed the Aug 10 cron."""
+    page = extract_measures_page(
+        fixture_bytes("measures_2026_1103_lettered.html"), URL_1103
+    )
+
+    assert len(page.rows) == 20
+    letters = [r.letter for r in page.rows]
+    assert "TBD" not in letters
+    assert len(set(letters)) == 20  # unique → no r{NNN} suffixes
+    assert all("_r0" not in d.filename for d in page.expected_documents)
+
+    roles = Counter(d.role for d in page.expected_documents)
+    assert roles["analysis"] == 8
+    assert roles["tax_rate_statement"] == 6
+    assert roles["resolution"] == 20
+    assert roles["text"] == 19
+    assert roles["argument_for"] == 3
+
+    # Measure L (City of Needles, row 14) carries BOTH analysis docs.
+    row14 = [d for d in page.expected_documents if d.table_row == 14]
+    assert {d.role for d in row14} == {
+        "resolution", "text", "analysis", "tax_rate_statement",
+    }
+    by_role = {d.role: d for d in row14}
+    assert by_role["analysis"].filename == "measure_l_analysis.pdf"
+    assert by_role["tax_rate_statement"].filename == (
+        "measure_l_tax_rate_statement.pdf"
+    )
+    assert "/IA_" in by_role["analysis"].url
+    assert "/TR_" in by_role["tax_rate_statement"].url
+
+    # Every tax rate statement resolves to a TR_ document — proof the
+    # label keying prevents the misattribution role-by-column allowed.
+    for d in page.expected_documents:
+        if d.role == "tax_rate_statement":
+            assert "/TR_" in d.url
+        if d.role == "analysis":
+            assert "/IA_" in d.url
+
+
+def test_tax_rate_statement_alone_is_not_an_analysis():
+    """The silent-misattribution case: a row whose ONLY analysis-cell
+    link is a Tax Rate Statement must not be filed as 'analysis'."""
+    row = ROW_PUBLISHED.replace(
+        '<td><a href="https://uploads.rov.sbcounty.gov/ia.pdf">Impartial</a></td>',
+        '<td><a href="https://uploads.rov.sbcounty.gov/tr.pdf">'
+        "Tax Rate Statement</a></td>",
+    )
+    page = extract_measures_page(table_html(HEADERS_OK, row), URL_1103)
+    roles = {d.role for d in page.expected_documents}
+    assert "tax_rate_statement" in roles
+    assert "analysis" not in roles
+
+
+def test_unknown_analysis_label_is_schema_failure():
+    row = ROW_PUBLISHED.replace(">Impartial<", ">Fiscal Impact Summary<")
+    with pytest.raises(SbSchemaError, match="unknown analysis link label"):
+        extract_measures_page(table_html(HEADERS_OK, row), URL_1103)
+
+
+def test_duplicate_analysis_label_is_schema_failure():
+    row = ROW_PUBLISHED.replace(
+        '<td><a href="https://uploads.rov.sbcounty.gov/ia.pdf">Impartial</a></td>',
+        '<td><a href="https://uploads.rov.sbcounty.gov/ia.pdf">Impartial</a>'
+        '<a href="https://uploads.rov.sbcounty.gov/ia2.pdf">Impartial</a></td>',
+    )
+    with pytest.raises(SbSchemaError, match="duplicate analysis link label"):
+        extract_measures_page(table_html(HEADERS_OK, row), URL_1103)
+
+
 def test_discovery_finds_single_deduped_candidate():
     """The landing page links 2026-11-03 from duplicated site nav;
     other elections are linked without the /measures/ suffix."""
@@ -286,7 +360,7 @@ def test_two_links_in_single_link_cell_is_schema_failure():
 
 def test_unknown_argument_label_is_schema_failure():
     row = ROW_PUBLISHED.replace(">Argument For<", ">Community Statement<")
-    with pytest.raises(SbSchemaError, match="unknown argument link label"):
+    with pytest.raises(SbSchemaError, match="unknown arguments link label"):
         extract_measures_page(table_html(HEADERS_OK, row), URL_1103)
 
 
@@ -296,7 +370,7 @@ def test_duplicate_argument_label_is_schema_failure():
         '</li><li><a href="https://uploads.rov.sbcounty.gov/af2.pdf">'
         "Argument For</a></li></ul>",
     )
-    with pytest.raises(SbSchemaError, match="duplicate argument link label"):
+    with pytest.raises(SbSchemaError, match="duplicate arguments link label"):
         extract_measures_page(table_html(HEADERS_OK, row), URL_1103)
 
 

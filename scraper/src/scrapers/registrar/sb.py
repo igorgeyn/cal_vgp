@@ -15,9 +15,10 @@ Two layers, per docs/plans/registrar_phase1_sb.md:
   with SB audit extras.
 
 Page states the extractor recognizes (fixture facts):
-- PUBLISHED: every cell links a PDF; seven roles per measure
-  (resolution from the Jurisdiction cell, full text from the
-  Description cell, analysis, and four argument variants by label).
+- PUBLISHED: every cell links a PDF; up to EIGHT roles per measure —
+  resolution (Jurisdiction cell) and full text (Description cell)
+  by column, then analysis + tax rate statement (Analysis cell) and
+  the four argument variants (Arguments cell) by link label.
 - ANNOUNCED: rows exist (letters may be "TBD") but carry no links;
   a valid zero-expected-documents observation, not a failure.
 - Mixed rows are handled per cell; expected documents are exactly
@@ -68,8 +69,22 @@ EXPECTED_HEADERS = frozenset(
     }
 )
 
-# Argument-cell link labels (normalized) → role. Unknown or
-# duplicated labels are schema failures (complete-capture rule).
+# Label-keyed cells: role comes from each link's own label, and a
+# label may appear at most once per row. Unknown or duplicated
+# labels are schema failures (complete-capture rule).
+#
+# The Analysis column is label-keyed rather than role-by-column
+# because it carries TWO document types: the impartial analysis and
+# — for tax/bond measures — the Tax Rate Statement that California
+# requires. Discovered 2026-08-10 when the cron failed loudly on a
+# City of Needles row advertising both; role-by-column would have
+# silently filed a tax rate statement as an impartial analysis on
+# the five rows that carry only the latter.
+ANALYSIS_ROLES = {
+    "impartial": "analysis",
+    "tax rate statement": "tax_rate_statement",
+}
+
 ARGUMENT_ROLES = {
     "argument for": "argument_for",
     "rebuttal to argument for": "rebuttal_for",
@@ -77,12 +92,16 @@ ARGUMENT_ROLES = {
     "rebuttal to argument against": "rebuttal_against",
 }
 
-# Single-link cells: role comes from the COLUMN (their link labels
-# are variable text — jurisdiction name / measure title).
+LABEL_ROLE_COLUMNS = {
+    "analysis": ANALYSIS_ROLES,
+    "arguments": ARGUMENT_ROLES,
+}
+
+# Single-link cells: role comes from the COLUMN, because their link
+# labels are variable text (jurisdiction name / measure title).
 COLUMN_ROLES = {
     "jurisdiction": "resolution",
     "measure description": "text",
-    "analysis": "analysis",
 }
 
 _CANDIDATE_PATH = re.compile(r"^/elections/(\d{4})/(\d{4})/measures/?$", re.I)
@@ -200,10 +219,11 @@ def extract_measures_page(body: bytes, page_url: str) -> MeasuresPage:
     - columns map by header name, order irrelevant;
     - zero data rows is valid (unpublished-late pages);
     - expected documents are exactly the LINKS in the identified
-      table's cells: Jurisdiction/Description/Analysis carry zero or
-      exactly one link each (more = schema failure); Arguments
-      carries 0-4 uniquely labelled links; links elsewhere in the
-      row (Letter / Percentage cells) are schema failures;
+      table's cells: Jurisdiction/Description carry zero or exactly
+      one link each (more = schema failure, role by column);
+      Analysis and Arguments carry uniquely-labelled links whose
+      roles come from those labels; links elsewhere in the row
+      (Letter / Percentage cells) are schema failures;
     - links outside the measures table (nav, resource sidebars) are
       ignored entirely.
     """
@@ -293,32 +313,35 @@ def extract_measures_page(body: bytes, page_url: str) -> MeasuresPage:
                     )
                 )
 
-        # Arguments: 0-4 links, role by unique label.
-        seen_labels: set[str] = set()
-        for link in _owned_links(cells[col["arguments"]], table):
-            label = _norm_text(link).lower()
-            role = ARGUMENT_ROLES.get(label)
-            if role is None:
-                raise SbSchemaError(
-                    f"unknown argument link label {label!r} (row {idx})"
+        # Label-keyed columns (analysis, arguments): each link's role
+        # comes from its own label; labels are unique within a cell.
+        for col_name, role_map in LABEL_ROLE_COLUMNS.items():
+            seen_labels: set[str] = set()
+            for link in _owned_links(cells[col[col_name]], table):
+                label = _norm_text(link).lower()
+                role = role_map.get(label)
+                if role is None:
+                    raise SbSchemaError(
+                        f"unknown {col_name} link label {label!r} (row {idx}); "
+                        f"known: {sorted(role_map)}"
+                    )
+                if label in seen_labels:
+                    raise SbSchemaError(
+                        f"duplicate {col_name} link label {label!r} (row {idx})"
+                    )
+                seen_labels.add(label)
+                url = _resolve_document_url(
+                    link["href"], page_url, f"{col_name}, row {idx}"
                 )
-            if label in seen_labels:
-                raise SbSchemaError(
-                    f"duplicate argument link label {label!r} (row {idx})"
+                docs.append(
+                    ExpectedDocument(
+                        filename=f"{stem}_{role}.pdf",
+                        url=url,
+                        role=role,
+                        measure_letter=letter,
+                        table_row=idx,
+                    )
                 )
-            seen_labels.add(label)
-            url = _resolve_document_url(
-                link["href"], page_url, f"arguments, row {idx}"
-            )
-            docs.append(
-                ExpectedDocument(
-                    filename=f"{stem}_{role}.pdf",
-                    url=url,
-                    role=role,
-                    measure_letter=letter,
-                    table_row=idx,
-                )
-            )
 
         rows.append(
             MeasureRow(
