@@ -15,14 +15,13 @@ from pathlib import Path
 from typing import Callable, Iterable, Optional
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
-from .sb import ExpectedDocument, MeasureRow, MeasuresPage, extract_measures_page
+from .county_config import COUNTY_CONFIGS, derive_election_type, get_county_config
+from .sb import ExpectedDocument, MeasureRow, MeasuresPage
 from .storage import ArtifactRef, RawArtifactStore, make_store
 
 
 SCHEMA_VERSION = 1
-DATA_SOURCE = "SB_County_Registrar"
-COUNTY_NAMES = {"sb": "SAN BERNARDINO"}
-ELECTION_TYPES = {("sb", "2026-11-03"): "general"}
+COUNTY_NAMES = {slug: config.county_name for slug, config in COUNTY_CONFIGS.items()}
 NORMALIZED_DIR = Path(__file__).resolve().parents[3] / "data" / "registrar_normalized"
 
 _ROLE_PRIORITY = {
@@ -83,10 +82,12 @@ class _Lineage:
     origin_key_value: str
     latest: MeasureRow
     document_urls: set[str] = field(default_factory=set)
+    last_seen_snapshot_id: str = ""
 
-    def observe(self, row: MeasureRow) -> None:
+    def observe(self, row: MeasureRow, snapshot_id: str) -> None:
         self.latest = row
         self.document_urls.update(_document_urls(row))
+        self.last_seen_snapshot_id = snapshot_id
 
 
 @dataclass(frozen=True)
@@ -107,7 +108,7 @@ def _norm(value: str) -> str:
     return " ".join(value.casefold().split())
 
 
-def _canonical_url(url: str) -> str:
+def canonicalize_document_url(url: str) -> str:
     parts = urlsplit(url)
     scheme = parts.scheme.lower()
     hostname = (parts.hostname or "").lower()
@@ -120,7 +121,7 @@ def _canonical_url(url: str) -> str:
 
 
 def _document_urls(row: MeasureRow) -> set[str]:
-    return {_canonical_url(document.url) for document in row.documents}
+    return {canonicalize_document_url(document.url) for document in row.documents}
 
 
 def _normalized_threshold(raw: str) -> str:
@@ -147,9 +148,9 @@ def _origin_key(row: MeasureRow) -> tuple[str, str]:
     if row.documents:
         document = min(
             row.documents,
-            key=lambda item: (_ROLE_PRIORITY.get(item.role, 999), _canonical_url(item.url)),
+            key=lambda item: (_ROLE_PRIORITY.get(item.role, 999), canonicalize_document_url(item.url)),
         )
-        return "document_url", _canonical_url(document.url)
+        return "document_url", canonicalize_document_url(document.url)
     return "semantic", json.dumps(_semantic_key(row), separators=(",", ":"), ensure_ascii=False)
 
 
@@ -292,7 +293,11 @@ def _unique_matches(
     ]
 
 
-def _link_snapshot(lineages: list[_Lineage], snapshot: ParsedSnapshot) -> dict[int, _Lineage]:
+def _link_snapshot(
+    lineages: list[_Lineage],
+    snapshot: ParsedSnapshot,
+    lineage_overrides: Optional[dict[tuple[str, int], tuple[str, int]]] = None,
+) -> dict[int, _Lineage]:
     rows = list(snapshot.page.rows)
     if not lineages:
         result = {}
@@ -305,11 +310,18 @@ def _link_snapshot(lineages: list[_Lineage], snapshot: ParsedSnapshot) -> dict[i
                 value,
                 row,
                 _document_urls(row),
+                snapshot.snapshot_id,
             )
             lineages.append(lineage)
             result[index] = lineage
         return result
 
+    previous_snapshot_id = max(lineage.last_seen_snapshot_id for lineage in lineages)
+    previous_active = {
+        index
+        for index, lineage in enumerate(lineages)
+        if lineage.last_seen_snapshot_id == previous_snapshot_id
+    }
     unmatched_rows = set(range(len(rows)))
     unmatched_lineages = set(range(len(lineages)))
     linked: dict[int, _Lineage] = {}
@@ -319,10 +331,32 @@ def _link_snapshot(lineages: list[_Lineage], snapshot: ParsedSnapshot) -> dict[i
             if row_index not in unmatched_rows or lineage_index not in unmatched_lineages:
                 continue
             lineage = lineages[lineage_index]
-            lineage.observe(rows[row_index])
+            lineage.observe(rows[row_index], snapshot.snapshot_id)
             linked[row_index] = lineage
             unmatched_rows.remove(row_index)
             unmatched_lineages.remove(lineage_index)
+
+    override_pairs = []
+    for row_index in sorted(unmatched_rows):
+        target = (lineage_overrides or {}).get(
+            (snapshot.snapshot_id, rows[row_index].table_row)
+        )
+        if target is None:
+            continue
+        candidates = [
+            index
+            for index in unmatched_lineages
+            if (lineages[index].origin_snapshot_id, lineages[index].origin_table_row) == target
+        ]
+        if len(candidates) != 1:
+            raise LineageConflictError(
+                f"lineage override for row {rows[row_index].table_row} in "
+                f"{snapshot.snapshot_id} resolves to {len(candidates)} origins"
+            )
+        override_pairs.append((row_index, candidates[0]))
+    if len({lineage_index for _, lineage_index in override_pairs}) != len(override_pairs):
+        raise LineageConflictError(f"multiple rows in {snapshot.snapshot_id} claim one override lineage")
+    apply(override_pairs)
 
     # Document URL intersection is the strongest continuity evidence.  A URL
     # shared by multiple lineages is corruption/ambiguity, not a tie to break.
@@ -345,24 +379,32 @@ def _link_snapshot(lineages: list[_Lineage], snapshot: ParsedSnapshot) -> dict[i
         raise LineageConflictError(f"multiple rows in {snapshot.snapshot_id} claim one URL lineage")
     apply(url_pairs)
 
-    apply(
-        _unique_matches(
-            rows,
-            lineages,
-            unmatched_rows,
-            unmatched_lineages,
-            lambda row: row.letter.upper() if row.letter.upper() != "TBD" else None,
-            lambda lineage: lineage.latest.letter.upper()
-            if lineage.latest.letter.upper() != "TBD"
-            else None,
-        )
+    # A displayed letter is mutable and may be swapped or reused.  It can only
+    # corroborate exact semantics; a unique letter that points at incompatible
+    # content is a conflict, never an identity decision.
+    letter_pairs = _unique_matches(
+        rows,
+        lineages,
+        unmatched_rows,
+        unmatched_lineages.intersection(previous_active),
+        lambda row: row.letter.upper() if row.letter.upper() != "TBD" else None,
+        lambda lineage: lineage.latest.letter.upper()
+        if lineage.latest.letter.upper() != "TBD"
+        else None,
     )
+    for row_index, lineage_index in letter_pairs:
+        if _semantic_key(rows[row_index]) != _semantic_key(lineages[lineage_index].latest):
+            raise LineageConflictError(
+                f"letter {rows[row_index].letter!r} contradicts semantic identity for "
+                f"row {rows[row_index].table_row} in {snapshot.snapshot_id}"
+            )
+    apply(letter_pairs)
     apply(
         _unique_matches(
             rows,
             lineages,
             unmatched_rows,
-            unmatched_lineages,
+            unmatched_lineages.intersection(previous_active),
             _semantic_key,
             lambda lineage: _semantic_key(lineage.latest),
         )
@@ -372,24 +414,14 @@ def _link_snapshot(lineages: list[_Lineage], snapshot: ParsedSnapshot) -> dict[i
             rows,
             lineages,
             unmatched_rows,
-            unmatched_lineages,
+            unmatched_lineages.intersection(previous_active),
             _jurisdiction_description_key,
             lambda lineage: _jurisdiction_description_key(lineage.latest),
         )
     )
-    apply(
-        _unique_matches(
-            rows,
-            lineages,
-            unmatched_rows,
-            unmatched_lineages,
-            _jurisdiction_threshold_key,
-            lambda lineage: _jurisdiction_threshold_key(lineage.latest),
-        )
-    )
-
     unmatched_old_jurisdictions = {
-        _norm(lineages[index].latest.jurisdiction) for index in unmatched_lineages
+        _norm(lineages[index].latest.jurisdiction)
+        for index in unmatched_lineages.intersection(previous_active)
     }
     for row_index in sorted(unmatched_rows):
         row = rows[row_index]
@@ -406,6 +438,7 @@ def _link_snapshot(lineages: list[_Lineage], snapshot: ParsedSnapshot) -> dict[i
             value,
             row,
             _document_urls(row),
+            snapshot.snapshot_id,
         )
         lineages.append(lineage)
         linked[row_index] = lineage
@@ -432,7 +465,9 @@ def _normalized_record(
     row: MeasureRow,
     lineage: _Lineage,
 ) -> dict:
-    county_name = COUNTY_NAMES[county]
+    config = get_county_config(county)
+    county_name = config.county_name
+    election_type, election_type_imputed = derive_election_type(election_date)
     measure_id = _measure_id(county, election_date, lineage)
     documents = [_document_record(document, snapshot) for document in row.documents]
     text_url = next((item["source_url"] for item in documents if item["role"] == "text"), None)
@@ -476,14 +511,14 @@ def _normalized_record(
             "topic_secondary": None,
             "category_type": None,
             "category_topic": None,
-            "data_source": DATA_SOURCE,
+            "data_source": config.data_source,
             "source_url": snapshot.manifest["election_url"],
             "pdf_url": text_url,
             "has_summary": False,
             "summary_title": None,
             "summary_text": None,
-            "election_type": ELECTION_TYPES[(county, election_date)],
-            "election_type_imputed": 0,
+            "election_type": election_type,
+            "election_type_imputed": election_type_imputed,
             "election_date": election_date,
             "is_active": True,
             "is_duplicate": False,
@@ -523,10 +558,13 @@ def parse_election(
     publication changes such as ``TBD`` becoming a letter.
     """
     county = county.lower()
-    if county not in COUNTY_NAMES:
+    if county not in COUNTY_CONFIGS:
         raise RegistrarParseError(f"unsupported registrar county {county!r}")
-    if (county, election_date) not in ELECTION_TYPES:
-        raise RegistrarParseError(f"unsupported registrar election {county}/{election_date}")
+    try:
+        derive_election_type(election_date)
+    except ValueError as exc:
+        raise RegistrarParseError(str(exc)) from exc
+    config = get_county_config(county)
 
     snapshots = store.list_snapshots(county=county, election_date=election_date)
     if not snapshots:
@@ -548,9 +586,9 @@ def parse_election(
             county,
             election_date,
             replay_id,
-            extract_measures_page,
+            config.extractor,
         )
-        links = _link_snapshot(lineages, parsed)
+        links = _link_snapshot(lineages, parsed, config.lineage_overrides)
         if replay_id == selected:
             selected_snapshot = parsed
             selected_links = links

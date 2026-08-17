@@ -163,6 +163,11 @@ def test_repeated_short_descriptions_are_distinct_measures(tmp_path: Path):
     assert len({row["fingerprint"] for row in rows}) == 2
     assert rows[0]["content_hash"] == rows[1]["content_hash"]  # deliberately not a dedup key
 
+    replay = load_jsonl(jsonl, db_path=db_path, commit=True)
+    assert replay.conflicts == ()
+    assert replay.skipped == 2
+    assert replay.committed is False
+
 
 def test_substantive_update_increments_once_then_skips(tmp_path: Path):
     db_path = _database(tmp_path / "measures.db")
@@ -198,6 +203,18 @@ def test_complete_snapshot_deactivates_and_reactivates_same_lineage(tmp_path: Pa
         commit=True,
         backup_path=tmp_path / "before-remove.db",
     )
+    assert removed.committed is False
+    assert removed.deactivated == 0
+    assert any("reconciliation" in conflict for conflict in removed.conflicts)
+    assert [row["is_active"] for row in _rows(db_path)] == [1, 1]
+
+    removed = load_jsonl(
+        jsonl,
+        db_path=db_path,
+        commit=True,
+        backup_path=tmp_path / "before-reviewed-remove.db",
+        reconcile_snapshot_id="20260821T035115Z",
+    )
     assert (removed.deactivated, removed.skipped) == (1, 1)
     assert [row["is_active"] for row in _rows(db_path)] == [1, 0]
 
@@ -211,6 +228,128 @@ def test_complete_snapshot_deactivates_and_reactivates_same_lineage(tmp_path: Pa
     )
     assert restored.updated == 1
     assert [row["is_active"] for row in _rows(db_path)] == [1, 1]
+
+
+def test_older_snapshot_is_rejected_unless_exact_rollback_is_authorized(tmp_path: Path):
+    db_path = _database(tmp_path / "measures.db")
+    current = _record()
+    current["snapshot_id"] = "20260814T035115Z"
+    jsonl = _write(tmp_path / "records.jsonl", [current])
+    first = load_jsonl(jsonl, db_path=db_path, commit=True, backup_path=tmp_path / "before.db")
+    assert first.committed is True
+
+    older = _record(description="Older wording")
+    older["snapshot_id"] = "20260727T170014Z"
+    older["page_sha256"] = "e" * 64
+    _write(jsonl, [older])
+    refused = load_jsonl(jsonl, db_path=db_path, commit=True)
+
+    assert refused.committed is False
+    assert refused.updated == 0
+    assert any("older than" in conflict for conflict in refused.conflicts)
+    assert dict(_rows(db_path)[0])["description"] == "Transactions and Use Tax Measure"
+    assert not list(tmp_path.glob("*_registrar_backup_*.db"))
+
+    accepted = load_jsonl(
+        jsonl,
+        db_path=db_path,
+        commit=True,
+        backup_path=tmp_path / "before-reviewed-rollback.db",
+        allow_rollback_snapshot_id="20260727T170014Z",
+    )
+    assert accepted.committed is True
+    assert accepted.updated == 1
+    assert dict(_rows(db_path)[0])["description"] == "Older wording"
+
+
+def test_newer_unchanged_snapshot_advances_scope_without_measure_churn(tmp_path: Path):
+    db_path = _database(tmp_path / "measures.db")
+    jsonl = _write(tmp_path / "records.jsonl", [_record()])
+    load_jsonl(jsonl, db_path=db_path, commit=True, backup_path=tmp_path / "before.db")
+    tracking = dict(_rows(db_path)[0])["update_count"]
+
+    newer = _record()
+    newer["snapshot_id"] = "20260821T035115Z"
+    newer["page_sha256"] = "e" * 64
+    _write(jsonl, [newer])
+    advanced = load_jsonl(
+        jsonl, db_path=db_path, commit=True, backup_path=tmp_path / "before-newer.db"
+    )
+    assert advanced.committed is True
+    assert advanced.scope_advanced is True
+    assert (advanced.updated, advanced.skipped) == (0, 1)
+    assert dict(_rows(db_path)[0])["update_count"] == tracking
+
+    repeated = load_jsonl(jsonl, db_path=db_path, commit=True)
+    assert repeated.committed is False
+    assert repeated.scope_advanced is False
+
+
+def test_same_snapshot_with_changed_page_checksum_is_rejected(tmp_path: Path):
+    db_path = _database(tmp_path / "measures.db")
+    record = _record()
+    jsonl = _write(tmp_path / "records.jsonl", [record])
+    load_jsonl(jsonl, db_path=db_path, commit=True, backup_path=tmp_path / "before.db")
+
+    record["page_sha256"] = "e" * 64
+    _write(jsonl, [record])
+    report = load_jsonl(jsonl, db_path=db_path, commit=True)
+
+    assert report.committed is False
+    assert any("checksum changed" in conflict for conflict in report.conflicts)
+    assert not list(tmp_path.glob("*_registrar_backup_*.db"))
+
+
+def test_identity_registry_keeps_first_canonical_id_when_parser_origin_changes(tmp_path: Path):
+    db_path = _database(tmp_path / "measures.db")
+    first_record = _record(digest_char="A")
+    jsonl = _write(tmp_path / "records.jsonl", [first_record])
+    first = load_jsonl(jsonl, db_path=db_path, commit=True, backup_path=tmp_path / "before.db")
+    assert first.committed is True
+    canonical_id = first_record["measure"]["measure_id"]
+
+    # Restoring an older archive observation changes the parser's earliest-origin
+    # proposal, but the selected current row and its official document are unchanged.
+    changed_origin = _record(digest_char="B")
+    changed_origin["snapshot_id"] = "20260821T035115Z"
+    changed_origin["page_sha256"] = "e" * 64
+    _write(jsonl, [changed_origin])
+    second = load_jsonl(
+        jsonl,
+        db_path=db_path,
+        commit=True,
+        backup_path=tmp_path / "before-new-proposal.db",
+    )
+
+    assert second.conflicts == ()
+    assert second.inserted == 0
+    assert len(_rows(db_path)) == 1
+    assert dict(_rows(db_path)[0])["measure_id"] == canonical_id
+
+    connection = sqlite3.connect(db_path)
+    try:
+        registered = connection.execute(
+            "SELECT canonical_measure_id FROM registrar_identities"
+        ).fetchone()[0]
+    finally:
+        connection.close()
+    assert registered == canonical_id
+
+
+def test_semantics_alone_cannot_reassign_a_registered_identity(tmp_path: Path):
+    db_path = _database(tmp_path / "measures.db")
+    jsonl = _write(tmp_path / "records.jsonl", [_record(digest_char="A", text_pdf=False)])
+    load_jsonl(jsonl, db_path=db_path, commit=True, backup_path=tmp_path / "before.db")
+
+    changed_origin = _record(digest_char="B", text_pdf=False)
+    changed_origin["snapshot_id"] = "20260821T035115Z"
+    changed_origin["page_sha256"] = "e" * 64
+    _write(jsonl, [changed_origin])
+    report = load_jsonl(jsonl, db_path=db_path, commit=True)
+
+    assert report.committed is False
+    assert any("semantic-only" in conflict for conflict in report.conflicts)
+    assert len(_rows(db_path)) == 1
 
 
 def test_strict_cross_source_match_is_adopted_without_losing_richer_fields(tmp_path: Path):

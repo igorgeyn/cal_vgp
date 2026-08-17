@@ -18,10 +18,12 @@ from typing import Iterable, Optional
 from ...config import DB_PATH
 from ...database.models import BallotMeasure
 from ...database.operations import Database
-from .parser import COUNTY_NAMES, DATA_SOURCE, SCHEMA_VERSION
+from .county_config import COUNTY_CONFIGS, get_county_config
+from .parser import SCHEMA_VERSION, canonicalize_document_url
 
 
 _IDENTITY_RE = re.compile(r"^REG_([A-Z0-9]+)_(\d{8})_([0-9A-F]{64})$")
+_SNAPSHOT_RE = re.compile(r"^\d{8}T\d{6}Z$")
 _REQUIRED_MEASURE_FIELDS = {
     "measure_id",
     "measure_letter",
@@ -82,6 +84,7 @@ class NormalizedBatch:
     election_date: str
     snapshot_id: str
     page_sha256: str
+    data_source: str
 
 
 @dataclass(frozen=True)
@@ -98,6 +101,17 @@ class _Action:
 class _Plan:
     actions: tuple[_Action, ...]
     conflicts: tuple[str, ...]
+    identities: tuple["_IdentityRegistration", ...] = ()
+    scope_should_advance: bool = False
+
+
+@dataclass(frozen=True)
+class _IdentityRegistration:
+    canonical_measure_id: str
+    origin_snapshot_id: str
+    origin_key_kind: str
+    origin_key_value: str
+    aliases: tuple[tuple[str, str], ...]
 
 
 @dataclass(frozen=True)
@@ -113,6 +127,7 @@ class LoadReport:
     conflicts: tuple[str, ...]
     actions: tuple[str, ...]
     backup_path: Optional[Path] = None
+    scope_advanced: bool = False
 
     @property
     def changed(self) -> int:
@@ -161,6 +176,63 @@ def _check_database_schema(connection: sqlite3.Connection) -> None:
         )
 
 
+_REGISTRAR_SCHEMA = (
+    """
+    CREATE TABLE IF NOT EXISTS registrar_load_scopes (
+        data_source TEXT NOT NULL,
+        county_slug TEXT NOT NULL,
+        county TEXT NOT NULL,
+        election_date TEXT NOT NULL,
+        last_snapshot_id TEXT NOT NULL,
+        page_sha256 TEXT NOT NULL,
+        row_count INTEGER NOT NULL,
+        loaded_at TEXT NOT NULL,
+        PRIMARY KEY (data_source, county_slug, election_date)
+    )
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS registrar_identities (
+        data_source TEXT NOT NULL,
+        county_slug TEXT NOT NULL,
+        county TEXT NOT NULL,
+        election_date TEXT NOT NULL,
+        canonical_measure_id TEXT NOT NULL,
+        origin_snapshot_id TEXT NOT NULL,
+        origin_key_kind TEXT NOT NULL,
+        origin_key_value TEXT NOT NULL,
+        registered_at TEXT NOT NULL,
+        PRIMARY KEY (data_source, county_slug, election_date, canonical_measure_id)
+    )
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS registrar_identity_aliases (
+        data_source TEXT NOT NULL,
+        county_slug TEXT NOT NULL,
+        election_date TEXT NOT NULL,
+        alias_kind TEXT NOT NULL,
+        alias_value TEXT NOT NULL,
+        canonical_measure_id TEXT NOT NULL,
+        first_seen_snapshot_id TEXT NOT NULL,
+        PRIMARY KEY (
+            data_source, county_slug, election_date,
+            alias_kind, alias_value, canonical_measure_id
+        )
+    )
+    """,
+)
+
+
+def _has_table(connection: sqlite3.Connection, table_name: str) -> bool:
+    return connection.execute(
+        "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?", (table_name,)
+    ).fetchone() is not None
+
+
+def _ensure_registrar_schema(connection: sqlite3.Connection) -> None:
+    for statement in _REGISTRAR_SCHEMA:
+        connection.execute(statement)
+
+
 def read_normalized_jsonl(path: Path) -> NormalizedBatch:
     path = Path(path)
     records: list[dict] = []
@@ -187,6 +259,8 @@ def read_normalized_jsonl(path: Path) -> NormalizedBatch:
         if field_name not in first:
             raise NormalizedDataError(f"first record lacks {field_name!r}")
     expected_scope = {field_name: first[field_name] for field_name in scope_fields}
+    if not _SNAPSHOT_RE.fullmatch(str(first["snapshot_id"])):
+        raise NormalizedDataError(f"invalid sortable snapshot_id {first['snapshot_id']!r}")
     row_count = first["snapshot_row_count"]
     if not isinstance(row_count, int) or row_count <= 0 or row_count != len(records):
         raise NormalizedDataError(
@@ -194,8 +268,9 @@ def read_normalized_jsonl(path: Path) -> NormalizedBatch:
         )
 
     county_slug = first["county_slug"]
-    if county_slug not in COUNTY_NAMES:
+    if county_slug not in COUNTY_CONFIGS:
         raise NormalizedDataError(f"unsupported county_slug {county_slug!r}")
+    county_config = get_county_config(county_slug)
     election_date = first["election_date"]
     if _normalize_date(election_date) != election_date:
         raise NormalizedDataError(f"election_date is not canonical ISO: {election_date!r}")
@@ -254,9 +329,9 @@ def read_normalized_jsonl(path: Path) -> NormalizedBatch:
         expected_digest = hashlib.sha256(identity_payload).hexdigest().upper()
         if identity_match.group(3) != expected_digest:
             raise NormalizedDataError(f"record {index} measure_id does not match its lineage origin")
-        if measure.get("data_source") != DATA_SOURCE:
+        if measure.get("data_source") != county_config.data_source:
             raise NormalizedDataError(f"record {index} has unexpected data_source {measure.get('data_source')!r}")
-        if measure.get("county") != COUNTY_NAMES[county_slug]:
+        if measure.get("county") != county_config.county_name:
             raise NormalizedDataError(f"record {index} has unexpected county {measure.get('county')!r}")
         if measure.get("election_date") != election_date or measure.get("year") != int(election_date[:4]):
             raise NormalizedDataError(f"record {index} has inconsistent election date/year")
@@ -284,7 +359,7 @@ def read_normalized_jsonl(path: Path) -> NormalizedBatch:
         # Constructing the model here is intentional: it proves the explicit
         # ID, not title regexes, drives the generated fingerprints.
         model = _model_from_record(measure)
-        expected_fp = f"{measure['year']}|{measure_id}|{measure['county']}|{DATA_SOURCE}"
+        expected_fp = f"{measure['year']}|{measure_id}|{measure['county']}|{county_config.data_source}"
         if model.fingerprint != expected_fp:
             raise NormalizedDataError(f"record {index} produced unexpected fingerprint {model.fingerprint!r}")
 
@@ -294,10 +369,11 @@ def read_normalized_jsonl(path: Path) -> NormalizedBatch:
     return NormalizedBatch(
         records=tuple(records),
         county_slug=county_slug,
-        county=COUNTY_NAMES[county_slug],
+        county=county_config.county_name,
         election_date=election_date,
         snapshot_id=first["snapshot_id"],
         page_sha256=first["page_sha256"],
+        data_source=county_config.data_source,
     )
 
 
@@ -339,6 +415,7 @@ def _different(existing: dict, field_name: str, value: object) -> bool:
 def _strict_cross_source_candidates(
     connection: sqlite3.Connection,
     model: BallotMeasure,
+    data_source: str,
 ) -> list[dict]:
     if not model.measure_letter or model.measure_letter.upper() == "TBD":
         return []
@@ -351,7 +428,7 @@ def _strict_cross_source_candidates(
           AND data_source != ?
           AND COALESCE(is_duplicate, 0) = 0
         """,
-        (model.county, model.year, model.measure_letter, DATA_SOURCE),
+        (model.county, model.year, model.measure_letter, data_source),
     ).fetchall()
     candidates = []
     for row in rows:
@@ -405,14 +482,185 @@ def _adoption_updates(existing: dict, model: BallotMeasure) -> dict:
     }
 
 
-def _plan_load(connection: sqlite3.Connection, batch: NormalizedBatch) -> _Plan:
+def _identity_aliases(record: dict) -> tuple[tuple[str, str], ...]:
+    aliases = {
+        ("document_url", canonicalize_document_url(str(document["source_url"])))
+        for document in record["documents"]
+        if document.get("source_url")
+    }
+    measure = record["measure"]
+    semantic = json.dumps(
+        [
+            _normalize_text(measure.get("jurisdiction")),
+            _normalize_text(measure.get("description")),
+            measure.get("vote_threshold"),
+        ],
+        ensure_ascii=False,
+        separators=(",", ":"),
+    )
+    aliases.add(("semantic", semantic))
+    return tuple(sorted(aliases))
+
+
+def _registered_identity(
+    connection: sqlite3.Connection,
+    batch: NormalizedBatch,
+    record: dict,
+) -> tuple[Optional[sqlite3.Row], Optional[str]]:
+    if not _has_table(connection, "registrar_identity_aliases"):
+        return None, None
+    proposed_id = str(record["measure"]["measure_id"])
+    proposed = connection.execute(
+        """
+        SELECT * FROM registrar_identities
+        WHERE data_source = ? AND county_slug = ? AND election_date = ?
+          AND canonical_measure_id = ?
+        """,
+        (batch.data_source, batch.county_slug, batch.election_date, proposed_id),
+    ).fetchone()
+    resolved: Optional[str] = proposed_id if proposed is not None else None
+    by_kind: dict[str, set[str]] = {}
+    for alias_kind, alias_value in _identity_aliases(record):
+        rows = connection.execute(
+            """
+            SELECT canonical_measure_id FROM registrar_identity_aliases
+            WHERE data_source = ? AND county_slug = ? AND election_date = ?
+              AND alias_kind = ? AND alias_value = ?
+            """,
+            (batch.data_source, batch.county_slug, batch.election_date, alias_kind, alias_value),
+        ).fetchall()
+        by_kind.setdefault(alias_kind, set()).update(row[0] for row in rows)
+
+    # A registered proposal or unique official document URL may resolve an
+    # identity. Exact semantics only corroborates or raises a review conflict;
+    # it never assigns a published ID by itself.
+    for kind in ("document_url", "semantic"):
+        candidates = by_kind.get(kind, set())
+        if len(candidates) > 1:
+            if resolved is not None and resolved in candidates:
+                continue
+            return None, f"identity alias {kind} maps to multiple canonical IDs: {sorted(candidates)}"
+        if len(candidates) == 1:
+            candidate = next(iter(candidates))
+            if kind == "semantic" and resolved is None:
+                return None, (
+                    f"semantic-only identity candidate {candidate} requires reviewed continuity"
+                )
+            if resolved is not None and candidate != resolved:
+                return None, f"identity aliases disagree: {resolved} vs {candidate}"
+            resolved = candidate
+    if resolved is None:
+        return None, None
+    row = connection.execute(
+        """
+        SELECT * FROM registrar_identities
+        WHERE data_source = ? AND county_slug = ? AND election_date = ?
+          AND canonical_measure_id = ?
+        """,
+        (batch.data_source, batch.county_slug, batch.election_date, resolved),
+    ).fetchone()
+    if row is None:
+        return None, f"identity alias references missing canonical ID {resolved}"
+
+    payload = json.dumps(
+        [batch.county_slug, batch.election_date, row["origin_key_kind"], row["origin_key_value"]],
+        ensure_ascii=False,
+        separators=(",", ":"),
+    ).encode("utf-8")
+    expected = f"REG_{batch.county_slug.upper()}_{batch.election_date.replace('-', '')}_{hashlib.sha256(payload).hexdigest().upper()}"
+    if row["canonical_measure_id"] != expected:
+        return None, f"registered canonical ID {resolved} fails origin-digest audit"
+    return row, None
+
+
+def _canonical_model_and_registration(
+    connection: sqlite3.Connection,
+    batch: NormalizedBatch,
+    record: dict,
+) -> tuple[Optional[BallotMeasure], Optional[_IdentityRegistration], Optional[str]]:
+    registered, conflict = _registered_identity(connection, batch, record)
+    if conflict:
+        return None, None, conflict
+    measure = dict(record["measure"])
+    lineage = record["lineage"]
+    if registered is None:
+        canonical_id = str(measure["measure_id"])
+        origin_snapshot_id = str(lineage["origin_snapshot_id"])
+        origin_key_kind = str(lineage["origin_key_kind"])
+        origin_key_value = str(lineage["origin_key_value"])
+    else:
+        canonical_id = str(registered["canonical_measure_id"])
+        origin_snapshot_id = str(registered["origin_snapshot_id"])
+        origin_key_kind = str(registered["origin_key_kind"])
+        origin_key_value = str(registered["origin_key_value"])
+        measure["measure_id"] = canonical_id
+    model = _model_from_record(measure)
+    registration = _IdentityRegistration(
+        canonical_measure_id=canonical_id,
+        origin_snapshot_id=origin_snapshot_id,
+        origin_key_kind=origin_key_kind,
+        origin_key_value=origin_key_value,
+        aliases=_identity_aliases(record),
+    )
+    return model, registration, None
+
+
+def _scope_state(connection: sqlite3.Connection, batch: NormalizedBatch) -> Optional[sqlite3.Row]:
+    if not _has_table(connection, "registrar_load_scopes"):
+        return None
+    return connection.execute(
+        """
+        SELECT * FROM registrar_load_scopes
+        WHERE data_source = ? AND county_slug = ? AND election_date = ?
+        """,
+        (batch.data_source, batch.county_slug, batch.election_date),
+    ).fetchone()
+
+
+def _plan_load(
+    connection: sqlite3.Connection,
+    batch: NormalizedBatch,
+    *,
+    reconcile_snapshot_id: Optional[str] = None,
+    allow_rollback_snapshot_id: Optional[str] = None,
+) -> _Plan:
     _check_database_schema(connection)
     actions: list[_Action] = []
     conflicts: list[str] = []
+    identities: list[_IdentityRegistration] = []
     present_ids: set[str] = set()
 
+    scope = _scope_state(connection, batch)
+    if scope is not None:
+        last_snapshot = str(scope["last_snapshot_id"])
+        if batch.snapshot_id == last_snapshot and batch.page_sha256 != scope["page_sha256"]:
+            conflicts.append(
+                f"snapshot {batch.snapshot_id} checksum changed from {scope['page_sha256']} to {batch.page_sha256}"
+            )
+        elif batch.snapshot_id < last_snapshot and allow_rollback_snapshot_id != batch.snapshot_id:
+            conflicts.append(
+                f"snapshot {batch.snapshot_id} is older than applied snapshot {last_snapshot}; "
+                f"reviewed rollback requires exact snapshot authorization"
+            )
+        if int(batch.records[0]["snapshot_row_count"]) < int(scope["row_count"]):
+            if reconcile_snapshot_id != batch.snapshot_id:
+                conflicts.append(
+                    f"snapshot row count decreased from {scope['row_count']} to "
+                    f"{batch.records[0]['snapshot_row_count']}; reviewed reconciliation requires "
+                    f"exact snapshot authorization"
+                )
+    if conflicts:
+        return _Plan((), tuple(conflicts))
+
     for record in batch.records:
-        model = _model_from_record(record["measure"])
+        model, registration, identity_conflict = _canonical_model_and_registration(
+            connection, batch, record
+        )
+        if identity_conflict:
+            conflicts.append(identity_conflict)
+            continue
+        assert model is not None and registration is not None
+        identities.append(registration)
         present_ids.add(str(model.measure_id))
         exact_row = connection.execute(
             "SELECT * FROM measures WHERE fingerprint = ?", (model.fingerprint,)
@@ -421,7 +669,7 @@ def _plan_load(connection: sqlite3.Connection, batch: NormalizedBatch) -> _Plan:
             existing = dict(exact_row)
             if (
                 existing.get("measure_id") != model.measure_id
-                or existing.get("data_source") != DATA_SOURCE
+                or existing.get("data_source") != batch.data_source
                 or _normalize_date(existing.get("election_date")) != batch.election_date
             ):
                 conflicts.append(
@@ -445,7 +693,7 @@ def _plan_load(connection: sqlite3.Connection, batch: NormalizedBatch) -> _Plan:
             )
             continue
 
-        candidates = _strict_cross_source_candidates(connection, model)
+        candidates = _strict_cross_source_candidates(connection, model, batch.data_source)
         if len(candidates) > 1:
             conflicts.append(
                 f"multiple cross-source candidates for {model.measure_id}: ids={[row['id'] for row in candidates]}"
@@ -466,13 +714,22 @@ def _plan_load(connection: sqlite3.Connection, batch: NormalizedBatch) -> _Plan:
         SELECT * FROM measures
         WHERE data_source = ? AND upper(county) = upper(?) AND year = ?
         """,
-        (DATA_SOURCE, batch.county, int(batch.election_date[:4])),
+        (batch.data_source, batch.county, int(batch.election_date[:4])),
     ).fetchall()
+    missing_active: list[dict] = []
     for row in scoped_rows:
         existing = dict(row)
         if _normalize_date(existing.get("election_date")) != batch.election_date:
             continue
         if existing.get("measure_id") not in present_ids and int(existing.get("is_active") or 0) == 1:
+            missing_active.append(existing)
+    if missing_active and reconcile_snapshot_id != batch.snapshot_id:
+        conflicts.append(
+            f"snapshot omits {len(missing_active)} active registrar identities; "
+            f"reviewed reconciliation requires exact snapshot authorization"
+        )
+    elif missing_active:
+        for existing in missing_active:
             actions.append(
                 _Action(
                     "deactivate",
@@ -480,11 +737,21 @@ def _plan_load(connection: sqlite3.Connection, batch: NormalizedBatch) -> _Plan:
                     existing["id"],
                     None,
                     {"is_active": 0},
-                    "absent from complete selected snapshot",
+                    "absent from explicitly reconciled snapshot",
                 )
             )
 
-    return _Plan(tuple(actions), tuple(conflicts))
+    scope_should_advance = scope is None or (
+        batch.snapshot_id != scope["last_snapshot_id"]
+        or batch.page_sha256 != scope["page_sha256"]
+        or len(batch.records) != int(scope["row_count"])
+    )
+    return _Plan(
+        tuple(actions),
+        tuple(conflicts),
+        tuple(identities),
+        scope_should_advance and not conflicts,
+    )
 
 
 def _insert(connection: sqlite3.Connection, model: BallotMeasure) -> None:
@@ -519,6 +786,128 @@ def _update(connection: sqlite3.Connection, target_id: int, updates: dict) -> No
         raise RegistrarLoadError(f"expected to update one row id={target_id}, updated {cursor.rowcount}")
 
 
+def _persist_identities(
+    connection: sqlite3.Connection,
+    batch: NormalizedBatch,
+    identities: tuple[_IdentityRegistration, ...],
+) -> None:
+    now = datetime.now().isoformat(timespec="microseconds")
+    for identity in identities:
+        connection.execute(
+            """
+            INSERT OR IGNORE INTO registrar_identities (
+                data_source, county_slug, county, election_date,
+                canonical_measure_id, origin_snapshot_id, origin_key_kind,
+                origin_key_value, registered_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                batch.data_source,
+                batch.county_slug,
+                batch.county,
+                batch.election_date,
+                identity.canonical_measure_id,
+                identity.origin_snapshot_id,
+                identity.origin_key_kind,
+                identity.origin_key_value,
+                now,
+            ),
+        )
+        for alias_kind, alias_value in identity.aliases:
+            connection.execute(
+                """
+                INSERT OR IGNORE INTO registrar_identity_aliases (
+                    data_source, county_slug, election_date, alias_kind,
+                    alias_value, canonical_measure_id, first_seen_snapshot_id
+                ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    batch.data_source,
+                    batch.county_slug,
+                    batch.election_date,
+                    alias_kind,
+                    alias_value,
+                    identity.canonical_measure_id,
+                    batch.snapshot_id,
+                ),
+            )
+
+
+def _advance_scope(connection: sqlite3.Connection, batch: NormalizedBatch) -> None:
+    connection.execute(
+        """
+        INSERT INTO registrar_load_scopes (
+            data_source, county_slug, county, election_date,
+            last_snapshot_id, page_sha256, row_count, loaded_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(data_source, county_slug, election_date) DO UPDATE SET
+            county = excluded.county,
+            last_snapshot_id = excluded.last_snapshot_id,
+            page_sha256 = excluded.page_sha256,
+            row_count = excluded.row_count,
+            loaded_at = excluded.loaded_at
+        """,
+        (
+            batch.data_source,
+            batch.county_slug,
+            batch.county,
+            batch.election_date,
+            batch.snapshot_id,
+            batch.page_sha256,
+            len(batch.records),
+            datetime.now().isoformat(timespec="microseconds"),
+        ),
+    )
+
+
+def _identities_need_persist(
+    connection: sqlite3.Connection,
+    batch: NormalizedBatch,
+    identities: tuple[_IdentityRegistration, ...],
+) -> bool:
+    if not identities:
+        return False
+    if not _has_table(connection, "registrar_identities") or not _has_table(
+        connection, "registrar_identity_aliases"
+    ):
+        return True
+    for identity in identities:
+        registered = connection.execute(
+            """
+            SELECT 1 FROM registrar_identities
+            WHERE data_source = ? AND county_slug = ? AND election_date = ?
+              AND canonical_measure_id = ?
+            """,
+            (
+                batch.data_source,
+                batch.county_slug,
+                batch.election_date,
+                identity.canonical_measure_id,
+            ),
+        ).fetchone()
+        if registered is None:
+            return True
+        for alias_kind, alias_value in identity.aliases:
+            alias = connection.execute(
+                """
+                SELECT 1 FROM registrar_identity_aliases
+                WHERE data_source = ? AND county_slug = ? AND election_date = ?
+                  AND alias_kind = ? AND alias_value = ? AND canonical_measure_id = ?
+                """,
+                (
+                    batch.data_source,
+                    batch.county_slug,
+                    batch.election_date,
+                    alias_kind,
+                    alias_value,
+                    identity.canonical_measure_id,
+                ),
+            ).fetchone()
+            if alias is None:
+                return True
+    return False
+
+
 def _report(
     jsonl_path: Path,
     db_path: Path,
@@ -546,6 +935,7 @@ def _report(
         conflicts=plan.conflicts,
         actions=action_lines,
         backup_path=backup_path,
+        scope_advanced=committed and plan.scope_should_advance,
     )
 
 
@@ -555,6 +945,8 @@ def load_jsonl(
     db_path: Path = DB_PATH,
     commit: bool = False,
     backup_path: Optional[Path] = None,
+    reconcile_snapshot_id: Optional[str] = None,
+    allow_rollback_snapshot_id: Optional[str] = None,
 ) -> LoadReport:
     """Plan or atomically apply one complete normalized snapshot."""
     jsonl_path = Path(jsonl_path)
@@ -562,8 +954,19 @@ def load_jsonl(
     batch = read_normalized_jsonl(jsonl_path)
 
     with _readonly_connection(db_path) as read_connection:
-        plan = _plan_load(read_connection, batch)
-    if not commit or plan.conflicts or not any(action.kind != "skip" for action in plan.actions):
+        plan = _plan_load(
+            read_connection,
+            batch,
+            reconcile_snapshot_id=reconcile_snapshot_id,
+            allow_rollback_snapshot_id=allow_rollback_snapshot_id,
+        )
+        identities_need_persist = _identities_need_persist(read_connection, batch, plan.identities)
+    needs_write = (
+        any(action.kind != "skip" for action in plan.actions)
+        or plan.scope_should_advance
+        or identities_need_persist
+    )
+    if not commit or plan.conflicts or not needs_write:
         return _report(jsonl_path, db_path, commit, False, plan)
 
     db = Database(db_path)
@@ -578,7 +981,13 @@ def load_jsonl(
     connection.execute("PRAGMA foreign_keys = ON")
     try:
         connection.execute("BEGIN IMMEDIATE")
-        locked_plan = _plan_load(connection, batch)
+        _ensure_registrar_schema(connection)
+        locked_plan = _plan_load(
+            connection,
+            batch,
+            reconcile_snapshot_id=reconcile_snapshot_id,
+            allow_rollback_snapshot_id=allow_rollback_snapshot_id,
+        )
         if locked_plan.conflicts:
             connection.rollback()
             return _report(jsonl_path, db_path, commit, False, locked_plan, backup_path)
@@ -589,6 +998,9 @@ def load_jsonl(
             elif action.kind in {"update", "deactivate"}:
                 assert action.target_id is not None and action.updates is not None
                 _update(connection, action.target_id, action.updates)
+        _persist_identities(connection, batch, locked_plan.identities)
+        if locked_plan.scope_should_advance:
+            _advance_scope(connection, batch)
         connection.commit()
     except Exception:
         connection.rollback()
@@ -604,6 +1016,16 @@ def build_argument_parser() -> argparse.ArgumentParser:
     parser.add_argument("--db", type=Path, default=DB_PATH, help="target SQLite database")
     parser.add_argument("--commit", action="store_true", help="back up and atomically mutate the target database")
     parser.add_argument("--backup", type=Path, help="explicit backup path (commit mode only)")
+    parser.add_argument(
+        "--reconcile-snapshot",
+        metavar="SNAPSHOT_ID",
+        help="authorize deactivation only for this exact reviewed snapshot",
+    )
+    parser.add_argument(
+        "--allow-rollback-snapshot",
+        metavar="SNAPSHOT_ID",
+        help="authorize an older load only for this exact reviewed snapshot",
+    )
     return parser
 
 
@@ -614,8 +1036,15 @@ def main(argv: Optional[list[str]] = None) -> int:
         db_path=args.db,
         commit=args.commit,
         backup_path=args.backup,
+        reconcile_snapshot_id=args.reconcile_snapshot,
+        allow_rollback_snapshot_id=args.allow_rollback_snapshot,
     )
-    mode = "COMMITTED" if report.committed else "DRY-RUN/NO-WRITE"
+    if report.committed:
+        mode = "COMMITTED"
+    elif args.commit:
+        mode = "NO-WRITE"
+    else:
+        mode = "DRY-RUN"
     print(
         f"{mode} inserted={report.inserted} updated={report.updated} "
         f"deactivated={report.deactivated} skipped={report.skipped} conflicts={len(report.conflicts)}"

@@ -30,46 +30,84 @@ class WebsiteGenerator:
         self.title_generator = TitleGenerator(database=self.db)
         
     def generate(self, measures: List[BallotMeasure] = None, stats: Dict = None) -> str:
-        """Generate the complete website"""
+        """Generate through the same paired-asset writer used by the CLI."""
         logger.info("Generating website...")
-
-        # Get data from database if not provided
         if measures is None:
             measures = self.db.get_all_active_measures()
         if stats is None:
             stats = self.db.get_statistics()
-
-        # Process data for website
         measures_data = self._prepare_measures_data(measures)
         topics = self._extract_topics(measures)
-
-        # Load recommendations if available
         recommendations = self._load_recommendations()
+        return self.generate_prepared(
+            measures_data, stats, topics, recommendations, output_paths=[self.output_path]
+        )
 
-        # Generate HTML
-        html = self._generate_html(measures_data, stats, topics, recommendations)
-        
-        # Save to the deployable copy (root of repo, served by GitHub Pages).
-        self.output_path.write_text(html, encoding='utf-8')
-        logger.info(f"Website generated: {self.output_path}")
-
-        # Measures data ships as a separate file (page fetches it at startup);
-        # keeps index.html small and lets browsers cache the data independently.
-        data_path = self.output_path.parent / 'measures-data.json'
-        data_path.write_text(self._measures_json, encoding='utf-8')
-        logger.info(f"Measures data written: {data_path}")
-
-        # Also save a scraper-local copy at scraper/index.html for local
-        # testing (per scraper/Makefile). Only write if it would actually be a
-        # second location — avoid overwriting the deploy copy when output_path
-        # has already been pointed at scraper/index.html explicitly.
-        scraper_local = BASE_DIR / 'index.html'
-        if scraper_local.resolve() != self.output_path.resolve():
-            scraper_local.write_text(html, encoding='utf-8')
-            (BASE_DIR / 'measures-data.json').write_text(self._measures_json, encoding='utf-8')
-            logger.info(f"Also saved to: {scraper_local}")
-        
+    def generate_prepared(
+        self,
+        measures: List[Dict],
+        stats: Dict,
+        topics: List[Dict],
+        recommendations: Dict = None,
+        *,
+        output_paths: List[Path] = None,
+    ) -> str:
+        """Render prepared site data and write complete, consistent bundles."""
+        html = self._generate_html(measures, stats, topics, recommendations)
+        self.write_output_bundles(
+            html,
+            output_paths or [self.output_path],
+            expected_measure_count=len(measures),
+        )
         return html
+
+    def write_output_bundles(
+        self,
+        html: str,
+        output_paths: List[Path],
+        *,
+        expected_measure_count: int,
+    ) -> None:
+        """Stage HTML/JSON pairs, publish them, then verify the pair contract."""
+        paths = []
+        resolved = set()
+        for raw_path in output_paths:
+            path = Path(raw_path)
+            if path.resolve() not in resolved:
+                paths.append(path)
+                resolved.add(path.resolve())
+        if not paths:
+            raise ValueError("at least one website output path is required")
+        if "measures-data.json" not in html:
+            raise ValueError("generated HTML does not reference measures-data.json")
+
+        staged = []
+        for html_path in paths:
+            html_path.parent.mkdir(parents=True, exist_ok=True)
+            data_path = html_path.parent / "measures-data.json"
+            html_tmp = html_path.with_name(f"{html_path.name}.tmp")
+            data_tmp = data_path.with_name(f"{data_path.name}.tmp")
+            html_tmp.write_text(html, encoding="utf-8")
+            data_tmp.write_text(self._measures_json, encoding="utf-8")
+            staged.append((html_tmp, html_path, data_tmp, data_path))
+        for html_tmp, html_path, data_tmp, data_path in staged:
+            html_tmp.replace(html_path)
+            data_tmp.replace(data_path)
+            logger.info(f"Website bundle written: {html_path}, {data_path}")
+
+        html_bytes = [path.read_bytes() for path in paths]
+        data_paths = [path.parent / "measures-data.json" for path in paths]
+        data_bytes = [path.read_bytes() for path in data_paths]
+        if any(value != html_bytes[0] for value in html_bytes[1:]):
+            raise RuntimeError("website HTML mirrors differ after generation")
+        if any(value != data_bytes[0] for value in data_bytes[1:]):
+            raise RuntimeError("measures-data.json mirrors differ after generation")
+        payload = json.loads(data_bytes[0].decode("utf-8"))
+        if not isinstance(payload, list) or len(payload) != expected_measure_count:
+            actual = len(payload) if isinstance(payload, list) else "non-list"
+            raise RuntimeError(
+                f"site data count mismatch: expected {expected_measure_count}, got {actual}"
+            )
     
     def _prepare_measures_data(self, measures: List[BallotMeasure]) -> List[Dict]:
         """Convert measures to format needed for website"""

@@ -26,8 +26,15 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Construct website output path from config
-WEBSITE_OUTPUT_PATH = BASE_DIR / WEBSITE_CONFIG.get('output_filename', 'index.html')
+# The repo-root pair is deployed. scraper/index.html is an identical local mirror.
+WEBSITE_OUTPUT_PATH = BASE_DIR.parent / WEBSITE_CONFIG.get('output_filename', 'index.html')
+
+
+def website_output_paths(explicit_output=None):
+    """An explicit path is scratch-only; the default writes both tracked pairs."""
+    if explicit_output:
+        return [Path(explicit_output)]
+    return [WEBSITE_OUTPUT_PATH, BASE_DIR / WEBSITE_CONFIG.get('output_filename', 'index.html')]
 
 def main():
     """Main function for website generation"""
@@ -35,8 +42,14 @@ def main():
     parser.add_argument(
         '--output',
         type=str,
-        default=str(WEBSITE_OUTPUT_PATH),
-        help='Output HTML file path (default: index.html)'
+        default=None,
+        help='Scratch HTML path; omitted writes deployed root and scraper-local pairs'
+    )
+    parser.add_argument(
+        '--db',
+        type=Path,
+        default=DB_PATH,
+        help='Input SQLite database (defaults to the configured database)'
     )
     parser.add_argument(
         '--style',
@@ -61,27 +74,34 @@ def main():
     )
     
     args = parser.parse_args()
+    db_path = Path(args.db)
     
     try:
         # Check if database exists
-        if not DB_PATH.exists():
-            logger.error(f"Database not found at {DB_PATH}")
+        if not db_path.exists():
+            logger.error(f"Database not found at {db_path}")
             logger.info("Run 'scripts/update_db.py' to create/update the database")
             return 1
         
         # Initialize database operations
-        db = Database(DB_PATH)
+        db = Database(db_path)
         
         # Get statistics
         stats = db.get_statistics()
         logger.info(f"Database contains {stats['total_measures']} measures")
         
         # Check if generation is needed
-        output_path = Path(args.output)
-        if output_path.exists() and not args.force:
+        output_paths = website_output_paths(args.output)
+        output_path = output_paths[0]
+        required_assets = [
+            asset
+            for html_path in output_paths
+            for asset in (html_path, html_path.parent / 'measures-data.json')
+        ]
+        if all(asset.exists() for asset in required_assets) and not args.force:
             # Check if database was updated after website
-            db_mtime = DB_PATH.stat().st_mtime
-            site_mtime = output_path.stat().st_mtime
+            db_mtime = db_path.stat().st_mtime
+            site_mtime = min(asset.stat().st_mtime for asset in required_assets)
             
             if db_mtime <= site_mtime:
                 logger.info("Website is up to date. Use --force to regenerate.")
@@ -102,11 +122,11 @@ def main():
             'title', 'description', 'ballot_question',
             'generated_title', 'original_title',
             'yes_votes', 'no_votes', 'total_votes', 'percent_yes', 'percent_no',
-            'passed', 'pass_fail',
+            'passed', 'pass_fail', 'vote_threshold',
             'measure_type', 'topic_primary', 'topic_secondary', 'category_type', 'category_topic',
             'data_source', 'source_url', 'pdf_url',
             'has_summary', 'summary_title', 'summary_text',
-            'election_type', 'election_date', 'decade', 'century',
+            'election_type', 'election_type_imputed', 'election_date', 'decade', 'century',
             'created_at', 'updated_at', 'last_seen_at', 'update_count',
             'is_active', 'is_duplicate', 'duplicate_type', 'master_id', 'merged_from'
         }
@@ -146,7 +166,7 @@ def main():
         
         # Initialize website generator  
         from src.website.generator import WebsiteGenerator
-        generator = WebsiteGenerator()
+        generator = WebsiteGenerator(database=Database(db_path), output_path=output_path)
         
         # Prepare data for website
         # Convert measures to format needed by generator
@@ -160,7 +180,7 @@ def main():
         research_by_mid = {}
         try:
             import sqlite3 as _sqlite3
-            _conn = _sqlite3.connect(str(DB_PATH))
+            _conn = _sqlite3.connect(str(db_path))
             _conn.row_factory = _sqlite3.Row
             # Only surface briefings that are publishable. 'complete' is the
             # default; 'draft' / 'spec_failed' / etc. are filtered out so
@@ -412,29 +432,13 @@ def main():
 
         # Generate website
         logger.info(f"Generating website...")
-        html_content = generator._generate_html(measures_for_website, stats, topics, recommendations)
-        
-        # Save website
-        output_path = Path(args.output)
-        output_path.parent.mkdir(parents=True, exist_ok=True)
-        output_path.write_text(html_content, encoding='utf-8')
-        logger.info(f"Website saved to: {output_path}")
-        
-        # Also save to root directory for GitHub Pages
-        # Get the actual project root (parent of scraper directory)
-        script_dir = Path(__file__).resolve().parent.parent  # This is the scraper/ directory
-        project_root = script_dir.parent  # This is cal_vgp/ directory
-        root_index = project_root / 'index.html'
-        logger.info(f"Copying to project root: {root_index.resolve()}")
-        try:
-            root_index.write_text(html_content, encoding='utf-8')
-            # Verify the write
-            if root_index.exists() and root_index.stat().st_size > 1000000:  # Should be > 1MB
-                logger.info(f"✓ Successfully saved to: {root_index.resolve()}")
-            else:
-                logger.warning(f"⚠️  File may not have been written correctly: {root_index.resolve()}")
-        except Exception as e:
-            logger.error(f"Failed to save to project root: {e}")
+        html_content = generator.generate_prepared(
+            measures_for_website,
+            stats,
+            topics,
+            recommendations,
+            output_paths=output_paths,
+        )
         
         # Deploy if requested
         if args.deploy:
@@ -471,8 +475,10 @@ def deploy_to_github():
         import subprocess
         
         # Stage changes
-        subprocess.run(['git', 'add', '../index.html'], check=True)
-        subprocess.run(['git', 'add', 'data/'], check=True)
+        subprocess.run(
+            ['git', 'add', '../index.html', '../measures-data.json', 'index.html', 'measures-data.json'],
+            check=True,
+        )
         
         # Commit
         commit_msg = f"Update website - {datetime.now().strftime('%Y-%m-%d %H:%M')}"

@@ -8,11 +8,14 @@ import pytest
 
 from src.scrapers.registrar.parser import (
     LineageConflictError,
+    ParsedSnapshot,
     SnapshotValidationError,
+    _link_snapshot,
     parse_election,
 )
-from src.scrapers.registrar.sb import extract_measures_page
+from src.scrapers.registrar.sb import ExpectedDocument, MeasureRow, MeasuresPage, extract_measures_page
 from src.scrapers.registrar.storage import (
+    ArtifactRef,
     ArtifactIntegrityError,
     ArtifactMetadata,
     LocalArtifactStore,
@@ -21,6 +24,37 @@ from src.scrapers.registrar.storage import (
 
 FIXTURES = Path(__file__).parent / "fixtures" / "registrar" / "sb"
 PAGE_URL = "https://elections.sbcounty.gov/elections/2026/1103/measures/"
+
+
+def _synthetic_snapshot(snapshot_id: str, rows: tuple[MeasureRow, ...]) -> ParsedSnapshot:
+    page_ref = ArtifactRef(
+        county="sb",
+        election_date="2026-11-03",
+        snapshot_id=snapshot_id,
+        filename="page.html",
+        sha256="f" * 64,
+        size_bytes=1,
+        content_type="text/html",
+        storage_uri="memory://page.html",
+    )
+    return ParsedSnapshot(
+        snapshot_id=snapshot_id,
+        manifest={},
+        page=MeasuresPage((), rows, tuple(doc for row in rows for doc in row.documents)),
+        page_ref=page_ref,
+        artifact_refs={},
+    )
+
+
+def _synthetic_row(row: int, letter: str, description: str, url: str) -> MeasureRow:
+    document = ExpectedDocument(
+        filename=f"row_{row}.pdf",
+        url=url,
+        role="text",
+        measure_letter=letter,
+        table_row=row,
+    )
+    return MeasureRow(row, letter, f"City {description}", description, "50% + 1", (document,))
 
 
 def _put_snapshot(
@@ -154,7 +188,7 @@ def test_parser_maps_lettered_snapshot_and_writes_deterministically(tmp_path: Pa
 
 def test_lineage_survives_tbd_letters_description_and_url_drift(tmp_path: Path):
     store = LocalArtifactStore(tmp_path / "raw")
-    _put_snapshot(store, "20260727T171800Z", "measures_2026_1103_mixed.html")
+    _put_snapshot(store, "20260727T170014Z", "measures_2026_1103_mixed.html")
     old = parse_election(
         store,
         county="sb",
@@ -163,7 +197,7 @@ def test_lineage_survives_tbd_letters_description_and_url_drift(tmp_path: Path):
     )
     old_by_jurisdiction = {record["measure"]["jurisdiction"]: record for record in old.records}
 
-    _put_snapshot(store, "20260814T035115Z", "measures_2026_1103_lettered.html")
+    _put_snapshot(store, "20260814T034259Z", "measures_2026_1103_lettered.html")
     latest = parse_election(
         store,
         county="sb",
@@ -182,6 +216,28 @@ def test_lineage_survives_tbd_letters_description_and_url_drift(tmp_path: Path):
     needles_k = next(record for record in latest.records if record["measure"]["measure_letter"] == "K")
     assert needles_k["measure"]["measure_id"] == old_by_jurisdiction["City of Needles"]["measure"]["measure_id"]
     assert len([record for record in latest.records if record["measure"]["jurisdiction"] == "City of Needles"]) == 3
+
+
+def test_reuploaded_documents_and_swapped_letters_raise_instead_of_swapping_identity():
+    first = _synthetic_snapshot(
+        "20260801T000000Z",
+        (
+            _synthetic_row(1, "A", "Alpha", "https://example.test/old-alpha.pdf"),
+            _synthetic_row(2, "B", "Beta", "https://example.test/old-beta.pdf"),
+        ),
+    )
+    second = _synthetic_snapshot(
+        "20260808T000000Z",
+        (
+            _synthetic_row(1, "B", "Alpha", "https://example.test/new-alpha.pdf"),
+            _synthetic_row(2, "A", "Beta", "https://example.test/new-beta.pdf"),
+        ),
+    )
+    lineages = []
+    _link_snapshot(lineages, first)
+
+    with pytest.raises(LineageConflictError, match="letter.*contradicts"):
+        _link_snapshot(lineages, second)
 
 
 def test_parser_rejects_checksum_corruption(tmp_path: Path):
