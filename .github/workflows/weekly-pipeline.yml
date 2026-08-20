@@ -69,7 +69,7 @@ jobs:
         id: changes
         run: |
           git diff --stat
-          if git diff --quiet index.html scraper/data/ballot_measures.db; then
+          if git diff --quiet index.html measures-data.json scraper/data/ballot_measures.db; then
             echo "changed=false" >> $GITHUB_OUTPUT
           else
             echo "changed=true" >> $GITHUB_OUTPUT
@@ -80,7 +80,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add index.html scraper/data/ballot_measures.db
+          git add index.html measures-data.json scraper/data/ballot_measures.db
           git commit -m "Weekly data update: $(date -u +%Y-%m-%d)
 
           Automated pipeline run (CA SOS + Ballotpedia statewide)"

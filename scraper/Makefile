@@ -70,11 +70,11 @@ website:
 	@python scripts/generate_site.py --force
 	@echo ""
 	@echo "✓ Checking files were created..."
-	@ls -lh index.html ../index.html | awk '{print "  " $$5, $$6, $$7, $$8, $$9}'
+	@ls -lh index.html measures-data.json ../index.html ../measures-data.json | awk '{print "  " $$5, $$6, $$7, $$8, $$9}'
 	@echo ""
-	@echo "📂 Files ready for deployment:"
-	@echo "  - scraper/index.html (for local testing)"
-	@echo "  - index.html (project root, for GitHub Pages)"
+	@echo "📂 Generated site bundles:"
+	@echo "  - scraper/index.html + measures-data.json (ignored local preview)"
+	@echo "  - ../index.html + ../measures-data.json (tracked GitHub Pages pair)"
 
 insights:
 	@echo "📊 Generating insights analysis payload..."

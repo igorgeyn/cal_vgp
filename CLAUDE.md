@@ -65,9 +65,10 @@ These are non-obvious traps the project has hit. Full context in
 - **Never assume a CSS class name is unique.** Modal donor-list
   classes collided with Insights-panel classes in 2026-05-20; scope
   rules under parent selectors like `.finance-side`.
-- **The static site is regenerated to two locations.** Both root
-  `index.html` and `scraper/index.html` get written by
-  `src/website/generator.py`. Keep them in sync.
+- **The static site is regenerated to two locations, but only the root pair is
+  published.** Root `index.html` + `measures-data.json` are tracked for GitHub
+  Pages; the byte-identical `scraper/` pair is an ignored local preview. Keep the
+  generator outputs in sync; never stage the mirror.
 - **For registrar scraping: polite User-Agent is non-negotiable.**
   San Diego returns 403 with generic UAs (validated 2026-06-08).
   Always identify with project + contact in the UA string.

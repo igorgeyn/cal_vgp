@@ -89,3 +89,8 @@ scraper/data/registrar_recon/
 scraper/data/registrar_raw/
 scraper/data/registrar_runs/
 scraper/data/registrar_normalized/
+
+# Generated local website mirror. The tracked/deployed pair lives at repo root;
+# `make website` recreates these byte-identical preview files when needed.
+/scraper/index.html
+/scraper/measures-data.json

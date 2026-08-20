@@ -125,7 +125,7 @@ are namespaces.
 
 ---
 
-### Static site regenerates to TWO `index.html` locations
+### Static site regenerates to a tracked root pair and an ignored local mirror
 
 **Trap:** `src/website/generator.py` writes to both repo-root
 `index.html` (the GitHub Pages serve target) and
@@ -133,11 +133,13 @@ are namespaces.
 2026-05-04 only the root one was being written; users got stale
 content because the local-dev preview path looked at scraper/.
 
-**Fix:** Generator dual-writes both locations. Always.
+**Fix:** Generator dual-writes paired HTML + JSON bundles. The root pair is the
+tracked GitHub Pages deployment; the byte-identical `scraper/` pair is an ignored
+local preview and must never be committed.
 
-**Lesson:** When a build output has more than one consumer (GH
-Pages + local preview), explicitly enumerate every output path and
-keep them in sync. Don't rely on developers remembering to copy.
+**Lesson:** When a build output has more than one consumer (GH Pages + local
+preview), explicitly enumerate and test every output path. Consistency is a build
+contract, not a reason to retain duplicate generated blobs in Git history.
 
 ---
 
