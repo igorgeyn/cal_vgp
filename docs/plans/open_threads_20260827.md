@@ -7,8 +7,8 @@
 > This file exists to answer "what do I actually do next" in one place.
 > Delete or supersede it once its items are done.
 
-**State as of writing:** San Bernardino is live on calballot.com (20
-measures, published `2afcba9`). `main` is in sync with origin; the
+**State as of writing:** San Bernardino is live (20 measures,
+published `2afcba9`) and the Use CalBallot page is live (`a5518ca`). `main` is in sync with origin; the
 working tree is clean apart from two untracked finance drafts (§E6).
 407 tests pass, 18 fail for pre-existing unrelated reasons (§E1).
 
@@ -24,21 +24,36 @@ working tree is clean apart from two untracked finance drafts (§E6).
       crosswalk. **This changes a live surface**, so the prompt
       forbids regenerating deployed artifacts — publication is §C1.
 
-- [ ] **A2 · "Use CalBallot" audience page.**
-      Codex's own plan: `docs/plans/use_calballot_page_implementation.md`.
-      Work appears to have started (`.gitignore` picked up
-      `/scraper/use-calballot/`). **Pass along these four amendments
-      from the review:**
-      1. Cut the `?view=` routing (§5 of that plan) from scope — it
-         touches the main app's state machine for a secondary page's
-         link targets. Do it later as its own change.
-      2. Generate the coverage sentence from data, never hardcode it.
-         Local coverage is 1 county of 58 today and changes the moment
-         LA lands.
-      3. Add a positive test that every number rendered matches a
-         computed value.
-      4. Make the archive-vs-current-coverage distinction required
-         copy, not just a review criterion.
+- [x] **A2 · "Use CalBallot" audience page — DONE, published `a5518ca`.**
+      Live at `/use-calballot/`. Reviewed 2026-08-27: all four
+      amendments landed. `?view=` routing cut (0 occurrences);
+      coverage sentence computed from
+      `stats['current_registrar_counties']` ("1 of 58 counties (20
+      measures) for 2026"); all three stat numbers verified exact
+      against the DB (12,332 / 1911 / 11,017) with 14 test
+      assertions; archive-vs-current distinction explicit in both
+      copy and an `operations.py` comment. Page makes **one HTTP
+      request total** — no data bundle, no chart libraries. Clean
+      heading hierarchy, zero broken anchors, 194 tests pass. Also
+      shipped 20 per-measure static pages and a sitemap update.
+      *Note: canonical URLs correctly use `cal-vgp.igorgeyn.com`
+      (per `CNAME`), not the `calballot.com` in the plan — CLAUDE.md
+      is the stale one there (see E7).*
+
+- [ ] **A3 · Make Use CalBallot less buried.** Its three entry points
+      are weaker than they look: the welcome-panel link sits in a
+      **dismissible** banner (returning visitors never see it), the
+      About-modal section needs a click plus a scroll, and the footer
+      is the footer. Net effect for repeat visitors: a footer link —
+      for the audiences that matter most to the project.
+      **Recommendation:** add "Use CalBallot" to the header beside
+      About. Grid/List/Insights/Explore are *modes*; About and Use
+      CalBallot are *destinations*, so a second destination styled as
+      a text link won't compete with the mode cluster. Keep the
+      existing welcome-panel and footer links. Small generator
+      change. **Optional stronger version:** contextual pointers at
+      the "Access the public data" link and in the Insights panels,
+      where a researcher reveals intent.
 
 ## B. Needs a prompt written first
 
@@ -78,7 +93,11 @@ county. Both defensible. Avoid reaching county four without B1.
       check the artifact diff, then regenerate and push. Same reviewed
       publication procedure as tonight's release.
 
-- [ ] **C2 · Verify + publish the Use CalBallot page.** After A2.
+- [x] **C2 · Verify the Use CalBallot page — DONE 2026-08-27.**
+      Codex published it directly (`a5518ca`); reviewed after the
+      fact rather than before, which worked out, but publication of
+      a live surface is meant to be a separate reviewed gate. Worth
+      restating in the next prompt.
 
 - [ ] **C3 · Watch Monday's cron** (2026-08-31, 12:00 UTC) — the first
       scheduled run since the notice-role fix. Procedure if it goes
@@ -124,6 +143,11 @@ county. Both defensible. Avoid reaching county four without B1.
       `docs/plans/finance-v3-sprint-summary.md` and its `.pdf`. They
       sit in a normally-committed directory. Commit or move; left
       alone pending your call.
+
+- [ ] **E7 · CLAUDE.md names the wrong live domain.** It says
+      "Live site: https://calballot.com"; the `CNAME` file and every
+      generated canonical URL use `cal-vgp.igorgeyn.com`. One-line
+      fix, but it misled a plan already.
 
 ## F. Larger parked items
 
