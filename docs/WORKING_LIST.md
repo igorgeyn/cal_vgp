@@ -785,11 +785,19 @@ checks pass; Phase F manual checklist signed off via browser spot-check).
 
 ### DOCUMENTATION
 
-- [ ] **Registrar developer guide** — "how to add a new county
-      scraper" walkthrough. Sits alongside the R2 setup doc as a
-      Phase 0.5 / Phase 1 deliverable. Likely lives at
-      `docs/setup/registrar_developer_guide.md` once Phase 0.5
-      ships and SB is the first worked example.
+- [x] ~~**Registrar developer guide**~~ **DONE 2026-08-27.**
+      `docs/setup/registrar_developer_guide.md` — how to add a county
+      scraper, encoding the SB pattern (fixtures-first,
+      ownership-scoped traversal, label-vs-column roles, fail-loud
+      cardinality, anchor lifecycle) plus per-county notes for the
+      remaining four. Written for whoever builds LA.
+
+- [x] ~~**Registrar drift runbook**~~ **DONE 2026-08-27.**
+      `docs/setup/registrar_drift_runbook.md` — what to do when the
+      weekly cron goes red. Diagnose → inspect the live page →
+      classify → add a role → pin a fixture → smoke → restore prod.
+      Written because this now happens about every two weeks and the
+      procedure was being re-derived each time.
 
 - [ ] **Verification framework runbook** — Phase G + Layer 1/2/3
       are referenced across docs but there's no consolidated

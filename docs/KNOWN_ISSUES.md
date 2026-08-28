@@ -3,7 +3,13 @@
 > Issues identified but deferred for future investigation or accepted as data limitations.
 
 **Original snapshot:** February 2026
-**Most recently amended:** 2026-05-20 (added v3-era issues #9, #10, #11)
+**Most recently amended:** 2026-08-27 (added registrar-era issues #12–#15)
+
+> **Scope note.** Issues #1–#11 concern the historical corpus and the
+> statewide finance layer. Issues #12+ concern the county registrar
+> pipeline, which began delivering data in 2026-07 and is the first
+> source of official primary documents for local measures. Registrar
+> data is **authoritative** where aggregator data is derived — see #12.
 
 ---
 
@@ -25,6 +31,14 @@ Five measures are marked as `passed=1` with `vote_threshold='66.67%'` but have `
 **Source:** CEDA data — threshold derived from `pass_fail` code which may have been miscoded.
 
 **To Fix:** Manually verify each measure against county election records and update `vote_threshold` accordingly.
+
+**Update 2026-08-27:** the registrar pipeline now supplies vote
+thresholds directly from county election offices, which is
+authoritative rather than derived from a `pass_fail` code. None of
+these five records are San Bernardino, so the current data does not
+close them — but a historical registrar backfill is the mechanism
+that eventually could. See #12 and
+`docs/plans/registrar_sb_review_and_integration.md` §B.
 
 ---
 
@@ -220,6 +234,114 @@ caveat (issue #9) resolves automatically.
 
 ---
 
+## 12. Registrar and aggregator data have different authority
+
+**Severity:** Informational — affects how conflicts should be resolved
+**Status:** Open by design; no automated reconciliation yet
+
+The corpus now draws on two kinds of source with different standing:
+
+- **Aggregators** (CEDA, Ballotpedia, ICPSR, NCSL, CA_SOS) supply
+  most of the 12,365 measures. Fields like `vote_threshold` are
+  frequently *derived* from vendor codes and can be wrong — see #1.
+- **County registrars** (`*_County_Registrar`) supply official
+  primary documents and values published by the election office
+  itself. Thresholds, jurisdictions, letters, and document sets are
+  authoritative.
+
+No automated cross-source reconciliation exists. When a historical
+registrar backfill overlaps existing rows (San Bernardino alone has
+344 historical records), disagreements must be surfaced as reviewed
+assertions rather than silently overwriting either side. The loader's
+cross-source match gate exists but has never been exercised against
+overlapping data — every current registrar row is a new measure.
+
+**To Fix:** build the discrepancy ledger described in
+`docs/plans/registrar_sb_review_and_integration.md` §B before the
+first historical backfill.
+
+---
+
+## 13. County filing anomaly: analysis link with an argument filename
+
+**Severity:** Low (1 record, upstream)
+**Status:** Recorded, deliberately not corrected
+
+On the San Bernardino November 2026 measures page, San Bernardino
+City Unified School District's **"Impartial"** analysis link points
+at `AIF_SBCUSD.pdf` — an argument-in-favor filename. Fifteen of the
+sixteen analysis documents on that page use the `IA_` prefix; this
+one does not.
+
+Document roles are assigned from the **link label**, which is what
+the county publishes to voters, so the document is recorded as an
+`analysis` with its `source_url` preserved. Keying roles on URL
+prefixes would have silently misfiled it as an argument.
+
+This is an upstream filing error, not a pipeline defect. It is
+recorded rather than corrected: the archive's job is to capture what
+the county published, faithfully and auditably.
+
+**Detection:** the per-role URL-prefix assertion in
+`scraper/tests/test_registrar_sb.py`. Keep that assertion in place
+for every new county — it is how this class of anomaly surfaces.
+
+---
+
+## 14. Registrar measures carry no summary, ballot question, or topic
+
+**Severity:** Medium — affects presentation, not correctness
+**Status:** Open; partially by design
+
+Local measures from the registrar pipeline have `summary_text`,
+`ballot_question`, `topic_primary`, and `category_topic` all null.
+The county publishes this material **inside PDFs**, and PDF text
+extraction is deliberately deferred.
+
+Consequences:
+- Cards fall back to `description` (e.g. "Bond Measure"), which is
+  thin and can duplicate the title.
+- These measures land in the "Other" topic bucket, compounding the
+  existing classification gap (~75% of the corpus).
+- The site's semantic-analog feature produces poor matches on such
+  generic text — a diagnostic render classified a Needles "Bond
+  Measure" as *Education* with unrelated 2002 examples. Suppress
+  that feature for registrar rows until real text or a defensible
+  deterministic type exists.
+
+**Important distinction:** document *presence* is not document
+*content*. An `argument_for` PDF proves a document of that role was
+published; it does not expose the argument or its signers. These
+fields must **not** be populated with URLs or presence flags — a
+`measure_documents` table is the correct home for document metadata.
+
+**To Fix:** deterministic type/jurisdiction classification is
+available now from the county's own vocabulary (see the opportunity
+register); prose fields require PDF text extraction, which is a
+separate project.
+
+---
+
+## 15. Pending measures have no outcome data
+
+**Severity:** Low — expected state, but a thinly-exercised code path
+**Status:** Open
+
+Measures for elections that have not happened carry null `passed`,
+`percent_yes`, and vote totals. Before the registrar pipeline only
+57 of 12,365 records (0.5%) were in this state, so the site's
+pending-measure rendering path is barely exercised — while the site's
+visual language assumes results (percentages, pass/fail badges,
+margins).
+
+Twenty San Bernardino measures will roughly double the pending
+population, and post-election ingestion of results is not yet
+designed. Measure identity is stable across snapshots, so a pending
+card should become a result card without losing its source history —
+but that transition is untested.
+
+---
+
 ## Appendix: Quality Score Breakdown
 
 **Current Overall Score: 86.7% (A-)**
@@ -244,3 +366,4 @@ caveat (issue #9) resolves automatically.
 |------|---------|
 | 2026-02-05 | Initial document created after Codex audit |
 | 2026-05-20 | Phase 6 closeout: added v3-era issues #9 (concentration metrics None policy), #10 (donor canonicalization drift), #11 (v3 doesn't ingest monetary yet) |
+| 2026-08-27 | Registrar era: added #12 (source authority / no cross-source reconciliation), #13 (county filing anomaly), #14 (no summary/question/topic on registrar rows), #15 (pending measures lack outcomes). Cross-referenced #1 with authoritative registrar thresholds. |

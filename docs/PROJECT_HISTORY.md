@@ -2,12 +2,20 @@
 
 > Summary of development work from January–February 2026 for context in announcing the project.
 >
-> **Snapshot, not current state.** Finance numbers below (98 statewide props, 641K
-> transactions, the `finance_statewide.db` reference) describe the Jan–Feb 2026 build.
-> The finance database was rebuilt 2026-05-04 as `finance_statewide_v2.db` keyed by
-> year-scoped `finance_campaign_id` after Codex caught a cross-cycle contamination
-> bug. Current state: 181 matched campaigns / $3.32B retained receipts. See
-> `plans/finance-rebuild-verification.md` and `scraper/data/finance/README.md`.
+> **Snapshot, not current state.** The body of this document describes the
+> Jan–Feb 2026 build. Two major arcs have happened since, summarized in
+> "Since February 2026" at the end of this file:
+>
+> - **Finance rebuild (May 2026).** `finance_statewide.db` was replaced by
+>   `finance_statewide_v2.db` keyed on year-scoped `finance_campaign_id` after
+>   Codex caught a cross-cycle contamination bug, then extended with a v3 layer
+>   for loans, in-kind, and independent expenditures. Current: 181 statewide
+>   measures / $5.75B combined. See `scraper/data/finance/README.md`.
+> - **Registrar pipeline (June–August 2026).** A recurring scraper for county
+>   registrar websites — the project's first live data pipeline. See
+>   `docs/plans/registrar_pipeline_infra.md`.
+>
+> For current state always read `docs/WORKING_LIST.md` first.
 
 ---
 
@@ -210,4 +218,75 @@ Built with assistance from Claude (Anthropic) for:
 
 ---
 
-*Last updated: February 2026*
+---
+
+## Since February 2026
+
+This section summarizes work after the original snapshot above. It is
+deliberately brief; the authoritative records are `docs/WORKING_LIST.md`
+(current state), `docs/LESSONS_LEARNED.md` (what went wrong and why), and
+the per-arc plans in `docs/plans/`.
+
+### Finance rebuild — v2 and v3 (May 2026)
+
+A Codex review found that the original finance database keyed campaigns by
+bare proposition number, letting different election cycles contaminate each
+other. The rebuild introduced year-scoped `finance_campaign_id` (e.g.
+`PROP_16_2020`) with eight row-level acceptance gates.
+
+A second phase added `finance_statewide_v3.db` covering loans, in-kind
+contributions, and independent expenditures — categories the original scope
+omitted — followed by an atomic flip of every consumer surface onto a
+combined v2+v3 read layer. Fourteen Codex review rounds went into the
+attribution resolver alone.
+
+Current: **181 statewide measures, $5.75B** in combined reportable money.
+Verification runs in four layers (prior-state unchanged, source reconcile,
+per-row trace, cross-layer integrity), all green at closeout.
+
+Notable lesson: a dedup gate keyed on raw donor names rather than
+canonicalized ones hid $78M of duplicate receipts. Any comparison that means
+"are these the same thing?" must run through the canonical form.
+
+### Registrar pipeline (June–August 2026)
+
+The project's first **recurring** data pipeline, and a shift in kind: from
+one-shot ingests of aggregator datasets to continuously collecting official
+primary documents from county election offices.
+
+Architecture: county scrapers → immutable checksummed snapshots in Cloudflare
+R2 → parser → normalized JSONL → loader → `ballot_measures.db`. The artifact
+store is the canonical truth layer, which makes every parse reproducible from
+stored bytes forever and re-parsing free.
+
+Milestones:
+
+- **Phase 0 (June).** Reconnaissance across the five largest counties. Found
+  three distinct URL architectures, one county requiring a polite User-Agent
+  to avoid a 403, and one behind a Cloudflare challenge.
+- **Phase 0.5 (July).** Storage layer, polite-scraping base class, runner with
+  per-county failure isolation, and a GitHub Actions cron. Six external review
+  rounds before the first real scraper.
+- **Phase 1 (July 27).** San Bernardino live in production, capturing the
+  November 2026 election as it is assembled.
+- **Parser and loader (August).** Snapshot replay with stable cross-snapshot
+  identity, scope watermarks preventing backward rolls, and an assign-once
+  identity registry. Verified against database copies; **not yet activated**
+  against the live database.
+
+What the archive holds as of 2026-08-27: five immutable weekly snapshots of
+the San Bernardino November 2026 ballot, which grew from 8 measures and 16
+documents in July to **20 measures and 88 documents** — notices of election,
+resolutions, full measure texts, impartial analyses, tax rate statements, and
+arguments for and against. This is material the county will eventually remove
+from its website.
+
+Three production drift events (roughly one per two weeks) each surfaced as a
+loud, precise failure rather than corrupted data — the county published a
+document type the extractor had no role for, and the pipeline refused to
+guess. One of those refusals prevented a silent misattribution of five tax
+rate statements as impartial analyses.
+
+---
+
+*Original snapshot: February 2026. Addendum: August 2026.*

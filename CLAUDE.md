@@ -35,6 +35,12 @@ pointing it at). GitHub: https://github.com/igorgeyn/cal_vgp.
    Snapshot quality; useful for orientation.
 7. **[`docs/plans/`](docs/plans/)** — live planning docs for
    in-progress arcs.
+8. **[`docs/setup/`](docs/setup/)** — operational guides:
+   [`registrar_developer_guide.md`](docs/setup/registrar_developer_guide.md)
+   (how to add a county scraper — read before starting LA),
+   [`registrar_drift_runbook.md`](docs/setup/registrar_drift_runbook.md)
+   (what to do when the weekly cron goes red — roughly biweekly), and
+   [`registrar_r2_setup.md`](docs/setup/registrar_r2_setup.md).
 
 ## Memory system
 

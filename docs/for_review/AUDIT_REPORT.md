@@ -1,5 +1,16 @@
 # Audit Report
 
+> **Snapshot: January 2026. Not current state.** This document is part of an
+> audit suite written for a one-time external review and is preserved as a
+> record of that review. The project has changed substantially since:
+> the finance database was rebuilt twice (v2 in May, a combined v2+v3 read
+> layer soon after), and a recurring **county registrar pipeline** was built
+> June–August 2026, adding scrapers, an immutable artifact store in
+> Cloudflare R2, a parser, and a loader.
+>
+> For current state, read [`../WORKING_LIST.md`](../WORKING_LIST.md) first,
+> then [`../../CLAUDE.md`](../../CLAUDE.md).
+
 ## Executive Summary
 - All 7 expected files under `docs/for_review/` exist and have been audited against the current repo state on branch `docs-audit-p1-consistency`.
 - Core DB metrics are correct across all docs: 12,156 active measures, 1998-2026 range, 10,908 with vote data, 3,457 summaries, 66.1% pass rate.

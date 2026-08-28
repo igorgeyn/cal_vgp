@@ -1,5 +1,19 @@
 # Features and UI
 
+> **Snapshot: January 2026. Not current state.** This document is part of an
+> audit suite written for a one-time external review and is preserved as a
+> record of that review. The project has changed substantially since:
+> the finance database was rebuilt twice (v2 in May, a combined v2+v3 read
+> layer soon after), and a recurring **county registrar pipeline** was built
+> June–August 2026, adding scrapers, an immutable artifact store in
+> Cloudflare R2, a parser, and a loader.
+>
+> For current state, read [`../WORKING_LIST.md`](../WORKING_LIST.md) first,
+> then [`../../CLAUDE.md`](../../CLAUDE.md).
+>
+> **Most changed here:** the Finance panel and modal were redesigned in May
+> 2026 against the combined v2+v3 layer.
+
 ## Website Interface
 
 The entire application is a single-page application embedded in `index.html` (35.3 MB), with all measure data embedded as JSON. No server-side rendering required.
