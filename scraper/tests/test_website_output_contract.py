@@ -34,4 +34,36 @@ def test_prepared_generation_writes_matching_html_and_json_pairs(tmp_path: Path,
     local_json = local_output.parent / "measures-data.json"
     assert root_json.read_bytes() == local_json.read_bytes()
     assert json.loads(root_json.read_text(encoding="utf-8")) == measures
+    root_use_page = root_output.parent / "use-calballot" / "index.html"
+    local_use_page = local_output.parent / "use-calballot" / "index.html"
+    assert root_use_page.read_bytes() == local_use_page.read_bytes()
+    assert "Use CalBallot" in root_use_page.read_text(encoding="utf-8")
+    database.close()
+
+
+def test_explicit_output_keeps_auxiliary_page_inside_scratch_root(tmp_path: Path, monkeypatch):
+    database = Database(tmp_path / "measures.db")
+    default_output = tmp_path / "must-not-be-written" / "index.html"
+    generator = WebsiteGenerator(database=database, output_path=default_output)
+
+    def render(measures, stats, topics, recommendations):
+        generator._measures_json = json.dumps(measures)
+        return "<html><script>fetch('measures-data.json')</script></html>"
+
+    monkeypatch.setattr(generator, "_generate_html", render)
+    explicit_output = tmp_path / "scratch" / "index.html"
+
+    generator.generate_prepared(
+        [{"measure_id": "one"}],
+        {"total_measures": 1},
+        [],
+        {},
+        output_paths=[explicit_output],
+    )
+
+    assert explicit_output.exists()
+    assert (explicit_output.parent / "measures-data.json").exists()
+    assert (explicit_output.parent / "use-calballot" / "index.html").exists()
+    assert not default_output.exists()
+    assert not (default_output.parent / "use-calballot" / "index.html").exists()
     database.close()

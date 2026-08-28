@@ -94,3 +94,4 @@ scraper/data/registrar_normalized/
 # `make website` recreates these byte-identical preview files when needed.
 /scraper/index.html
 /scraper/measures-data.json
+/scraper/use-calballot/

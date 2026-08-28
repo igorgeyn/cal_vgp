@@ -19,6 +19,8 @@ from ..utils.category_type_mapping import get_display_category_type
 logger = logging.getLogger(__name__)
 
 UPCOMING_ELECTION_YEAR = 2026
+CALIFORNIA_COUNTY_COUNT = 58
+USE_CALBALLOT_PAGE = Path("use-calballot/index.html")
 
 
 def get_upcoming_scope(year, county: Optional[str]) -> Optional[str]:
@@ -107,10 +109,16 @@ class WebsiteGenerator:
     ) -> str:
         """Render prepared site data and write complete, consistent bundles."""
         html = self._generate_html(measures, stats, topics, recommendations)
+        auxiliary_pages = {
+            USE_CALBALLOT_PAGE: self._generate_use_calballot_html(
+                self._sanitize_stats(stats)
+            )
+        }
         self.write_output_bundles(
             html,
             output_paths or [self.output_path],
             expected_measure_count=len(measures),
+            auxiliary_pages=auxiliary_pages,
         )
         return html
 
@@ -120,8 +128,14 @@ class WebsiteGenerator:
         output_paths: List[Path],
         *,
         expected_measure_count: int,
+        auxiliary_pages: Optional[Dict[Path, str]] = None,
     ) -> None:
-        """Stage HTML/JSON pairs, publish them, then verify the pair contract."""
+        """Stage complete site bundles, publish them, then verify mirrors."""
+        auxiliary_pages = auxiliary_pages or {}
+        for relative_path in auxiliary_pages:
+            relative_path = Path(relative_path)
+            if relative_path.is_absolute() or ".." in relative_path.parts:
+                raise ValueError(f"auxiliary page must stay inside output root: {relative_path}")
         paths = []
         resolved = set()
         for raw_path in output_paths:
@@ -142,11 +156,16 @@ class WebsiteGenerator:
             data_tmp = data_path.with_name(f"{data_path.name}.tmp")
             html_tmp.write_text(html, encoding="utf-8")
             data_tmp.write_text(self._measures_json, encoding="utf-8")
-            staged.append((html_tmp, html_path, data_tmp, data_path))
-        for html_tmp, html_path, data_tmp, data_path in staged:
-            html_tmp.replace(html_path)
-            data_tmp.replace(data_path)
-            logger.info(f"Website bundle written: {html_path}, {data_path}")
+            staged.extend(((html_tmp, html_path), (data_tmp, data_path)))
+            for relative_path, page_html in auxiliary_pages.items():
+                page_path = html_path.parent / Path(relative_path)
+                page_path.parent.mkdir(parents=True, exist_ok=True)
+                page_tmp = page_path.with_name(f"{page_path.name}.tmp")
+                page_tmp.write_text(page_html, encoding="utf-8")
+                staged.append((page_tmp, page_path))
+        for temporary, final in staged:
+            temporary.replace(final)
+            logger.info(f"Website bundle asset written: {final}")
 
         html_bytes = [path.read_bytes() for path in paths]
         data_paths = [path.parent / "measures-data.json" for path in paths]
@@ -155,6 +174,11 @@ class WebsiteGenerator:
             raise RuntimeError("website HTML mirrors differ after generation")
         if any(value != data_bytes[0] for value in data_bytes[1:]):
             raise RuntimeError("measures-data.json mirrors differ after generation")
+        for relative_path in auxiliary_pages:
+            page_paths = [path.parent / Path(relative_path) for path in paths]
+            page_bytes = [path.read_bytes() for path in page_paths]
+            if any(value != page_bytes[0] for value in page_bytes[1:]):
+                raise RuntimeError(f"auxiliary page mirrors differ: {relative_path}")
         payload = json.loads(data_bytes[0].decode("utf-8"))
         if not isinstance(payload, list) or len(payload) != expected_measure_count:
             actual = len(payload) if isinstance(payload, list) else "non-list"
@@ -232,7 +256,9 @@ class WebsiteGenerator:
         int_fields = [
             'total_measures', 'with_summaries', 'with_votes',
             'passed', 'failed', 'year_min', 'year_max',
-            'counties', 'topics', 'statewide_count', 'local_count'
+            'counties', 'topics', 'statewide_count', 'local_count',
+            'current_registrar_year', 'current_registrar_counties',
+            'current_registrar_measures'
         ]
         
         for field in int_fields:
@@ -713,6 +739,7 @@ class WebsiteGenerator:
                     <span><strong style="color: var(--primary);">Ask AI</strong> &mdash; query the data in plain English (bring your own key)</span>
                 </div>
                 <p style="margin: 0.9rem 0 0 0; font-size: 0.85rem;"><a href="#" onclick="openAboutModal(); return false;" style="color: var(--primary); font-weight: 600; text-decoration: none;">How this works &mdash; data sources &amp; methodology &rarr;</a></p>
+                <p style="margin: 0.45rem 0 0 0; font-size: 0.85rem;"><a href="/use-calballot/" style="color: var(--primary); font-weight: 600; text-decoration: none;">Using CalBallot for reporting, research, or civic work? See how CalBallot can help &rarr;</a></p>
             </section>
             <script>if (localStorage.getItem('cbIntroDismissed')) document.getElementById('welcomeIntro').remove();</script>
 
@@ -1348,7 +1375,8 @@ class WebsiteGenerator:
         <p>CalBallot • Data last updated {datetime.now().strftime('%B %d, %Y')}</p>
         <p>Data sources: CA Secretary of State, NCSL, ICPSR, CEDA</p>
         <p class="footer-links">
-            <a href="#" onclick="openAboutModal(); return false;">About</a>
+            <a href="#" onclick="openAboutModal(); return false;">About</a> &bull;
+            <a href="/use-calballot/">Use CalBallot</a>
         </p>
         <div class="civic-links">
             <a class="civic-btn" href="https://registertovote.ca.gov/" target="_blank" rel="noopener">Register to Vote</a>
@@ -1389,6 +1417,16 @@ class WebsiteGenerator:
                     <li>Related measures recommendations using semantic similarity</li>
                     <li>Vote results and historical trends</li>
                 </ul>
+            </div>
+
+            <div class="about-section">
+                <h3>Who uses CalBallot?</h3>
+                <p>
+                    CalBallot supports journalists, researchers, civic-information organizations,
+                    and government and public-affairs professionals who need to follow ballot-measure
+                    evidence back to the public record.
+                    <a href="/use-calballot/">See how each group can use CalBallot &rarr;</a>
+                </p>
             </div>
 
             <div class="about-section">
@@ -1658,6 +1696,775 @@ class WebsiteGenerator:
 </html>"""
         
         return html
+
+    def _generate_use_calballot_html(self, stats: Dict) -> str:
+        """Generate the lightweight professional-use page without app payloads."""
+        # Public copy is adapted from docs/AUDIENCE_PITCHES.md. Keep factual
+        # figures data-driven so archive breadth cannot be confused with current
+        # registrar coverage as counties are added.
+        active_measures = int(stats.get('total_measures') or 0)
+        year_min = int(stats.get('year_min') or 0)
+        local_measures = int(stats.get('local_count') or 0)
+        registrar_year = int(stats.get('current_registrar_year') or stats.get('year_max') or 0)
+        registrar_counties = int(stats.get('current_registrar_counties') or 0)
+        registrar_measures = int(stats.get('current_registrar_measures') or 0)
+
+        measure_word = 'measure' if registrar_measures == 1 else 'measures'
+
+        return f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Use CalBallot — Reporting, Research, and Civic Work</title>
+    <meta name="description" content="Use CalBallot to research California ballot measures through official records, voting rules, campaign finance, results, and historical context.">
+    <link rel="canonical" href="https://cal-vgp.igorgeyn.com/use-calballot/">
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="Use CalBallot — Reporting, Research, and Civic Work">
+    <meta property="og:description" content="A public ballot-measure resource with an expert-grade research backbone.">
+    <meta property="og:url" content="https://cal-vgp.igorgeyn.com/use-calballot/">
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+    <link rel="icon" href="/favicon.png" type="image/png" sizes="32x32">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+    <style>{self._get_use_calballot_css()}</style>
+</head>
+<body class="use-calballot-page" id="top">
+    <a class="use-skip-link" href="#main-content">Skip to content</a>
+    <header class="use-site-header">
+        <a class="use-brand" href="/" aria-label="CalBallot home">
+            <span class="use-brand-mark" aria-hidden="true">CB</span>
+            <span>CalBallot</span>
+        </a>
+        <a class="use-header-action" href="/">Browse measures</a>
+    </header>
+
+    <main id="main-content">
+        <section class="use-hero" aria-labelledby="use-page-title">
+            <div class="use-shell use-hero-grid">
+                <div>
+                    <p class="use-eyebrow">For reporting, research, and civic work</p>
+                    <h1 id="use-page-title">Use CalBallot to investigate California ballot measures</h1>
+                    <p class="use-hero-deck">
+                        CalBallot makes California ballot measures understandable and verifiable by connecting
+                        official records, voting rules, campaign money, results, and historical context in one
+                        searchable public resource.
+                    </p>
+                    <div class="use-actions">
+                        <a class="use-button use-button-primary" href="/">Browse ballot measures</a>
+                        <a class="use-button use-button-secondary" href="#audiences">Choose your use case</a>
+                    </div>
+                </div>
+                <aside class="use-principle" aria-label="CalBallot's approach">
+                    <span class="use-principle-label">The difference</span>
+                    <strong>Understandable and verifiable.</strong>
+                    <p>The interpretation stays connected to the record, and the record stays open to inspection.</p>
+                </aside>
+            </div>
+        </section>
+
+        <section class="use-trust-strip" aria-label="CalBallot archive statistics">
+            <div class="use-shell use-trust-grid">
+                <div class="use-stat">
+                    <strong data-stat="total_measures">{active_measures:,}</strong>
+                    <span>active measure records</span>
+                </div>
+                <div class="use-stat">
+                    <strong data-stat="year_min">{year_min}</strong>
+                    <span>earliest statewide year</span>
+                </div>
+                <div class="use-stat">
+                    <strong data-stat="local_measures">{local_measures:,}</strong>
+                    <span>local measure records in the archive</span>
+                </div>
+                <div class="use-stat use-stat-words">
+                    <strong>Public and source-conscious</strong>
+                    <span>No endorsements or voting recommendations</span>
+                </div>
+            </div>
+        </section>
+
+        <section class="use-audience-index use-shell" id="audiences" aria-labelledby="audiences-title">
+            <p class="use-eyebrow">Choose a starting point</p>
+            <h2 id="audiences-title">Built for people who need to follow the evidence</h2>
+            <div class="use-audience-grid">
+                <a class="use-audience-card" href="#journalists">
+                    <span class="use-card-number" aria-hidden="true">J</span>
+                    <h3>Journalists</h3>
+                    <p>Establish the record quickly, find a revealing comparison, and trace it to a source.</p>
+                    <span class="use-card-tasks">Verify facts · Find context · Follow money</span>
+                </a>
+                <a class="use-audience-card" href="#researchers">
+                    <span class="use-card-number" aria-hidden="true">R</span>
+                    <h3>Researchers</h3>
+                    <p>Explore a structured historical record with visible provenance and documented limits.</p>
+                    <span class="use-card-tasks">Define samples · Audit fields · Build studies</span>
+                </a>
+                <a class="use-audience-card" href="#civic-organizations">
+                    <span class="use-card-number" aria-hidden="true">C</span>
+                    <h3>Civic organizations</h3>
+                    <p>Build voter information on a shared, neutral, and reusable factual foundation.</p>
+                    <span class="use-card-tasks">Check facts · Teach rules · Link sources</span>
+                </a>
+                <a class="use-audience-card" href="#public-affairs">
+                    <span class="use-card-number" aria-hidden="true">P</span>
+                    <h3>Government and public affairs</h3>
+                    <p>Understand the ballot landscape before making legal, historical, or strategic claims.</p>
+                    <span class="use-card-tasks">Compare instruments · Check thresholds · Test analogies</span>
+                </a>
+            </div>
+        </section>
+
+        <div class="use-sections">
+            <section class="use-audience-section" id="journalists" aria-labelledby="journalists-title">
+                <div class="use-shell use-section-grid">
+                    <div class="use-section-heading">
+                        <p class="use-eyebrow">Local and statewide journalists</p>
+                        <h2 id="journalists-title">Follow the measure—not just the election-day headline</h2>
+                    </div>
+                    <div class="use-section-copy">
+                        <p>California ballot measures are reported in fragments. Qualification notices appear on government websites, campaign money lives in disclosure systems, passage rules vary by instrument, and historical results are scattered across state and county records. Reporting a single measure can require assembling several sources before the substantive work even begins.</p>
+                        <p>CalBallot brings that foundation into one searchable environment. A reporter can establish jurisdiction, election year, passage threshold, official source, outcome, vote share, classification, and—where coverage exists—campaign-finance activity. Historical search supports better follow-up questions: Has this jurisdiction tried something similar? Do comparable bonds or taxes usually clear their legal threshold? When has majority support still produced a loss?</p>
+                        <p>For matched statewide campaigns, finance records sit alongside results without pretending money predicts the vote. For emerging county registrar records, the project preserves official attribution and stable measure identity. The aim is to reduce repetitive assembly work while keeping primary sources central.</p>
+                        <div class="use-help-box">
+                            <h3>CalBallot helps you</h3>
+                            <ul><li>Verify foundational measure facts before deadline.</li><li>Find historical comparisons worth reporting—and inspect their limits.</li><li>Connect statewide campaign spending to the correct election cycle.</li></ul>
+                        </div>
+                        <p class="use-limit"><strong>Scope:</strong> CalBallot supports primary-source reporting; it does not replace it or tell readers how to vote.</p>
+                        <a class="use-text-link" href="/">Browse and search measures →</a>
+                    </div>
+                </div>
+                <a class="use-back-link" href="#audiences">Back to audiences ↑</a>
+            </section>
+
+            <section class="use-audience-section use-audience-section-alt" id="researchers" aria-labelledby="researchers-title">
+                <div class="use-shell use-section-grid">
+                    <div class="use-section-heading">
+                        <p class="use-eyebrow">Academic and policy researchers</p>
+                        <h2 id="researchers-title">A structured view of California's ballot-measure history</h2>
+                    </div>
+                    <div class="use-section-copy">
+                        <p>California's initiative and local-measure systems offer an unusually rich record of direct democracy, but the underlying data come from archives, county offices, academic datasets, and campaign-finance disclosures with different naming and coding conventions. Longitudinal analysis begins with expensive normalization work.</p>
+                        <p>CalBallot provides a consolidated layer across that fragmented record. Measures can be examined by year, geography, topic, instrument, passage rule, outcome, and vote share. The public JSON bundle supports independent analysis, while the site makes descriptive exploration possible before a researcher builds a custom environment.</p>
+                        <p>Provenance and uncertainty are treated as data. Known source limitations remain documented; registrar-sourced thresholds are distinguished from aggregator-derived fields; and observed pass-rate differences are not presented as causal effects. The result is not a claim of a perfectly complete research dataset, but an inspectable foundation for defining samples and finding the records that need closer validation.</p>
+                        <div class="use-help-box">
+                            <h3>CalBallot helps you</h3>
+                            <ul><li>Construct samples across time, geography, instrument, and outcome.</li><li>Audit source coverage and identify anomalous or uncertain fields.</li><li>Move from descriptive patterns to a defensible research design.</li></ul>
+                        </div>
+                        <p class="use-limit"><strong>Scope:</strong> Coverage and classification vary by period and source; the public bundle is a research starting point, not a causal result.</p>
+                        <a class="use-text-link" href="/measures-data.json">Access the public data →</a>
+                    </div>
+                </div>
+                <a class="use-back-link" href="#audiences">Back to audiences ↑</a>
+            </section>
+
+            <section class="use-audience-section" id="civic-organizations" aria-labelledby="civic-title">
+                <div class="use-shell use-section-grid">
+                    <div class="use-section-heading">
+                        <p class="use-eyebrow">Civic-information organizations</p>
+                        <h2 id="civic-title">Build voter information on a shared, verifiable foundation</h2>
+                    </div>
+                    <div class="use-section-copy">
+                        <p>Voters often meet ballot measures as legal text, campaign advertising, or recommendations from organizations they already trust. The underlying facts—who placed the measure on the ballot, what rule applies, where the official record lives, and what came before—are harder to assemble.</p>
+                        <p>Civic organizations repeat that foundational work for guides, classrooms, workshops, explainers, and community forums. CalBallot makes more of it reusable by organizing statewide propositions and historical local contests into a common structure. Rather than offering endorsements, it provides factual scaffolding that other organizations can examine and adapt for their audiences.</p>
+                        <p>The distinction between fact and interpretation is deliberate. An authoritative threshold or official link can be displayed when provenance is clear. A document's presence does not justify inventing an argument, fiscal claim, or endorsement. That discipline makes CalBallot useful beneath public education without asking partners to adopt a political position.</p>
+                        <div class="use-help-box">
+                            <h3>CalBallot helps you</h3>
+                            <ul><li>Fact-check voter guides and educational material.</li><li>Explain why different measures face different passage rules.</li><li>Link public-facing material back to inspectable records.</li></ul>
+                        </div>
+                        <p class="use-limit"><strong>Scope:</strong> CalBallot complements official election tools; it does not determine the complete ballot for a street address.</p>
+                        <a class="use-text-link" href="/">Explore the public resource →</a>
+                    </div>
+                </div>
+                <a class="use-back-link" href="#audiences">Back to audiences ↑</a>
+            </section>
+
+            <section class="use-audience-section use-audience-section-alt" id="public-affairs" aria-labelledby="public-affairs-title">
+                <div class="use-shell use-section-grid">
+                    <div class="use-section-heading">
+                        <p class="use-eyebrow">Government, campaign, and public-affairs professionals</p>
+                        <h2 id="public-affairs-title">Understand the landscape before making strategic claims</h2>
+                    </div>
+                    <div class="use-section-copy">
+                        <p>Ballot-measure work often begins with deceptively simple questions. Has this jurisdiction tried something similar? Is majority support sufficient? How have comparable instruments performed? Which historical analogy is actually defensible? Reliable answers may be scattered across county records, statewide archives, research datasets, and disclosure systems.</p>
+                        <p>CalBallot reduces that initial research burden by organizing measures around geography, year, type, topic, legal threshold, outcome, and vote share. That structure helps separate genuinely comparable measures from superficial analogies. A school bond and a general tax may both concern public revenue while operating under different legal rules and electoral conditions.</p>
+                        <p>For statewide campaigns, matched finance context supports an evidence-based view of support and opposition activity without treating the better-funded side as automatically favored. Government users can also use cross-jurisdiction search to spot repeated instruments, naming inconsistencies, and disagreements between official records and historical aggregators.</p>
+                        <div class="use-help-box">
+                            <h3>CalBallot helps you</h3>
+                            <ul><li>Compare measures under the correct legal and institutional rules.</li><li>Test whether a strategic analogy survives contact with the record.</li><li>Identify source discrepancies that warrant official verification.</li></ul>
+                        </div>
+                        <p class="use-limit"><strong>Scope:</strong> CalBallot is not a forecast, voter file, persuasion platform, or substitute for legal review.</p>
+                        <a class="use-text-link" href="/">Compare ballot measures →</a>
+                    </div>
+                </div>
+                <a class="use-back-link" href="#audiences">Back to audiences ↑</a>
+            </section>
+        </div>
+
+        <section class="use-closing" aria-labelledby="closing-title">
+            <div class="use-shell use-closing-inner">
+                <p class="use-eyebrow">The role CalBallot can play</p>
+                <h2 id="closing-title">A public-facing voter resource with an expert-grade research backbone.</h2>
+                <p class="use-coverage-note">
+                    The historical archive contains thousands of local measures across California. Current-election
+                    registrar coverage is narrower: this build captures official records from
+                    <strong data-stat="current_registrar_counties">{registrar_counties}</strong> of
+                    <strong data-stat="california_counties">{CALIFORNIA_COUNTY_COUNT}</strong> counties
+                    (<strong data-stat="current_registrar_measures">{registrar_measures}</strong> {measure_word})
+                    for <strong data-stat="current_registrar_year">{registrar_year}</strong>.
+                    CalBallot is not an address-based ballot finder.
+                </p>
+                <div class="use-actions use-actions-centered">
+                    <a class="use-button use-button-primary" href="/">Browse CalBallot</a>
+                    <a class="use-button use-button-secondary" href="mailto:igorgeyn@gmail.com">Contact Igor</a>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="use-footer">
+        <div class="use-shell use-footer-inner">
+            <span>CalBallot · California ballot measures in context</span>
+            <nav aria-label="Footer navigation"><a href="/">Home</a><a href="#top">Back to top</a></nav>
+        </div>
+    </footer>
+</body>
+</html>"""
+
+    def _get_use_calballot_css(self) -> str:
+        """Return page-scoped CSS for the lightweight audience page."""
+        return """
+        .use-calballot-page,
+        .use-calballot-page * {
+            box-sizing: border-box;
+        }
+
+        .use-calballot-page {
+            --use-gold: #c9a23c;
+            --use-gold-dark: #8f6d16;
+            --use-ink: #26231d;
+            --use-muted: #686257;
+            --use-paper: #f6f1e7;
+            --use-card: #fffdf8;
+            --use-line: #ded5c6;
+            margin: 0;
+            background: var(--use-paper);
+            color: var(--use-ink);
+            font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            line-height: 1.6;
+        }
+
+        .use-calballot-page a {
+            color: inherit;
+        }
+
+        .use-calballot-page a:focus-visible {
+            outline: 3px solid var(--use-gold);
+            outline-offset: 4px;
+        }
+
+        .use-calballot-page .use-skip-link {
+            position: fixed;
+            left: 1rem;
+            top: -5rem;
+            z-index: 100;
+            padding: 0.65rem 0.9rem;
+            border-radius: 0.35rem;
+            background: var(--use-ink);
+            color: white;
+        }
+
+        .use-calballot-page .use-skip-link:focus {
+            top: 1rem;
+        }
+
+        .use-calballot-page .use-shell {
+            width: min(1120px, calc(100% - 2.5rem));
+            margin: 0 auto;
+        }
+
+        .use-calballot-page .use-site-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            min-height: 68px;
+            padding: 0.75rem max(1.25rem, calc((100% - 1120px) / 2));
+            border-bottom: 1px solid var(--use-line);
+            background: rgba(246, 241, 231, 0.96);
+        }
+
+        .use-calballot-page .use-brand {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.65rem;
+            color: var(--use-ink);
+            font-size: 1.05rem;
+            font-weight: 800;
+            text-decoration: none;
+        }
+
+        .use-calballot-page .use-brand-mark {
+            display: grid;
+            width: 32px;
+            height: 32px;
+            place-items: center;
+            border-radius: 0.35rem;
+            background: var(--use-gold);
+            color: #1d1a14;
+            font-size: 0.72rem;
+            letter-spacing: 0.04em;
+        }
+
+        .use-calballot-page .use-header-action,
+        .use-calballot-page .use-text-link {
+            color: var(--use-gold-dark);
+            font-weight: 750;
+            text-decoration: none;
+        }
+
+        .use-calballot-page .use-header-action:hover,
+        .use-calballot-page .use-text-link:hover,
+        .use-calballot-page .use-back-link:hover,
+        .use-calballot-page .use-footer a:hover {
+            text-decoration: underline;
+        }
+
+        .use-calballot-page .use-hero {
+            padding: clamp(4.5rem, 9vw, 7.5rem) 0 clamp(4rem, 8vw, 6.5rem);
+            background: linear-gradient(145deg, #f7f0df 0%, #efe5cf 100%);
+        }
+
+        .use-calballot-page .use-hero-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 1.55fr) minmax(260px, 0.65fr);
+            gap: clamp(2rem, 7vw, 6rem);
+            align-items: end;
+        }
+
+        .use-calballot-page .use-eyebrow {
+            margin: 0 0 0.75rem;
+            color: var(--use-gold-dark);
+            font-size: 0.76rem;
+            font-weight: 800;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+        }
+
+        .use-calballot-page .use-hero h1 {
+            max-width: 17ch;
+            margin: 0;
+            font-family: Georgia, "Times New Roman", serif;
+            font-size: clamp(2.55rem, 6.4vw, 5.25rem);
+            font-weight: 600;
+            letter-spacing: -0.045em;
+            line-height: 0.98;
+        }
+
+        .use-calballot-page .use-hero-deck {
+            max-width: 66ch;
+            margin: 1.5rem 0 0;
+            color: var(--use-muted);
+            font-size: clamp(1.03rem, 2vw, 1.2rem);
+            line-height: 1.7;
+        }
+
+        .use-calballot-page .use-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            margin-top: 1.75rem;
+        }
+
+        .use-calballot-page .use-button {
+            display: inline-flex;
+            min-height: 46px;
+            align-items: center;
+            justify-content: center;
+            padding: 0.7rem 1rem;
+            border: 1px solid var(--use-ink);
+            border-radius: 0.4rem;
+            font-weight: 750;
+            text-decoration: none;
+        }
+
+        .use-calballot-page .use-button-primary {
+            background: var(--use-ink);
+            color: white;
+        }
+
+        .use-calballot-page .use-button-primary:hover {
+            background: #3c372e;
+        }
+
+        .use-calballot-page .use-button-secondary {
+            background: transparent;
+            color: var(--use-ink);
+        }
+
+        .use-calballot-page .use-button-secondary:hover {
+            background: rgba(255, 255, 255, 0.45);
+        }
+
+        .use-calballot-page .use-principle {
+            padding: 1.5rem;
+            border-left: 3px solid var(--use-gold);
+            background: rgba(255, 253, 248, 0.58);
+        }
+
+        .use-calballot-page .use-principle-label {
+            display: block;
+            margin-bottom: 0.4rem;
+            color: var(--use-muted);
+            font-size: 0.72rem;
+            font-weight: 800;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        .use-calballot-page .use-principle strong {
+            display: block;
+            font-family: Georgia, "Times New Roman", serif;
+            font-size: 1.45rem;
+        }
+
+        .use-calballot-page .use-principle p {
+            margin: 0.65rem 0 0;
+            color: var(--use-muted);
+            font-size: 0.92rem;
+        }
+
+        .use-calballot-page .use-trust-strip {
+            border-top: 1px solid var(--use-line);
+            border-bottom: 1px solid var(--use-line);
+            background: var(--use-card);
+        }
+
+        .use-calballot-page .use-trust-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+        }
+
+        .use-calballot-page .use-stat {
+            min-height: 112px;
+            padding: 1.35rem 1.1rem;
+            border-right: 1px solid var(--use-line);
+        }
+
+        .use-calballot-page .use-stat:last-child {
+            border-right: 0;
+        }
+
+        .use-calballot-page .use-stat strong {
+            display: block;
+            color: var(--use-gold-dark);
+            font-family: Georgia, "Times New Roman", serif;
+            font-size: 1.8rem;
+            line-height: 1.1;
+        }
+
+        .use-calballot-page .use-stat-words strong {
+            font-family: inherit;
+            font-size: 1rem;
+        }
+
+        .use-calballot-page .use-stat span {
+            display: block;
+            margin-top: 0.35rem;
+            color: var(--use-muted);
+            font-size: 0.82rem;
+        }
+
+        .use-calballot-page .use-audience-index {
+            padding: clamp(4rem, 8vw, 7rem) 0;
+            scroll-margin-top: 1.5rem;
+        }
+
+        .use-calballot-page .use-audience-index > h2,
+        .use-calballot-page .use-closing h2 {
+            max-width: 20ch;
+            margin: 0;
+            font-family: Georgia, "Times New Roman", serif;
+            font-size: clamp(2rem, 4vw, 3.4rem);
+            font-weight: 600;
+            letter-spacing: -0.035em;
+            line-height: 1.08;
+        }
+
+        .use-calballot-page .use-audience-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 1rem;
+            margin-top: 2.5rem;
+        }
+
+        .use-calballot-page .use-audience-card {
+            position: relative;
+            min-height: 225px;
+            padding: 1.5rem;
+            border: 1px solid var(--use-line);
+            border-radius: 0.6rem;
+            background: var(--use-card);
+            text-decoration: none;
+        }
+
+        .use-calballot-page .use-audience-card:hover {
+            border-color: var(--use-gold);
+            box-shadow: 0 14px 38px rgba(61, 52, 37, 0.1);
+        }
+
+        .use-calballot-page .use-card-number {
+            display: grid;
+            width: 36px;
+            height: 36px;
+            place-items: center;
+            border-radius: 50%;
+            background: #f2e5bd;
+            color: var(--use-gold-dark);
+            font-weight: 850;
+        }
+
+        .use-calballot-page .use-audience-card h3 {
+            margin: 1rem 0 0.45rem;
+            font-size: 1.2rem;
+        }
+
+        .use-calballot-page .use-audience-card p {
+            max-width: 48ch;
+            margin: 0;
+            color: var(--use-muted);
+        }
+
+        .use-calballot-page .use-card-tasks {
+            position: absolute;
+            right: 1.5rem;
+            bottom: 1.35rem;
+            left: 1.5rem;
+            color: var(--use-gold-dark);
+            font-size: 0.78rem;
+            font-weight: 700;
+        }
+
+        .use-calballot-page .use-audience-section {
+            position: relative;
+            padding: clamp(4.5rem, 9vw, 8rem) 0;
+            border-top: 1px solid var(--use-line);
+            scroll-margin-top: 1rem;
+        }
+
+        .use-calballot-page .use-audience-section-alt {
+            background: var(--use-card);
+        }
+
+        .use-calballot-page .use-section-grid {
+            display: grid;
+            grid-template-columns: minmax(260px, 0.8fr) minmax(0, 1.2fr);
+            gap: clamp(2.5rem, 8vw, 7rem);
+            align-items: start;
+        }
+
+        .use-calballot-page .use-section-heading {
+            position: sticky;
+            top: 2rem;
+        }
+
+        .use-calballot-page .use-section-heading h2 {
+            max-width: 17ch;
+            margin: 0;
+            font-family: Georgia, "Times New Roman", serif;
+            font-size: clamp(2rem, 4.2vw, 3.5rem);
+            font-weight: 600;
+            letter-spacing: -0.04em;
+            line-height: 1.08;
+        }
+
+        .use-calballot-page .use-section-copy {
+            max-width: 72ch;
+            font-size: 1.02rem;
+        }
+
+        .use-calballot-page .use-section-copy > p {
+            margin: 0 0 1.25rem;
+            color: var(--use-muted);
+        }
+
+        .use-calballot-page .use-help-box {
+            margin: 2rem 0;
+            padding: 1.35rem 1.5rem;
+            border: 1px solid var(--use-line);
+            border-left: 4px solid var(--use-gold);
+            border-radius: 0.35rem;
+            background: #faf5e9;
+        }
+
+        .use-calballot-page .use-help-box h3 {
+            margin: 0 0 0.6rem;
+            font-size: 0.88rem;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+        }
+
+        .use-calballot-page .use-help-box ul {
+            margin: 0;
+            padding-left: 1.15rem;
+        }
+
+        .use-calballot-page .use-help-box li + li {
+            margin-top: 0.35rem;
+        }
+
+        .use-calballot-page .use-limit {
+            padding-top: 1.1rem;
+            border-top: 1px solid var(--use-line);
+            font-size: 0.88rem;
+        }
+
+        .use-calballot-page .use-back-link {
+            display: block;
+            width: max-content;
+            margin: 3rem auto 0;
+            color: var(--use-muted);
+            font-size: 0.78rem;
+            font-weight: 700;
+            text-decoration: none;
+        }
+
+        .use-calballot-page .use-closing {
+            padding: clamp(4.5rem, 9vw, 7.5rem) 0;
+            background: #25221c;
+            color: white;
+        }
+
+        .use-calballot-page .use-closing-inner {
+            text-align: center;
+        }
+
+        .use-calballot-page .use-closing h2 {
+            margin-right: auto;
+            margin-left: auto;
+        }
+
+        .use-calballot-page .use-coverage-note {
+            max-width: 78ch;
+            margin: 1.75rem auto 0;
+            color: #d9d2c6;
+        }
+
+        .use-calballot-page .use-actions-centered {
+            justify-content: center;
+        }
+
+        .use-calballot-page .use-closing .use-button-primary {
+            border-color: var(--use-gold);
+            background: var(--use-gold);
+            color: #201d18;
+        }
+
+        .use-calballot-page .use-closing .use-button-secondary {
+            border-color: #d9d2c6;
+            color: white;
+        }
+
+        .use-calballot-page .use-footer {
+            padding: 1.5rem 0;
+            background: #171511;
+            color: #aaa397;
+            font-size: 0.78rem;
+        }
+
+        .use-calballot-page .use-footer-inner,
+        .use-calballot-page .use-footer nav {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+        }
+
+        .use-calballot-page .use-footer nav {
+            justify-content: flex-end;
+        }
+
+        .use-calballot-page .use-footer a {
+            color: #d8c88e;
+            text-decoration: none;
+        }
+
+        @media (max-width: 800px) {
+            .use-calballot-page .use-hero-grid,
+            .use-calballot-page .use-section-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .use-calballot-page .use-section-heading {
+                position: static;
+            }
+
+            .use-calballot-page .use-trust-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            .use-calballot-page .use-stat:nth-child(2) {
+                border-right: 0;
+            }
+
+            .use-calballot-page .use-stat:nth-child(-n + 2) {
+                border-bottom: 1px solid var(--use-line);
+            }
+        }
+
+        @media (max-width: 600px) {
+            .use-calballot-page .use-shell {
+                width: min(100% - 1.5rem, 1120px);
+            }
+
+            .use-calballot-page .use-site-header {
+                padding-right: 0.75rem;
+                padding-left: 0.75rem;
+            }
+
+            .use-calballot-page .use-header-action {
+                font-size: 0.85rem;
+            }
+
+            .use-calballot-page .use-hero h1 {
+                font-size: clamp(2.35rem, 13vw, 3.5rem);
+            }
+
+            .use-calballot-page .use-audience-grid,
+            .use-calballot-page .use-trust-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .use-calballot-page .use-stat {
+                min-height: auto;
+                border-right: 0;
+                border-bottom: 1px solid var(--use-line);
+            }
+
+            .use-calballot-page .use-stat:last-child {
+                border-bottom: 0;
+            }
+
+            .use-calballot-page .use-audience-card {
+                min-height: 245px;
+            }
+
+            .use-calballot-page .use-actions {
+                align-items: stretch;
+                flex-direction: column;
+            }
+
+            .use-calballot-page .use-footer-inner,
+            .use-calballot-page .use-footer nav {
+                align-items: flex-start;
+                flex-direction: column;
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .use-calballot-page {
+                scroll-behavior: auto;
+            }
+        }
+        """
     
     def _get_css(self) -> str:
         """Get CSS styles for the website"""

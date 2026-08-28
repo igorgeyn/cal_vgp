@@ -210,7 +210,10 @@ def main():
         (OUT_DIR / f"{m['id']}.html").write_text(build_page(m), encoding="utf-8")
 
     today = date.today().isoformat()
-    urls = [f"  <url><loc>{BASE_URL}/</loc><lastmod>{today}</lastmod><priority>1.0</priority></url>"]
+    urls = [
+        f"  <url><loc>{BASE_URL}/</loc><lastmod>{today}</lastmod><priority>1.0</priority></url>",
+        f"  <url><loc>{BASE_URL}/use-calballot/</loc><lastmod>{today}</lastmod><priority>0.8</priority></url>",
+    ]
     urls += [
         f"  <url><loc>{BASE_URL}/measures/{m['id']}.html</loc><priority>0.6</priority></url>"
         for m in measures

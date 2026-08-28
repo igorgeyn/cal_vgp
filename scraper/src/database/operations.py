@@ -444,6 +444,22 @@ class Database:
         # Convert to int, with defaults if None
         stats['year_min'] = int(row['min_year']) if row['min_year'] is not None else 1902
         stats['year_max'] = int(row['max_year']) if row['max_year'] is not None else 2026
+
+        # Current-cycle county registrar coverage for public site copy. Keep
+        # archive breadth distinct from the much narrower set of official
+        # county records captured for the latest election year.
+        cursor = conn.execute("""
+            SELECT
+                COUNT(DISTINCT county) AS county_count,
+                COUNT(*) AS measure_count
+            FROM active_measures
+            WHERE CAST(year AS INTEGER) = ?
+              AND data_source LIKE '%_County_Registrar'
+        """, (stats['year_max'],))
+        row = cursor.fetchone()
+        stats['current_registrar_year'] = stats['year_max']
+        stats['current_registrar_counties'] = int(row['county_count'] or 0)
+        stats['current_registrar_measures'] = int(row['measure_count'] or 0)
         
         # By source
         cursor = conn.execute("""
