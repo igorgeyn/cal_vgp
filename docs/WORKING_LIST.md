@@ -429,50 +429,27 @@ checks pass; Phase F manual checklist signed off via browser spot-check).
 > items here are downstream from Phase 0.5 — they unblock once the
 > framework is live.
 
-- [ ] **Phase 1: first county scraper (San Bernardino).** Implements
-      `SbScraper(CountyRegistrarScraper)` against
-      `elections.sbcounty.gov/elections/{year}/{mmdd}/measures/`.
-      Parses the structured table (Letter | Jurisdiction | Description |
-      Analysis | Arguments | Pass%) and downloads linked analysis +
-      argument PDFs as artifacts. Validates the framework end-to-end
-      with a real source. ~2-3 days.
+- [x] ~~**Phase 1: first county scraper (San Bernardino).**~~
+      **SHIPPED 2026-07-27, LIVE ON SITE 2026-08-27.** 20 measures /
+      88 documents / 5 prod snapshots; three drift events absorbed.
 
-- [ ] **Phase 1: LA county scraper.** Against
-      `results.lavote.gov/text-results/{election_id}`. Election ID
-      enumeration via `/election-list/text` or sequential walk from
-      known anchors. Parses the section-organized text (County Measures
-      / Cities / Schools / Community Services). Larger volume than SB
-      but still server-rendered HTML.
+- [x] ~~**Parser + loader stages.**~~ **SHIPPED 2026-08-14**
+      (`7861bb0`), four integrity blockers closed (`5f1cd26`), first
+      live load `2afcba9`.
 
-- [ ] **Phase 1: OC county scraper.** Slug-based URL enumeration
-      from `/elections` then per-election `/measures-on-the-ballot`.
-      Inline measure text vs linked PDFs format still TBD — verify
-      against the 2024 primary first.
-
-- [ ] **Phase 1: SD county scraper.** Need to find SD's measures
-      page first (homepage probed; deeper pages TBD). Polite UA
-      already validated as sufficient.
-
-- [ ] **Phase 1: Riverside scraper (with Playwright).** Heaviest of
-      the five; needs JS-rendering to pass the Cloudflare challenge.
-      Defer until LA/OC/SB are stable so we know Playwright fits the
-      base scraper cleanly. **Explicit prerequisite (Codex round-3):**
-      per-hop robots/rate-limit policy for browser-managed redirects
-      — the Playwright fetch path delegates redirects to the browser,
-      so the requests-mode per-hop politeness guarantees don't apply
-      to it yet.
-
-- [ ] **Parser + loader stages.** Once raw artifacts are landing in
-      R2, build the per-county parser (R2 → normalized JSONL) and
-      the loader (JSONL → `ballot_measures.db`). Loader runs locally
-      in Phase 1, may move to CI-opens-PR in Phase 3.
-
-- [ ] **Open questions from recon** (deferred from Phase 0.5):
-      - OC for older elections — does `/elections/{slug}/measures-on-
-        the-ballot` exist for pre-2020 elections?
-      - SD measures page — where does SD publish per-election listings?
-      - LA text-results historical coverage — back to 2007 or modern only?
-      - Sample ballot booklet PDFs — URL pattern for LA / OC / SD?
+- [ ] **County expansion — see the itemized workplan** at
+      [`docs/plans/registrar_county_expansion_workplan.md`](plans/registrar_county_expansion_workplan.md)
+      (2026-08-27). Supersedes the old five-county list. Headline
+      findings: the five recon'd counties cover only **28.8%** of
+      local measure volume (population was the wrong proxy — Alameda,
+      Santa Clara, San Mateo, SF and Contra Costa all out-produce
+      Orange/Riverside/SB and have **no recon**); reaching 50% needs
+      ten counties; and **maintenance, not construction, is the
+      binding constraint** — drift runs ~1 event per county per two
+      weeks, so ten counties means ~5 red crons a week. Key
+      recommendation: **decouple capture from interpretation** before
+      county three, so a new document type breaks an offline parse
+      rather than the weekly cron.
 
 ### NARRATIVE / IDEATION (new product directions)
 
