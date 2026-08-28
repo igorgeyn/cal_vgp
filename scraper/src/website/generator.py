@@ -1400,6 +1400,16 @@ class WebsiteGenerator:
             </div>
 
             <div class="about-section">
+                <h3>Who uses CalBallot?</h3>
+                <p>
+                    CalBallot supports journalists, researchers, civic-information organizations,
+                    and government and public-affairs professionals who need to follow ballot-measure
+                    evidence back to the public record.
+                </p>
+                <a class="about-use-cta" href="/use-calballot/">See how each group can use CalBallot &rarr;</a>
+            </div>
+
+            <div class="about-section">
                 <h3>Background</h3>
                 <p>
                     This project grew out of the <a href="https://sites.google.com/view/ucla-vgp" target="_blank">UCLA Voter Guide Project</a>,
@@ -1417,16 +1427,6 @@ class WebsiteGenerator:
                     <li>Related measures recommendations using semantic similarity</li>
                     <li>Vote results and historical trends</li>
                 </ul>
-            </div>
-
-            <div class="about-section">
-                <h3>Who uses CalBallot?</h3>
-                <p>
-                    CalBallot supports journalists, researchers, civic-information organizations,
-                    and government and public-affairs professionals who need to follow ballot-measure
-                    evidence back to the public record.
-                    <a href="/use-calballot/">See how each group can use CalBallot &rarr;</a>
-                </p>
             </div>
 
             <div class="about-section">
@@ -4968,6 +4968,34 @@ class WebsiteGenerator:
 
         .about-section li {
             margin-bottom: 0.25rem;
+        }
+
+        .about-section a.about-use-cta {
+            display: inline-block;
+            margin-top: 0.35rem;
+            padding: 0.5rem 0.9rem;
+            border-radius: 8px;
+            background: var(--primary);
+            color: #111;
+            font-size: 0.875rem;
+            font-weight: 600;
+            text-decoration: none;
+            border: 1px solid transparent;
+            transition: filter 0.15s ease;
+        }
+
+        .about-section a.about-use-cta:hover {
+            filter: brightness(1.07);
+            text-decoration: none;
+        }
+
+        .about-section a.about-use-cta:focus-visible {
+            outline: 2px solid var(--primary);
+            outline-offset: 2px;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .about-section a.about-use-cta { transition: none; }
         }
 
         .about-section a {
