@@ -1,26 +1,26 @@
 {
   "version": 1,
   "overview": {
-    "active_measures": 12312,
+    "active_measures": 12332,
     "decided_measures": 12252,
     "vote_data_measures": 11029,
     "summary_measures": 3472,
     "pass_rate": 66.8,
     "passed": 8188,
     "failed": 4064,
-    "local_measures": 10997,
+    "local_measures": 11017,
     "statewide_measures": 1315,
     "local_share": 89.3,
     "county_count": 58,
     "year_min": 1911,
     "year_max": 2026,
-    "generated_at": "2026-05-20T10:49:30"
+    "generated_at": "2026-08-27T19:10:29"
   },
   "featured_findings": [
     {
       "id": "local-democracy-is-fiscal",
       "title": "The ballot is mostly local, and much of it is fiscal.",
-      "deck": "89.3% of active records are local measures, and 55.8% fall into tax, bond, or spending-limit measure types.",
+      "deck": "89.3% of active records are local measures, and 55.7% fall into tax, bond, or spending-limit measure types.",
       "metric": "89.3%",
       "metric_label": "local measures",
       "confidence": "High",
@@ -1215,15 +1215,15 @@
     },
     {
       "year": 2026,
-      "total": 4,
+      "total": 24,
       "passed": 0,
       "failed": 0,
       "decided": 0,
-      "local": 0,
+      "local": 20,
       "statewide": 4,
       "fiscal": 0,
       "pass_rate": null,
-      "local_share": 0.0,
+      "local_share": 83.3,
       "fiscal_share": 0.0,
       "avg_yes": null
     }
@@ -1363,15 +1363,15 @@
     },
     {
       "decade": 2020,
-      "total": 2278,
-      "local": 2242,
+      "total": 2298,
+      "local": 2262,
       "statewide": 36,
       "fiscal": 1570,
       "decided": 2274,
       "passed": 1566,
       "pass_rate": 68.9,
       "local_share": 98.4,
-      "fiscal_share": 68.9
+      "fiscal_share": 68.3
     }
   ],
   "election_cycle_stats": [
@@ -1389,15 +1389,15 @@
     },
     {
       "cycle": "Midterm year",
-      "total": 4728,
-      "local": 4099,
+      "total": 4748,
+      "local": 4119,
       "statewide": 629,
       "decided": 4723,
       "passed": 3115,
       "year_count": 29,
-      "avg_measures_per_year": 163.0,
+      "avg_measures_per_year": 163.7,
       "pass_rate": 66.0,
-      "local_share": 86.7
+      "local_share": 86.8
     },
     {
       "cycle": "Odd year",
@@ -1541,9 +1541,9 @@
     ],
     "annual_volume_trend": {
       "n": 82,
-      "slope": 3.888,
-      "intercept": -7522.466,
-      "r2": 0.324
+      "slope": 3.898,
+      "intercept": -7542.298,
+      "r2": 0.326
     },
     "annual_pass_rate_trend": {
       "n": 72,
@@ -1572,15 +1572,15 @@
       },
       {
         "cycle": "Midterm year",
-        "total": 4728,
-        "local": 4099,
+        "total": 4748,
+        "local": 4119,
         "statewide": 629,
         "decided": 4723,
         "passed": 3115,
         "year_count": 29,
-        "avg_measures_per_year": 163.0,
+        "avg_measures_per_year": 163.7,
         "pass_rate": 66.0,
-        "local_share": 86.7
+        "local_share": 86.8
       },
       {
         "cycle": "Odd year",
@@ -1600,7 +1600,7 @@
   "topic_stats": [
     {
       "topic": "Other",
-      "total": 9178,
+      "total": 9198,
       "decided": 9176,
       "passed": 6180,
       "pass_rate": 67.3
@@ -1865,7 +1865,7 @@
         "Government & Elections": 530,
         "Healthcare & Welfare": 23,
         "Housing & Land Use": 101,
-        "Other": 811,
+        "Other": 831,
         "Public Safety & Crime": 79,
         "Taxes & Finance": 62,
         "Transportation": 51,
@@ -2017,12 +2017,12 @@
       },
       {
         "decade": 2020,
-        "total": 2278,
+        "total": 2298,
         "shares": {
-          "Government & Elections": 23.3,
-          "Education": 25.8,
+          "Government & Elections": 23.1,
+          "Education": 25.6,
           "Taxes & Finance": 2.7,
-          "Public Safety & Crime": 3.5,
+          "Public Safety & Crime": 3.4,
           "Business & Labor": 0.0,
           "Housing & Land Use": 4.4
         }
@@ -2032,9 +2032,9 @@
       {
         "topic": "Government & Elections",
         "n": 9,
-        "slope": -0.257,
-        "intercept": 524.5,
-        "r2": 0.583
+        "slope": -0.258,
+        "intercept": 525.97,
+        "r2": 0.587
       },
       {
         "topic": "Taxes & Finance",
@@ -2053,9 +2053,9 @@
       {
         "topic": "Education",
         "n": 9,
-        "slope": 0.067,
-        "intercept": -126.146,
-        "r2": 0.111
+        "slope": 0.066,
+        "intercept": -124.676,
+        "r2": 0.11
       },
       {
         "topic": "Housing & Land Use",
@@ -2068,8 +2068,8 @@
         "topic": "Public Safety & Crime",
         "n": 9,
         "slope": 0.003,
-        "intercept": -4.074,
-        "r2": 0.011
+        "intercept": -3.339,
+        "r2": 0.009
       }
     ],
     "note": "Topic trends exclude Other because sparse local topic text makes it a coverage artifact."
@@ -2209,7 +2209,7 @@
     },
     {
       "category_type": "Other",
-      "total": 1314,
+      "total": 1334,
       "decided": 1313,
       "passed": 725,
       "pass_rate": 55.2
@@ -2412,13 +2412,13 @@
     },
     {
       "decade": 2020,
-      "total": 2278,
+      "total": 2298,
       "fiscal": 1570,
       "bond": 714,
       "tax": 840,
-      "fiscal_share": 68.9,
-      "bond_share": 31.3,
-      "tax_share": 36.9
+      "fiscal_share": 68.3,
+      "bond_share": 31.1,
+      "tax_share": 36.6
     }
   ],
   "type_insights": {
@@ -3437,7 +3437,7 @@
     },
     {
       "county": "San Bernardino",
-      "total": 349,
+      "total": 369,
       "decided": 342,
       "passed": 214,
       "fips": "06071",
@@ -3937,7 +3937,7 @@
     },
     {
       "region": "Greater Los Angeles",
-      "total": 2852,
+      "total": 2872,
       "decided": 2839,
       "passed": 1972,
       "counties": 5,
@@ -4117,7 +4117,7 @@
       },
       {
         "region": "Greater Los Angeles",
-        "total": 2852,
+        "total": 2872,
         "decided": 2839,
         "passed": 1972,
         "counties": 5,
@@ -5397,6 +5397,10 @@
       [
         "Ballotpedia",
         32
+      ],
+      [
+        "SB_County_Registrar",
+        20
       ],
       [
         "CA_SOS",
