@@ -1,8 +1,10 @@
 # Local measures widget: research-led redesign
 
-> **Status:** proposal. Supersedes the card-band structure shipped in
-> `d9390d6` (`docs/plans/upcoming_local_measures_structure.md`), which
-> is correct but too tall.
+> **Status:** compact-card variant implemented and scratch-verified
+> 2026-08-27. The original research recommendation below preferred a
+> fixed-height list; Igor's final product decision kept cards and used a
+> carousel. That decision supersedes the rejected-card/carousel bullets in
+> this document while retaining the county-control and scope rationale.
 >
 > **Goal:** a compact county-level widget roughly the height of the
 > existing statewide carousel, with county switching, that stays the
@@ -145,6 +147,52 @@ Nothing in the row design changes across these. Only the scope control does.
 3. **`measure_documents` table** → the nine-slot indicator, and an
    official-documents section in the modal.
 4. **Jurisdiction-type filter**, only once row counts justify it.
+
+## 9. Implementation update — compact card variant
+
+The implemented source keeps the card as the cross-context medium, but reduces each
+local card from 247px in the live baseline to a fixed 120px. The band uses the
+same three/two/one-card responsive breakpoints and track-position helper as the
+statewide carousel. It advances by one visible page and reports a compact range
+(`1–3 of 20`) instead of rendering a dot for every possible position; this
+avoids a 100+ dot control when Los Angeles arrives.
+
+Built in this variant:
+
+- a native county `select`, with Los Angeles, Orange, San Diego, and Riverside
+  visible but disabled as “not yet captured”;
+- the existing county-scoped/non-address-specific scope sentence unchanged;
+- 120px keyboard-operable cards containing measure designation, jurisdiction,
+  shortened type, official threshold, and optional historical context;
+- distinct non-gold threshold treatments for majority, 55%, and two-thirds;
+- source attribution and official links removed from the repeated card surface
+  but retained in the existing measure modal;
+- a hand-reviewed registrar-description → CEDA-category crosswalk, computed at
+  build time within the source-exact county and excluding registrar rows;
+- suppression for samples below five and an explicit null mapping for Local
+  Transportation Improvement Program.
+
+The copied production database produced historical context on 19 of the 20 San
+Bernardino cards. The reviewed cohorts remain 90 GO bonds (60 passed, since
+1998), 71 ordinances (40, 1998), 38 charter amendments (28, 1998), 31 sales
+taxes (17, 2000), 16 transient-occupancy taxes (12, 2002), and 16 property taxes
+(3, 1998). Two CEDA rows spell the county `SAN BERNADINO`; context aggregation
+uses the source-exact county key so those rows do not silently change the
+reviewed 90-row bond cohort after display-name correction.
+
+Scratch browser comparison measured the full local band at 328px versus 1,346px
+for the live accordion baseline. The four statewide cards retained identical
+text and 195.39px heights. Desktop and mobile local bands had no horizontal
+overflow, card Enter activation opened the existing modal, disabled and empty
+county states rendered correctly, and no page errors occurred. External CDN
+requests were blocked by the verification sandbox, so DuckDB logged its existing
+offline initialization warning; that did not affect static measure loading or
+the widget.
+
+The 88-document indicator remains deferred: the documents still are not in the
+database, so this implementation does not infer or expose document-role counts.
+Verification used a database copy and an explicit scratch output path. No live
+database or deployed site artifact was written or regenerated.
 
 ## Sources
 

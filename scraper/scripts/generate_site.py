@@ -170,6 +170,7 @@ def main():
             is_county_registrar_measure,
             prepare_upcoming_display_fields,
         )
+        from src.website.local_measure_context import attach_local_historical_context
         generator = WebsiteGenerator(database=Database(db_path), output_path=output_path)
         
         # Prepare data for website
@@ -225,6 +226,11 @@ def main():
             # Normalize county names to Title Case with spelling corrections
             county = m_dict.get('county')
             if county:
+                # Preserve the source-exact key for the reviewed historical
+                # context query. In particular, do not fold CEDA's two
+                # misspelled SAN BERNADINO rows into the verified 90-row
+                # San Bernardino GO Bond cohort.
+                m_dict['_historical_context_county'] = county
                 county = county.strip().title()
                 county = {
                     'San Bernadino': 'San Bernardino',
@@ -281,6 +287,12 @@ def main():
 
             m_dict = prepare_upcoming_display_fields(m_dict)
             measures_for_website.append(m_dict)
+
+        local_context_count = attach_local_historical_context(measures_for_website)
+        logger.info(
+            "  Added reviewed county/type historical context to %s local measures",
+            local_context_count,
+        )
 
         # Compute historical context for pending measures using semantic similarity
         # Embed pending measure text, compare against historical embeddings

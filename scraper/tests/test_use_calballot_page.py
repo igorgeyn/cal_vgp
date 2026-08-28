@@ -113,6 +113,35 @@ def test_page_is_lightweight_and_all_internal_anchors_resolve(tmp_path: Path):
     database.close()
 
 
+def test_about_modal_promotes_use_page_with_accessible_cta(tmp_path: Path, monkeypatch):
+    database = Database(tmp_path / "about-modal.db")
+    generator = WebsiteGenerator(database=database, output_path=tmp_path / "unused.html")
+    monkeypatch.setattr(generator, "_load_finance_data", lambda: {})
+    monkeypatch.setattr(generator, "_load_insights_data", lambda: {})
+    monkeypatch.setattr(generator, "_generate_quiz_questions", lambda measures, stats: [])
+
+    html = generator._generate_html([], {}, [], {})
+    about_html = html.split('id="aboutModal"', 1)[1].split(
+        "<!-- AI Chat Interface -->", 1
+    )[0]
+
+    section_order = [
+        about_html.index("CalBallot is a tool for exploring"),
+        about_html.index("Who uses CalBallot?"),
+        about_html.index("<h3>Background</h3>"),
+        about_html.index("<h3>Features</h3>"),
+        about_html.index("<h3>Data Pipeline</h3>"),
+    ]
+    assert section_order == sorted(section_order)
+    assert (
+        '<a class="about-use-cta" href="/use-calballot/">'
+        "See how each group can use CalBallot &rarr;</a>"
+    ) in about_html
+    assert "outline: 3px solid var(--text-primary);" in html
+    assert "border: 1px solid var(--primary-dark);" in html
+    database.close()
+
+
 def test_sitemap_source_includes_use_calballot_route():
     root = Path(__file__).resolve().parents[2]
     source = (root / "build_measure_pages.py").read_text(encoding="utf-8")

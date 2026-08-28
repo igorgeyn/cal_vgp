@@ -22,6 +22,14 @@ UPCOMING_ELECTION_YEAR = 2026
 CALIFORNIA_COUNTY_COUNT = 58
 USE_CALBALLOT_PAGE = Path("use-calballot/index.html")
 
+COMPACT_LOCAL_MEASURE_TYPES = {
+    "Bond Measure": "Bond",
+    "Transactions and Use Tax Measure": "Sales tax",
+    "Municipal Code Amendment": "Municipal code",
+    "Local Transportation Improvement Program": "Transportation",
+    "Special Parcel Tax": "Parcel tax",
+}
+
 
 def get_upcoming_scope(year, county: Optional[str]) -> Optional[str]:
     """Classify current-cycle measures for the split upcoming section."""
@@ -59,6 +67,12 @@ def get_local_measure_type(data: Dict) -> str:
     return str(data.get("description") or "Local ballot measure").strip()
 
 
+def get_compact_local_measure_type(data: Dict) -> str:
+    """Return the reviewed short label used by compact local cards."""
+    measure_type = get_local_measure_type(data)
+    return COMPACT_LOCAL_MEASURE_TYPES.get(measure_type, measure_type)
+
+
 def prepare_upcoming_display_fields(data: Dict) -> Dict:
     """Attach deterministic fields consumed by the upcoming-measures UI."""
     scope = get_upcoming_scope(data.get("year"), data.get("county"))
@@ -68,6 +82,7 @@ def prepare_upcoming_display_fields(data: Dict) -> Dict:
     if scope == "local":
         data["upcoming_county"] = data.get("county") or "County not specified"
         data["local_measure_type"] = get_local_measure_type(data)
+        data["local_measure_type_short"] = get_compact_local_measure_type(data)
         data["source_display"] = get_official_source_label(
             data.get("data_source") or data.get("source"), data.get("county")
         )
@@ -1333,7 +1348,14 @@ class WebsiteGenerator:
                             <span class="upcoming-band-eyebrow">Official county records</span>
                             <h3 id="localMeasuresTitle">Local measures</h3>
                         </div>
-                        <span class="upcoming-band-count" id="localUpcomingCount"></span>
+                        <div class="local-band-controls">
+                            <label for="localCountySelect">County</label>
+                            <select id="localCountySelect" class="local-county-select"
+                                    onchange="selectLocalCounty(this.value)" aria-controls="localMeasuresContent">
+                                <option>Loading county coverage&hellip;</option>
+                            </select>
+                            <span class="upcoming-band-count" id="localUpcomingCount"></span>
+                        </div>
                     </div>
                     <p class="upcoming-local-scope" id="localMeasuresScope"></p>
                     <div id="localMeasuresContent">
@@ -3581,6 +3603,43 @@ class WebsiteGenerator:
             line-height: 1.55;
         }
 
+        .upcoming-local-band .local-band-controls {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 0.55rem;
+        }
+
+        .upcoming-local-band .local-band-controls label {
+            color: var(--text-tertiary);
+            font-size: 0.74rem;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+        }
+
+        .upcoming-local-band .local-county-select {
+            max-width: 18rem;
+            padding: 0.48rem 2rem 0.48rem 0.7rem;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            font: inherit;
+            font-size: 0.82rem;
+        }
+
+        .upcoming-local-band .local-county-select:focus-visible {
+            border-color: #2f6f68;
+            outline: 3px solid rgba(47, 111, 104, 0.22);
+            outline-offset: 1px;
+        }
+
+        .upcoming-local-band .local-county-select:disabled {
+            color: var(--text-tertiary);
+            cursor: not-allowed;
+        }
+
         .upcoming-local-band .local-empty-state {
             padding: 1.25rem;
             border: 1px dashed var(--border);
@@ -3590,69 +3649,39 @@ class WebsiteGenerator:
             font-size: 0.9rem;
         }
 
-        .upcoming-local-band .local-county-group {
-            overflow: hidden;
-            margin-bottom: 0.75rem;
-            border: 1px solid var(--border);
-            border-radius: var(--radius);
-            background: var(--bg-primary);
-        }
-
-        .upcoming-local-band .local-county-summary {
+        /* Compact local-card carousel. Kept under the band selector because
+           generic panel/card class collisions have broken other views. */
+        .upcoming-local-band .local-carousel {
             display: flex;
             align-items: center;
-            justify-content: space-between;
-            gap: 1rem;
-            padding: 1rem 1.15rem;
-            cursor: pointer;
-            list-style: none;
-            font-weight: 650;
-            color: var(--text-primary);
+            gap: 0.75rem;
+            position: relative;
+            padding: 0 0.5rem;
         }
 
-        .upcoming-local-band .local-county-summary::-webkit-details-marker {
-            display: none;
+        .upcoming-local-band .local-carousel-viewport {
+            flex: 1;
+            min-width: 0;
+            overflow: hidden;
+            padding: 3px;
         }
 
-        .upcoming-local-band .local-county-summary::after {
-            content: '+';
-            flex-shrink: 0;
-            color: var(--primary);
-            font-size: 1.25rem;
-            font-weight: 400;
-        }
-
-        .upcoming-local-band .local-county-group[open] .local-county-summary::after {
-            content: '−';
-        }
-
-        .upcoming-local-band .local-county-name {
+        .upcoming-local-band .local-carousel-track {
             display: flex;
-            align-items: baseline;
-            gap: 0.55rem;
-        }
-
-        .upcoming-local-band .local-county-name small {
-            color: var(--text-tertiary);
-            font-size: 0.8rem;
-            font-weight: 500;
-        }
-
-        .upcoming-local-band .local-county-body {
-            padding: 0 1.15rem 1.15rem;
-        }
-
-        .upcoming-local-band .local-measures-grid {
-            display: grid;
-            grid-template-columns: repeat(3, minmax(0, 1fr));
             gap: 0.9rem;
+            transition: transform 0.4s ease;
         }
 
         .upcoming-local-band .local-measure-card {
             display: flex;
-            min-height: 220px;
+            flex: 0 0 calc(33.333% - 0.6rem);
+            min-width: calc(33.333% - 0.6rem);
+            max-width: calc(33.333% - 0.6rem);
+            height: 120px;
+            min-height: 120px;
             flex-direction: column;
-            padding: 1rem;
+            box-sizing: border-box;
+            padding: 0.68rem 0.75rem;
             border: 1px solid var(--border);
             border-radius: var(--radius-sm);
             background: var(--bg-primary);
@@ -3662,10 +3691,10 @@ class WebsiteGenerator:
 
         .upcoming-local-band .local-measure-card:hover,
         .upcoming-local-band .local-measure-card:focus-visible {
-            border-color: rgba(201, 162, 60, 0.75);
-            box-shadow: var(--shadow-md);
+            border-color: #2f6f68;
+            box-shadow: 0 0 0 3px rgba(47, 111, 104, 0.18);
             outline: none;
-            transform: translateY(-2px);
+            transform: none;
         }
 
         .upcoming-local-band .local-card-header {
@@ -3673,93 +3702,141 @@ class WebsiteGenerator:
             align-items: center;
             justify-content: space-between;
             gap: 0.5rem;
-            margin-bottom: 0.85rem;
+            margin-bottom: 0.36rem;
         }
 
         .upcoming-local-band .local-measure-id {
             color: var(--primary-dark);
-            font-size: 0.82rem;
+            font-size: 0.7rem;
             font-weight: 750;
-            letter-spacing: 0.03em;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
         }
 
         .upcoming-local-band .local-card-jurisdiction {
-            margin: 0 0 0.65rem;
+            display: -webkit-box;
+            overflow: hidden;
+            min-height: 2.35em;
+            margin: 0;
+            -webkit-box-orient: vertical;
+            -webkit-line-clamp: 2;
             color: var(--text-primary);
-            font-size: 1.02rem;
-            line-height: 1.35;
+            font-size: 0.86rem;
+            font-weight: 700;
+            line-height: 1.18;
         }
 
         .upcoming-local-band .local-card-type {
             align-self: flex-start;
-            margin-bottom: 1rem;
-            padding: 0.28rem 0.55rem;
+            overflow: hidden;
+            max-width: 100%;
+            margin: auto 0 0;
+            padding: 0.18rem 0.46rem;
             border-radius: 999px;
             background: var(--bg-secondary);
             color: var(--text-secondary);
-            font-size: 0.78rem;
+            font-size: 0.68rem;
             font-weight: 600;
+            line-height: 1.2;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
 
         .upcoming-local-band .local-card-threshold {
-            margin-top: auto;
-            padding-top: 0.8rem;
-            border-top: 1px solid var(--border-light);
+            flex-shrink: 0;
+            margin: 0;
+            padding: 0.18rem 0.4rem;
+            border: 0;
+            border-radius: 999px;
+            font-size: 0.67rem;
+            font-weight: 750;
+            line-height: 1.2;
+            white-space: nowrap;
+        }
+
+        .upcoming-local-band .local-threshold-majority {
+            background: rgba(47, 111, 104, 0.12);
+            color: #245b56;
+        }
+
+        .upcoming-local-band .local-threshold-55 {
+            background: rgba(84, 85, 141, 0.13);
+            color: #4d4e83;
+        }
+
+        .upcoming-local-band .local-threshold-supermajority {
+            background: rgba(122, 56, 88, 0.12);
+            color: #743653;
+        }
+
+        .upcoming-local-band .local-threshold-unknown {
+            background: var(--bg-secondary);
             color: var(--text-secondary);
-            font-size: 0.82rem;
         }
 
-        .upcoming-local-band .local-card-threshold strong {
-            display: block;
-            margin-top: 0.1rem;
-            color: var(--text-primary);
-            font-size: 1rem;
-        }
-
-        .upcoming-local-band .local-card-actions {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 0.75rem;
-            margin-top: 0.8rem;
+        .upcoming-local-band .local-card-context {
+            overflow: hidden;
+            margin: 0.28rem 0 0;
             color: var(--text-tertiary);
-            font-size: 0.75rem;
+            font-size: 0.68rem;
+            line-height: 1.2;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
 
-        .upcoming-local-band .local-card-actions a,
+        .upcoming-local-band .local-carousel-btn {
+            display: flex;
+            flex-shrink: 0;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            padding: 0;
+            border: 1px solid var(--border);
+            border-radius: 50%;
+            background: var(--bg-primary);
+            box-shadow: var(--shadow-sm);
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .upcoming-local-band .local-carousel-btn:hover:not(:disabled),
+        .upcoming-local-band .local-carousel-btn:focus-visible {
+            border-color: #2f6f68;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(47, 111, 104, 0.18);
+            color: #245b56;
+        }
+
+        .upcoming-local-band .local-carousel-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        .upcoming-local-band .local-carousel-status {
+            min-height: 1.2rem;
+            margin-top: 0.55rem;
+            color: var(--text-tertiary);
+            font-size: 0.74rem;
+            text-align: center;
+        }
+
+        .upcoming-local-band .local-rules-note {
+            margin: 0.7rem 0 0;
+            color: var(--text-tertiary);
+            font-size: 0.78rem;
+            line-height: 1.45;
+        }
+
         .upcoming-local-band .local-rules-link {
             color: var(--primary-dark);
             font-weight: 650;
             text-decoration: none;
         }
 
-        .upcoming-local-band .local-card-actions a:hover,
         .upcoming-local-band .local-rules-link:hover {
             text-decoration: underline;
-        }
-
-        .upcoming-local-band .local-rules-note {
-            margin: 1rem 0 0;
-            color: var(--text-tertiary);
-            font-size: 0.78rem;
-            line-height: 1.45;
-        }
-
-        .upcoming-local-band .local-show-all {
-            display: block;
-            margin: 1rem auto 0;
-            padding: 0.55rem 0.9rem;
-            border: 1px solid var(--border);
-            border-radius: var(--radius-sm);
-            background: var(--bg-primary);
-            color: var(--primary-dark);
-            cursor: pointer;
-            font-weight: 650;
-        }
-
-        .upcoming-local-band .local-show-all:hover {
-            border-color: var(--primary);
-            background: var(--bg-secondary);
         }
 
         /* Responsive carousel */
@@ -3770,8 +3847,10 @@ class WebsiteGenerator:
                 max-width: calc(50% - 10px);
             }
 
-            .upcoming-local-band .local-measures-grid {
-                grid-template-columns: repeat(2, minmax(0, 1fr));
+            .upcoming-local-band .local-measure-card {
+                flex-basis: calc(50% - 0.45rem);
+                min-width: calc(50% - 0.45rem);
+                max-width: calc(50% - 0.45rem);
             }
         }
 
@@ -3791,13 +3870,41 @@ class WebsiteGenerator:
                 gap: 0.5rem;
             }
 
-            .upcoming-local-band .local-measures-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .upcoming-local-band .local-card-actions {
+            .upcoming-local-band .upcoming-local-band-header {
                 align-items: flex-start;
                 flex-direction: column;
+            }
+
+            .upcoming-local-band .local-band-controls {
+                width: 100%;
+                justify-content: flex-start;
+                flex-wrap: wrap;
+            }
+
+            .upcoming-local-band .local-county-select {
+                flex: 1;
+                min-width: 0;
+            }
+
+            .upcoming-local-band .local-band-controls .upcoming-band-count {
+                flex-basis: 100%;
+                text-align: right;
+            }
+
+            .upcoming-local-band .local-carousel {
+                gap: 0.45rem;
+                padding: 0;
+            }
+
+            .upcoming-local-band .local-carousel-btn {
+                width: 34px;
+                height: 34px;
+            }
+
+            .upcoming-local-band .local-measure-card {
+                flex-basis: 100%;
+                min-width: 100%;
+                max-width: 100%;
             }
         }
 
@@ -4976,22 +5083,24 @@ class WebsiteGenerator:
             padding: 0.5rem 0.9rem;
             border-radius: 8px;
             background: var(--primary);
-            color: #111;
+            color: var(--text-primary);
             font-size: 0.875rem;
             font-weight: 600;
             text-decoration: none;
-            border: 1px solid transparent;
-            transition: filter 0.15s ease;
+            border: 1px solid var(--primary-dark);
+            box-shadow: 0 1px 2px rgba(26, 23, 20, 0.12);
+            transition: background-color 0.15s ease, box-shadow 0.15s ease;
         }
 
         .about-section a.about-use-cta:hover {
-            filter: brightness(1.07);
+            background: var(--primary-hover);
+            box-shadow: 0 2px 5px rgba(26, 23, 20, 0.18);
             text-decoration: none;
         }
 
         .about-section a.about-use-cta:focus-visible {
-            outline: 2px solid var(--primary);
-            outline-offset: 2px;
+            outline: 3px solid var(--text-primary);
+            outline-offset: 3px;
         }
 
         @media (prefers-reduced-motion: reduce) {
@@ -10909,9 +11018,13 @@ class WebsiteGenerator:
         // Hero Carousel state
         let heroCarouselIndex = 0;
         let heroCarouselItemsPerView = 3;
-        const localCountyOpen = new Set();
-        const localCountyExpanded = new Set();
-        const localCountyPreviewLimit = 12;
+        const LOCAL_COUNTY_ROADMAP = [
+            'San Bernardino', 'Los Angeles', 'Orange', 'San Diego', 'Riverside'
+        ];
+        let selectedLocalCounty = '';
+        let localCarouselIndex = 0;
+        let localCarouselItemsPerView = 3;
+        let localCarouselMeasures = [];
 
         // Display hero measures (2026 upcoming measures) as carousel
         function displayHero() {{
@@ -10951,6 +11064,8 @@ class WebsiteGenerator:
         }}
 
         function getLocalMeasureType(measure) {{
+            const compact = normalizeText(measure.local_measure_type_short);
+            if (compact) return compact;
             const prepared = normalizeText(measure.local_measure_type);
             if (prepared) return prepared;
             const candidates = [measure.display_category_type, measure.category_type, measure.measure_type];
@@ -10960,22 +11075,18 @@ class WebsiteGenerator:
             return typed || normalizeText(measure.description) || 'Local ballot measure';
         }}
 
-        function getOfficialSourceLabel(measure) {{
-            if (measure.source_display) return measure.source_display;
-            if (measure.data_source === 'SB_County_Registrar') {{
-                return 'San Bernardino County Registrar of Voters';
-            }}
-            if ((measure.data_source || '').endsWith('_County_Registrar') && measure.county) {{
-                return `${{measure.county}} County Registrar`;
-            }}
-            return (measure.data_source || measure.source || 'Official county election office').replace(/_/g, ' ');
-        }}
-
-        function formatOfficialThreshold(threshold) {{
+        function getLocalThresholdDisplay(threshold) {{
             const value = normalizeText(threshold);
-            if (value === '50%') return 'Simple majority (50% + 1)';
-            if (value === '66.67%') return 'Two-thirds (66.67%)';
-            return value || 'Not listed';
+            if (value === '50%') {{
+                return {{ label: 'Majority (50% + 1)', className: 'local-threshold-majority' }};
+            }}
+            if (value === '55%') {{
+                return {{ label: '55%', className: 'local-threshold-55' }};
+            }}
+            if (value === '66.67%') {{
+                return {{ label: 'Two-thirds (66.67%)', className: 'local-threshold-supermajority' }};
+            }}
+            return {{ label: value || 'Not listed', className: 'local-threshold-unknown' }};
         }}
 
         function createLocalMeasureCard(measure) {{
@@ -10983,30 +11094,24 @@ class WebsiteGenerator:
             const designation = getDisplayMeasureId(measure) || 'Local measure';
             const jurisdiction = measure.jurisdiction || getCleanTitle(measure, designation);
             const measureType = getLocalMeasureType(measure);
-            const sourceLabel = getOfficialSourceLabel(measure);
-            const officialUrl = sanitizeUrl(measure.source_url);
-            const officialLink = officialUrl !== '#'
-                ? `<a href="${{escapeAttr(officialUrl)}}" target="_blank" rel="noopener" onclick="event.stopPropagation()">Official county page &nearr;</a>`
+            const threshold = getLocalThresholdDisplay(measure.vote_threshold);
+            const context = measure.local_historical_context;
+            const contextHtml = context
+                ? `<p class="local-card-context">${{context.total.toLocaleString()}} in ${{escapeHtml(context.county_label)}} since ${{context.since}} &middot; ${{context.pass_rate}}% passed</p>`
                 : '';
 
             return `
                 <article class="local-measure-card" role="button" tabindex="0" data-midx="${{mIdx}}"
+                         aria-label="${{escapeAttr(`${{designation}}: ${{jurisdiction}}`)}}"
                          onclick="viewMeasure(allMeasures[this.dataset.midx])"
                          onkeydown="handleLocalCardKey(event, this)">
                     <div class="local-card-header">
                         <span class="local-measure-id">${{escapeHtml(designation)}}</span>
-                        <span class="badge badge-pending">Upcoming</span>
+                        <span class="local-card-threshold ${{threshold.className}}">${{escapeHtml(threshold.label)}}</span>
                     </div>
                     <h4 class="local-card-jurisdiction">${{escapeHtml(jurisdiction)}}</h4>
                     <span class="local-card-type">${{escapeHtml(measureType)}}</span>
-                    <div class="local-card-threshold">
-                        Official vote threshold
-                        <strong>${{escapeHtml(formatOfficialThreshold(measure.vote_threshold))}}</strong>
-                    </div>
-                    <div class="local-card-actions">
-                        <span>${{escapeHtml(sourceLabel)}}</span>
-                        ${{officialLink}}
-                    </div>
+                    ${{contextHtml}}
                 </article>
             `;
         }}
@@ -11017,19 +11122,33 @@ class WebsiteGenerator:
             viewMeasure(allMeasures[card.dataset.midx]);
         }}
 
-        function rememberLocalCountyState(details) {{
-            const county = details.dataset.county;
-            if (details.open) localCountyOpen.add(county);
-            else localCountyOpen.delete(county);
+        function renderLocalCountyOptions(groups) {{
+            const select = document.getElementById('localCountySelect');
+            if (!select) return;
+            const captured = groups.map(group => group.county);
+            if (!captured.includes(selectedLocalCounty)) {{
+                selectedLocalCounty = captured[0] || '';
+            }}
+
+            const enabledOptions = captured.map(county =>
+                `<option value="${{escapeAttr(county)}}">${{escapeHtml(county)}} County</option>`
+            );
+            const disabledOptions = LOCAL_COUNTY_ROADMAP
+                .filter(county => !captured.includes(county))
+                .map(county =>
+                    `<option value="" disabled>${{escapeHtml(county)}} County — not yet captured</option>`
+                );
+            if (captured.length === 0) {{
+                enabledOptions.push('<option value="" selected>No counties captured</option>');
+            }}
+            select.innerHTML = enabledOptions.concat(disabledOptions).join('');
+            select.disabled = captured.length === 0;
+            if (selectedLocalCounty) select.value = selectedLocalCounty;
         }}
 
-        function toggleLocalCountyExpansion(event) {{
-            event.preventDefault();
-            event.stopPropagation();
-            const county = event.currentTarget.dataset.county;
-            localCountyOpen.add(county);
-            if (localCountyExpanded.has(county)) localCountyExpanded.delete(county);
-            else localCountyExpanded.add(county);
+        function selectLocalCounty(county) {{
+            selectedLocalCounty = county;
+            localCarouselIndex = 0;
             renderLocalMeasures();
         }}
 
@@ -11040,15 +11159,60 @@ class WebsiteGenerator:
             setTimeout(() => jumpToInsightsPanel('insightsRulesPanel'), 0);
         }}
 
+        function getResponsiveCarouselItemsPerView() {{
+            if (window.innerWidth <= 640) return 1;
+            if (window.innerWidth <= 1024) return 2;
+            return 3;
+        }}
+
+        function updateLocalCarouselItemsPerView() {{
+            localCarouselItemsPerView = getResponsiveCarouselItemsPerView();
+        }}
+
+        function getLocalCarouselMaxIndex() {{
+            return Math.max(0, localCarouselMeasures.length - localCarouselItemsPerView);
+        }}
+
+        function moveLocalCarousel(direction) {{
+            const step = localCarouselItemsPerView;
+            localCarouselIndex = Math.min(
+                getLocalCarouselMaxIndex(),
+                Math.max(0, localCarouselIndex + (direction * step))
+            );
+            updateLocalCarouselPosition();
+        }}
+
+        function updateLocalCarouselPosition() {{
+            const track = document.getElementById('localCarouselTrack');
+            if (!track) return;
+            setCarouselTrackPosition(track, '.local-measure-card', localCarouselIndex, 14);
+
+            const previous = document.getElementById('localCarouselPrevious');
+            const next = document.getElementById('localCarouselNext');
+            if (previous) previous.disabled = localCarouselIndex === 0;
+            if (next) next.disabled = localCarouselIndex >= getLocalCarouselMaxIndex();
+
+            const status = document.getElementById('localCarouselStatus');
+            if (status) {{
+                const start = localCarouselMeasures.length ? localCarouselIndex + 1 : 0;
+                const end = Math.min(
+                    localCarouselMeasures.length,
+                    localCarouselIndex + localCarouselItemsPerView
+                );
+                status.textContent = `${{start}}–${{end}} of ${{localCarouselMeasures.length}}`;
+            }}
+        }}
+
         function renderLocalMeasures() {{
             const target = document.getElementById('localMeasuresContent');
             const countTarget = document.getElementById('localUpcomingCount');
             const scopeTarget = document.getElementById('localMeasuresScope');
             if (!target || !countTarget || !scopeTarget) return;
 
-            countTarget.textContent = `${{localUpcomingMeasures.length.toLocaleString()}} measure${{localUpcomingMeasures.length === 1 ? '' : 's'}}`;
             const groups = groupLocalUpcomingMeasures();
+            renderLocalCountyOptions(groups);
             if (groups.length === 0) {{
+                countTarget.textContent = '0 measures';
                 scopeTarget.textContent = 'No local registrar records have been loaded for this election.';
                 target.innerHTML = `
                     <div class="local-empty-state">
@@ -11063,49 +11227,54 @@ class WebsiteGenerator:
             scopeTarget.innerHTML = `<strong>Currently captured:</strong> ${{escapeHtml(countyLabels.join(', '))}}.
                 These are county-scoped official records, not a complete address-specific ballot.`;
 
-            target.innerHTML = groups.map(group => {{
-                const expanded = localCountyExpanded.has(group.county);
-                const shown = expanded ? group.measures : group.measures.slice(0, localCountyPreviewLimit);
-                const shouldOpen = groups.length === 1 || localCountyOpen.has(group.county);
-                const toggle = group.measures.length > localCountyPreviewLimit
-                    ? `<button class="local-show-all" data-county="${{escapeAttr(group.county)}}" onclick="toggleLocalCountyExpansion(event)">
-                        ${{expanded ? `Show first ${{localCountyPreviewLimit}}` : `Show all ${{group.measures.length}} measures`}}
-                       </button>`
-                    : '';
-                return `
-                    <details class="local-county-group" data-county="${{escapeAttr(group.county)}}"
-                             ontoggle="rememberLocalCountyState(this)" ${{shouldOpen ? 'open' : ''}}>
-                        <summary class="local-county-summary">
-                            <span class="local-county-name">${{escapeHtml(group.county)}} County
-                                <small>${{group.measures.length.toLocaleString()}} measure${{group.measures.length === 1 ? '' : 's'}}</small>
-                            </span>
-                        </summary>
-                        <div class="local-county-body">
-                            <div class="local-measures-grid">
-                                ${{shown.map(createLocalMeasureCard).join('')}}
-                            </div>
-                            ${{toggle}}
+            const selectedGroup = groups.find(group => group.county === selectedLocalCounty) || groups[0];
+            localCarouselMeasures = selectedGroup.measures;
+            countTarget.textContent = `${{localCarouselMeasures.length.toLocaleString()}} measure${{localCarouselMeasures.length === 1 ? '' : 's'}}`;
+            updateLocalCarouselItemsPerView();
+            localCarouselIndex = Math.min(localCarouselIndex, getLocalCarouselMaxIndex());
+
+            target.innerHTML = `
+                <div class="local-carousel" aria-label="${{escapeAttr(selectedGroup.county)}} County measures">
+                    <button class="local-carousel-btn" id="localCarouselPrevious" type="button"
+                            onclick="moveLocalCarousel(-1)" aria-label="Previous local measures">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                            <polyline points="15 18 9 12 15 6"></polyline>
+                        </svg>
+                    </button>
+                    <div class="local-carousel-viewport">
+                        <div class="local-carousel-track" id="localCarouselTrack">
+                            ${{localCarouselMeasures.map(createLocalMeasureCard).join('')}}
                         </div>
-                    </details>
-                `;
-            }}).join('') + `
+                    </div>
+                    <button class="local-carousel-btn" id="localCarouselNext" type="button"
+                            onclick="moveLocalCarousel(1)" aria-label="Next local measures">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                            <polyline points="9 18 15 12 9 6"></polyline>
+                        </svg>
+                    </button>
+                </div>
+                <div class="local-carousel-status" id="localCarouselStatus" aria-live="polite"></div>
                 <p class="local-rules-note">
                     Vote thresholds in these cards come from the named county election office.
                     The historical <a class="local-rules-link" href="#insightsRulesPanel" onclick="openRulesFromLocalMeasures(event)">Rules insight</a>
                     also includes derived threshold fields with known cases still under review.
                 </p>
             `;
+            requestAnimationFrame(updateLocalCarouselPosition);
         }}
 
         function updateHeroCarouselItemsPerView() {{
-            const width = window.innerWidth;
-            if (width <= 640) {{
-                heroCarouselItemsPerView = 1;
-            }} else if (width <= 1024) {{
-                heroCarouselItemsPerView = 2;
-            }} else {{
-                heroCarouselItemsPerView = 3;
-            }}
+            heroCarouselItemsPerView = getResponsiveCarouselItemsPerView();
+        }}
+
+        function setCarouselTrackPosition(track, cardSelector, index, fallbackGap) {{
+            const card = track.querySelector(cardSelector);
+            if (!card) return false;
+            const cardWidth = card.offsetWidth;
+            const trackStyle = window.getComputedStyle(track);
+            const gap = parseFloat(trackStyle.gap) || fallbackGap;
+            track.style.transform = `translateX(-${{index * (cardWidth + gap)}}px)`;
+            return true;
         }}
 
         function getHeroCarouselMaxIndex() {{
@@ -11137,18 +11306,7 @@ class WebsiteGenerator:
         function updateHeroCarouselPosition() {{
             const track = document.getElementById('heroGrid');
             if (!track) return;
-
-            const cards = track.querySelectorAll('.measure-card');
-            if (cards.length === 0) return;
-
-            // Get card width and gap
-            const card = cards[0];
-            const cardWidth = card.offsetWidth;
-            const trackStyle = window.getComputedStyle(track);
-            const gap = parseInt(trackStyle.gap) || 20;
-
-            const offset = heroCarouselIndex * (cardWidth + gap);
-            track.style.transform = `translateX(-${{offset}}px)`;
+            if (!setCarouselTrackPosition(track, '.measure-card', heroCarouselIndex, 20)) return;
 
             // Update button states
             const prevBtn = document.querySelector('.carousel-prev');
@@ -11186,6 +11344,9 @@ class WebsiteGenerator:
                 heroCarouselIndex = Math.min(heroCarouselIndex, getHeroCarouselMaxIndex());
                 updateHeroCarouselPosition();
                 updateHeroCarouselDots();
+                updateLocalCarouselItemsPerView();
+                localCarouselIndex = Math.min(localCarouselIndex, getLocalCarouselMaxIndex());
+                updateLocalCarouselPosition();
             }}, 100);
         }});
 
