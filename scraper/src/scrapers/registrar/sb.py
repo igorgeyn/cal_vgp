@@ -15,10 +15,11 @@ Two layers, per docs/plans/registrar_phase1_sb.md:
   with SB audit extras.
 
 Page states the extractor recognizes (fixture facts):
-- PUBLISHED: every cell links a PDF; up to EIGHT roles per measure —
-  resolution (Jurisdiction cell) and full text (Description cell)
-  by column, then analysis + tax rate statement (Analysis cell) and
-  the four argument variants (Arguments cell) by link label.
+- PUBLISHED: every cell links a PDF; up to NINE roles per measure —
+  notice (Letter cell), resolution (Jurisdiction cell) and full text
+  (Description cell) by column, then analysis + tax rate statement
+  (Analysis cell) and the four argument variants (Arguments cell)
+  by link label.
 - ANNOUNCED: rows exist (letters may be "TBD") but carry no links;
   a valid zero-expected-documents observation, not a failure.
 - Mixed rows are handled per cell; expected documents are exactly
@@ -98,8 +99,17 @@ LABEL_ROLE_COLUMNS = {
 }
 
 # Single-link cells: role comes from the COLUMN, because their link
-# labels are variable text (jurisdiction name / measure title).
+# labels are variable text (jurisdiction name / measure title) or —
+# in the Letter cell — just the measure letter itself, which carries
+# no role information at all.
+#
+# The Letter cell links the official Notice of Election. Discovered
+# 2026-08-24 when the cron failed loudly on "unexpected link in
+# 'letter' cell": the county began attaching Notice_*.pdf to the
+# letter on 7 of 20 rows. Label-keying cannot work here (the label
+# is "Y", "Z", ...), so the role comes from the column.
 COLUMN_ROLES = {
+    "letter": "notice",
     "jurisdiction": "resolution",
     "measure description": "text",
 }
@@ -281,9 +291,11 @@ def extract_measures_page(body: bytes, page_url: str) -> MeasuresPage:
         slug = slugs[idx - 1]
         stem = f"measure_{slug}_r{idx:03d}" if slug in colliding else f"measure_{slug}"
 
-        # Letter / Percentage cells must not carry links at all —
+        # Cells with no defined role must not carry links at all —
         # a link we have no role for would violate complete capture.
-        for plain_col in ("letter", "percentage to pass"):
+        # (The Letter cell WAS in this set until 2026-08-24; it now
+        # carries the Notice of Election, see COLUMN_ROLES.)
+        for plain_col in ("percentage to pass",):
             if _owned_links(cells[col[plain_col]], table):
                 raise SbSchemaError(
                     f"unexpected link in {plain_col!r} cell (row {idx})"

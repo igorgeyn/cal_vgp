@@ -14,6 +14,8 @@ capture time. Design: `docs/plans/registrar_phase1_sb.md`.
 | `measures_2026_0324.html` | March 2026 measures page — **published state** (2 rows, all links live) |
 | `measures_2026_1103.html` | Nov 2026 measures page — **announced state** (2 rows, zero links) |
 | `measures_2026_1103_mixed.html` | Same page 18 days later — **mixed state** (8 TBD rows, 16 links across partial per-row publication; pinned from the first production run's stored bytes, Codex round-6) |
+| `measures_2026_1103_lettered.html` | Same page 2026-08-13 — letters assigned, Tax Rate Statements appear (the Aug 10 drift) |
+| `measures_2026_1103_notice.html` | Same page 2026-08-24 — **Notice of Election** linked from the Letter cell (the Aug 24 drift); 20 rows / 88 docs; arguments now being filed |
 | `pdf_res_v.pdf` | Measure V resolution (Jurisdiction-cell link, `RES_*`) |
 | `pdf_ord_v.pdf` | Measure V ordinance = full measure text (Description-cell link, `ORD_*`) |
 | `pdf_ia_v.pdf` | Measure V impartial analysis (`IA_*`) |
@@ -77,3 +79,10 @@ capture time. Design: `docs/plans/registrar_phase1_sb.md`.
    Discovery must scan the whole page and deduplicate canonical
    same-origin URLs by election date — restricting discovery to the
    content table would miss the candidate.
+
+10. **County filing anomaly (2026-08-24 fixture):** SB City USD's
+   *Impartial* link points at `AIF_SBCUSD.pdf` — an argument-in-favor
+   filename. Roles come from the link LABEL, which is authoritative, so
+   this is recorded as `analysis` with its `source_url` preserved. Keying
+   roles on URL prefixes would have misfiled it. 15 of 16 analysis docs
+   are `IA_`; this one is not.

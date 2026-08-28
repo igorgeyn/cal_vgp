@@ -4,7 +4,7 @@ lifecycle (clock-controlled), and fixture-session integration."""
 from __future__ import annotations
 
 import json
-from collections import Counter
+from collections import Counter, defaultdict
 from datetime import date, datetime, timezone
 from pathlib import Path
 
@@ -374,12 +374,72 @@ def test_duplicate_argument_label_is_schema_failure():
         extract_measures_page(table_html(HEADERS_OK, row), URL_1103)
 
 
-def test_link_in_letter_cell_is_schema_failure():
+def test_letter_cell_link_is_the_notice_of_election():
+    """2026-08-24 drift: the Letter cell began carrying the official
+    Notice of Election. The label is just the letter, so the role
+    comes from the column."""
     row = ROW_PUBLISHED.replace(
-        "<td>V</td>", '<td><a href="https://x.gov/v.pdf">V</a></td>'
+        "<td>V</td>",
+        '<td><a href="https://uploads.rov.sbcounty.gov/Notice_X.pdf">V</a></td>',
+    )
+    page = extract_measures_page(table_html(HEADERS_OK, row), URL_1103)
+    notices = [d for d in page.expected_documents if d.role == "notice"]
+    assert len(notices) == 1
+    assert notices[0].filename == "measure_v_notice.pdf"
+    assert notices[0].url.endswith("/Notice_X.pdf")
+
+
+def test_two_links_in_letter_cell_is_schema_failure():
+    """Cardinality still holds for the Letter cell."""
+    row = ROW_PUBLISHED.replace(
+        "<td>V</td>",
+        '<td><a href="https://uploads.rov.sbcounty.gov/n1.pdf">V</a>'
+        '<a href="https://uploads.rov.sbcounty.gov/n2.pdf">V</a></td>',
+    )
+    with pytest.raises(SbSchemaError, match="never silently drop"):
+        extract_measures_page(table_html(HEADERS_OK, row), URL_1103)
+
+
+def test_link_in_percentage_cell_is_schema_failure():
+    """The Percentage cell still has no defined role for links."""
+    row = ROW_PUBLISHED.replace(
+        "<td>50% + 1</td>", '<td><a href="https://x.gov/p.pdf">50% + 1</a></td>'
     )
     with pytest.raises(SbSchemaError, match="unexpected link"):
         extract_measures_page(table_html(HEADERS_OK, row), URL_1103)
+
+
+def test_extract_notice_era_fixture_contract():
+    """The 2026-08-24 live page: nine roles in play, arguments now
+    being filed as deadlines pass."""
+    page = extract_measures_page(
+        fixture_bytes("measures_2026_1103_notice.html"), URL_1103
+    )
+    assert len(page.rows) == 20
+    roles = Counter(d.role for d in page.expected_documents)
+    assert roles["notice"] == 7
+    assert roles["resolution"] == 20
+    assert roles["text"] == 19
+    assert roles["analysis"] == 16
+    assert roles["tax_rate_statement"] == 7
+    assert roles["argument_for"] == 15
+    assert roles["argument_against"] == 4
+    assert sum(roles.values()) == 88
+    # Roles come from the LINK LABEL, which is authoritative — not
+    # from the county's URL naming, which is merely conventional.
+    # Proof that this matters: SB City USD's "Impartial" link points
+    # at AIF_SBCUSD.pdf (an argument-in-favor filename), so 15 of the
+    # 16 analysis documents are IA_ and one is AIF_. Keying roles on
+    # URL prefixes would have misfiled it. We record what the county
+    # published and keep source_url so the anomaly stays auditable.
+    prefixes = defaultdict(Counter)
+    for d in page.expected_documents:
+        prefixes[d.role][d.url.rsplit("/", 1)[-1].split("_")[0]] += 1
+    assert dict(prefixes["analysis"]) == {"IA": 15, "AIF": 1}
+    assert dict(prefixes["notice"]) == {"Notice": 7}
+    assert dict(prefixes["tax_rate_statement"]) == {"TR": 7}
+    assert dict(prefixes["resolution"]) == {"RES": 20}
+    assert dict(prefixes["text"]) == {"FT": 19}
 
 
 @pytest.mark.parametrize(
