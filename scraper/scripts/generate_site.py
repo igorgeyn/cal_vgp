@@ -165,7 +165,11 @@ def main():
         db.close()
         
         # Initialize website generator  
-        from src.website.generator import WebsiteGenerator
+        from src.website.generator import (
+            WebsiteGenerator,
+            is_county_registrar_measure,
+            prepare_upcoming_display_fields,
+        )
         generator = WebsiteGenerator(database=Database(db_path), output_path=output_path)
         
         # Prepare data for website
@@ -275,6 +279,7 @@ def main():
                     'depth': rd.get('research_depth', ''),
                 }
 
+            m_dict = prepare_upcoming_display_fields(m_dict)
             measures_for_website.append(m_dict)
 
         # Compute historical context for pending measures using semantic similarity
@@ -321,6 +326,11 @@ def main():
                     year = int(m.get('year', 0))
                     is_pending = year >= 2025 or (m.get('passed') is None and m.get('percent_yes') is None)
                     if not is_pending:
+                        continue
+                    # Registrar rows currently carry only generic labels such as
+                    # "Bond Measure". Semantic matches against those labels are
+                    # visibly misleading; wait for official text/document data.
+                    if is_county_registrar_measure(m):
                         continue
 
                     # Build text for embedding

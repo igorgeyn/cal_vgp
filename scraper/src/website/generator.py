@@ -18,6 +18,59 @@ from ..utils.category_type_mapping import get_display_category_type
 
 logger = logging.getLogger(__name__)
 
+UPCOMING_ELECTION_YEAR = 2026
+
+
+def get_upcoming_scope(year, county: Optional[str]) -> Optional[str]:
+    """Classify current-cycle measures for the split upcoming section."""
+    try:
+        if int(year) != UPCOMING_ELECTION_YEAR:
+            return None
+    except (TypeError, ValueError):
+        return None
+    return "statewide" if not county or county.strip().lower() == "statewide" else "local"
+
+
+def get_official_source_label(data_source: Optional[str], county: Optional[str]) -> str:
+    """Return a public-facing label for registrar-sourced local measures."""
+    source = (data_source or "").strip()
+    county_name = (county or "").strip()
+    if source == "SB_County_Registrar":
+        return "San Bernardino County Registrar of Voters"
+    if source.endswith("_County_Registrar") and county_name:
+        return f"{county_name} County Registrar"
+    return source.replace("_", " ") if source else "Official county election office"
+
+
+def is_county_registrar_measure(data: Dict) -> bool:
+    """Identify official county records that lack text for semantic matching."""
+    source = str(data.get("data_source") or data.get("source") or "")
+    return source.endswith("_County_Registrar")
+
+
+def get_local_measure_type(data: Dict) -> str:
+    """Choose an informative local type without inferring a policy topic."""
+    for field in ("display_category_type", "category_type", "measure_type"):
+        value = str(data.get(field) or "").strip()
+        if value and value.lower() not in {"other", "measure", "unknown"}:
+            return value
+    return str(data.get("description") or "Local ballot measure").strip()
+
+
+def prepare_upcoming_display_fields(data: Dict) -> Dict:
+    """Attach deterministic fields consumed by the upcoming-measures UI."""
+    scope = get_upcoming_scope(data.get("year"), data.get("county"))
+    if not scope:
+        return data
+    data["upcoming_scope"] = scope
+    if scope == "local":
+        data["upcoming_county"] = data.get("county") or "County not specified"
+        data["local_measure_type"] = get_local_measure_type(data)
+        data["source_display"] = get_official_source_label(
+            data.get("data_source") or data.get("source"), data.get("county")
+        )
+    return data
+
 
 class WebsiteGenerator:
     """Generates static website from ballot measures data"""
@@ -148,6 +201,7 @@ class WebsiteGenerator:
 
             # Generate concise title if needed
             data = self.title_generator.process_measure(data)
+            data = prepare_upcoming_display_fields(data)
 
             measures_data.append(data)
 
@@ -1219,6 +1273,13 @@ class WebsiteGenerator:
                         </span>
                     </p>
                 </div>
+                <div class="upcoming-statewide-heading">
+                    <div>
+                        <span class="upcoming-band-eyebrow">California statewide</span>
+                        <h3>Statewide measures</h3>
+                    </div>
+                    <span class="upcoming-band-count" id="statewideUpcomingCount"></span>
+                </div>
                 <div class="hero-carousel">
                     <button class="carousel-btn carousel-prev" onclick="heroCarouselPrev()" aria-label="Previous">
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1239,6 +1300,19 @@ class WebsiteGenerator:
                 <div class="carousel-dots" id="heroCarouselDots">
                     <!-- Will be populated by JavaScript -->
                 </div>
+                <section class="upcoming-local-band" aria-labelledby="localMeasuresTitle">
+                    <div class="upcoming-local-band-header">
+                        <div>
+                            <span class="upcoming-band-eyebrow">Official county records</span>
+                            <h3 id="localMeasuresTitle">Local measures</h3>
+                        </div>
+                        <span class="upcoming-band-count" id="localUpcomingCount"></span>
+                    </div>
+                    <p class="upcoming-local-scope" id="localMeasuresScope"></p>
+                    <div id="localMeasuresContent">
+                        <!-- Will be populated by JavaScript -->
+                    </div>
+                </section>
             </div>
         </main>
     </div>
@@ -2657,12 +2731,240 @@ class WebsiteGenerator:
             border-radius: 4px;
         }
 
+        .hero-section .upcoming-statewide-heading,
+        .upcoming-local-band .upcoming-local-band-header {
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-between;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .hero-section .upcoming-statewide-heading h3,
+        .upcoming-local-band .upcoming-local-band-header h3 {
+            margin: 0.15rem 0 0;
+            color: var(--text-primary);
+            font-size: 1.2rem;
+        }
+
+        .hero-section .upcoming-band-eyebrow {
+            color: var(--text-tertiary);
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        .hero-section .upcoming-band-count {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            white-space: nowrap;
+        }
+
+        .upcoming-local-band {
+            margin-top: 2.25rem;
+            padding-top: 2rem;
+            border-top: 1px solid rgba(201, 162, 60, 0.28);
+        }
+
+        .upcoming-local-band .upcoming-local-scope {
+            margin: -0.35rem 0 1.25rem;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            line-height: 1.55;
+        }
+
+        .upcoming-local-band .local-empty-state {
+            padding: 1.25rem;
+            border: 1px dashed var(--border);
+            border-radius: var(--radius);
+            background: rgba(255, 255, 255, 0.45);
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .upcoming-local-band .local-county-group {
+            overflow: hidden;
+            margin-bottom: 0.75rem;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            background: var(--bg-primary);
+        }
+
+        .upcoming-local-band .local-county-summary {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            padding: 1rem 1.15rem;
+            cursor: pointer;
+            list-style: none;
+            font-weight: 650;
+            color: var(--text-primary);
+        }
+
+        .upcoming-local-band .local-county-summary::-webkit-details-marker {
+            display: none;
+        }
+
+        .upcoming-local-band .local-county-summary::after {
+            content: '+';
+            flex-shrink: 0;
+            color: var(--primary);
+            font-size: 1.25rem;
+            font-weight: 400;
+        }
+
+        .upcoming-local-band .local-county-group[open] .local-county-summary::after {
+            content: '−';
+        }
+
+        .upcoming-local-band .local-county-name {
+            display: flex;
+            align-items: baseline;
+            gap: 0.55rem;
+        }
+
+        .upcoming-local-band .local-county-name small {
+            color: var(--text-tertiary);
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+        .upcoming-local-band .local-county-body {
+            padding: 0 1.15rem 1.15rem;
+        }
+
+        .upcoming-local-band .local-measures-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 0.9rem;
+        }
+
+        .upcoming-local-band .local-measure-card {
+            display: flex;
+            min-height: 220px;
+            flex-direction: column;
+            padding: 1rem;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            background: var(--bg-primary);
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .upcoming-local-band .local-measure-card:hover,
+        .upcoming-local-band .local-measure-card:focus-visible {
+            border-color: rgba(201, 162, 60, 0.75);
+            box-shadow: var(--shadow-md);
+            outline: none;
+            transform: translateY(-2px);
+        }
+
+        .upcoming-local-band .local-card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.5rem;
+            margin-bottom: 0.85rem;
+        }
+
+        .upcoming-local-band .local-measure-id {
+            color: var(--primary-dark);
+            font-size: 0.82rem;
+            font-weight: 750;
+            letter-spacing: 0.03em;
+        }
+
+        .upcoming-local-band .local-card-jurisdiction {
+            margin: 0 0 0.65rem;
+            color: var(--text-primary);
+            font-size: 1.02rem;
+            line-height: 1.35;
+        }
+
+        .upcoming-local-band .local-card-type {
+            align-self: flex-start;
+            margin-bottom: 1rem;
+            padding: 0.28rem 0.55rem;
+            border-radius: 999px;
+            background: var(--bg-secondary);
+            color: var(--text-secondary);
+            font-size: 0.78rem;
+            font-weight: 600;
+        }
+
+        .upcoming-local-band .local-card-threshold {
+            margin-top: auto;
+            padding-top: 0.8rem;
+            border-top: 1px solid var(--border-light);
+            color: var(--text-secondary);
+            font-size: 0.82rem;
+        }
+
+        .upcoming-local-band .local-card-threshold strong {
+            display: block;
+            margin-top: 0.1rem;
+            color: var(--text-primary);
+            font-size: 1rem;
+        }
+
+        .upcoming-local-band .local-card-actions {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem;
+            margin-top: 0.8rem;
+            color: var(--text-tertiary);
+            font-size: 0.75rem;
+        }
+
+        .upcoming-local-band .local-card-actions a,
+        .upcoming-local-band .local-rules-link {
+            color: var(--primary-dark);
+            font-weight: 650;
+            text-decoration: none;
+        }
+
+        .upcoming-local-band .local-card-actions a:hover,
+        .upcoming-local-band .local-rules-link:hover {
+            text-decoration: underline;
+        }
+
+        .upcoming-local-band .local-rules-note {
+            margin: 1rem 0 0;
+            color: var(--text-tertiary);
+            font-size: 0.78rem;
+            line-height: 1.45;
+        }
+
+        .upcoming-local-band .local-show-all {
+            display: block;
+            margin: 1rem auto 0;
+            padding: 0.55rem 0.9rem;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            background: var(--bg-primary);
+            color: var(--primary-dark);
+            cursor: pointer;
+            font-weight: 650;
+        }
+
+        .upcoming-local-band .local-show-all:hover {
+            border-color: var(--primary);
+            background: var(--bg-secondary);
+        }
+
         /* Responsive carousel */
         @media (max-width: 1024px) {
             .carousel-track .measure-card {
                 flex: 0 0 calc(50% - 10px);
                 min-width: calc(50% - 10px);
                 max-width: calc(50% - 10px);
+            }
+
+            .upcoming-local-band .local-measures-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
             }
         }
 
@@ -2680,6 +2982,15 @@ class WebsiteGenerator:
 
             .hero-carousel {
                 gap: 0.5rem;
+            }
+
+            .upcoming-local-band .local-measures-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .upcoming-local-band .local-card-actions {
+                align-items: flex-start;
+                flex-direction: column;
             }
         }
 
@@ -8429,6 +8740,7 @@ class WebsiteGenerator:
         // Featured measures (selected once on load)
         let featuredMeasures = [];
         let heroMeasures = [];
+        let localUpcomingMeasures = [];
 
         // Initialize
         document.addEventListener('DOMContentLoaded', async () => {{
@@ -8571,17 +8883,27 @@ class WebsiteGenerator:
 
         // Select 2026 upcoming measures for hero section
         function selectHeroMeasures() {{
-            heroMeasures = allMeasures
-                .filter(m => {{
-                    const year = parseInt(m.year);
-                    // Include 2026 measures (pending/upcoming)
-                    return year === 2026;
-                }})
+            const upcoming = allMeasures.filter(m => parseInt(m.year) === 2026);
+            const isStatewide = m => m.upcoming_scope
+                ? m.upcoming_scope === 'statewide'
+                : !m.county || m.county === 'Statewide';
+
+            // Preserve the existing statewide carousel ordering and card renderer.
+            heroMeasures = upcoming
+                .filter(isStatewide)
+                .sort((a, b) => (a.measure_id || '').localeCompare(b.measure_id || ''));
+
+            localUpcomingMeasures = upcoming
+                .filter(m => !isStatewide(m))
                 .sort((a, b) => {{
-                    // Sort statewide first, then by measure ID
-                    if (a.county && !b.county) return 1;
-                    if (!a.county && b.county) return -1;
-                    return (a.measure_id || '').localeCompare(b.measure_id || '');
+                    const countySort = (a.upcoming_county || a.county || '')
+                        .localeCompare(b.upcoming_county || b.county || '');
+                    if (countySort) return countySort;
+                    const letterSort = (a.measure_letter || '').localeCompare(
+                        b.measure_letter || '', undefined, {{ numeric: true }}
+                    );
+                    if (letterSort) return letterSort;
+                    return (a.jurisdiction || '').localeCompare(b.jurisdiction || '');
                 }});
         }}
 
@@ -9738,7 +10060,7 @@ class WebsiteGenerator:
                 !currentFilters.county &&
                 pagination.currentPage === 1;
 
-            if (isHomeView && heroMeasures.length > 0) {{
+            if (isHomeView && (heroMeasures.length > 0 || localUpcomingMeasures.length > 0)) {{
                 heroSection.style.display = 'block';
                 displayHero();
             }} else {{
@@ -9752,13 +10074,21 @@ class WebsiteGenerator:
         // Hero Carousel state
         let heroCarouselIndex = 0;
         let heroCarouselItemsPerView = 3;
+        const localCountyOpen = new Set();
+        const localCountyExpanded = new Set();
+        const localCountyPreviewLimit = 12;
 
         // Display hero measures (2026 upcoming measures) as carousel
         function displayHero() {{
             const track = document.getElementById('heroGrid');
-            if (!track || heroMeasures.length === 0) return;
+            if (!track) return;
 
             track.innerHTML = heroMeasures.map(measure => createCard(measure, false, null, true)).join('');
+            const statewideCount = document.getElementById('statewideUpcomingCount');
+            if (statewideCount) {{
+                statewideCount.textContent = `${{heroMeasures.length.toLocaleString()}} measure${{heroMeasures.length === 1 ? '' : 's'}}`;
+            }}
+            renderLocalMeasures();
 
             // Update items per view based on screen size
             updateHeroCarouselItemsPerView();
@@ -9771,6 +10101,165 @@ class WebsiteGenerator:
                 updateHeroCarouselDots();
                 updateHeroCarouselPosition();
             }}, 50);
+        }}
+
+        function groupLocalUpcomingMeasures() {{
+            const grouped = new Map();
+            localUpcomingMeasures.forEach(measure => {{
+                const county = measure.upcoming_county || measure.county || 'County not specified';
+                if (!grouped.has(county)) grouped.set(county, []);
+                grouped.get(county).push(measure);
+            }});
+            return Array.from(grouped.entries())
+                .sort((a, b) => a[0].localeCompare(b[0]))
+                .map(([county, measures]) => ({{ county, measures }}));
+        }}
+
+        function getLocalMeasureType(measure) {{
+            const prepared = normalizeText(measure.local_measure_type);
+            if (prepared) return prepared;
+            const candidates = [measure.display_category_type, measure.category_type, measure.measure_type];
+            const typed = candidates.map(normalizeText).find(value =>
+                value && !['other', 'measure', 'unknown'].includes(value.toLowerCase())
+            );
+            return typed || normalizeText(measure.description) || 'Local ballot measure';
+        }}
+
+        function getOfficialSourceLabel(measure) {{
+            if (measure.source_display) return measure.source_display;
+            if (measure.data_source === 'SB_County_Registrar') {{
+                return 'San Bernardino County Registrar of Voters';
+            }}
+            if ((measure.data_source || '').endsWith('_County_Registrar') && measure.county) {{
+                return `${{measure.county}} County Registrar`;
+            }}
+            return (measure.data_source || measure.source || 'Official county election office').replace(/_/g, ' ');
+        }}
+
+        function formatOfficialThreshold(threshold) {{
+            const value = normalizeText(threshold);
+            if (value === '50%') return 'Simple majority (50% + 1)';
+            if (value === '66.67%') return 'Two-thirds (66.67%)';
+            return value || 'Not listed';
+        }}
+
+        function createLocalMeasureCard(measure) {{
+            const mIdx = allMeasures.indexOf(measure);
+            const designation = getDisplayMeasureId(measure) || 'Local measure';
+            const jurisdiction = measure.jurisdiction || getCleanTitle(measure, designation);
+            const measureType = getLocalMeasureType(measure);
+            const sourceLabel = getOfficialSourceLabel(measure);
+            const officialUrl = sanitizeUrl(measure.source_url);
+            const officialLink = officialUrl !== '#'
+                ? `<a href="${{escapeAttr(officialUrl)}}" target="_blank" rel="noopener" onclick="event.stopPropagation()">Official county page &nearr;</a>`
+                : '';
+
+            return `
+                <article class="local-measure-card" role="button" tabindex="0" data-midx="${{mIdx}}"
+                         onclick="viewMeasure(allMeasures[this.dataset.midx])"
+                         onkeydown="handleLocalCardKey(event, this)">
+                    <div class="local-card-header">
+                        <span class="local-measure-id">${{escapeHtml(designation)}}</span>
+                        <span class="badge badge-pending">Upcoming</span>
+                    </div>
+                    <h4 class="local-card-jurisdiction">${{escapeHtml(jurisdiction)}}</h4>
+                    <span class="local-card-type">${{escapeHtml(measureType)}}</span>
+                    <div class="local-card-threshold">
+                        Official vote threshold
+                        <strong>${{escapeHtml(formatOfficialThreshold(measure.vote_threshold))}}</strong>
+                    </div>
+                    <div class="local-card-actions">
+                        <span>${{escapeHtml(sourceLabel)}}</span>
+                        ${{officialLink}}
+                    </div>
+                </article>
+            `;
+        }}
+
+        function handleLocalCardKey(event, card) {{
+            if (event.target !== card || (event.key !== 'Enter' && event.key !== ' ')) return;
+            event.preventDefault();
+            viewMeasure(allMeasures[card.dataset.midx]);
+        }}
+
+        function rememberLocalCountyState(details) {{
+            const county = details.dataset.county;
+            if (details.open) localCountyOpen.add(county);
+            else localCountyOpen.delete(county);
+        }}
+
+        function toggleLocalCountyExpansion(event) {{
+            event.preventDefault();
+            event.stopPropagation();
+            const county = event.currentTarget.dataset.county;
+            localCountyOpen.add(county);
+            if (localCountyExpanded.has(county)) localCountyExpanded.delete(county);
+            else localCountyExpanded.add(county);
+            renderLocalMeasures();
+        }}
+
+        function openRulesFromLocalMeasures(event) {{
+            event.preventDefault();
+            event.stopPropagation();
+            setView('insights');
+            setTimeout(() => jumpToInsightsPanel('insightsRulesPanel'), 0);
+        }}
+
+        function renderLocalMeasures() {{
+            const target = document.getElementById('localMeasuresContent');
+            const countTarget = document.getElementById('localUpcomingCount');
+            const scopeTarget = document.getElementById('localMeasuresScope');
+            if (!target || !countTarget || !scopeTarget) return;
+
+            countTarget.textContent = `${{localUpcomingMeasures.length.toLocaleString()}} measure${{localUpcomingMeasures.length === 1 ? '' : 's'}}`;
+            const groups = groupLocalUpcomingMeasures();
+            if (groups.length === 0) {{
+                scopeTarget.textContent = 'No local registrar records have been loaded for this election.';
+                target.innerHTML = `
+                    <div class="local-empty-state">
+                        Local coverage will appear county by county as official records are captured.
+                        This section is not an address-specific or complete California ballot.
+                    </div>
+                `;
+                return;
+            }}
+
+            const countyLabels = groups.map(group => `${{group.county}} County`);
+            scopeTarget.innerHTML = `<strong>Currently captured:</strong> ${{escapeHtml(countyLabels.join(', '))}}.
+                These are county-scoped official records, not a complete address-specific ballot.`;
+
+            target.innerHTML = groups.map(group => {{
+                const expanded = localCountyExpanded.has(group.county);
+                const shown = expanded ? group.measures : group.measures.slice(0, localCountyPreviewLimit);
+                const shouldOpen = groups.length === 1 || localCountyOpen.has(group.county);
+                const toggle = group.measures.length > localCountyPreviewLimit
+                    ? `<button class="local-show-all" data-county="${{escapeAttr(group.county)}}" onclick="toggleLocalCountyExpansion(event)">
+                        ${{expanded ? `Show first ${{localCountyPreviewLimit}}` : `Show all ${{group.measures.length}} measures`}}
+                       </button>`
+                    : '';
+                return `
+                    <details class="local-county-group" data-county="${{escapeAttr(group.county)}}"
+                             ontoggle="rememberLocalCountyState(this)" ${{shouldOpen ? 'open' : ''}}>
+                        <summary class="local-county-summary">
+                            <span class="local-county-name">${{escapeHtml(group.county)}} County
+                                <small>${{group.measures.length.toLocaleString()}} measure${{group.measures.length === 1 ? '' : 's'}}</small>
+                            </span>
+                        </summary>
+                        <div class="local-county-body">
+                            <div class="local-measures-grid">
+                                ${{shown.map(createLocalMeasureCard).join('')}}
+                            </div>
+                            ${{toggle}}
+                        </div>
+                    </details>
+                `;
+            }}).join('') + `
+                <p class="local-rules-note">
+                    Vote thresholds in these cards come from the named county election office.
+                    The historical <a class="local-rules-link" href="#insightsRulesPanel" onclick="openRulesFromLocalMeasures(event)">Rules insight</a>
+                    also includes derived threshold fields with known cases still under review.
+                </p>
+            `;
         }}
 
         function updateHeroCarouselItemsPerView() {{
@@ -12994,7 +13483,7 @@ class WebsiteGenerator:
             ` : '';
 
             const topic = measure.topic_primary || measure.category_topic || '';
-            const source = measure.data_source || measure.source || '';
+            const source = measure.source_display || measure.data_source || measure.source || '';
 
             // Determine card class - add pending-measure class for 2026+ measures
             let cardClass = isHero ? 'hero' : (featured ? 'featured' : '');
@@ -13051,7 +13540,7 @@ class WebsiteGenerator:
                     <div style="text-align: right;">
                         ${{measure.percent_yes != null ? `<div style="font-weight: 500;">${{Math.round(measure.percent_yes)}}% Yes</div>` : ''}}
                         <div style="font-size: 0.75rem; color: var(--text-tertiary);">
-                            ${{escapeHtml(measure.data_source || measure.source || '')}}
+                            ${{escapeHtml(measure.source_display || measure.data_source || measure.source || '')}}
                         </div>
                     </div>
                 </div>
@@ -13328,7 +13817,7 @@ class WebsiteGenerator:
 
             // Add original source links
             if (measure.source_url) {{
-                links.push(`<a href="${{escapeAttr(sanitizeUrl(measure.source_url))}}" target="_blank" rel="noopener noreferrer">🔗 <span class="link-label">Raw Data</span> <span class="link-source">(${{escapeHtml(measure.data_source || 'Source')}})</span></a>`);
+                links.push(`<a href="${{escapeAttr(sanitizeUrl(measure.source_url))}}" target="_blank" rel="noopener noreferrer">🔗 <span class="link-label">Raw Data</span> <span class="link-source">(${{escapeHtml(measure.source_display || measure.data_source || 'Source')}})</span></a>`);
             }}
             if (measure.pdf_url && measure.pdf_url !== '#') {{
                 links.push(`<a href="${{escapeAttr(sanitizeUrl(measure.pdf_url))}}" target="_blank" rel="noopener noreferrer">📄 <span class="link-label">Full Ballot Text</span> <span class="link-source">(PDF)</span></a>`);
