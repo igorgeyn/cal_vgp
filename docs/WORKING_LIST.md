@@ -1,108 +1,76 @@
 # CalBallot Working List
 
-> Snapshot: **2026-08-13**. Branch: `main`, in sync with
-> `origin/main`. Last commit: `f799227`.
+> Snapshot: **2026-08-27**. Branch: `main`, in sync with
+> `origin/main`. Last commit: `ac432cc`.
 >
-> **WHERE WE LEFT OFF — Phase 1 San Bernardino is LIVE and has
-> survived its first real site drift.** The Aug 10 cron failed
-> loudly on a new document type (Tax Rate Statement); diagnosed and
-> fixed 2026-08-13, prod restored and verified. The Nov 2026
-> election now has 20 measures / 56 PDFs archived. 161 registrar
-> tests. Weekly cron scrapes SB unattended; **nothing is blocked on
-> anyone.** Next milestones are calendar-driven (clean unattended
-> cron runs Aug 17 + Aug 24 re-gate the March 2026 backfill), then
-> the LA scraper + parser design when the next arc opens.
+> **WHERE WE LEFT OFF — San Bernardino is live and has survived
+> three site-drift events; the archive→database→website path is
+> BUILT AND VERIFIED BUT NOT ACTIVATED.**
 >
-> Project shifted on 2026-05-21 from finance polish to building a real
-> recurring pipeline for local ballot measures from county registrar
-> sites. Decisions locked: **Cloudflare R2** for storage, **GH Actions
-> cron from day one**, **counties-only scope** to start. Phase 0
-> reconnaissance is complete (5 counties probed via the local
-> harness). Phase 0.5 infrastructure is in: storage layer + base
-> scraper + NoOp wiring scraper + runner + GH Actions workflow, 57
-> registrar tests green, CLI smoke verified end to end. Playwright is
-> a full dependency already (Igor's call 2026-07-06).
+> The Nov 2026 election archive is filling fast: 8 rows / 16 docs
+> (Jul 27) → 20 rows / 88 docs (Aug 27), with arguments now being
+> filed. Five prod snapshots. Parser + loader exist, four integrity
+> blockers closed, 185 registrar/site tests green — but **nothing
+> has been loaded into the live database and nothing is on the
+> website.** Deployed `measures-data.json` is stale since Jul 2.
 >
-> The finance v2+v3 era is shipped and stable: $5.75B across 181
-> statewide propositions, full verification stack green. Finance
-> backlog below is non-blocking follow-ups, not the active arc.
->
-> This is the canonical resume point. Memory at
-> `.claude/projects/...` is per-machine and won't follow you — start
-> here when picking up on a new machine. See also new
-> [`/CLAUDE.md`](../CLAUDE.md) for rules of engagement and
-> [`docs/LESSONS_LEARNED.md`](LESSONS_LEARNED.md) for pitfalls.
+> **The clock that matters:** the election is ~10 weeks out. For
+> these measures to be useful to voters they need to be live before
+> ballots arrive in early October — roughly a 5-week runway.
 
 ---
 
 ## Next chunk (resume here)
 
-**PHASE 0.5 IS COMPLETE (2026-07-09).** All six deliverables, Codex
-round-2 applied, R2 provisioned, pushed to origin, and both CI paths
-verified live: push-triggered dev run green (objects under `dev/`),
-manual `workflow_dispatch` prod run green (`prod/noop/...` objects +
-`runs/prod/` manifest with `store_backend: r2`, 1/1 counties). Setup
-doc §6 checklist fully satisfied.
+**Drift cadence is now a measured cost:** three events (Aug 10 tax
+rate statement, Aug 24 notice of election, plus the Jul 27 launch
+surprises), arriving roughly every two weeks, each costing ~1 session
+to diagnose and fix. Every one was caught by a fail-loud rule and
+none corrupted stored data. This scales linearly with counties.
 
-Repo hygiene same day: `main` now has branch protection (PRs
-required for write-access collaborators; admin direct-push still
-allowed). Georgia's direct-to-main `perfunctory_api_code` commit was
-reviewed (benign, never executed, parallel-universe architecture),
-preserved on branch `georgia/api-scaffold`, reverted from main, and
-its good ideas captured under DATA below.
+Priority order:
 
-**Phase 1 SB shipped 2026-07-27; first real site drift caught and
-fixed 2026-08-13** (`f799227`; see Recently shipped). Next chunk,
-in rough priority order:
+1. **ACTIVATE before expanding** (recommended next). Load the 20 SB
+   measures into the live database, regenerate the site, and look at
+   it. This exercises the last unexercised path while the blast
+   radius is 20 measures, and converts three months of infrastructure
+   into something visible. Codex's pre-load checklist first: registry
+   export/backup procedure, cross-source provenance, backup-race
+   hardening, and a reviewed copy-based site diff. Note the first
+   correct regeneration produces a large diff — the deployed JSON is
+   ~8 weeks stale — so treat it as its own reviewed step.
+   See `docs/plans/registrar_sb_review_and_integration.md` (phases
+   1–6) and `docs/plans/site_artifact_publication_decision.md`.
 
-1. **Watch the next two scheduled cron runs** (Aug 17, Aug 24) —
-   the backfill gate resets after the Aug 10 failure + fix. Two
-   clean *unattended* runs gate the March 2026 backfill batch.
-   (Nov 2026 is filling fast: 8 rows on Jul 27 → 20 rows / 56 PDFs
-   now, letters assigned.)
-2. **March 2026 backfill** (first bounded batch) after #1.
-3. **Phase 1: LA scraper** — `results.lavote.gov/text-results/
-   {election_id}`, sequential integer IDs; fixtures-first per the
-   SB playbook (incl. ownership-scoped extraction from day one).
-4. **Parser stage design** — raw SB artifacts → normalized JSONL;
-   the audit map (`pdf_artifacts`) was built for exactly this
-   consumer. Note from round-6: filenames are snapshot-local keys;
-   cross-snapshot measure lineage is the parser's job (source_url
-   = continuity hint, sha256 = byte identity).
+2. **LA scraper** — `results.lavote.gov/text-results/{election_id}`,
+   sequential integer IDs; fixtures-first per the SB playbook
+   (ownership-scoped extraction, label-keyed roles, from day one).
+   The shared integrity/config layer the next county inherits is
+   now in place (`county_config.py`, watermarks, identity registry).
 
-**Design inputs locked by Codex round-3 Part B (2026-07-09):**
+3. **March 2026 backfill** (first bounded batch) — gated on two
+   clean *unattended* cron runs. The gate has reset twice (Aug 10,
+   Aug 24); Aug 17 was clean, so the current streak is one.
 
-1. **Hybrid election enumeration** — versioned static anchor list
-   as the coverage contract + weekly discovery from the SB index
-   page; discovered dates accepted only after strict validation
-   (ISO date, expected table headers, same-origin URL). Discovery
-   yielding nothing or losing a known anchor = fail loudly.
-2. **Forward-only first, then bounded manual backfill** in explicit
-   date-bounded batches — historical template drift stays out of
-   the first live run.
-3. **Always snapshot** — byte-identical weekly content is still
-   audit information ("source was checked"). Checksums/ETags in
-   manifests for later comparison; no skip logic in Phase 1.
-4. **Semantic deterministic PDF filenames**
-   (`measure_v_analysis.pdf`, `measure_v_argument_for.pdf`), never
-   URL basenames or link text. Resolve relative links; off-domain
-   HTTPS allowed only when linked by the official page; reject
-   non-HTTP(S) schemes; require PDF content-type or `%PDF-`
-   signature before saving.
-5. **Fail the county on a missing expected PDF** — a page
-   advertising nine documents with seven stored is not raw truth.
-   Partial artifacts stay orphaned (no manifest), county recorded
-   failed, retry next week. Blank table cells = "not expected."
-6. **Fixtures before code** — pin live HTML/PDF fixtures; pure
-   testable table extraction identified by full header set (not
-   position); preserve response bytes for encoding; distinguish
-   zero-measure elections from unpublished/404; manifest extras:
-   `election_url`, discovered date, expected-vs-saved PDF counts.
+4. **Product surfaces from the opportunity register** — an official
+   documents panel in the modal (top-ranked) and a checksummed
+   election change feed built from the five immutable snapshots.
+   Ranked register in
+   `docs/plans/registrar_sb_review_and_integration.md` §B. Key
+   discipline: **presence is not content** — an `argument_for` PDF
+   proves a document exists, it does not expose the argument, so
+   those near-empty prose fields must NOT be filled with URLs.
 
-**After Phase 0.5 ships:** Phase 1 starts with **SB first** (cleanest
-data shape per recon), then **LA → OC → SD → Riverside**. Riverside
-needs Playwright (Cloudflare bot challenge confirmed at recon;
-dependency already installed).
+**Smaller loose ends:** 18 pre-existing legacy test failures (string
+DB paths + Statewide county default, logged 2026-07-06 under DATA
+HYGIENE); ~1.46 GB of local-only loose git objects a `git gc` would
+reclaim (committed history is only ~92 MB); Georgia's CAP taxonomy
+integration plan parked at
+`docs/plans/georgia_scaffold_integration.md`.
+
+**Phase 1 county order after SB:** LA → OC → SD → Riverside.
+Riverside needs Playwright (Cloudflare challenge; dependency already
+installed, per-hop-politeness prerequisite logged).
 
 **Finance follow-ups (deferred, not blocking):**
 
@@ -186,6 +154,28 @@ commits `4542d4a` → `bec2abe` → round-4 fixes `a1582c8` + `df6e73f`
 - Phase G — v3 + combined integrity: 9/9 PASS.
 
 ## Recently shipped
+
+### 2026-08-27 — Third drift event: notice of election (`ac432cc`)
+
+Aug 17 cron clean; **Aug 24 cron failed** on `unexpected link in
+'letter' cell`. The county began linking the official Notice of
+Election from the Letter cell (7 of 20 rows). The Letter cell had
+been link-free by contract since the extractor was written.
+
+- Fix: Letter joins `COLUMN_ROLES` with role `notice` — label-keying
+  can't work there (the label is just "Y"), so the role comes from
+  the column, with the same zero-or-one cardinality guard. Nine
+  roles per measure now possible.
+- **County filing anomaly found while pinning the fixture:** SB City
+  USD's *Impartial* link points at `AIF_SBCUSD.pdf`, an
+  argument-in-favor filename. 15 of 16 analysis docs are `IA_`, one
+  is not. Label-keyed roles recorded it correctly; URL-prefix keying
+  would have misfiled it. Preserved with `source_url` and asserted
+  in the test rather than silently corrected.
+- Election filling fast: 56 docs (Aug 14) → 88 (Aug 27); arguments
+  now being filed (15 for, 4 against, up from 3 total).
+- 185 tests; live smoke 89 artifacts; prod restored by dispatch
+  (5th snapshot, 88/88 PDFs, sha-verified).
 
 ### 2026-08-13 — First production site drift: caught, diagnosed, fixed (`f799227`)
 
