@@ -9,7 +9,8 @@ from dataclasses import dataclass, field
 from datetime import date
 from typing import Callable
 
-from .sb import MeasuresPage, extract_measures_page
+from .sb import CapturedMeasuresPage, extract_measures_page
+from .sb_interpretation import MeasuresPage, interpret_measures_page
 
 
 @dataclass(frozen=True)
@@ -17,7 +18,8 @@ class RegistrarCountyConfig:
     slug: str
     county_name: str
     data_source: str
-    extractor: Callable[[bytes, str], MeasuresPage]
+    extractor: Callable[[bytes, str], CapturedMeasuresPage]
+    interpreter: Callable[[CapturedMeasuresPage], MeasuresPage]
     lineage_overrides: dict[tuple[str, int], tuple[str, int]] = field(default_factory=dict)
 
 
@@ -27,6 +29,7 @@ COUNTY_CONFIGS = {
         county_name="SAN BERNARDINO",
         data_source="SB_County_Registrar",
         extractor=extract_measures_page,
+        interpreter=interpret_measures_page,
         lineage_overrides={
             # Reviewed fixture fact: the county changed "School Bonds" to
             # "Bond Measure" while assigning B and publishing first documents.

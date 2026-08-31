@@ -7,23 +7,27 @@
 > session. This is a routine maintenance event, not an incident.
 >
 > **The reassuring part:** every failure so far was the pipeline
-> refusing to guess about something new on a county website. No
-> failure has ever corrupted stored data, because a snapshot without
-> a manifest is invisible to everything downstream.
+> refusing to guess about something new on a county website. Capture
+> now preserves unrecognized document types before interpretation;
+> structurally incomplete captures still have no manifest and remain
+> invisible downstream.
 
 ---
 
 ## 0. What a failure means
 
-The scraper enforces a **complete-capture contract**: it stores
-every document a county advertises, or it stores nothing and fails
-loudly. When a county publishes a document type the extractor has no
-role for, or restructures its table, the run aborts *before* writing
-a manifest. Partial artifacts stay orphaned in the bucket and no
-parser will ever see them.
+The pipeline separates **capture** from **interpretation**. The live
+scraper stores every linked document in the identified measures table,
+along with its row, column, label, and URL. It does not assign roles.
+A new document type is therefore preserved in an immutable snapshot;
+the offline parser then fails rather than guessing what it means.
 
-So a red cron means: **the county changed something, and we have not
-yet decided what it means.** The job is to decide deliberately.
+A red capture cron still means a structural or transport failure:
+the table is missing or ambiguous, a row is malformed, a fetch was
+exhausted, or an advertised PDF was not a PDF. A red parse means the
+county published a document whose role rules need review. In either
+case, diagnose deliberately; for parse drift, the source bytes are
+already safe.
 
 ---
 
@@ -40,9 +44,9 @@ The error message names the failure precisely. The three seen so far:
 
 | Message | Meaning |
 |---|---|
-| `'analysis' cell has 2 links (row N)` | A cell now carries two documents where the contract allowed one |
-| `unexpected link in 'letter' cell (row N)` | A cell that had no document role now has a link |
-| `unknown <column> link label 'X'` | A recognized cell carries a document type we have no role for |
+| `'<column>' cell has N links (row N); zero or one allowed` | The offline role rule expects a single-link cell |
+| `unrecognized document column '<column>' (row N); labels=[...]` | Captured links came from a column with no role rule |
+| `unknown <column> link label 'X' (row N)` | A recognized cell carries a document type with no role |
 
 Others the contract can raise: `expected exactly 1 measures table`
 (page restructured), `malformed row` (cell count changed),
@@ -114,13 +118,14 @@ Two shapes exist, and picking the right one matters:
 **Role by column** — use when the link's label carries no role
 information. The Jurisdiction cell's label is the jurisdiction name;
 the Letter cell's label is just "Y". Add to `COLUMN_ROLES` in
-`scraper/src/scrapers/registrar/sb.py`. Cardinality is zero-or-one;
+`scraper/src/scrapers/registrar/sb_interpretation.py`. Cardinality is zero-or-one;
 a second link raises rather than being dropped.
 
 **Role by label** — use when one cell can carry several document
 types distinguished by their link text. The Analysis cell carries
 both "Impartial" and "Tax Rate Statement". Add to the relevant map
-in `LABEL_ROLE_COLUMNS`. Unknown or duplicated labels raise.
+in `LABEL_ROLE_COLUMNS` in `sb_interpretation.py`. Unknown or
+duplicated labels raise.
 
 > **Do not** relax a rule to make a failure go away. The cardinality
 > and unknown-label rules are what caught all three drift events. A
@@ -139,8 +144,11 @@ writing the fix, so the test proves behavior against real bytes:
 python <capture script> "measures_2026_1103_<event>.html=<URL>"
 ```
 
-Then add tests that assert the *exact* contract: row count, role
-census, and — valuably — the per-role URL-prefix distribution.
+Then add capture tests for exact row/column/label/link retention and
+interpreter tests for the role census and — valuably — the per-role
+URL-prefix distribution. Include a regression proving capture still
+succeeds with the new role removed, while offline parsing fails with
+the row, cell, label, and violated rule.
 
 **Why the prefix census matters.** On 2026-08-24 that assertion
 caught a county filing anomaly: San Bernardino City USD's
@@ -152,7 +160,7 @@ fixture README and `docs/KNOWN_ISSUES.md`; never "fix" the county's
 data silently.
 
 ```bash
-cd scraper && python -m pytest tests/ -q -k "registrar or website_output"
+cd scraper && python -m pytest tests/ -q -k "registrar or website"
 ```
 
 ---

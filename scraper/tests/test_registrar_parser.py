@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 import json
+import re
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
@@ -13,7 +15,13 @@ from src.scrapers.registrar.parser import (
     _link_snapshot,
     parse_election,
 )
-from src.scrapers.registrar.sb import ExpectedDocument, MeasureRow, MeasuresPage, extract_measures_page
+from src.scrapers.registrar.sb import extract_measures_page
+from src.scrapers.registrar.sb_interpretation import (
+    ExpectedDocument,
+    MeasureRow,
+    MeasuresPage,
+    interpret_measures_page,
+)
 from src.scrapers.registrar.storage import (
     ArtifactRef,
     ArtifactIntegrityError,
@@ -63,9 +71,11 @@ def _put_snapshot(
     fixture_name: str,
     *,
     row_count_override: int | None = None,
+    schema_version: int = 1,
 ) -> dict[str, Path]:
     body = (FIXTURES / fixture_name).read_bytes()
-    page = extract_measures_page(body, PAGE_URL)
+    captured = extract_measures_page(body, PAGE_URL)
+    page = interpret_measures_page(captured)
     artifacts = []
     paths = {}
 
@@ -88,7 +98,58 @@ def _put_snapshot(
     )
     paths[page_ref.filename] = Path(page_ref.storage_uri)
 
-    for document in page.expected_documents:
+    document_entries = []
+    if schema_version == 1:
+        slugs = [
+            "_".join(re.findall(r"[a-z0-9]+", row.letter.casefold()))
+            for row in page.rows
+        ]
+        collisions = {slug for slug in slugs if slugs.count(slug) > 1}
+        for row, slug in zip(page.rows, slugs):
+            stem = (
+                f"measure_{slug}_r{row.table_row:03d}"
+                if slug in collisions
+                else f"measure_{slug}"
+            )
+            for document in row.documents:
+                rebound = replace(
+                    document,
+                    filename=f"{stem}_{document.role}.pdf",
+                )
+                document_entries.append(
+                    (
+                        rebound,
+                        {
+                            "filename": rebound.filename,
+                            "table_row": rebound.table_row,
+                            "measure_letter": rebound.measure_letter,
+                            "role": rebound.role,
+                            "source_url": rebound.url,
+                        },
+                    )
+                )
+    elif schema_version == 2:
+        roles_by_filename = {
+            document.filename: document for document in page.expected_documents
+        }
+        for document in captured.expected_documents:
+            document_entries.append(
+                (
+                    roles_by_filename[document.filename],
+                    {
+                        "filename": document.filename,
+                        "table_row": document.table_row,
+                        "measure_letter": document.measure_letter,
+                        "column": document.column,
+                        "label": document.label,
+                        "source_url": document.url,
+                    },
+                )
+            )
+    else:
+        raise AssertionError(f"unsupported test schema {schema_version}")
+
+    for document, _audit in document_entries:
         pdf_body = f"%PDF-1.4\n{document.filename}\n%%EOF".encode()
         ref = store.put_artifact(
             county="sb",
@@ -110,7 +171,7 @@ def _put_snapshot(
         paths[ref.filename] = Path(ref.storage_uri)
 
     manifest = {
-        "schema_version": 1,
+        "schema_version": schema_version,
         "county": "sb",
         "election_date": "2026-11-03",
         "snapshot_id": snapshot_id,
@@ -123,16 +184,7 @@ def _put_snapshot(
         "table_row_count": len(page.rows) if row_count_override is None else row_count_override,
         "table_headers": list(page.headers),
         "pdf_counts": {"expected": len(page.expected_documents), "saved": len(page.expected_documents)},
-        "pdf_artifacts": [
-            {
-                "filename": document.filename,
-                "table_row": document.table_row,
-                "measure_letter": document.measure_letter,
-                "role": document.role,
-                "source_url": document.url,
-            }
-            for document in page.expected_documents
-        ],
+        "pdf_artifacts": [audit for _document, audit in document_entries],
         "artifacts": artifacts,
     }
     store.put_manifest(
@@ -186,6 +238,36 @@ def test_parser_maps_lettered_snapshot_and_writes_deterministically(tmp_path: Pa
     assert json.loads(output.read_text(encoding="utf-8").splitlines()[13]) == needles_l
 
 
+def test_v1_and_v2_assign_same_roles_and_identities(tmp_path: Path):
+    outputs = {}
+    for schema_version in (1, 2):
+        store = LocalArtifactStore(tmp_path / f"raw-v{schema_version}")
+        _put_snapshot(
+            store,
+            "20260814T035115Z",
+            "measures_2026_1103_lettered.html",
+            schema_version=schema_version,
+        )
+        report = parse_election(
+            store,
+            county="sb",
+            election_date="2026-11-03",
+            output_path=tmp_path / f"v{schema_version}.jsonl",
+        )
+        outputs[schema_version] = {
+            record["measure"]["measure_letter"]: (
+                record["measure"]["measure_id"],
+                sorted(
+                    (document["role"], document["source_url"])
+                    for document in record["documents"]
+                ),
+            )
+            for record in report.records
+        }
+
+    assert outputs[2] == outputs[1]
+
+
 def test_lineage_survives_tbd_letters_description_and_url_drift(tmp_path: Path):
     store = LocalArtifactStore(tmp_path / "raw")
     _put_snapshot(store, "20260727T170014Z", "measures_2026_1103_mixed.html")
@@ -197,7 +279,12 @@ def test_lineage_survives_tbd_letters_description_and_url_drift(tmp_path: Path):
     )
     old_by_jurisdiction = {record["measure"]["jurisdiction"]: record for record in old.records}
 
-    _put_snapshot(store, "20260814T034259Z", "measures_2026_1103_lettered.html")
+    _put_snapshot(
+        store,
+        "20260814T034259Z",
+        "measures_2026_1103_lettered.html",
+        schema_version=2,
+    )
     latest = parse_election(
         store,
         county="sb",

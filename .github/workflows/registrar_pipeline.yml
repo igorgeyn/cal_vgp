@@ -16,6 +16,8 @@ on:
     paths:
       - 'scraper/src/scrapers/registrar/**'
       - 'scraper/scripts/run_registrar_pipeline.py'
+      - 'scraper/scripts/verify_registrar_identity.py'
+      - 'scraper/tests/fixtures/registrar/sb/production_measure_ids_20260828.json'
       - '.github/workflows/registrar_pipeline.yml'
 
 # Runs that share an R2 prefix must serialize; runs on different
@@ -65,6 +67,19 @@ jobs:
         # always run the enabled set.
         run: |
           python scraper/scripts/run_registrar_pipeline.py --counties=${{ github.event.inputs.counties || 'enabled' }}
+
+      - name: Verify production identity compatibility
+        # Branch pushes capture only to the dev prefix above. This separate
+        # gate reads the five immutable prod snapshots and writes only to the
+        # runner's temporary directory.
+        if: github.event_name == 'push'
+        env:
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_ENDPOINT_URL: ${{ secrets.R2_ENDPOINT_URL }}
+          R2_BUCKET: cal-vgp-registrar-raw
+          R2_ENV: prod
+        run: python scraper/scripts/verify_registrar_identity.py
 
       - name: Upload run manifest
         # always(): failed runs still produce diagnostics.

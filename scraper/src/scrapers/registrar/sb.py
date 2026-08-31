@@ -1,25 +1,22 @@
 """
 San Bernardino County registrar scraper — the first real county.
 
-Two layers, per docs/plans/registrar_phase1_sb.md:
+Capture and interpretation are deliberately separate:
 
-- Pure extraction (no network/storage/clock): `extract_measures_page`
-  turns raw page bytes into a typed page contract — normalized
-  headers, rows, and expected-document descriptors with semantic
-  filenames; `extract_discovery_candidates` turns the cross-election
-  landing page into candidate election dates. Both are fixture-tested
-  against pinned live captures in tests/fixtures/registrar/sb/.
+- Pure capture extraction (no network/storage/clock/role knowledge):
+  `extract_measures_page` records every table link with its row,
+  column, label, URL, and neutral filename. Offline role assignment
+  lives in `sb_interpretation.py` and is called only by the parser.
+- `extract_discovery_candidates` turns the cross-election landing
+  page into candidate election dates.
 - `SbScraper(CountyRegistrarScraper)`: hybrid enumeration (static
   anchors as the coverage contract + weekly discovery), per-election
   scrape via base-class primitives only, manifest-last snapshots
   with SB audit extras.
 
-Page states the extractor recognizes (fixture facts):
-- PUBLISHED: every cell links a PDF; up to NINE roles per measure —
-  notice (Letter cell), resolution (Jurisdiction cell) and full text
-  (Description cell) by column, then analysis + tax rate statement
-  (Analysis cell) and the four argument variants (Arguments cell)
-  by link label.
+Page states the capture layer recognizes (fixture facts):
+- PUBLISHED: table cells link documents. Capture records every link;
+  the offline interpreter currently recognizes up to nine roles.
 - ANNOUNCED: rows exist (letters may be "TBD") but carry no links;
   a valid zero-expected-documents observation, not a failure.
 - Mixed rows are handled per cell; expected documents are exactly
@@ -70,50 +67,6 @@ EXPECTED_HEADERS = frozenset(
     }
 )
 
-# Label-keyed cells: role comes from each link's own label, and a
-# label may appear at most once per row. Unknown or duplicated
-# labels are schema failures (complete-capture rule).
-#
-# The Analysis column is label-keyed rather than role-by-column
-# because it carries TWO document types: the impartial analysis and
-# — for tax/bond measures — the Tax Rate Statement that California
-# requires. Discovered 2026-08-10 when the cron failed loudly on a
-# City of Needles row advertising both; role-by-column would have
-# silently filed a tax rate statement as an impartial analysis on
-# the five rows that carry only the latter.
-ANALYSIS_ROLES = {
-    "impartial": "analysis",
-    "tax rate statement": "tax_rate_statement",
-}
-
-ARGUMENT_ROLES = {
-    "argument for": "argument_for",
-    "rebuttal to argument for": "rebuttal_for",
-    "argument against": "argument_against",
-    "rebuttal to argument against": "rebuttal_against",
-}
-
-LABEL_ROLE_COLUMNS = {
-    "analysis": ANALYSIS_ROLES,
-    "arguments": ARGUMENT_ROLES,
-}
-
-# Single-link cells: role comes from the COLUMN, because their link
-# labels are variable text (jurisdiction name / measure title) or —
-# in the Letter cell — just the measure letter itself, which carries
-# no role information at all.
-#
-# The Letter cell links the official Notice of Election. Discovered
-# 2026-08-24 when the cron failed loudly on "unexpected link in
-# 'letter' cell": the county began attaching Notice_*.pdf to the
-# letter on 7 of 20 rows. Label-keying cannot work here (the label
-# is "Y", "Z", ...), so the role comes from the column.
-COLUMN_ROLES = {
-    "letter": "notice",
-    "jurisdiction": "resolution",
-    "measure description": "text",
-}
-
 _CANDIDATE_PATH = re.compile(r"^/elections/(\d{4})/(\d{4})/measures/?$", re.I)
 _SAFE_FILENAME = re.compile(r"^[a-z0-9][a-z0-9._-]*$")
 
@@ -129,30 +82,31 @@ class SbEnumerationError(ScraperError):
 
 
 @dataclass(frozen=True)
-class ExpectedDocument:
-    """One advertised PDF: where it lives and what to call it."""
-    filename: str        # semantic, storage-safe
+class CapturedDocument:
+    """One advertised link captured without assigning a role."""
+    filename: str        # neutral, storage-safe, snapshot-local
     url: str             # resolved absolute HTTPS
-    role: str            # resolution|text|analysis|argument_*|rebuttal_*
+    column: str          # normalized table header
+    label: str           # normalized visible link text, case preserved
     measure_letter: str  # raw Letter cell text (e.g. "V", "TBD")
     table_row: int       # 1-based data-row index
 
 
 @dataclass(frozen=True)
-class MeasureRow:
+class CapturedMeasureRow:
     table_row: int
     letter: str
     jurisdiction: str
     description: str
     percentage_to_pass: str
-    documents: tuple[ExpectedDocument, ...]
+    documents: tuple[CapturedDocument, ...]
 
 
 @dataclass(frozen=True)
-class MeasuresPage:
+class CapturedMeasuresPage:
     headers: tuple[str, ...]          # normalized, table order
-    rows: tuple[MeasureRow, ...]
-    expected_documents: tuple[ExpectedDocument, ...]
+    rows: tuple[CapturedMeasureRow, ...]
+    expected_documents: tuple[CapturedDocument, ...]
 
 
 def _norm_text(node_or_text) -> str:
@@ -180,11 +134,11 @@ def _resolve_document_url(href: str, page_url: str, context: str) -> str:
     return resolved
 
 
-def _letter_slug(letter: str) -> str:
-    runs = re.findall(r"[a-z0-9]+", letter.lower())
-    if not runs:
-        raise SbSchemaError(f"letter cell yields empty slug: {letter!r}")
-    return "_".join(runs)
+def _column_slug(column: str) -> str:
+    slug = "-".join(re.findall(r"[a-z0-9]+", column.casefold()))
+    if not slug:
+        raise SbSchemaError(f"column header yields empty filename slug: {column!r}")
+    return slug
 
 
 # --- ownership-scoped traversal (Codex round-6) -----------------------
@@ -221,19 +175,15 @@ def _find_header_row(table):
     return None, ()
 
 
-def extract_measures_page(body: bytes, page_url: str) -> MeasuresPage:
-    """Pure extraction of an SB measures page.
+def extract_measures_page(body: bytes, page_url: str) -> CapturedMeasuresPage:
+    """Capture every link in the identified SB measures table.
 
     Contract (fixture-driven, Codex rounds 4-5):
     - exactly ONE table matches the full normalized header set;
     - columns map by header name, order irrelevant;
     - zero data rows is valid (unpublished-late pages);
-    - expected documents are exactly the LINKS in the identified
-      table's cells: Jurisdiction/Description carry zero or exactly
-      one link each (more = schema failure, role by column);
-      Analysis and Arguments carry uniquely-labelled links whose
-      roles come from those labels; links elsewhere in the row
-      (Letter / Percentage cells) are schema failures;
+    - expected documents are exactly ALL LINKS in the identified
+      table's cells, with no role, label, or cardinality decisions;
     - links outside the measures table (nav, resource sidebars) are
       ignored entirely.
     """
@@ -279,84 +229,34 @@ def extract_measures_page(body: bytes, page_url: str) -> MeasuresPage:
             )
         raw_rows.append(cells)
 
-    # Collision rule: letters normally appear once; if slugs repeat,
-    # every colliding row's filenames get a stable row suffix.
-    slugs = [_letter_slug(_norm_text(c[col["letter"]])) for c in raw_rows]
-    colliding = {s for s in slugs if slugs.count(s) > 1}
-
-    rows: list[MeasureRow] = []
-    all_docs: list[ExpectedDocument] = []
+    rows: list[CapturedMeasureRow] = []
+    all_docs: list[CapturedDocument] = []
     for idx, cells in enumerate(raw_rows, start=1):
         letter = _norm_text(cells[col["letter"]])
-        slug = slugs[idx - 1]
-        stem = f"measure_{slug}_r{idx:03d}" if slug in colliding else f"measure_{slug}"
-
-        # Cells with no defined role must not carry links at all —
-        # a link we have no role for would violate complete capture.
-        # (The Letter cell WAS in this set until 2026-08-24; it now
-        # carries the Notice of Election, see COLUMN_ROLES.)
-        for plain_col in ("percentage to pass",):
-            if _owned_links(cells[col[plain_col]], table):
-                raise SbSchemaError(
-                    f"unexpected link in {plain_col!r} cell (row {idx})"
-                )
-
-        docs: list[ExpectedDocument] = []
-
-        # Single-link columns: zero or exactly one link, role by column.
-        for col_name, role in COLUMN_ROLES.items():
-            links = _owned_links(cells[col[col_name]], table)
-            if len(links) > 1:
-                raise SbSchemaError(
-                    f"{col_name!r} cell has {len(links)} links (row {idx}); "
-                    "zero or one allowed — never silently drop a document"
-                )
-            if links:
-                url = _resolve_document_url(
-                    links[0]["href"], page_url, f"{col_name}, row {idx}"
-                )
-                docs.append(
-                    ExpectedDocument(
-                        filename=f"{stem}_{role}.pdf",
-                        url=url,
-                        role=role,
-                        measure_letter=letter,
-                        table_row=idx,
-                    )
-                )
-
-        # Label-keyed columns (analysis, arguments): each link's role
-        # comes from its own label; labels are unique within a cell.
-        for col_name, role_map in LABEL_ROLE_COLUMNS.items():
-            seen_labels: set[str] = set()
-            for link in _owned_links(cells[col[col_name]], table):
-                label = _norm_text(link).lower()
-                role = role_map.get(label)
-                if role is None:
-                    raise SbSchemaError(
-                        f"unknown {col_name} link label {label!r} (row {idx}); "
-                        f"known: {sorted(role_map)}"
-                    )
-                if label in seen_labels:
-                    raise SbSchemaError(
-                        f"duplicate {col_name} link label {label!r} (row {idx})"
-                    )
-                seen_labels.add(label)
+        docs: list[CapturedDocument] = []
+        for column_index, col_name in enumerate(headers):
+            for link_index, link in enumerate(
+                _owned_links(cells[column_index], table), start=1
+            ):
                 url = _resolve_document_url(
                     link["href"], page_url, f"{col_name}, row {idx}"
                 )
                 docs.append(
-                    ExpectedDocument(
-                        filename=f"{stem}_{role}.pdf",
+                    CapturedDocument(
+                        filename=(
+                            f"row{idx:03d}_{_column_slug(col_name)}-cell_"
+                            f"{link_index:02d}.pdf"
+                        ),
                         url=url,
-                        role=role,
+                        column=col_name,
+                        label=_norm_text(link),
                         measure_letter=letter,
                         table_row=idx,
                     )
                 )
 
         rows.append(
-            MeasureRow(
+            CapturedMeasureRow(
                 table_row=idx,
                 letter=letter,
                 jurisdiction=_norm_text(cells[col["jurisdiction"]]),
@@ -376,7 +276,7 @@ def extract_measures_page(body: bytes, page_url: str) -> MeasuresPage:
         if not _SAFE_FILENAME.match(n):
             raise SbSchemaError(f"internal error: unsafe filename {n!r}")
 
-    return MeasuresPage(
+    return CapturedMeasuresPage(
         headers=headers,
         rows=tuple(rows),
         expected_documents=tuple(all_docs),
@@ -414,7 +314,7 @@ def measures_url(d: date) -> str:
 class SbScraper(CountyRegistrarScraper):
     county = "sb"
     fetch_mode: str = "requests"
-    version = "0.1.0"
+    version = "0.2.0"
 
     anchors: tuple[str, ...] = SB_FORWARD_ANCHORS
 
@@ -506,7 +406,7 @@ class SbScraper(CountyRegistrarScraper):
             # to plain HTTP is never acceptable for saved documents.
             if urlparse(pdf.final_url).scheme != "https":
                 raise SbSchemaError(
-                    f"PDF fetch ended on a non-HTTPS URL (role {doc.role}, "
+                    f"PDF fetch ended on a non-HTTPS URL (column {doc.column!r}, "
                     f"{doc.url} -> {pdf.final_url})"
                 )
             content_type = pdf.content_type or ""
@@ -514,7 +414,7 @@ class SbScraper(CountyRegistrarScraper):
                 b"%PDF-"
             ):
                 raise SbSchemaError(
-                    f"advertised PDF is not a PDF (role {doc.role}, "
+                    f"advertised PDF is not a PDF (column {doc.column!r}, "
                     f"{doc.url}): content-type {content_type!r}"
                 )
             writer.save(doc.filename, pdf)
@@ -528,12 +428,14 @@ class SbScraper(CountyRegistrarScraper):
                     "filename": doc.filename,
                     "table_row": doc.table_row,
                     "measure_letter": doc.measure_letter,
-                    "role": doc.role,
+                    "column": doc.column,
+                    "label": doc.label,
                     "source_url": doc.url,
                 }
             )
 
         writer.finalize(
+            schema_version=2,
             extra={
                 "source_base_url": SB_BASE_URL,
                 "election_url": url,

@@ -11,6 +11,8 @@ from pathlib import Path
 import pytest
 
 from src.scrapers.registrar.base import ScraperError
+from src.scrapers.registrar import sb_interpretation
+from src.scrapers.registrar.parser import SnapshotValidationError, parse_election
 from src.scrapers.registrar.sb import (
     LANDING_URL,
     SbEnumerationError,
@@ -19,6 +21,10 @@ from src.scrapers.registrar.sb import (
     extract_discovery_candidates,
     extract_measures_page,
     measures_url,
+)
+from src.scrapers.registrar.sb_interpretation import (
+    SbInterpretationError,
+    interpret_measures_page,
 )
 from src.scrapers.registrar.storage import LocalArtifactStore
 
@@ -36,6 +42,10 @@ ALL_ROLES = (
     "argument_against",
     "rebuttal_against",
 )
+
+
+def interpreted_page(body: bytes, url: str):
+    return interpret_measures_page(extract_measures_page(body, url))
 
 
 def fixture_bytes(name: str) -> bytes:
@@ -116,7 +126,8 @@ def pdf_response(url: str) -> FakeResponse:
 
 
 def test_extract_published_page_all_seven_roles():
-    page = extract_measures_page(fixture_bytes("measures_2026_0324.html"), URL_0324)
+    captured = extract_measures_page(fixture_bytes("measures_2026_0324.html"), URL_0324)
+    page = interpret_measures_page(captured)
 
     assert page.headers == (
         "letter",
@@ -131,12 +142,10 @@ def test_extract_published_page_all_seven_roles():
     assert all(r.percentage_to_pass == "50% + 1" for r in page.rows)
 
     assert len(page.expected_documents) == 14
-    for letter in ("v", "w"):
-        names = {
-            d.filename for d in page.expected_documents
-            if d.filename.startswith(f"measure_{letter}_")
-        }
-        assert names == {f"measure_{letter}_{role}.pdf" for role in ALL_ROLES}
+    assert captured.expected_documents[0].filename == "row001_jurisdiction-cell_01.pdf"
+    assert captured.expected_documents[-1].filename == "row002_arguments-cell_04.pdf"
+    assert all(not hasattr(d, "role") for d in captured.expected_documents)
+    assert {d.role for d in page.expected_documents} == set(ALL_ROLES)
     # Off-origin uploads host is the norm; every URL absolute HTTPS.
     for d in page.expected_documents:
         assert d.url.startswith("https://uploads.rov.sbcounty.gov/")
@@ -160,9 +169,10 @@ def test_extract_mixed_state_fixture_exact_contract():
     """The 2026-07-27 live page (pinned from the first production
     run): 8 rows, all letters still TBD (collision suffixes on every
     filename), 16 docs across mixed per-row publication states."""
-    page = extract_measures_page(
+    captured = extract_measures_page(
         fixture_bytes("measures_2026_1103_mixed.html"), URL_1103
     )
+    page = interpret_measures_page(captured)
 
     assert len(page.rows) == 8
     assert all(r.letter == "TBD" for r in page.rows)
@@ -177,8 +187,8 @@ def test_extract_mixed_state_fixture_exact_contract():
         (6, "resolution"), (6, "text"), (6, "analysis"), (6, "argument_for"),
         (7, "resolution"), (7, "text"), (7, "analysis"),
     ]
-    names = [d.filename for d in page.expected_documents]
-    assert all(n.startswith("measure_tbd_r") for n in names)
+    names = [d.filename for d in captured.expected_documents]
+    assert all(n.startswith("row") for n in names)
     assert len(names) == len(set(names))
 
 
@@ -186,15 +196,16 @@ def test_extract_lettered_fixture_with_tax_rate_statements():
     """The 2026-08-13 live page: letters assigned (no TBD, so no
     collision suffixes), 20 rows, and the Analysis cell carrying two
     document types — the drift that failed the Aug 10 cron."""
-    page = extract_measures_page(
+    captured = extract_measures_page(
         fixture_bytes("measures_2026_1103_lettered.html"), URL_1103
     )
+    page = interpret_measures_page(captured)
 
     assert len(page.rows) == 20
     letters = [r.letter for r in page.rows]
     assert "TBD" not in letters
     assert len(set(letters)) == 20  # unique → no r{NNN} suffixes
-    assert all("_r0" not in d.filename for d in page.expected_documents)
+    assert all(d.filename.startswith("row") for d in captured.expected_documents)
 
     roles = Counter(d.role for d in page.expected_documents)
     assert roles["analysis"] == 8
@@ -209,10 +220,8 @@ def test_extract_lettered_fixture_with_tax_rate_statements():
         "resolution", "text", "analysis", "tax_rate_statement",
     }
     by_role = {d.role: d for d in row14}
-    assert by_role["analysis"].filename == "measure_l_analysis.pdf"
-    assert by_role["tax_rate_statement"].filename == (
-        "measure_l_tax_rate_statement.pdf"
-    )
+    assert by_role["analysis"].filename == "row014_analysis-cell_01.pdf"
+    assert by_role["tax_rate_statement"].filename == "row014_analysis-cell_02.pdf"
     assert "/IA_" in by_role["analysis"].url
     assert "/TR_" in by_role["tax_rate_statement"].url
 
@@ -233,26 +242,30 @@ def test_tax_rate_statement_alone_is_not_an_analysis():
         '<td><a href="https://uploads.rov.sbcounty.gov/tr.pdf">'
         "Tax Rate Statement</a></td>",
     )
-    page = extract_measures_page(table_html(HEADERS_OK, row), URL_1103)
+    page = interpreted_page(table_html(HEADERS_OK, row), URL_1103)
     roles = {d.role for d in page.expected_documents}
     assert "tax_rate_statement" in roles
     assert "analysis" not in roles
 
 
-def test_unknown_analysis_label_is_schema_failure():
+def test_unknown_analysis_label_is_captured_then_interpretation_fails():
     row = ROW_PUBLISHED.replace(">Impartial<", ">Fiscal Impact Summary<")
-    with pytest.raises(SbSchemaError, match="unknown analysis link label"):
-        extract_measures_page(table_html(HEADERS_OK, row), URL_1103)
+    captured = extract_measures_page(table_html(HEADERS_OK, row), URL_1103)
+    assert any(d.label == "Fiscal Impact Summary" for d in captured.expected_documents)
+    with pytest.raises(SbInterpretationError, match="unknown analysis link label"):
+        interpret_measures_page(captured)
 
 
-def test_duplicate_analysis_label_is_schema_failure():
+def test_duplicate_analysis_label_is_captured_then_interpretation_fails():
     row = ROW_PUBLISHED.replace(
         '<td><a href="https://uploads.rov.sbcounty.gov/ia.pdf">Impartial</a></td>',
         '<td><a href="https://uploads.rov.sbcounty.gov/ia.pdf">Impartial</a>'
         '<a href="https://uploads.rov.sbcounty.gov/ia2.pdf">Impartial</a></td>',
     )
-    with pytest.raises(SbSchemaError, match="duplicate analysis link label"):
-        extract_measures_page(table_html(HEADERS_OK, row), URL_1103)
+    captured = extract_measures_page(table_html(HEADERS_OK, row), URL_1103)
+    assert len([d for d in captured.expected_documents if d.column == "analysis"]) == 2
+    with pytest.raises(SbInterpretationError, match="duplicate analysis link label"):
+        interpret_measures_page(captured)
 
 
 def test_discovery_finds_single_deduped_candidate():
@@ -290,7 +303,7 @@ ROW_PUBLISHED = (
 
 
 def test_synthetic_published_row_and_br_header():
-    page = extract_measures_page(table_html(HEADERS_OK, ROW_PUBLISHED), URL_1103)
+    page = interpreted_page(table_html(HEADERS_OK, ROW_PUBLISHED), URL_1103)
     assert len(page.rows) == 1
     assert {d.role for d in page.expected_documents} == {
         "resolution", "text", "analysis", "argument_for",
@@ -313,7 +326,7 @@ def test_reordered_columns_map_by_header_name():
         '<td><a href="https://uploads.rov.sbcounty.gov/ia.pdf">Impartial</a></td>'
         "<td>Desc</td></tr>"
     )
-    page = extract_measures_page(table_html(headers, row), URL_1103)
+    page = interpreted_page(table_html(headers, row), URL_1103)
     assert page.rows[0].letter == "Z"
     assert page.rows[0].percentage_to_pass == "66.67%"
     assert [d.role for d in page.expected_documents] == ["analysis"]
@@ -348,30 +361,34 @@ def test_malformed_row_cell_count():
         )
 
 
-def test_two_links_in_single_link_cell_is_schema_failure():
+def test_two_links_in_single_link_cell_are_captured_then_interpretation_fails():
     row = ROW_PUBLISHED.replace(
         '<td><a href="https://uploads.rov.sbcounty.gov/ord.pdf">Some Measure</a></td>',
         '<td><a href="https://uploads.rov.sbcounty.gov/ord.pdf">Some Measure</a>'
         '<a href="https://uploads.rov.sbcounty.gov/ord2.pdf">Amended</a></td>',
     )
-    with pytest.raises(SbSchemaError, match="never silently drop"):
-        extract_measures_page(table_html(HEADERS_OK, row), URL_1103)
+    captured = extract_measures_page(table_html(HEADERS_OK, row), URL_1103)
+    assert len([d for d in captured.expected_documents if d.column == "measure description"]) == 2
+    with pytest.raises(SbInterpretationError, match="never silently drop"):
+        interpret_measures_page(captured)
 
 
-def test_unknown_argument_label_is_schema_failure():
+def test_unknown_argument_label_is_captured_then_interpretation_fails():
     row = ROW_PUBLISHED.replace(">Argument For<", ">Community Statement<")
-    with pytest.raises(SbSchemaError, match="unknown arguments link label"):
-        extract_measures_page(table_html(HEADERS_OK, row), URL_1103)
+    captured = extract_measures_page(table_html(HEADERS_OK, row), URL_1103)
+    with pytest.raises(SbInterpretationError, match="unknown arguments link label"):
+        interpret_measures_page(captured)
 
 
-def test_duplicate_argument_label_is_schema_failure():
+def test_duplicate_argument_label_is_captured_then_interpretation_fails():
     row = ROW_PUBLISHED.replace(
         "</li></ul>",
         '</li><li><a href="https://uploads.rov.sbcounty.gov/af2.pdf">'
         "Argument For</a></li></ul>",
     )
-    with pytest.raises(SbSchemaError, match="duplicate arguments link label"):
-        extract_measures_page(table_html(HEADERS_OK, row), URL_1103)
+    captured = extract_measures_page(table_html(HEADERS_OK, row), URL_1103)
+    with pytest.raises(SbInterpretationError, match="duplicate arguments link label"):
+        interpret_measures_page(captured)
 
 
 def test_letter_cell_link_is_the_notice_of_election():
@@ -382,39 +399,45 @@ def test_letter_cell_link_is_the_notice_of_election():
         "<td>V</td>",
         '<td><a href="https://uploads.rov.sbcounty.gov/Notice_X.pdf">V</a></td>',
     )
-    page = extract_measures_page(table_html(HEADERS_OK, row), URL_1103)
+    captured = extract_measures_page(table_html(HEADERS_OK, row), URL_1103)
+    page = interpret_measures_page(captured)
     notices = [d for d in page.expected_documents if d.role == "notice"]
     assert len(notices) == 1
-    assert notices[0].filename == "measure_v_notice.pdf"
+    assert notices[0].filename == "row001_letter-cell_01.pdf"
     assert notices[0].url.endswith("/Notice_X.pdf")
 
 
-def test_two_links_in_letter_cell_is_schema_failure():
+def test_two_links_in_letter_cell_are_captured_then_interpretation_fails():
     """Cardinality still holds for the Letter cell."""
     row = ROW_PUBLISHED.replace(
         "<td>V</td>",
         '<td><a href="https://uploads.rov.sbcounty.gov/n1.pdf">V</a>'
         '<a href="https://uploads.rov.sbcounty.gov/n2.pdf">V</a></td>',
     )
-    with pytest.raises(SbSchemaError, match="never silently drop"):
-        extract_measures_page(table_html(HEADERS_OK, row), URL_1103)
+    captured = extract_measures_page(table_html(HEADERS_OK, row), URL_1103)
+    assert len([d for d in captured.expected_documents if d.column == "letter"]) == 2
+    with pytest.raises(SbInterpretationError, match="never silently drop"):
+        interpret_measures_page(captured)
 
 
-def test_link_in_percentage_cell_is_schema_failure():
-    """The Percentage cell still has no defined role for links."""
+def test_link_in_percentage_cell_is_captured_then_interpretation_fails():
+    """Capture is complete even when the offline role crosswalk lags drift."""
     row = ROW_PUBLISHED.replace(
         "<td>50% + 1</td>", '<td><a href="https://x.gov/p.pdf">50% + 1</a></td>'
     )
-    with pytest.raises(SbSchemaError, match="unexpected link"):
-        extract_measures_page(table_html(HEADERS_OK, row), URL_1103)
+    captured = extract_measures_page(table_html(HEADERS_OK, row), URL_1103)
+    assert any(d.column == "percentage to pass" for d in captured.expected_documents)
+    with pytest.raises(SbInterpretationError, match="unrecognized document column"):
+        interpret_measures_page(captured)
 
 
 def test_extract_notice_era_fixture_contract():
     """The 2026-08-24 live page: nine roles in play, arguments now
     being filed as deadlines pass."""
-    page = extract_measures_page(
+    captured = extract_measures_page(
         fixture_bytes("measures_2026_1103_notice.html"), URL_1103
     )
+    page = interpret_measures_page(captured)
     assert len(page.rows) == 20
     roles = Counter(d.role for d in page.expected_documents)
     assert roles["notice"] == 7
@@ -457,7 +480,7 @@ def test_relative_links_resolve_against_page_url():
     row = ROW_PUBLISHED.replace(
         "https://uploads.rov.sbcounty.gov/ia.pdf", "/docs/ia.pdf"
     )
-    page = extract_measures_page(table_html(HEADERS_OK, row), URL_1103)
+    page = interpreted_page(table_html(HEADERS_OK, row), URL_1103)
     analysis = [d for d in page.expected_documents if d.role == "analysis"][0]
     assert analysis.url == "https://elections.sbcounty.gov/docs/ia.pdf"
 
@@ -468,15 +491,18 @@ def test_duplicate_letters_get_row_suffixes():
         table_html(HEADERS_OK, ROW_PUBLISHED + row2), URL_1103
     )
     names = [d.filename for d in page.expected_documents]
-    assert "measure_v_r001_analysis.pdf" in names
-    assert "measure_v_r002_analysis.pdf" in names
+    assert "row001_analysis-cell_01.pdf" in names
+    assert "row002_analysis-cell_01.pdf" in names
     assert len(names) == len(set(names))
 
 
-def test_empty_letter_slug_is_schema_failure():
+def test_arbitrary_letter_text_does_not_affect_capture_filenames():
     row = ROW_PUBLISHED.replace("<td>V</td>", "<td>--</td>")
-    with pytest.raises(SbSchemaError, match="empty slug"):
-        extract_measures_page(table_html(HEADERS_OK, row), URL_1103)
+    page = extract_measures_page(table_html(HEADERS_OK, row), URL_1103)
+    assert page.rows[0].letter == "--"
+    assert "row001_analysis-cell_01.pdf" in {
+        d.filename for d in page.expected_documents
+    }
 
 
 def test_nested_th_does_not_hide_data_row():
@@ -494,8 +520,8 @@ def test_nested_th_does_not_hide_data_row():
     assert len(page.rows) == 1  # row survives the nested <th>
     # ...and the nested table's link does NOT leak into the row's
     # documents (nor trip the no-links rule for the Percentage cell).
-    assert {d.role for d in page.expected_documents} == {
-        "resolution", "text", "analysis", "argument_for",
+    assert {d.column for d in page.expected_documents} == {
+        "jurisdiction", "measure description", "analysis", "arguments",
     }
     assert not any("leak.pdf" in d.url for d in page.expected_documents)
 
@@ -519,7 +545,7 @@ def test_header_row_inside_thead_is_found():
         f"<html><body><table><thead><tr>{HEADERS_OK}</tr></thead>"
         f"<tbody>{ROW_PUBLISHED}</tbody></table></body></html>"
     ).encode()
-    page = extract_measures_page(body, URL_1103)
+    page = interpreted_page(body, URL_1103)
     assert len(page.rows) == 1
 
 
@@ -657,6 +683,18 @@ def full_fixture_responses() -> dict:
     }
 
 
+def linked_fixture_responses(fixture_name: str) -> dict:
+    """Serve one pinned page plus every document it advertises."""
+    body = fixture_bytes(fixture_name)
+    responses = {
+        LANDING_URL: [html_response(fixture_bytes("landing_measures.html"), LANDING_URL)],
+        URL_1103: [html_response(body, URL_1103)],
+    }
+    for document in extract_measures_page(body, URL_1103).expected_documents:
+        responses.setdefault(document.url, []).append(pdf_response(document.url))
+    return responses
+
+
 def test_fixture_session_announced_election_end_to_end(store):
     """July run against the real fixtures: anchor 2026-11-03 active,
     discovered on the landing page, announced-state snapshot with
@@ -708,7 +746,7 @@ def published_election_responses(pdf_ok=True) -> dict:
     return responses
 
 
-def test_published_election_saves_semantic_pdfs(store):
+def test_published_election_saves_neutral_pdfs(store):
     result = make_sb(store, published_election_responses(), when=NOV_9).scrape()
 
     snap = result.snapshots[0]
@@ -718,11 +756,98 @@ def test_published_election_saves_semantic_pdfs(store):
     )
     assert manifest["pdf_counts"] == {"expected": 2, "saved": 2}
     names = [a["filename"] for a in manifest["artifacts"]]
-    assert names == ["page.html", "measure_v_analysis.pdf", "measure_v_argument_for.pdf"]
+    assert names == ["page.html", "row001_analysis-cell_01.pdf", "row001_arguments-cell_01.pdf"]
+    assert manifest["schema_version"] == 2
     audit = manifest["pdf_artifacts"]
-    assert [(a["role"], a["table_row"]) for a in audit] == [
-        ("analysis", 1), ("argument_for", 1),
+    assert [(a["column"], a["label"], a["table_row"]) for a in audit] == [
+        ("analysis", "Impartial", 1),
+        ("arguments", "Argument For", 1),
     ]
+    assert all("role" not in entry for entry in audit)
+
+
+def test_notice_drift_is_captured_before_offline_interpretation_fails(
+    store, tmp_path, monkeypatch
+):
+    """The Aug 24 drift no longer costs the week's immutable capture."""
+    monkeypatch.setattr(
+        sb_interpretation,
+        "COLUMN_ROLES",
+        {
+            column: role
+            for column, role in sb_interpretation.COLUMN_ROLES.items()
+            if column != "letter"
+        },
+    )
+    result = make_sb(
+        store,
+        linked_fixture_responses("measures_2026_1103_notice.html"),
+        when=JULY,
+    ).scrape()
+
+    manifest = store.get_manifest(
+        county="sb",
+        election_date="2026-11-03",
+        snapshot_id=result.snapshots[0].snapshot_id,
+    )
+    notices = [entry for entry in manifest["pdf_artifacts"] if entry["column"] == "letter"]
+    assert len(notices) == 7
+    assert manifest["pdf_counts"] == {"expected": 88, "saved": 88}
+    with pytest.raises(
+        SnapshotValidationError,
+        match=r"unrecognized document column 'letter'.*row 1.*labels=\['y'\]",
+    ):
+        parse_election(
+            store,
+            county="sb",
+            election_date="2026-11-03",
+            output_path=tmp_path / "never.jsonl",
+        )
+
+
+def test_tax_rate_drift_is_captured_before_offline_interpretation_fails(
+    store, tmp_path, monkeypatch
+):
+    """The Aug 10 second Analysis link is preserved even under the old map."""
+    monkeypatch.setattr(
+        sb_interpretation,
+        "ANALYSIS_ROLES",
+        {"impartial": "analysis"},
+    )
+    monkeypatch.setattr(
+        sb_interpretation,
+        "LABEL_ROLE_COLUMNS",
+        {
+            **sb_interpretation.LABEL_ROLE_COLUMNS,
+            "analysis": sb_interpretation.ANALYSIS_ROLES,
+        },
+    )
+    result = make_sb(
+        store,
+        linked_fixture_responses("measures_2026_1103_lettered.html"),
+        when=JULY,
+    ).scrape()
+
+    manifest = store.get_manifest(
+        county="sb",
+        election_date="2026-11-03",
+        snapshot_id=result.snapshots[0].snapshot_id,
+    )
+    row14 = [entry for entry in manifest["pdf_artifacts"] if entry["table_row"] == 14]
+    assert [entry["label"] for entry in row14 if entry["column"] == "analysis"] == [
+        "Impartial",
+        "Tax Rate Statement",
+    ]
+    with pytest.raises(
+        SnapshotValidationError,
+        match=r"unknown analysis link label 'tax rate statement'.*row \d+",
+    ):
+        parse_election(
+            store,
+            county="sb",
+            election_date="2026-11-03",
+            output_path=tmp_path / "never.jsonl",
+        )
 
 
 def test_html_masquerading_as_pdf_fails_county_no_manifest(store):

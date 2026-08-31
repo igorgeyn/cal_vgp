@@ -1,8 +1,9 @@
 """Parse immutable registrar snapshots into normalized JSONL records.
 
-Only stored bytes are consumed.  San Bernardino HTML parsing is delegated to
-``extract_measures_page``; this module adds snapshot validation, cross-snapshot
-lineage, field normalization, and deterministic output.
+Only stored bytes are consumed. San Bernardino HTML capture is delegated to
+``extract_measures_page`` and role assignment to the county interpreter; this
+module adds snapshot validation, cross-snapshot lineage, field normalization,
+and deterministic output.
 """
 from __future__ import annotations
 
@@ -10,13 +11,19 @@ import argparse
 import hashlib
 import json
 import re
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 from typing import Callable, Iterable, Optional
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 from .county_config import COUNTY_CONFIGS, derive_election_type, get_county_config
-from .sb import ExpectedDocument, MeasureRow, MeasuresPage
+from .sb import CapturedMeasuresPage
+from .sb_interpretation import (
+    ExpectedDocument,
+    MeasureRow,
+    MeasuresPage,
+    SbInterpretationError,
+)
 from .storage import ArtifactRef, RawArtifactStore, make_store
 
 
@@ -168,7 +175,12 @@ def _measure_id(county: str, election_date: str, lineage: _Lineage) -> str:
     return f"REG_{county.upper()}_{date_token}_{_identity_digest(county, election_date, lineage)}"
 
 
-def _validate_scope(manifest: dict, county: str, election_date: str, snapshot_id: str) -> None:
+def _validate_scope(
+    manifest: dict,
+    county: str,
+    election_date: str,
+    snapshot_id: str,
+) -> int:
     expected = {
         "county": county,
         "election_date": election_date,
@@ -180,45 +192,145 @@ def _validate_scope(manifest: dict, county: str, election_date: str, snapshot_id
                 f"manifest {field_name} mismatch for {snapshot_id}: "
                 f"expected {expected_value!r}, got {manifest.get(field_name)!r}"
             )
-    if manifest.get("schema_version") != 1:
+    schema_version = manifest.get("schema_version")
+    if schema_version not in (1, 2):
         raise SnapshotValidationError(
-            f"unsupported manifest schema_version {manifest.get('schema_version')!r} in {snapshot_id}"
+            f"unsupported manifest schema_version {schema_version!r} in {snapshot_id}"
         )
     if not manifest.get("election_url"):
         raise SnapshotValidationError(f"manifest {snapshot_id} has no election_url")
+    return schema_version
 
 
-def _audit_documents(snapshot_id: str, manifest: dict, page: MeasuresPage, refs: dict[str, ArtifactRef]) -> None:
+def _recorded_entries(snapshot_id: str, manifest: dict) -> list[dict]:
+    entries = manifest.get("pdf_artifacts")
+    if not isinstance(entries, list):
+        raise SnapshotValidationError(
+            f"manifest {snapshot_id} has no pdf_artifacts list"
+        )
+    return entries
+
+
+def _audit_v2_capture(
+    snapshot_id: str,
+    manifest: dict,
+    page: CapturedMeasuresPage,
+) -> None:
     extracted = {
-        (document.filename, document.table_row, document.measure_letter, document.role, document.url)
+        (
+            document.filename,
+            document.table_row,
+            document.measure_letter,
+            document.column,
+            document.label,
+            document.url,
+        )
         for document in page.expected_documents
     }
-    recorded_entries = manifest.get("pdf_artifacts")
-    if not isinstance(recorded_entries, list):
-        raise SnapshotValidationError(f"manifest {snapshot_id} has no pdf_artifacts list")
+    entries = _recorded_entries(snapshot_id, manifest)
     try:
         recorded = {
             (
                 entry["filename"],
                 entry["table_row"],
                 entry["measure_letter"],
-                entry["role"],
+                entry["column"],
+                entry["label"],
                 entry["source_url"],
             )
-            for entry in recorded_entries
+            for entry in entries
         }
     except (KeyError, TypeError) as exc:
-        raise SnapshotValidationError(f"malformed pdf_artifacts in {snapshot_id}") from exc
-    if len(recorded_entries) != len(recorded):
-        raise SnapshotValidationError(f"duplicate pdf_artifacts audit entries in {snapshot_id}")
+        raise SnapshotValidationError(
+            f"malformed v2 pdf_artifacts in {snapshot_id}"
+        ) from exc
+    if len(entries) != len(recorded):
+        raise SnapshotValidationError(
+            f"duplicate pdf_artifacts audit entries in {snapshot_id}"
+        )
     if extracted != recorded:
         missing = sorted(extracted - recorded)
         extra = sorted(recorded - extracted)
         raise SnapshotValidationError(
-            f"extractor/manifest document mismatch in {snapshot_id}: missing={missing}, extra={extra}"
+            f"extractor/v2-manifest document mismatch in {snapshot_id}: "
+            f"missing={missing}, extra={extra}"
         )
 
-    filenames = {document.filename for document in page.expected_documents}
+
+def _v1_role_key(document: ExpectedDocument) -> tuple:
+    return (
+        document.table_row,
+        document.measure_letter,
+        document.role,
+        document.url,
+    )
+
+
+def _audit_and_rebind_v1(
+    snapshot_id: str,
+    manifest: dict,
+    page: MeasuresPage,
+) -> MeasuresPage:
+    """Audit role-bearing v1 entries and restore their immutable filenames."""
+    entries = _recorded_entries(snapshot_id, manifest)
+    try:
+        recorded_by_key = {
+            (
+                entry["table_row"],
+                entry["measure_letter"],
+                entry["role"],
+                entry["source_url"],
+            ): entry["filename"]
+            for entry in entries
+        }
+    except (KeyError, TypeError) as exc:
+        raise SnapshotValidationError(
+            f"malformed v1 pdf_artifacts in {snapshot_id}"
+        ) from exc
+    if len(entries) != len(recorded_by_key):
+        raise SnapshotValidationError(
+            f"duplicate pdf_artifacts audit entries in {snapshot_id}"
+        )
+
+    extracted = {_v1_role_key(document) for document in page.expected_documents}
+    recorded = set(recorded_by_key)
+    if extracted != recorded:
+        missing = sorted(extracted - recorded)
+        extra = sorted(recorded - extracted)
+        raise SnapshotValidationError(
+            f"interpreter/v1-manifest document mismatch in {snapshot_id}: "
+            f"missing={missing}, extra={extra}"
+        )
+
+    rows = tuple(
+        replace(
+            row,
+            documents=tuple(
+                replace(
+                    document,
+                    filename=recorded_by_key[_v1_role_key(document)],
+                )
+                for document in row.documents
+            ),
+        )
+        for row in page.rows
+    )
+    return MeasuresPage(
+        headers=page.headers,
+        rows=rows,
+        expected_documents=tuple(
+            document for row in rows for document in row.documents
+        ),
+    )
+
+
+def _audit_artifact_files(
+    snapshot_id: str,
+    manifest: dict,
+    filenames: set[str],
+    document_count: int,
+    refs: dict[str, ArtifactRef],
+) -> None:
     missing_refs = sorted(filenames - refs.keys())
     if missing_refs:
         raise SnapshotValidationError(f"manifest {snapshot_id} lacks document artifacts {missing_refs}")
@@ -227,10 +339,10 @@ def _audit_documents(snapshot_id: str, manifest: dict, page: MeasuresPage, refs:
         raise SnapshotValidationError(f"manifest {snapshot_id} has unaudited artifacts {unexpected_refs}")
 
     counts = manifest.get("pdf_counts") or {}
-    expected_count = len(page.expected_documents)
-    if counts.get("expected") != expected_count or counts.get("saved") != expected_count:
+    if counts.get("expected") != document_count or counts.get("saved") != document_count:
         raise SnapshotValidationError(
-            f"PDF count mismatch in {snapshot_id}: extractor={expected_count}, manifest={counts!r}"
+            f"PDF count mismatch in {snapshot_id}: extractor={document_count}, "
+            f"manifest={counts!r}"
         )
 
 
@@ -239,10 +351,11 @@ def _load_snapshot(
     county: str,
     election_date: str,
     snapshot_id: str,
-    extractor: Callable[[bytes, str], MeasuresPage],
+    extractor: Callable[[bytes, str], CapturedMeasuresPage],
+    interpreter: Callable[[CapturedMeasuresPage], MeasuresPage],
 ) -> ParsedSnapshot:
     manifest = store.get_manifest(county=county, election_date=election_date, snapshot_id=snapshot_id)
-    _validate_scope(manifest, county, election_date, snapshot_id)
+    schema_version = _validate_scope(manifest, county, election_date, snapshot_id)
 
     refs_list = store.list_artifacts(county=county, election_date=election_date, snapshot_id=snapshot_id)
     refs = {ref.filename: ref for ref in refs_list}
@@ -256,19 +369,39 @@ def _load_snapshot(
     verified: dict[str, bytes] = {}
     for ref in refs_list:
         verified[ref.filename] = store.get_artifact(ref)
-    page = extractor(verified["page.html"], manifest["election_url"])
+    captured_page = extractor(verified["page.html"], manifest["election_url"])
 
-    if manifest.get("table_row_count") != len(page.rows):
+    if manifest.get("table_row_count") != len(captured_page.rows):
         raise SnapshotValidationError(
-            f"row count mismatch in {snapshot_id}: extractor={len(page.rows)}, "
+            f"row count mismatch in {snapshot_id}: extractor={len(captured_page.rows)}, "
             f"manifest={manifest.get('table_row_count')!r}"
         )
-    if tuple(manifest.get("table_headers") or ()) != page.headers:
+    if tuple(manifest.get("table_headers") or ()) != captured_page.headers:
         raise SnapshotValidationError(
-            f"table header mismatch in {snapshot_id}: extractor={page.headers!r}, "
+            f"table header mismatch in {snapshot_id}: extractor={captured_page.headers!r}, "
             f"manifest={manifest.get('table_headers')!r}"
         )
-    _audit_documents(snapshot_id, manifest, page, refs)
+    if schema_version == 2:
+        _audit_v2_capture(snapshot_id, manifest, captured_page)
+    try:
+        # Ordering invariant: all snapshots become role-bearing pages here,
+        # before _link_snapshot() can compute an identity origin.
+        page = interpreter(captured_page)
+    except SbInterpretationError as exc:
+        raise SnapshotValidationError(
+            f"document interpretation failed in {snapshot_id}: {exc}"
+        ) from exc
+    if schema_version == 1:
+        page = _audit_and_rebind_v1(snapshot_id, manifest, page)
+
+    filenames = {document.filename for document in page.expected_documents}
+    _audit_artifact_files(
+        snapshot_id,
+        manifest,
+        filenames,
+        len(page.expected_documents),
+        refs,
+    )
     return ParsedSnapshot(snapshot_id, manifest, page, page_ref, refs)
 
 
@@ -587,6 +720,7 @@ def parse_election(
             election_date,
             replay_id,
             config.extractor,
+            config.interpreter,
         )
         links = _link_snapshot(lineages, parsed, config.lineage_overrides)
         if replay_id == selected:

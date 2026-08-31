@@ -628,6 +628,25 @@ def test_snapshot_writer_manifest_written_last_with_entries(store):
         assert entry["source_url"] == "https://example.gov/page"
 
 
+def test_snapshot_writer_supports_explicit_manifest_schema_v2(store):
+    writer = writer_scraper(store).open_snapshot("2026-03-24")
+    writer.finalize(schema_version=2)
+
+    manifest = store.get_manifest(
+        county="dummy",
+        election_date="2026-03-24",
+        snapshot_id=writer.snapshot_id,
+    )
+    assert manifest["schema_version"] == 2
+
+
+@pytest.mark.parametrize("schema_version", [0, -1, "2", None])
+def test_snapshot_writer_rejects_invalid_schema_version(store, schema_version):
+    writer = writer_scraper(store).open_snapshot("2026-03-24")
+    with pytest.raises(ScraperError, match="positive integer"):
+        writer.finalize(schema_version=schema_version)
+
+
 def test_snapshot_writer_save_after_finalize_raises(store):
     writer = writer_scraper(store).open_snapshot("2026-03-24")
     writer.finalize()

@@ -251,7 +251,12 @@ class SnapshotWriter:
         self._filenames.add(filename)
         return ref
 
-    def finalize(self, extra: Optional[dict] = None) -> str:
+    def finalize(
+        self,
+        extra: Optional[dict] = None,
+        *,
+        schema_version: int = 1,
+    ) -> str:
         """Write the snapshot manifest. Call exactly once, after all
         artifacts are saved. `extra` merges scraper-specific fields
         (e.g. source_base_url) into the manifest top level."""
@@ -260,8 +265,13 @@ class SnapshotWriter:
                 f"snapshot {self.county}/{self.election_date}/"
                 f"{self.snapshot_id} already finalized"
             )
+        if not isinstance(schema_version, int) or schema_version < 1:
+            raise ScraperError(
+                f"manifest schema_version must be a positive integer, got "
+                f"{schema_version!r}"
+            )
         manifest = {
-            "schema_version": 1,
+            "schema_version": schema_version,
             "county": self.county,
             "election_date": self.election_date,
             "snapshot_id": self.snapshot_id,
