@@ -11019,7 +11019,7 @@ class WebsiteGenerator:
         let heroCarouselIndex = 0;
         let heroCarouselItemsPerView = 3;
         const LOCAL_COUNTY_ROADMAP = [
-            'San Bernardino', 'Los Angeles', 'Orange', 'San Diego', 'Riverside'
+            'San Bernardino', 'San Mateo', 'Alameda', 'San Francisco', 'Contra Costa'
         ];
         let selectedLocalCounty = '';
         let localCarouselIndex = 0;

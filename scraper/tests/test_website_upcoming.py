@@ -111,10 +111,15 @@ def test_compact_card_carousel_keeps_scope_accessibility_and_statewide_renderer(
         "function handleLocalCardKey", 1
     )[0]
     normalized_script = re.sub(r"\s+", " ", script)
+    roadmap = script.split("const LOCAL_COUNTY_ROADMAP = [", 1)[1].split(
+        "];", 1
+    )[0]
 
     assert "const LOCAL_COUNTY_ROADMAP" in script
-    for county in ("San Bernardino", "Los Angeles", "Orange", "San Diego", "Riverside"):
-        assert f"'{county}'" in script
+    for county in ("San Bernardino", "San Mateo", "Alameda", "San Francisco", "Contra Costa"):
+        assert f"'{county}'" in roadmap
+    for county in ("Los Angeles", "Orange", "San Diego", "Riverside", "Santa Clara"):
+        assert f"'{county}'" not in roadmap
     assert "County — not yet captured" in script
     assert 'class="local-carousel-track" id="localCarouselTrack"' in script
     assert 'aria-live="polite"' in script
