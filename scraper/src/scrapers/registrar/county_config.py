@@ -35,6 +35,9 @@ COUNTY_CONFIGS = {
             # "Bond Measure" while assigning B and publishing first documents.
             # No automatic weak-key rule is allowed to make this decision.
             ("20260814T034259Z", 4): ("20260727T170014Z", 1),
+            # The same reviewed transition under the immutable production
+            # snapshot IDs. Keep the fixture pair above for local replay tests.
+            ("20260814T035115Z", 4): ("20260727T171800Z", 1),
         },
     ),
 }

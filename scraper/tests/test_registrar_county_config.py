@@ -13,3 +13,8 @@ def test_county_configuration_owns_source_and_extractor():
     assert config.county_name == "SAN BERNARDINO"
     assert config.data_source == "SB_County_Registrar"
     assert callable(config.extractor)
+    assert callable(config.interpreter)
+    assert config.lineage_overrides[("20260814T035115Z", 4)] == (
+        "20260727T171800Z",
+        1,
+    )
