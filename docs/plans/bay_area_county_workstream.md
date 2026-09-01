@@ -9,6 +9,13 @@
 > This file is the *sequence, the debts, and the gates*.
 >
 > **Written 2026-08-31.** San Mateo build is in flight with Codex.
+>
+> **Amended same day** by a live scout of Alameda and Santa Clara —
+> see [`scout_alameda_santa_clara.md`](scout_alameda_santa_clara.md).
+> B2 is answered and cancelled, Alameda drops to 3–4 days, C3 unblocks
+> two counties rather than three, and a cross-county regional measure
+> needs a decision before San Mateo lands. Corrections are marked
+> **[scouted]** below.
 
 ---
 
@@ -39,13 +46,16 @@ Ordered by that constraint, not by volume:
 | | County | Useful by Oct 5? | Read |
 |---|---|---|---|
 | 1 | San Mateo | ✅ | comfortable |
-| 2 | Alameda | ⚠️ | tight — OCR is the risk |
-| 3 | Santa Clara | ⚠️ | gated on Cloudflare + finding the page |
+| 2 | Alameda | ✅ | **upgraded [scouted]** — OCR is off the path |
+| 3 | Santa Clara | ❌ | **downgraded [scouted]** — 403 firewall block |
 | 4 | San Francisco | ⚠️ | gated on the guide coming back |
 | 5 | Contra Costa | ❌ | archive value only this cycle |
 
-**Honest read: two counties are safe for November, two are coin flips,
-one is not happening this cycle.** Everything past San Mateo competes
+**Honest read after scouting: two counties are safe for November, one
+is a coin flip, two are not happening this cycle.** Alameda moved up
+and Santa Clara moved down, and on balance that is good news — the
+county that got easier is the one worth 5.4% of measure volume, and
+the one that got harder was never going to be cheap. Everything past San Mateo competes
 for the same five weeks, so the sequence below front-loads the cheap
 unblocking work and treats the gated counties as parallel tracks that
 either clear or get deferred to 2028 without stalling the rest.
@@ -208,27 +218,45 @@ pipeline.
 
 - [ ] **B1 · Rename the table-shaped contract (D2).** 1 day. Do it
       here, with two known page shapes in hand.
-- [ ] **B2 · OCR spike — timeboxed to 1 day, and a real go/no-go.**
-      Alameda ships one scanned 15-page PDF per measure containing
-      submittal, resolution, full text and tax-rate material with
-      **no text layer**. Question: can roles be segmented reliably
-      from OCR'd page text, or can the packet only be captured whole?
-      Note the recon inspected **one** packet of 28 — do not assume
-      the rest match.
-- [ ] **B3 · Build**, 5–8 days, contingent on B2. Enumeration is
+- [x] **B2 · OCR spike — CANCELLED, question answered [scouted].**
+      All 30 PDFs were downloaded and measured: **569 pages, 11 with
+      any extractable text (2%), and 22 of 28 measure packets have
+      zero.** The only text-bearing files are the two non-measure
+      Randomized Alphabet PDFs. Page counts run 5–56, not a uniform
+      15, and the little embedded text that exists is already-bad OCR
+      ("IXI Argument in Favor"). There is no partial-OCR path: it is
+      all of it or none of it. **Take none.**
+- [ ] **B3 · Build**, **3–4 days [scouted]** — OCR was the entire
+      difference between this and San Mateo. Two hosts: the election
+      page on `acvote.alamedacountyca.gov`, the measure questions on
+      **`alamedacountyca.gov`** (the recon's path 404s on the acvote
+      host). Enumeration is
       clean: opaque election IDs read from the server-rendered
       landing page (never scan integer ranges — `262` is August 2026,
       `260` is November, `259` is June), plus a server-rendered HTML
-      fragment at `/rov_app/measures/election/{id}` carrying all 28
+fragment at `/rov_app/measures/election/{id}` carrying all 28
       titles, jurisdictions, ballot questions and thresholds inline.
       No anti-bot barrier; Playwright not needed.
 
-**If B2 says segmentation is unreliable, capture the packet as a
-single document with an honest `role="packet"` and ship the inline
-ballot questions from the fragment.** That is still a genuinely useful
-card — jurisdiction, question, threshold, and a link to the official
-record — and far better than slipping past October 5 chasing per-role
-OCR.
+**The "fallback" is now the primary design [scouted].** Capture each
+packet whole as `role="packet"`; take letter, jurisdiction, title,
+threshold and the **full ballot question** from the fragment, which is
+clean server-rendered HTML needing no OCR at all. The card loses
+nothing a voter would notice — only the ability to deep-link to a
+specific argument inside a scanned packet.
+
+Three gotchas to pin as fixtures, all verified live: measure PDFs sit
+under `.../PDFs/{YYYYMMDD}/Measures/` while the two non-measure
+Randomized Alphabet PDFs sit under `.../{YYYYMMDD}/Random Alpha/`, so
+**exclude by path, not by label**; one filename contains literal
+spaces (`city_of_berkeley sales tax measure.pdf`); and the two hosts
+disagree on title casing ("City of Alameda" vs "City Of Alameda"), so
+**join them on measure letter, never on title**.
+
+**Do not load Alameda's published threshold blindly.** Four of 28 read
+`N/A`, including a school parcel tax (legally 2/3) and a school GO
+bond (55%). `N/A` means unpublished, not unthresholded — load null and
+fail loud. KNOWN_ISSUES #1 from a new source.
 
 ### Track C — the gated counties, in parallel
 
@@ -240,7 +268,17 @@ These do not block each other, and none should block Alameda.
       not discoverable on Aug 31 — but the argument/rebuttal filing
       forms are live, so measures likely exist. CMS slugs are opaque
       and must be discovered from `/elections`, never guessed.
-      **Blocked by C3.**
+      **Blocked on a policy decision, not on C3 [scouted].** Every
+      county host — `vote.santaclaracounty.gov`, `sccvote.sccgov.org`,
+      `www.sccgov.org`, and even their `robots.txt` — returns HTTP 403
+      "Attention Required!". That is a firewall *block*, not the 503
+      JavaScript challenge Playwright solves, so a headless browser on
+      the same IP and UA will be refused identically. There is no open
+      data alternative either: `data.sccgov.org` is reachable but holds
+      zero ballot-measure datasets. **Recommended move: email the
+      Registrar for an allowlist entry or a feed.** Search engines
+      crawl these pages fine, so the rule is keyed on UA or IP, not on
+      the content. Spoofing a browser UA stays off the table.
 - [ ] **C2 · San Francisco: re-probe when the guide returns.** The
       Department's calendar confirms the source material exists —
       ballot questions and Controller analyses were due Aug 10,
@@ -251,9 +289,11 @@ These do not block each other, and none should block Alameda.
       Re-probe weekly; build only once the structure is verifiable.
       4–7 days once live.
 - [ ] **C3 · Resolve the Playwright politeness prerequisite.**
-      Gates Santa Clara, Contra Costa and Riverside — three counties
-      on one ~1–2 day fix, which makes it the highest-leverage item
-      in Track C. See §5.
+      Gates **Contra Costa and Riverside — two counties, not three
+      [scouted]**. Both return solvable *challenges* (Contra Costa
+      HTTP 202 with `x-amzn-waf-action: challenge`); Santa Clara
+      returns a hard 403 block that a browser will not talk its way
+      past. ~1–2 days. See §5.
 - [ ] **C4 · Contra Costa: browser recon.** After C3. The live site
       returns HTTP 202 with `x-amzn-waf-action: challenge`. Its
       forward-publication behavior is **unknown, not absent** — do not
@@ -338,6 +378,20 @@ scaling.
 
 ## 7. Cross-cutting
 
+- [ ] **Regional measures span counties — decide before San Mateo
+      lands [scouted].** "Measure RTM" is one real measure on the
+      ballot in **Alameda, Contra Costa, San Mateo, Santa Clara and
+      San Francisco**. Verified in two so far, and they disagree:
+      Alameda calls it `Measure RTM` with threshold `N/A`, San Mateo
+      calls it `Regional Measure` requiring `Majority Voter Approval`.
+      Identity is minted as `REG_{COUNTY}_{DATE}_{digest}`, so five
+      scrapers will mint five IDs for one measure, with contradictory
+      thresholds and no relationship between them. Three of the five
+      counties are in this workstream and San Mateo is building now.
+      **Suggested shape:** keep per-county rows — they are genuinely
+      different ballot items with different local documents — and add
+      a nullable `regional_measure_key` they share, letting the UI
+      cross-link or collapse. Cheap now, expensive after five ship.
 - [ ] **`measure_documents` table (open threads F1).** San Bernardino
       captures 105 documents; the database stores **one `pdf_url` per
       measure**. San Mateo will add ~135 more, Alameda 28 packets. The

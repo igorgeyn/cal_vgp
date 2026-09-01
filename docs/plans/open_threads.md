@@ -7,7 +7,7 @@
 > per-county state read [`county_status.md`](county_status.md).
 >
 > Undated filename on purpose — this file is updated in place rather
-> than re-created per session. **Last updated: 2026-08-31.**
+> than re-created per session. **Last updated: 2026-08-31** (amended after the Alameda/Santa Clara scout).
 
 **State:** San Bernardino live (20 measures / 105 documents, 6 prod
 snapshots). Compact local-measure cards published (`dbc7609`). Use
@@ -44,21 +44,32 @@ before starting a third.
 
 - [ ] **B1 · Rename the table-shaped contract (debt D2).** 1 day,
       after San Mateo, with two real page shapes in hand.
-- [ ] **B2 · OCR spike — 1 day, hard go/no-go.** Scanned 15-page
-      packets, no text layer. Only 1 of 28 was inspected in recon.
-- [ ] **B3 · Build**, 5–8 days, contingent on B2. Fallback if
-      segmentation is unreliable: whole-packet `role="packet"` plus
-      the inline ballot questions from `/rov_app/measures/election/{id}`.
+- [x] **B2 · OCR spike — CANCELLED 2026-08-31, answered by scouting.**
+      569 pages across 30 PDFs, **11 pages (2%) with extractable
+      text**, 22 of 28 packets with none. No partial path exists.
+- [ ] **B3 · Build**, **3–4 days** (was 5–8; OCR was the difference).
+      Capture packets whole as `role="packet"`; take letter,
+      jurisdiction, title, threshold and full ballot question from the
+      HTML fragment. **Two hosts** — election page on
+      `acvote.alamedacountyca.gov`, measures on `alamedacountyca.gov`.
+      Exclude non-measure PDFs **by path** (`/Random Alpha/`), join
+      the hosts **on letter** (casing differs), and never load the
+      four `N/A` thresholds as values.
 
 ## C. Track C: gated counties (parallel, non-blocking)
 
-- [ ] **C1 · Santa Clara — find the November measure list.** Blocked
-      by C3.
+- [ ] **C1 · Santa Clara — BLOCKED, and not by C3.** Every host
+      (`vote.santaclaracounty.gov`, `sccvote.sccgov.org`,
+      `www.sccgov.org`, and their `robots.txt`) returns HTTP 403
+      "Attention Required!" — a firewall block, not the 503 challenge
+      Playwright solves. No open-data alternative
+      (`data.sccgov.org` has zero measure datasets). **Next move is an
+      email to the Registrar**, not engineering. See G6.
 - [ ] **C2 · San Francisco — re-probe weekly** until the voter guide
       leaves maintenance. Do not build against the 503 shell.
 - [ ] **C3 · Playwright politeness prerequisite.** ~1–2 days,
-      unblocks three counties (Santa Clara, Contra Costa, Riverside).
-      **Highest leverage item in Track C.** Supersedes old F4.
+      unblocks **two** counties (Contra Costa, Riverside) — Santa
+      Clara's 403 is not browser-solvable. Supersedes old F4.
 - [ ] **C4 · Contra Costa browser recon.** After C3. Forward
       publication is *unknown*, not absent.
 
@@ -108,6 +119,12 @@ cannot land before ballots mail (~Oct 5). Cut for this cycle.
 
 ## F. Larger parked items
 
+- [ ] **F0 · Regional measures span counties.** "Measure RTM" is one
+      measure on five county ballots (Alameda, Contra Costa, San
+      Mateo, Santa Clara, SF), published under different names and
+      thresholds. Per-county identity minting gives five unrelated
+      records. **Decide before San Mateo lands** — suggested shape is
+      a shared nullable `regional_measure_key` over per-county rows.
 - [ ] **F1 · `measure_documents` table.** SB captures 105 documents;
       the DB stores **one `pdf_url` per measure**. San Mateo adds ~135
       more. Largest piece of captured-but-unused value in the project.
@@ -126,7 +143,7 @@ cannot land before ballots mail (~Oct 5). Cut for this cycle.
       fixture. Reduces cost per event once event count is what scales.
 
 *(F4 — Riverside Playwright prerequisite — is now C3, since it gates
-three counties rather than one.)*
+Contra Costa as well as Riverside.)*
 
 ## G. Decisions only you can make
 
@@ -140,9 +157,16 @@ three counties rather than one.)*
       problem (KNOWN_ISSUES #12).
 - [ ] **G4 · R2 token rotation.** Credentials passed through chat
       2026-07-09. Two minutes; never required, still offered.
-- [ ] **G5 · Alameda OCR fallback.** Is a whole-packet card
-      acceptable for November if role segmentation proves unreliable?
-      *Recommendation: yes.*
+- [x] **G5 · Alameda OCR fallback — RESOLVED by measurement.** Role
+      segmentation is not merely unreliable, it is impossible without
+      OCRing 569 scanned pages. Whole-packet it is.
+- [ ] **G6 · Santa Clara: email the Registrar?** The honest path to a
+      403-blocked county is to ask for an allowlist entry or a feed.
+      Costs one email; plausibly works. The alternative is deferring
+      the county to 2028. Spoofing a browser UA should stay off the
+      table.
+- [ ] **G7 · Regional measure modeling.** See F0 — five near-duplicate
+      cards, or one cross-linked measure?
 
 ---
 

@@ -21,9 +21,9 @@
 | County | Share of local measures | Status | Publishes ahead? | Nov 2026 visible | Documents | Effort | Blocker |
 |---|---:|---|---|---|---|---|---|
 | **San Bernardino** | 3.3% | 🟢 **LIVE** | ✅ ~4 months | **20 measures / 105 docs** | 9 roles, separate files | — | none |
-| **San Mateo** | 4.2% | 🔵 **next build** | ✅ verified | **29 measures / ~135 docs** | 6 labels, some composite | 3–5d | none |
-| **Alameda** | 5.4% | 🟡 recon'd | ✅ verified | 28 measures | scanned combined packets | 5–8d | OCR + segmentation |
-| **Santa Clara** | 4.8% | 🟡 recon'd | ✅ (June proven) | unverified | unknown | 6–10d | Cloudflare; Nov page not found |
+| **San Mateo** | 4.2% | 🟣 **built / not enabled** | ✅ verified | **29 measures / 135 docs** | 8 labels, composite packets | review | rollout intentionally separate |
+| **Alameda** | 5.4% | 🟢 **scouted, ready** | ✅ verified | **28 measures / 30 PDFs** | 1 scanned packet each; questions in HTML | **3–4d** | none — OCR taken off the path |
+| **Santa Clara** | 4.8% | 🔴 **blocked** | ✅ (June proven) | unreachable | unknown | — | **403 firewall on every host** |
 | **San Francisco** | 3.5% | 🟡 recon'd | ⏳ materials collected | guide offline | unknown | 4–7d | voter guide in maintenance |
 | **Contra Costa** | 3.4% | 🟡 recon'd | ❓ unknown | unknown | archive 1997–2025 | 7–12d | AWS WAF |
 | **Los Angeles** | 12.6% | 🟠 **archive only** | ❌ **no** | none — IDs >4338 are 500 | results only, 73 elections | 3–4d | publishes at/after election day |
@@ -70,6 +70,14 @@ process as it happens, which is material no other source retains.
 **not** in the database — only one `pdf_url` per measure is. That gap
 is the `measure_documents` table (open threads F1).
 
+**San Mateo, November 3 2026** — the source adapter, fixture-pinned
+extractor, offline interpreter, and runner registration are built. The pinned
+page has 29 measure panels and 135 linked artifacts. Composite PDFs expand to
+several semantic roles only during offline interpretation; four county charter
+measures legitimately share one source packet, so San Mateo identity uses each
+measure's unique impartial-analysis URL first. The county is deliberately not
+in `ENABLED_COUNTIES`; production rollout remains a separate review step.
+
 ## What we think we can obtain
 
 **This cycle (Nov 2026):** San Mateo is a straightforward yes.
@@ -89,19 +97,29 @@ Per-county adapters are the wrong tool at that scale.
 
 ## Known obstacles, by kind
 
-**Anti-bot.** Santa Clara (Cloudflare), Contra Costa (AWS WAF),
-Riverside (Cloudflare). The Playwright fetch path exists but has an
-unresolved prerequisite: it checks robots and rate-limits the initial
-navigation URL, then delegates redirects and subresource loads to the
-browser, where neither applies. It is also single-attempt, and
-hard-codes `text/html`. Resolve before enabling any of these three —
-one ~1-2 day fix unblocks all of them. See the workstream plan §5.
+**Anti-bot — and two different kinds of it (scouted 2026-08-31).**
+Contra Costa (AWS WAF, HTTP 202 `x-amzn-waf-action: challenge`) and
+Riverside serve *challenges*, which a browser can solve. **Santa Clara
+serves a 403 "Attention Required!" block on every host tested** —
+`vote.santaclaracounty.gov`, `sccvote.sccgov.org`, `www.sccgov.org`,
+and their `robots.txt` — which a browser cannot, since the WAF has
+already refused the IP/UA. So the Playwright prerequisite unblocks
+**two** counties, not three. That fix remains worth ~1–2 days: today
+the path checks robots and rate-limits only the initial navigation,
+then hands redirects and subresources to the browser where neither
+applies; it is also single-attempt and hard-codes `text/html`. Santa
+Clara needs a different move entirely — ask the Registrar for access.
+See the workstream plan §5 and the scout §2.
 
-**Document shape.** Alameda ships scanned, *combined* PDF packets
-needing OCR and segmentation. San Mateo has composite documents —
-"Resolution, Full Text and Tax Rate Statement" is one PDF carrying
-three roles, which breaks the one-document-one-role assumption in the
-current model.
+**Document shape.** Alameda ships scanned, *combined* PDF packets:
+measured at **569 pages with 11 (2%) carrying extractable text, and 22
+of 28 packets with none at all**. There is no partial-OCR path — but
+the structured data (letter, jurisdiction, title, threshold, full
+ballot question) is served as clean HTML from a second host, so the
+answer is to capture packets whole and skip OCR entirely. San Mateo
+has composite documents — "Resolution, Full Text and Tax Rate
+Statement" is one PDF carrying three roles, which breaks the
+one-document-one-role assumption in the current model.
 
 **Source timing.** Los Angeles publishes only at/after election day.
 San Francisco's voter guide is in maintenance. Neither is a defect to
@@ -109,6 +127,12 @@ engineer around; both are calendar facts to wait out.
 
 **Unfound pages.** San Diego's per-election measures listing has never
 been located despite the polite UA defeating its 403.
+
+**Cross-county duplication (new, scouted).** "Measure RTM" is one
+measure on the ballot in five of these counties, and they publish it
+under different names and different thresholds. Per-county identity
+minting will produce five unrelated records. Needs a decision before
+San Mateo lands — see the workstream plan §7.
 
 **Maintenance, the real ceiling.** Drift has run ~1 event per county
 per 2 weeks. The capture/interpretation decoupling (shipped
@@ -118,9 +142,8 @@ structural drift still reds the cron. See the workplan §5.
 
 ## Next actions
 
-1. **Build San Mateo** — prompt at
-   [`../codex/san_mateo_scraper_build.md`](../codex/san_mateo_scraper_build.md).
-2. **Alameda** after it, accepting the OCR work.
+1. **Review and enable San Mateo** as a separate production rollout.
+2. **Build Alameda** after it, accepting the OCR work.
 3. **Re-probe San Francisco** once the voter guide returns.
 4. **Resolve the Playwright per-hop politeness prerequisite** before
    Santa Clara, Contra Costa, or Riverside.
