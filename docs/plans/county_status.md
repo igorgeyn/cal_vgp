@@ -7,7 +7,9 @@
 > [`registrar_county_expansion_workplan.md`](registrar_county_expansion_workplan.md),
 > the build procedure in
 > [`../setup/registrar_developer_guide.md`](../setup/registrar_developer_guide.md).
-> This file is the index over them.
+> This file is the index over them. The sequence, the architectural
+> debts, and the gates are in
+> [`bay_area_county_workstream.md`](bay_area_county_workstream.md).
 >
 > **Last updated: 2026-08-31.** Update the row when a county's status
 > changes; update "Captured now" after a notable cron run.
@@ -89,9 +91,11 @@ Per-county adapters are the wrong tool at that scale.
 
 **Anti-bot.** Santa Clara (Cloudflare), Contra Costa (AWS WAF),
 Riverside (Cloudflare). The Playwright fetch path exists but has an
-unresolved prerequisite: it delegates redirects to the browser, so the
-per-hop robots and rate-limit guarantees do not apply. Resolve before
-enabling any of these three.
+unresolved prerequisite: it checks robots and rate-limits the initial
+navigation URL, then delegates redirects and subresource loads to the
+browser, where neither applies. It is also single-attempt, and
+hard-codes `text/html`. Resolve before enabling any of these three —
+one ~1-2 day fix unblocks all of them. See the workstream plan §5.
 
 **Document shape.** Alameda ships scanned, *combined* PDF packets
 needing OCR and segmentation. San Mateo has composite documents —
