@@ -16,6 +16,7 @@ from zoneinfo import ZoneInfo
 from bs4 import BeautifulSoup
 
 from .base import CountyRegistrarScraper, ScraperError, ScrapeResult
+from .contracts import CapturedDocument, CapturedMeasureRow, CapturedMeasuresPage
 
 
 LA_TZ = ZoneInfo("America/Los_Angeles")
@@ -71,35 +72,6 @@ class SmcEnumerationError(ScraperError):
 class ElectionCandidate:
     election_date: date
     url: str
-
-
-@dataclass(frozen=True)
-class CapturedDocument:
-    filename: str
-    url: str
-    column: str          # owning measure-group heading (audit context)
-    label: str
-    measure_letter: str
-    table_row: int       # shared parser name; 1-based measure-panel index
-
-
-@dataclass(frozen=True)
-class CapturedMeasureRow:
-    table_row: int
-    letter: str
-    jurisdiction: str
-    description: str
-    percentage_to_pass: str
-    documents: tuple[CapturedDocument, ...]
-
-
-@dataclass(frozen=True)
-class CapturedMeasuresPage:
-    # The shared manifest field is named table_headers for schema compatibility;
-    # San Mateo stores its ordered measure-group headings here.
-    headers: tuple[str, ...]
-    rows: tuple[CapturedMeasureRow, ...]
-    expected_documents: tuple[CapturedDocument, ...]
 
 
 def _norm_text(node_or_text) -> str:
@@ -219,8 +191,9 @@ def _split_heading(group: str, heading: str, row_number: int) -> tuple[str, str,
     if match:
         letter = match.group(1).upper()
     elif group == "regional measure" and designation.casefold() == "regional transit measure":
-        # This four-county measure has a name but no alphanumeric designation.
-        letter = "Regional Transit"
+        # This five-county measure has no San Mateo designation. Preserve the
+        # absence; another county's label is not evidence for this source.
+        letter = ""
     else:
         raise SmcSchemaError(
             f"unknown measure designation in panel {row_number}: {designation!r}"

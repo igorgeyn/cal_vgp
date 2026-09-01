@@ -67,3 +67,13 @@ def test_explicit_output_keeps_auxiliary_page_inside_scratch_root(tmp_path: Path
     assert not default_output.exists()
     assert not (default_output.parent / "use-calballot" / "index.html").exists()
     database.close()
+
+
+def test_absent_registrar_letter_does_not_expose_internal_identity(tmp_path: Path):
+    database = Database(tmp_path / "measures.db")
+    generator = WebsiteGenerator(database=database, output_path=tmp_path / "unused.html")
+
+    html = generator._generate_html([], {}, [], {})
+
+    assert "if (mid.startsWith('REG_')) return null;" in html
+    database.close()

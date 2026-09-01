@@ -3,13 +3,14 @@ from __future__ import annotations
 
 import re
 
-from .sb_interpretation import (
+from .contracts import (
+    CapturedMeasureRow,
+    CapturedMeasuresPage,
     ExpectedDocument,
     MeasureRow,
     MeasuresPage,
-    SbInterpretationError,
+    RegistrarInterpretationError,
 )
-from .smc import CapturedMeasureRow, CapturedMeasuresPage
 
 
 # A tuple is deliberate: composite packets are stored once but expanded into
@@ -31,7 +32,7 @@ LABEL_ROLES: dict[str, tuple[str, ...]] = {
 }
 
 
-class SmcInterpretationError(SbInterpretationError):
+class SmcInterpretationError(RegistrarInterpretationError):
     """Captured San Mateo labels cannot be assigned without guessing."""
 
 

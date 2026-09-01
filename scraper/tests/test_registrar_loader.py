@@ -113,6 +113,16 @@ def _database(path: Path) -> Path:
     return path
 
 
+def test_empty_measure_letter_is_valid_and_not_required_for_loading(tmp_path: Path):
+    db_path = _database(tmp_path / "measures.db")
+    jsonl = _write(tmp_path / "records.jsonl", [_record(letter="")])
+
+    report = load_jsonl(jsonl, db_path=db_path, commit=False)
+
+    assert report.conflicts == ()
+    assert report.inserted == 1
+
+
 def _rows(db_path: Path) -> list[sqlite3.Row]:
     connection = sqlite3.connect(db_path)
     connection.row_factory = sqlite3.Row

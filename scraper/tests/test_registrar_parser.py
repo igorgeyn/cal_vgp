@@ -327,6 +327,37 @@ def test_reuploaded_documents_and_swapped_letters_raise_instead_of_swapping_iden
         _link_snapshot(lineages, second)
 
 
+def test_override_cannot_make_a_shared_url_look_uniquely_owned():
+    shared_url = "https://example.test/shared-packet.pdf"
+    first = _synthetic_snapshot(
+        "20260801T000000Z",
+        (
+            _synthetic_row(1, "A", "Alpha", shared_url),
+            _synthetic_row(2, "B", "Beta", shared_url),
+        ),
+    )
+    second = _synthetic_snapshot(
+        "20260808T000000Z",
+        (
+            _synthetic_row(1, "A", "Alpha", shared_url),
+            _synthetic_row(2, "TBD", "Gamma", shared_url),
+        ),
+    )
+    lineages = []
+    _link_snapshot(lineages, first)
+    original_second_lineage = lineages[1]
+
+    links = _link_snapshot(
+        lineages,
+        second,
+        {("20260808T000000Z", 1): ("20260801T000000Z", 1)},
+    )
+
+    assert links[1] is not original_second_lineage
+    assert links[1].origin_snapshot_id == "20260808T000000Z"
+    assert len(lineages) == 3
+
+
 def test_parser_rejects_checksum_corruption(tmp_path: Path):
     store = LocalArtifactStore(tmp_path / "raw")
     paths = _put_snapshot(store, "20260814T035115Z", "measures_2026_1103_lettered.html")

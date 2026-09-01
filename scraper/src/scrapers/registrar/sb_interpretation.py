@@ -8,9 +8,14 @@ roles and enforce the county's strict document rules.
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass
-
-from .sb import CapturedMeasureRow, CapturedMeasuresPage
+from .contracts import (
+    CapturedMeasureRow,
+    CapturedMeasuresPage,
+    ExpectedDocument,
+    MeasureRow,
+    MeasuresPage,
+    RegistrarInterpretationError,
+)
 
 
 # Label-keyed cells: role comes from each link's own label, and a label may
@@ -42,36 +47,8 @@ COLUMN_ROLES = {
 }
 
 
-class SbInterpretationError(ValueError):
+class SbInterpretationError(RegistrarInterpretationError):
     """Captured SB structure cannot be assigned roles without guessing."""
-
-
-@dataclass(frozen=True)
-class ExpectedDocument:
-    """One captured PDF after strict offline role assignment."""
-
-    filename: str
-    url: str
-    role: str
-    measure_letter: str
-    table_row: int
-
-
-@dataclass(frozen=True)
-class MeasureRow:
-    table_row: int
-    letter: str
-    jurisdiction: str
-    description: str
-    percentage_to_pass: str
-    documents: tuple[ExpectedDocument, ...]
-
-
-@dataclass(frozen=True)
-class MeasuresPage:
-    headers: tuple[str, ...]
-    rows: tuple[MeasureRow, ...]
-    expected_documents: tuple[ExpectedDocument, ...]
 
 
 def _normalized_label(value: str) -> str:

@@ -14421,6 +14421,10 @@ class WebsiteGenerator:
                 return 'Measure ' + letter;
             }}
 
+            // Registrar IDs are internal lineage keys, not public ballot
+            // designations. An honestly absent county letter stays absent.
+            if (mid.startsWith('REG_')) return null;
+
             // If measure_id is not a CEDA numeric ID, it might be usable
             if (mid && !/^\d{{9,}}$/.test(mid)) {{
                 return mid;

@@ -17,12 +17,12 @@ from typing import Callable, Iterable, Optional
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 from .county_config import COUNTY_CONFIGS, derive_election_type, get_county_config
-from .sb import CapturedMeasuresPage
-from .sb_interpretation import (
+from .contracts import (
+    CapturedMeasuresPage,
     ExpectedDocument,
     MeasureRow,
     MeasuresPage,
-    SbInterpretationError,
+    RegistrarInterpretationError,
 )
 from .storage import ArtifactRef, RawArtifactStore, make_store
 
@@ -402,7 +402,7 @@ def _load_snapshot(
         # Ordering invariant: all snapshots become role-bearing pages here,
         # before _link_snapshot() can compute an identity origin.
         page = interpreter(captured_page)
-    except SbInterpretationError as exc:
+    except RegistrarInterpretationError as exc:
         raise SnapshotValidationError(
             f"document interpretation failed in {snapshot_id}: {exc}"
         ) from exc
@@ -514,8 +514,8 @@ def _link_snapshot(
     # Shared packets are legitimate in San Mateo, so shared URLs are ignored;
     # a measure-specific analysis/argument URL can still identify one lineage.
     url_owners: dict[str, set[int]] = {}
-    for lineage_index in unmatched_lineages:
-        for url in lineages[lineage_index].document_urls:
+    for lineage_index, lineage in enumerate(lineages):
+        for url in lineage.document_urls:
             url_owners.setdefault(url, set()).add(lineage_index)
     url_pairs = []
     for row_index in sorted(unmatched_rows):
@@ -525,6 +525,7 @@ def _link_snapshot(
                 next(iter(url_owners[url]))
                 for url in urls
                 if len(url_owners.get(url, ())) == 1
+                and next(iter(url_owners[url])) in unmatched_lineages
             }
         )
         if len(candidates) > 1:

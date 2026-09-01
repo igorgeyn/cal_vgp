@@ -9,8 +9,9 @@ from dataclasses import dataclass, field
 from datetime import date
 from typing import Callable
 
-from .sb import CapturedMeasuresPage, extract_measures_page
-from .sb_interpretation import MeasuresPage, interpret_measures_page
+from .contracts import CapturedMeasuresPage, MeasuresPage
+from .sb import extract_measures_page
+from .sb_interpretation import interpret_measures_page
 from .smc import extract_measures_page as extract_smc_measures_page
 from .smc_interpretation import interpret_measures_page as interpret_smc_measures_page
 

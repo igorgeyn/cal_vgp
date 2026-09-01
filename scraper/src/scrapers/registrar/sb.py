@@ -32,7 +32,6 @@ no active anchors + no forward candidates = successful idle run.
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass
 from datetime import date, timezone
 from urllib.parse import urljoin, urlparse
 from zoneinfo import ZoneInfo
@@ -40,6 +39,7 @@ from zoneinfo import ZoneInfo
 from bs4 import BeautifulSoup
 
 from .base import CountyRegistrarScraper, ScraperError, ScrapeResult
+from .contracts import CapturedDocument, CapturedMeasureRow, CapturedMeasuresPage
 
 LA_TZ = ZoneInfo("America/Los_Angeles")
 
@@ -79,34 +79,6 @@ class SbSchemaError(ScraperError):
 class SbEnumerationError(ScraperError):
     """Election discovery violated the coverage contract (empty
     discovery or a missing active anchor)."""
-
-
-@dataclass(frozen=True)
-class CapturedDocument:
-    """One advertised link captured without assigning a role."""
-    filename: str        # neutral, storage-safe, snapshot-local
-    url: str             # resolved absolute HTTPS
-    column: str          # normalized table header
-    label: str           # normalized visible link text, case preserved
-    measure_letter: str  # raw Letter cell text (e.g. "V", "TBD")
-    table_row: int       # 1-based data-row index
-
-
-@dataclass(frozen=True)
-class CapturedMeasureRow:
-    table_row: int
-    letter: str
-    jurisdiction: str
-    description: str
-    percentage_to_pass: str
-    documents: tuple[CapturedDocument, ...]
-
-
-@dataclass(frozen=True)
-class CapturedMeasuresPage:
-    headers: tuple[str, ...]          # normalized, table order
-    rows: tuple[CapturedMeasureRow, ...]
-    expected_documents: tuple[CapturedDocument, ...]
 
 
 def _norm_text(node_or_text) -> str:

@@ -11,6 +11,7 @@ from urllib.parse import urlparse
 import pytest
 
 from src.scrapers.registrar import smc_interpretation
+from src.scrapers.registrar.contracts import RegistrarInterpretationError
 from src.scrapers.registrar.parser import SnapshotValidationError, parse_election
 from src.scrapers.registrar.smc import (
     EXPECTED_GROUPS,
@@ -26,6 +27,7 @@ from src.scrapers.registrar.smc_interpretation import (
     SmcInterpretationError,
     interpret_measures_page,
 )
+from src.scrapers.registrar.sb_interpretation import SbInterpretationError
 from src.scrapers.registrar.storage import LocalArtifactStore
 
 
@@ -202,7 +204,7 @@ def test_live_fixture_exact_capture_contract():
     }
     assert captured.rows[0].letter == "L"
     assert captured.rows[0].jurisdiction == "San Mateo County"
-    assert captured.rows[4].letter == "Regional Transit"
+    assert captured.rows[4].letter == ""
     assert captured.rows[-3].letter == "G"  # fixture has extra heading whitespace
 
 
@@ -547,6 +549,8 @@ def test_newly_discovered_future_election_is_collected(store):
 
 
 def test_unknown_label_does_not_red_capture_but_reds_offline_parse(store, tmp_path):
+    assert SmcInterpretationError.__bases__ == (RegistrarInterpretationError,)
+    assert SbInterpretationError.__bases__ == (RegistrarInterpretationError,)
     body = measures_html(
         group_panels={
             "county measures": panel_html(links=wrapper("New County Filing"))
