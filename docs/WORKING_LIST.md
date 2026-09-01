@@ -451,6 +451,18 @@ checks pass; Phase F manual checklist signed off via browser spot-check).
       county three, so a new document type breaks an offline parse
       rather than the weekly cron.
 
+- [ ] **County status board** — running tracker at
+      [`docs/plans/county_status.md`](plans/county_status.md)
+      (2026-08-31). One table: where each county stands, what we have,
+      what we think we can obtain, and the blockers. **Update the row
+      when a county's status changes.** Headline from the Bay Area
+      recon: San Bernardino is *not* unusual in publishing ahead — two
+      of five newly probed counties expose November 2026 measures now,
+      so current-election coverage is reachable this cycle.
+      Next build is **San Mateo** (29 measures, impartial analysis on
+      all 29, both-sides arguments); prompt at
+      [`docs/codex/san_mateo_scraper_build.md`](codex/san_mateo_scraper_build.md).
+
 ### NARRATIVE / IDEATION (new product directions)
 
 - [ ] **Thematic policy explorations.** Build visualizations + compelling
