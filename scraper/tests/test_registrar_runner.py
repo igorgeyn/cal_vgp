@@ -47,6 +47,12 @@ def test_resolve_enabled_lists_sb():
     assert resolve_counties("enabled") == ["sb"]
 
 
+def test_smc_is_registered_but_not_enabled():
+    assert resolve_counties("smc") == ["smc"]
+    assert "smc" in runner.REGISTRY
+    assert "smc" not in runner.ENABLED_COUNTIES
+
+
 def test_resolve_explicit_names():
     assert resolve_counties("noop") == ["noop"]
     assert resolve_counties(" noop , noop ") == ["noop", "noop"]

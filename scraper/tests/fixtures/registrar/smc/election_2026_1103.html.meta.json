@@ -1,0 +1,12 @@
+{
+  "source_url": "https://smcacre.gov/elections/november-3-2026-statewide-general-election",
+  "final_url": "https://smcacre.gov/elections/november-3-2026-statewide-general-election",
+  "http_status": 200,
+  "content_type": "text/html; charset=UTF-8",
+  "etag": "W/\"1788217224\"",
+  "last_modified": "Mon, 31 Aug 2026 23:00:24 GMT",
+  "size_bytes": 278039,
+  "sha256": "8800a3bea3fb0fc9ee6075db9ac5eecda834cf1a555e21f1def11455947a38a9",
+  "captured_at": "2026-09-01T00:46:38.488295+00:00",
+  "user_agent": "cal-vgp-registrar-scraper/0.1 (+https://github.com/igorgeyn/cal_vgp; contact: igorgeyn@gmail.com)"
+}

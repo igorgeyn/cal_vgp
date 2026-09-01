@@ -36,6 +36,7 @@ from typing import Callable, Optional
 from .base import CountyRegistrarScraper
 from .noop import NoOpCountyScraper
 from .sb import SbScraper
+from .smc import SmcScraper
 from .storage import R2ArtifactStore, RawArtifactStore, make_store
 
 RUNNER_VERSION = "0.1.0"
@@ -48,11 +49,13 @@ DEFAULT_MANIFEST_DIR = Path("scraper/data/registrar_runs")
 REGISTRY: dict[str, type[CountyRegistrarScraper]] = {
     "noop": NoOpCountyScraper,
     "sb": SbScraper,
+    "smc": SmcScraper,
 }
 
 # Counties selected by --counties=enabled. "noop" stays opt-in by
 # explicit name — it exists to validate wiring, not to run on every
-# production cron. Phase 1 order after SB: la, oc, sd, riverside.
+# production cron. Registered-but-disabled adapters remain explicit opt-ins
+# until their separate rollout review adds them here.
 ENABLED_COUNTIES: tuple[str, ...] = ("sb",)
 
 log = logging.getLogger("registrar.runner")

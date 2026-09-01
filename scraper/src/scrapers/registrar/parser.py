@@ -1,9 +1,9 @@
 """Parse immutable registrar snapshots into normalized JSONL records.
 
-Only stored bytes are consumed. San Bernardino HTML capture is delegated to
-``extract_measures_page`` and role assignment to the county interpreter; this
-module adds snapshot validation, cross-snapshot lineage, field normalization,
-and deterministic output.
+Only stored bytes are consumed. HTML capture and role assignment are delegated
+to the configured county extractor/interpreter; this module adds snapshot
+validation, cross-snapshot lineage, field normalization, and deterministic
+output.
 """
 from __future__ import annotations
 
@@ -151,11 +151,22 @@ def _jurisdiction_threshold_key(row: MeasureRow) -> tuple[str, str]:
     return (_norm(row.jurisdiction), _normalized_threshold(row.percentage_to_pass))
 
 
-def _origin_key(row: MeasureRow) -> tuple[str, str]:
+def _origin_key(
+    row: MeasureRow,
+    role_priority: tuple[str, ...] = (),
+) -> tuple[str, str]:
     if row.documents:
+        priority = (
+            {role: rank for rank, role in enumerate(role_priority)}
+            if role_priority
+            else _ROLE_PRIORITY
+        )
         document = min(
             row.documents,
-            key=lambda item: (_ROLE_PRIORITY.get(item.role, 999), canonicalize_document_url(item.url)),
+            key=lambda item: (
+                priority.get(item.role, 999),
+                canonicalize_document_url(item.url),
+            ),
         )
         return "document_url", canonicalize_document_url(document.url)
     return "semantic", json.dumps(_semantic_key(row), separators=(",", ":"), ensure_ascii=False)
@@ -328,7 +339,7 @@ def _audit_artifact_files(
     snapshot_id: str,
     manifest: dict,
     filenames: set[str],
-    document_count: int,
+    captured_document_count: int,
     refs: dict[str, ArtifactRef],
 ) -> None:
     missing_refs = sorted(filenames - refs.keys())
@@ -339,9 +350,13 @@ def _audit_artifact_files(
         raise SnapshotValidationError(f"manifest {snapshot_id} has unaudited artifacts {unexpected_refs}")
 
     counts = manifest.get("pdf_counts") or {}
-    if counts.get("expected") != document_count or counts.get("saved") != document_count:
+    if (
+        counts.get("expected") != captured_document_count
+        or counts.get("saved") != captured_document_count
+    ):
         raise SnapshotValidationError(
-            f"PDF count mismatch in {snapshot_id}: extractor={document_count}, "
+            f"PDF count mismatch in {snapshot_id}: "
+            f"extractor={captured_document_count}, "
             f"manifest={counts!r}"
         )
 
@@ -399,7 +414,10 @@ def _load_snapshot(
         snapshot_id,
         manifest,
         filenames,
-        len(page.expected_documents),
+        # A v2 captured artifact can expand to several semantic roles during
+        # interpretation (San Mateo composite packets). Manifest counts audit
+        # stored links/bytes, not the role-bearing normalized record count.
+        len(captured_page.expected_documents),
         refs,
     )
     return ParsedSnapshot(snapshot_id, manifest, page, page_ref, refs)
@@ -430,12 +448,13 @@ def _link_snapshot(
     lineages: list[_Lineage],
     snapshot: ParsedSnapshot,
     lineage_overrides: Optional[dict[tuple[str, int], tuple[str, int]]] = None,
+    origin_role_priority: tuple[str, ...] = (),
 ) -> dict[int, _Lineage]:
     rows = list(snapshot.page.rows)
     if not lineages:
         result = {}
         for index, row in enumerate(rows):
-            kind, value = _origin_key(row)
+            kind, value = _origin_key(row, origin_role_priority)
             lineage = _Lineage(
                 snapshot.snapshot_id,
                 row.table_row,
@@ -491,20 +510,27 @@ def _link_snapshot(
         raise LineageConflictError(f"multiple rows in {snapshot.snapshot_id} claim one override lineage")
     apply(override_pairs)
 
-    # Document URL intersection is the strongest continuity evidence.  A URL
-    # shared by multiple lineages is corruption/ambiguity, not a tie to break.
+    # A uniquely-owned document URL is the strongest continuity evidence.
+    # Shared packets are legitimate in San Mateo, so shared URLs are ignored;
+    # a measure-specific analysis/argument URL can still identify one lineage.
+    url_owners: dict[str, set[int]] = {}
+    for lineage_index in unmatched_lineages:
+        for url in lineages[lineage_index].document_urls:
+            url_owners.setdefault(url, set()).add(lineage_index)
     url_pairs = []
     for row_index in sorted(unmatched_rows):
         urls = _document_urls(rows[row_index])
-        candidates = [
-            lineage_index
-            for lineage_index in unmatched_lineages
-            if urls and urls.intersection(lineages[lineage_index].document_urls)
-        ]
+        candidates = sorted(
+            {
+                next(iter(url_owners[url]))
+                for url in urls
+                if len(url_owners.get(url, ())) == 1
+            }
+        )
         if len(candidates) > 1:
             raise LineageConflictError(
-                f"row {rows[row_index].table_row} in {snapshot.snapshot_id} shares document URLs "
-                f"with multiple lineages"
+                f"row {rows[row_index].table_row} in {snapshot.snapshot_id} "
+                "has measure-specific document URLs owned by multiple lineages"
             )
         if candidates:
             url_pairs.append((row_index, candidates[0]))
@@ -563,7 +589,7 @@ def _link_snapshot(
                 f"ambiguous lineage for {row.jurisdiction!r} row {row.table_row} "
                 f"in {snapshot.snapshot_id}"
             )
-        kind, value = _origin_key(row)
+        kind, value = _origin_key(row, origin_role_priority)
         lineage = _Lineage(
             snapshot.snapshot_id,
             row.table_row,
@@ -722,7 +748,12 @@ def parse_election(
             config.extractor,
             config.interpreter,
         )
-        links = _link_snapshot(lineages, parsed, config.lineage_overrides)
+        links = _link_snapshot(
+            lineages,
+            parsed,
+            config.lineage_overrides,
+            config.origin_role_priority,
+        )
         if replay_id == selected:
             selected_snapshot = parsed
             selected_links = links

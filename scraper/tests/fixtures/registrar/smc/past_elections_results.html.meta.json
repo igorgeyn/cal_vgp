@@ -1,0 +1,12 @@
+{
+  "source_url": "https://smcacre.gov/elections/past-elections-results",
+  "final_url": "https://smcacre.gov/elections/past-elections-results",
+  "http_status": 200,
+  "content_type": "text/html; charset=UTF-8",
+  "etag": "W/\"1788219273\"",
+  "last_modified": "Mon, 31 Aug 2026 23:34:33 GMT",
+  "size_bytes": 316120,
+  "sha256": "45f26d8475a3c0592a9067820b9e7d5d0eaaeb372d7ed003e4aa6732de555a41",
+  "captured_at": "2026-09-01T00:53:01.062350+00:00",
+  "user_agent": "cal-vgp-registrar-scraper/0.1 (+https://github.com/igorgeyn/cal_vgp; contact: igorgeyn@gmail.com)"
+}

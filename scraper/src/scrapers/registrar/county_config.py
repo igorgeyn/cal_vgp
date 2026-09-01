@@ -11,6 +11,8 @@ from typing import Callable
 
 from .sb import CapturedMeasuresPage, extract_measures_page
 from .sb_interpretation import MeasuresPage, interpret_measures_page
+from .smc import extract_measures_page as extract_smc_measures_page
+from .smc_interpretation import interpret_measures_page as interpret_smc_measures_page
 
 
 @dataclass(frozen=True)
@@ -21,6 +23,7 @@ class RegistrarCountyConfig:
     extractor: Callable[[bytes, str], CapturedMeasuresPage]
     interpreter: Callable[[CapturedMeasuresPage], MeasuresPage]
     lineage_overrides: dict[tuple[str, int], tuple[str, int]] = field(default_factory=dict)
+    origin_role_priority: tuple[str, ...] = ()
 
 
 COUNTY_CONFIGS = {
@@ -39,6 +42,26 @@ COUNTY_CONFIGS = {
             # snapshot IDs. Keep the fixture pair above for local replay tests.
             ("20260814T035115Z", 4): ("20260727T171800Z", 1),
         },
+    ),
+    "smc": RegistrarCountyConfig(
+        slug="smc",
+        county_name="SAN MATEO",
+        data_source="SMC_County_Registrar",
+        extractor=extract_smc_measures_page,
+        interpreter=interpret_smc_measures_page,
+        # Four county measures share one resolution/full-text packet. Every
+        # impartial-analysis URL is measure-specific in the pinned fixture, so
+        # it is the strongest collision-free identity origin for this county.
+        origin_role_priority=(
+            "analysis",
+            "resolution",
+            "text",
+            "tax_rate_statement",
+            "argument_for",
+            "argument_against",
+            "rebuttal_for",
+            "rebuttal_against",
+        ),
     ),
 }
 

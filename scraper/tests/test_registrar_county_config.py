@@ -18,3 +18,12 @@ def test_county_configuration_owns_source_and_extractor():
         "20260727T171800Z",
         1,
     )
+
+
+def test_san_mateo_configuration_matches_existing_database_convention():
+    config = get_county_config("SMC")
+    assert config.county_name == "SAN MATEO"
+    assert config.data_source == "SMC_County_Registrar"
+    assert callable(config.extractor)
+    assert callable(config.interpreter)
+    assert config.origin_role_priority[0] == "analysis"
