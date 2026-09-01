@@ -61,8 +61,8 @@ jobs:
           R2_ENDPOINT_URL: ${{ secrets.R2_ENDPOINT_URL }}
           R2_BUCKET: cal-vgp-registrar-raw
           R2_ENV: ${{ github.event_name == 'push' && 'dev' || 'prod' }}
-        # Production set: ENABLED_COUNTIES in runner.py (SB as of
-        # Phase 1). Manual dispatch can override the selector (e.g.
+        # Production set: ENABLED_COUNTIES in runner.py (San Bernardino
+        # and San Mateo). Manual dispatch can override the selector (e.g.
         # counties=noop for a wiring smoke test); cron and push
         # always run the enabled set.
         run: |
@@ -91,7 +91,7 @@ jobs:
           retention-days: 90
 
       - name: Upload normalized JSONL
-        # Parser stage doesn't exist yet (Phase 1); ignore until then.
+        # Upload normalized parser output when a run produces it.
         if: always()
         uses: actions/upload-artifact@v4
         with:

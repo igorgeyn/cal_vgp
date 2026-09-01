@@ -42,15 +42,14 @@ def manifest_dir(tmp_path):
 # ---------------------------------------------------------------- resolve
 
 
-def test_resolve_enabled_lists_sb():
-    # Phase 1: SB is the first production county.
-    assert resolve_counties("enabled") == ["sb"]
+def test_resolve_enabled_lists_production_counties():
+    assert resolve_counties("enabled") == ["sb", "smc"]
 
 
-def test_smc_is_registered_but_not_enabled():
+def test_production_counties_are_registered_and_enabled():
     assert resolve_counties("smc") == ["smc"]
     assert "smc" in runner.REGISTRY
-    assert "smc" not in runner.ENABLED_COUNTIES
+    assert runner.ENABLED_COUNTIES == ("sb", "smc")
 
 
 def test_resolve_explicit_names():

@@ -56,7 +56,7 @@ REGISTRY: dict[str, type[CountyRegistrarScraper]] = {
 # explicit name — it exists to validate wiring, not to run on every
 # production cron. Registered-but-disabled adapters remain explicit opt-ins
 # until their separate rollout review adds them here.
-ENABLED_COUNTIES: tuple[str, ...] = ("sb",)
+ENABLED_COUNTIES: tuple[str, ...] = ("sb", "smc")
 
 log = logging.getLogger("registrar.runner")
 
