@@ -11,6 +11,7 @@ from collections import Counter
 
 from ..database.operations import Database
 from ..database.models import BallotMeasure
+from ..database.measure_documents import documents_for_website
 from ..config import WEBSITE_CONFIG, BASE_DIR
 from ..utils import TitleGenerator
 from ..utils.topic_mapping import get_display_topic, get_all_display_categories
@@ -24,7 +25,11 @@ USE_CALBALLOT_PAGE = Path("use-calballot/index.html")
 
 COMPACT_LOCAL_MEASURE_TYPES = {
     "Bond Measure": "Bond",
+    "School Bonds": "Bond",
+    "Municipal Bonds": "Bond",
+    "District Bonds": "Bond",
     "Transactions and Use Tax Measure": "Sales tax",
+    "Transactions and Use Tax": "Sales tax",
     "Municipal Code Amendment": "Municipal code",
     "Local Transportation Improvement Program": "Transportation",
     "Special Parcel Tax": "Parcel tax",
@@ -123,6 +128,35 @@ class WebsiteGenerator:
         output_paths: List[Path] = None,
     ) -> str:
         """Render prepared site data and write complete, consistent bundles."""
+        # Common boundary for both CLI and model-based generation. Document
+        # associations do not pass through the BallotMeasure field filter.
+        connection = self.db.connect()
+        official_documents = documents_for_website(connection)
+        if official_documents:
+            document_identities = {
+                row["measure_id"]: row["id"]
+                for row in connection.execute(
+                    "SELECT id, measure_id FROM measures WHERE id IN "
+                    "(SELECT measure_id FROM measure_documents)"
+                )
+                if row["id"] in official_documents
+            }
+            for measure in measures:
+                row_id = measure.get("id")
+                expected_id = document_identities.get(measure.get("measure_id"))
+                if ((expected_id is not None and (type(row_id) is not int or row_id != expected_id))
+                        or (row_id in official_documents and expected_id != row_id)
+                        or (is_county_registrar_measure(measure) and type(row_id) is not int)):
+                    raise ValueError(
+                        f"official documents require the matching database id and measure_id: "
+                        f"measure_id={measure.get('measure_id')!r}, id={row_id!r}"
+                    )
+        measures = [
+            {**measure, "official_documents": official_documents[measure.get("id")]}
+            if measure.get("id") in official_documents else
+            {key: value for key, value in measure.items() if key != "official_documents"}
+            for measure in measures
+        ]
         html = self._generate_html(measures, stats, topics, recommendations)
         auxiliary_pages = {
             USE_CALBALLOT_PAGE: self._generate_use_calballot_html(
@@ -1666,6 +1700,12 @@ class WebsiteGenerator:
                         <div id="modalBallotQuestion" class="measure-detail-section" style="display: none;">
                             <h3>📜 Ballot Question</h3>
                             <p id="modalBallotText" class="measure-detail-ballot-text"></p>
+                        </div>
+
+                        <div id="modalOfficialDocuments" class="measure-detail-section" style="display: none;">
+                            <h3>Official documents</h3>
+                            <p class="official-documents-note">Links open the county's current files. Last captured is when we retrieved the file, not its filing date. Labels follow the county listing; a file may cover several document types. An absent link does not mean a document was never filed.</p>
+                            <ul id="modalOfficialDocumentList" class="official-document-list"></ul>
                         </div>
 
                         <div id="modalRelatedSection" class="measure-detail-section" style="display: none;">
@@ -3677,7 +3717,7 @@ class WebsiteGenerator:
             flex: 0 0 calc(33.333% - 0.6rem);
             min-width: calc(33.333% - 0.6rem);
             max-width: calc(33.333% - 0.6rem);
-            height: 120px;
+            height: auto;
             min-height: 120px;
             flex-direction: column;
             box-sizing: border-box;
@@ -3775,6 +3815,7 @@ class WebsiteGenerator:
         }
 
         .upcoming-local-band .local-card-context {
+            flex-shrink: 0;
             overflow: hidden;
             margin: 0.28rem 0 0;
             color: var(--text-tertiary);
@@ -6091,6 +6132,43 @@ class WebsiteGenerator:
         }
         .info-tip:hover::after {
             opacity: 1;
+        }
+
+        #modalOfficialDocuments .official-documents-note {
+            font-size: 0.85rem;
+            line-height: 1.5;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+        }
+
+        #modalOfficialDocuments .official-document-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            display: grid;
+            gap: 8px;
+        }
+
+        #modalOfficialDocuments .official-document-list a {
+            display: block;
+            padding: 12px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text-primary);
+            text-decoration: underline;
+            overflow-wrap: anywhere;
+        }
+
+        #modalOfficialDocuments .official-document-list a:focus-visible {
+            outline: 3px solid var(--primary);
+            outline-offset: 2px;
+        }
+
+        #modalOfficialDocuments .official-document-meta {
+            display: block;
+            margin-top: 4px;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
         }
 
         .measure-detail-links {
@@ -11097,7 +11175,7 @@ class WebsiteGenerator:
             const threshold = getLocalThresholdDisplay(measure.vote_threshold);
             const context = measure.local_historical_context;
             const contextHtml = context
-                ? `<p class="local-card-context">${{context.total.toLocaleString()}} in ${{escapeHtml(context.county_label)}} since ${{context.since}} &middot; ${{context.pass_rate}}% passed</p>`
+                ? `<p class="local-card-context">${{context.pass_rate}}% passed &middot; ${{context.total.toLocaleString()}} outcomes since ${{context.since}}</p>`
                 : '';
 
             return `
@@ -11255,6 +11333,8 @@ class WebsiteGenerator:
                 </div>
                 <div class="local-carousel-status" id="localCarouselStatus" aria-live="polite"></div>
                 <p class="local-rules-note">
+                    Historical rates use recorded pass/fail outcomes for the same county and measure type.
+                    Comparisons are not matched by voting rules or purpose and do not predict this election.
                     Vote thresholds in these cards come from the named county election office.
                     The historical <a class="local-rules-link" href="#insightsRulesPanel" onclick="openRulesFromLocalMeasures(event)">Rules insight</a>
                     also includes derived threshold fields with known cases still under review.
@@ -14341,6 +14421,32 @@ class WebsiteGenerator:
             updateResults();
         }}
         
+        function renderOfficialDocuments(measure) {{
+            const section = document.getElementById('modalOfficialDocuments');
+            const list = document.getElementById('modalOfficialDocumentList');
+            list.replaceChildren();
+            const documents = (measure.official_documents || []).filter(doc =>
+                /^https?:\/\//i.test(doc.source_url || '') && sanitizeUrl(doc.source_url) !== '#');
+            section.style.display = documents.length ? '' : 'none';
+            for (const doc of documents) {{
+                const item = document.createElement('li');
+                const link = document.createElement('a');
+                link.href = sanitizeUrl(doc.source_url);
+                link.target = '_blank';
+                link.rel = 'noopener noreferrer';
+                link.textContent = (doc.labels || doc.roles || ['Official document']).join(' · ');
+                const meta = document.createElement('span');
+                meta.className = 'official-document-meta';
+                const date = /^\d{{4}}-\d{{2}}-\d{{2}}/.exec(doc.captured_at || '');
+                const fileType = (doc.content_type || '').split(';')[0] === 'application/pdf' ? 'PDF' : 'Document';
+                meta.textContent = fileType + (date ? ` · Last captured ${{date[0]}}` : '') + ' · Opens in a new tab';
+                link.appendChild(meta);
+                item.appendChild(link);
+                list.appendChild(item);
+            }}
+            return documents;
+        }}
+
         // Check if measure is pending (2026 or later, no vote data)
         function isPendingMeasure(measure) {{
             const year = parseInt(measure.year);
@@ -14759,6 +14865,8 @@ class WebsiteGenerator:
                 if (briefingSection) briefingSection.style.display = 'none';
             }}
 
+            const officialDocuments = renderOfficialDocuments(measure);
+
             // Links section
             const linksContainer = document.getElementById('modalLinks');
             const links = [];
@@ -14819,7 +14927,8 @@ class WebsiteGenerator:
             if (measure.source_url) {{
                 links.push(`<a href="${{escapeAttr(sanitizeUrl(measure.source_url))}}" target="_blank" rel="noopener noreferrer">🔗 <span class="link-label">Raw Data</span> <span class="link-source">(${{escapeHtml(measure.source_display || measure.data_source || 'Source')}})</span></a>`);
             }}
-            if (measure.pdf_url && measure.pdf_url !== '#') {{
+            if (measure.pdf_url && measure.pdf_url !== '#' &&
+                    !officialDocuments.some(doc => doc.source_url === measure.pdf_url)) {{
                 links.push(`<a href="${{escapeAttr(sanitizeUrl(measure.pdf_url))}}" target="_blank" rel="noopener noreferrer">📄 <span class="link-label">Full Ballot Text</span> <span class="link-source">(PDF)</span></a>`);
             }}
 

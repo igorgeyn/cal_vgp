@@ -1200,7 +1200,7 @@
             flex: 0 0 calc(33.333% - 0.6rem);
             min-width: calc(33.333% - 0.6rem);
             max-width: calc(33.333% - 0.6rem);
-            height: 120px;
+            height: auto;
             min-height: 120px;
             flex-direction: column;
             box-sizing: border-box;
@@ -1298,6 +1298,7 @@
         }
 
         .upcoming-local-band .local-card-context {
+            flex-shrink: 0;
             overflow: hidden;
             margin: 0.28rem 0 0;
             color: var(--text-tertiary);
@@ -3614,6 +3615,43 @@
         }
         .info-tip:hover::after {
             opacity: 1;
+        }
+
+        #modalOfficialDocuments .official-documents-note {
+            font-size: 0.85rem;
+            line-height: 1.5;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+        }
+
+        #modalOfficialDocuments .official-document-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            display: grid;
+            gap: 8px;
+        }
+
+        #modalOfficialDocuments .official-document-list a {
+            display: block;
+            padding: 12px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text-primary);
+            text-decoration: underline;
+            overflow-wrap: anywhere;
+        }
+
+        #modalOfficialDocuments .official-document-list a:focus-visible {
+            outline: 3px solid var(--primary);
+            outline-offset: 2px;
+        }
+
+        #modalOfficialDocuments .official-document-meta {
+            display: block;
+            margin-top: 4px;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
         }
 
         .measure-detail-links {
@@ -7334,7 +7372,7 @@
 
     <!-- Footer -->
     <footer class="footer">
-        <p>CalBallot • Data last updated August 31, 2026</p>
+        <p>CalBallot • Data last updated September 08, 2026</p>
         <p>Data sources: CA Secretary of State, NCSL, ICPSR, CEDA</p>
         <p class="footer-links">
             <a href="#" onclick="openAboutModal(); return false;">About</a> &bull;
@@ -7606,6 +7644,12 @@
                         <div id="modalBallotQuestion" class="measure-detail-section" style="display: none;">
                             <h3>📜 Ballot Question</h3>
                             <p id="modalBallotText" class="measure-detail-ballot-text"></p>
+                        </div>
+
+                        <div id="modalOfficialDocuments" class="measure-detail-section" style="display: none;">
+                            <h3>Official documents</h3>
+                            <p class="official-documents-note">Links open the county's current files. Last captured is when we retrieved the file, not its filing date. Labels follow the county listing; a file may cover several document types. An absent link does not mean a document was never filed.</p>
+                            <ul id="modalOfficialDocumentList" class="official-document-list"></ul>
                         </div>
 
                         <div id="modalRelatedSection" class="measure-detail-section" style="display: none;">
@@ -9664,7 +9708,7 @@
             const threshold = getLocalThresholdDisplay(measure.vote_threshold);
             const context = measure.local_historical_context;
             const contextHtml = context
-                ? `<p class="local-card-context">${context.total.toLocaleString()} in ${escapeHtml(context.county_label)} since ${context.since} &middot; ${context.pass_rate}% passed</p>`
+                ? `<p class="local-card-context">${context.pass_rate}% passed &middot; ${context.total.toLocaleString()} outcomes since ${context.since}</p>`
                 : '';
 
             return `
@@ -9822,6 +9866,8 @@
                 </div>
                 <div class="local-carousel-status" id="localCarouselStatus" aria-live="polite"></div>
                 <p class="local-rules-note">
+                    Historical rates use recorded pass/fail outcomes for the same county and measure type.
+                    Comparisons are not matched by voting rules or purpose and do not predict this election.
                     Vote thresholds in these cards come from the named county election office.
                     The historical <a class="local-rules-link" href="#insightsRulesPanel" onclick="openRulesFromLocalMeasures(event)">Rules insight</a>
                     also includes derived threshold fields with known cases still under review.
@@ -12908,6 +12954,32 @@
             updateResults();
         }
         
+        function renderOfficialDocuments(measure) {
+            const section = document.getElementById('modalOfficialDocuments');
+            const list = document.getElementById('modalOfficialDocumentList');
+            list.replaceChildren();
+            const documents = (measure.official_documents || []).filter(doc =>
+                /^https?:\/\//i.test(doc.source_url || '') && sanitizeUrl(doc.source_url) !== '#');
+            section.style.display = documents.length ? '' : 'none';
+            for (const doc of documents) {
+                const item = document.createElement('li');
+                const link = document.createElement('a');
+                link.href = sanitizeUrl(doc.source_url);
+                link.target = '_blank';
+                link.rel = 'noopener noreferrer';
+                link.textContent = (doc.labels || doc.roles || ['Official document']).join(' · ');
+                const meta = document.createElement('span');
+                meta.className = 'official-document-meta';
+                const date = /^\d{4}-\d{2}-\d{2}/.exec(doc.captured_at || '');
+                const fileType = (doc.content_type || '').split(';')[0] === 'application/pdf' ? 'PDF' : 'Document';
+                meta.textContent = fileType + (date ? ` · Last captured ${date[0]}` : '') + ' · Opens in a new tab';
+                link.appendChild(meta);
+                item.appendChild(link);
+                list.appendChild(item);
+            }
+            return documents;
+        }
+
         // Check if measure is pending (2026 or later, no vote data)
         function isPendingMeasure(measure) {
             const year = parseInt(measure.year);
@@ -13326,6 +13398,8 @@
                 if (briefingSection) briefingSection.style.display = 'none';
             }
 
+            const officialDocuments = renderOfficialDocuments(measure);
+
             // Links section
             const linksContainer = document.getElementById('modalLinks');
             const links = [];
@@ -13386,7 +13460,8 @@
             if (measure.source_url) {
                 links.push(`<a href="${escapeAttr(sanitizeUrl(measure.source_url))}" target="_blank" rel="noopener noreferrer">🔗 <span class="link-label">Raw Data</span> <span class="link-source">(${escapeHtml(measure.source_display || measure.data_source || 'Source')})</span></a>`);
             }
-            if (measure.pdf_url && measure.pdf_url !== '#') {
+            if (measure.pdf_url && measure.pdf_url !== '#' &&
+                    !officialDocuments.some(doc => doc.source_url === measure.pdf_url)) {
                 links.push(`<a href="${escapeAttr(sanitizeUrl(measure.pdf_url))}" target="_blank" rel="noopener noreferrer">📄 <span class="link-label">Full Ballot Text</span> <span class="link-source">(PDF)</span></a>`);
             }
 

@@ -21,9 +21,15 @@ MIN_HISTORICAL_CONTEXT_SAMPLE = 5
 # explicit decision not to infer a match; it is not a missing implementation.
 LOCAL_MEASURE_CATEGORY_CROSSWALK: dict[str, Optional[str]] = {
     "Bond Measure": "GO Bond",
+    # Reviewed against Aug 28/Sep 7 production captures: the county renamed
+    # these descriptions while retaining byte-identical full-text documents.
+    "School Bonds": "GO Bond",
+    "Municipal Bonds": "GO Bond",
+    "District Bonds": "GO Bond",
     "Municipal Code Amendment": "Ordinance",
     "Charter Amendment": "Charter Amendment",
     "Transactions and Use Tax Measure": "Sales Tax",
+    "Transactions and Use Tax": "Sales Tax",
     "Transient Occupancy Tax": "Transient Occupancy Tax",
     "Special Parcel Tax": "Property Tax",
     "Local Transportation Improvement Program": None,
@@ -78,6 +84,10 @@ def attach_local_historical_context(
 
     for measure in measure_list:
         if _is_registrar_measure(measure):
+            continue
+        # Unknown normalized outcomes are neither passes nor failures. Apply
+        # this before the sample count and date range, not just the numerator.
+        if measure.get("passed") not in (0, 1):
             continue
         county = _county_key(
             measure.get("_historical_context_county", measure.get("county"))

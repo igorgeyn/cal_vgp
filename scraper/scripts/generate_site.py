@@ -10,7 +10,7 @@ from datetime import datetime
 from collections import Counter
 
 # Fix Windows console encoding for emojis
-if sys.platform == 'win32':
+if sys.platform == 'win32' and hasattr(sys.stdout, 'reconfigure'):
     sys.stdout.reconfigure(encoding='utf-8', errors='replace')
 
 # Add parent directory to path for imports
@@ -28,6 +28,7 @@ logger = logging.getLogger(__name__)
 
 # The repo-root pair is deployed. scraper/index.html is an identical local mirror.
 WEBSITE_OUTPUT_PATH = BASE_DIR.parent / WEBSITE_CONFIG.get('output_filename', 'index.html')
+EMBEDDING_DATA_DIR = Path(__file__).resolve().parent.parent / 'data'
 
 
 def website_output_paths(explicit_output=None):
@@ -36,7 +37,7 @@ def website_output_paths(explicit_output=None):
         return [Path(explicit_output)]
     return [WEBSITE_OUTPUT_PATH, BASE_DIR / WEBSITE_CONFIG.get('output_filename', 'index.html')]
 
-def main():
+def main(argv=None):
     """Main function for website generation"""
     parser = argparse.ArgumentParser(description='Generate static website from ballot measures database')
     parser.add_argument(
@@ -73,7 +74,7 @@ def main():
         help='Open website in browser after generation'
     )
     
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
     db_path = Path(args.db)
     
     try:
@@ -110,7 +111,8 @@ def main():
         # Get all measures from database
         logger.info("Loading measures from database...")
         
-        # Valid BallotMeasure fields. NOTE: `id` MUST be included — the
+        # Valid BallotMeasure fields. NOTE: `id` MUST be included.
+        # Official documents attach by the database id, and the
         # JS modal looks up financeData[String(measure.id)] to render
         # the Finance tab. Omitting it makes every measure show "no
         # finance data" even when v3 data exists. (Bug surfaced
@@ -299,10 +301,8 @@ def main():
         pending_context_count = 0
         try:
             import numpy as np
-            from pathlib import Path as _Path
-
-            emb_path = _Path(__file__).parent.parent / 'data' / 'embeddings.npz'
-            meta_path = _Path(__file__).parent.parent / 'data' / 'embedding_metadata.json'
+            emb_path = EMBEDDING_DATA_DIR / 'embeddings.npz'
+            meta_path = EMBEDDING_DATA_DIR / 'embedding_metadata.json'
 
             if emb_path.exists() and meta_path.exists():
                 import json as _json

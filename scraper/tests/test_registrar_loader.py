@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import hashlib
+from copy import deepcopy
 import sqlite3
 from pathlib import Path
 
@@ -11,6 +12,7 @@ import pytest
 from src.database.models import BallotMeasure
 from src.database.operations import Database
 from src.scrapers.registrar.loader import NormalizedDataError, load_jsonl
+from src.database.measure_documents import read_document_rows, documents_for_website
 
 
 def _record(
@@ -344,6 +346,9 @@ def test_identity_registry_keeps_first_canonical_id_when_parser_origin_changes(t
     finally:
         connection.close()
     assert registered == canonical_id
+    with sqlite3.connect(db_path) as connection:
+        document_id = connection.execute("SELECT measure_id FROM measure_documents").fetchone()[0]
+    assert document_id == _rows(db_path)[0]["id"]
 
 
 def test_semantics_alone_cannot_reassign_a_registered_identity(tmp_path: Path):
@@ -436,3 +441,194 @@ def test_measure_id_must_match_lineage_digest(tmp_path: Path):
 
     with pytest.raises(NormalizedDataError, match="measure_id does not match"):
         load_jsonl(jsonl, db_path=tmp_path / "does-not-exist.db")
+
+
+def test_document_migration_replay_changes_no_measure_fields(tmp_path: Path):
+    db_path = _database(tmp_path / "measures.db")
+    jsonl = _write(tmp_path / "records.jsonl", [_record()])
+    load_jsonl(jsonl, db_path=db_path, commit=True)
+    with sqlite3.connect(db_path) as connection:
+        connection.execute("DROP TABLE measure_documents")  # pre-F1 database
+    before = [dict(row) for row in _rows(db_path)]
+    bytes_before = db_path.read_bytes()
+    dry = load_jsonl(jsonl, db_path=db_path)
+    assert dry.skipped == 1 and dry.documents_inserted == 1 and not dry.committed
+    assert db_path.read_bytes() == bytes_before
+    report = load_jsonl(jsonl, db_path=db_path, commit=True)
+    assert report.committed and report.changed == 0 and report.documents_inserted == 1
+    assert [dict(row) for row in _rows(db_path)] == before
+    again = load_jsonl(jsonl, db_path=db_path, commit=True)
+    assert not again.committed and again.documents_changed == 0
+
+
+def test_document_only_addition_replacement_and_removal_are_reported(tmp_path: Path):
+    db_path = _database(tmp_path / "measures.db")
+    record = _record()
+    jsonl = _write(tmp_path / "records.jsonl", [record])
+    load_jsonl(jsonl, db_path=db_path, commit=True)
+    before = [dict(row) for row in _rows(db_path)]
+    record["documents"].append(dict(record["documents"][0], role="analysis", source_url="https://example.gov/analysis.pdf"))
+    _write(jsonl, [record])
+    added = load_jsonl(jsonl, db_path=db_path, commit=True)
+    assert added.skipped == 1 and added.documents_inserted == 1 and added.changed == 0
+    record["snapshot_id"] = "20260821T035115Z"
+    record["documents"][1]["sha256"] = "b" * 64
+    _write(jsonl, [record])
+    replaced = load_jsonl(jsonl, db_path=db_path, commit=True)
+    assert replaced.documents_updated == 1  # only the analysis bytes changed
+    assert replaced.documents_provenance_refreshed == 1  # unchanged text was captured again
+    record["documents"].pop()
+    _write(jsonl, [record])
+    removed = load_jsonl(jsonl, db_path=db_path, commit=True)
+    assert removed.documents_removed == 1 and removed.changed == 0
+    assert [dict(row) for row in _rows(db_path)] == before
+    with sqlite3.connect(db_path) as connection:
+        rows = read_document_rows(connection, before[0]["id"])
+    assert len(rows) == 1 and rows[0]["role"] == "text"
+    assert not load_jsonl(jsonl, db_path=db_path, commit=True).committed
+
+
+def test_composite_packet_is_grouped_per_measure_and_may_be_shared(tmp_path: Path):
+    db_path = _database(tmp_path / "measures.db")
+    first = _record(count=2)
+    first["documents"].extend([
+        dict(first["documents"][0], role="resolution"),
+        dict(first["documents"][0], role="tax_rate_statement"),
+    ])
+    second = _record(row=2, count=2, letter="B", digest_char="B", jurisdiction="City of Second")
+    second["documents"] = deepcopy(first["documents"])
+    second["measure"]["pdf_url"] = first["measure"]["pdf_url"]
+    jsonl = _write(tmp_path / "records.jsonl", [first, second])
+    assert load_jsonl(jsonl, db_path=db_path, commit=True).documents_inserted == 6
+    with sqlite3.connect(db_path) as connection:
+        public = documents_for_website(connection)
+    assert len(public) == 2
+    assert all(len(documents) == 1 for documents in public.values())
+    assert all(len(documents[0]["roles"]) == 3 for documents in public.values())
+
+
+def test_distinct_captured_bytes_at_shared_url_are_not_collapsed(tmp_path: Path):
+    db_path = _database(tmp_path / "measures.db")
+    record = _record()
+    record["documents"].append(dict(record["documents"][0], role="analysis", sha256="b" * 64))
+    jsonl = _write(tmp_path / "records.jsonl", [record])
+    load_jsonl(jsonl, db_path=db_path, commit=True)
+    with sqlite3.connect(db_path) as connection:
+        public = documents_for_website(connection)
+    assert len(next(iter(public.values()))) == 2
+
+
+def test_packet_only_measure_exposes_a_link_without_pdf_url(tmp_path: Path):
+    db_path = _database(tmp_path / "measures.db")
+    record = _record()
+    record["documents"][0]["role"] = "packet"
+    record["measure"]["pdf_url"] = None
+    jsonl = _write(tmp_path / "records.jsonl", [record])
+    load_jsonl(jsonl, db_path=db_path, commit=True)
+    with sqlite3.connect(db_path) as connection:
+        public = documents_for_website(connection)
+    assert next(iter(public.values()))[0]["labels"] == ["Measure packet"]
+    assert _rows(db_path)[0]["pdf_url"] is None
+
+
+def test_document_write_failure_rolls_back_entire_batch(tmp_path: Path, monkeypatch):
+    from src.scrapers.registrar import loader
+    db_path = _database(tmp_path / "measures.db")
+    jsonl = _write(tmp_path / "records.jsonl", [_record()])
+    persist = loader._persist_documents
+
+    def fail_after_write(*args):
+        persist(*args)
+        raise RuntimeError("document write interrupted")
+
+    monkeypatch.setattr(loader, "_persist_documents", fail_after_write)
+    with pytest.raises(RuntimeError, match="interrupted"):
+        load_jsonl(jsonl, db_path=db_path, commit=True)
+    assert _rows(db_path) == []
+    with sqlite3.connect(db_path) as connection:
+        assert connection.execute("SELECT 1 FROM sqlite_master WHERE name = 'measure_documents'").fetchone() is None
+        assert connection.execute("SELECT 1 FROM sqlite_master WHERE name = 'registrar_load_scopes'").fetchone() is None
+
+
+@pytest.mark.parametrize("field,value", [
+    ("source_url", "javascript:alert(1)"),
+    ("source_url", "https://user:password@example.gov/a.pdf"),
+    ("sha256", "not-a-checksum"),
+    ("size_bytes", -1),
+    ("size_bytes", True),
+    ("role", "<script>"),
+])
+def test_malformed_document_is_rejected_before_any_database_access(tmp_path: Path, field, value):
+    record = _record()
+    record["documents"][0][field] = value
+    jsonl = _write(tmp_path / "records.jsonl", [record])
+    with pytest.raises(NormalizedDataError, match="invalid document metadata"):
+        load_jsonl(jsonl, db_path=tmp_path / "does-not-exist.db")
+
+
+def test_new_snapshot_of_unchanged_documents_refreshes_provenance_without_content_noise(tmp_path: Path):
+    db_path = _database(tmp_path / "measures.db")
+    record = _record()
+    record["documents"].append(dict(record["documents"][0], role="analysis"))
+    jsonl = _write(tmp_path / "records.jsonl", [record])
+    load_jsonl(jsonl, db_path=db_path, commit=True)
+    measures_before = [dict(row) for row in _rows(db_path)]
+    with sqlite3.connect(db_path) as connection:
+        connection.execute("CREATE TABLE deleted_documents (role TEXT)")
+        connection.execute("CREATE TRIGGER track_document_delete AFTER DELETE ON measure_documents "
+                           "BEGIN INSERT INTO deleted_documents VALUES (old.role); END")
+    record["snapshot_id"] = "20260821T035115Z"
+    record["scraped_at"] = "2026-08-21T03:51:15+00:00"
+    _write(jsonl, [record])
+    bytes_before = db_path.read_bytes()
+    dry = load_jsonl(jsonl, db_path=db_path)
+    assert dry.changed == dry.documents_changed == 0
+    assert dry.documents_provenance_refreshed == 2
+    assert db_path.read_bytes() == bytes_before
+    report = load_jsonl(jsonl, db_path=db_path, commit=True)
+    assert report.committed and report.scope_advanced
+    assert report.documents_updated == 0 and report.documents_provenance_refreshed == 2
+    assert [dict(row) for row in _rows(db_path)] == measures_before
+    with sqlite3.connect(db_path) as connection:
+        documents = read_document_rows(connection, measures_before[0]["id"])
+        assert {row["captured_at"] for row in documents} == {record["scraped_at"]}
+        assert {row["snapshot_id"] for row in documents} == {record["snapshot_id"]}
+        assert connection.execute("SELECT COUNT(*) FROM deleted_documents").fetchone()[0] == 0
+    replay = load_jsonl(jsonl, db_path=db_path, commit=True)
+    assert not replay.committed and replay.documents_provenance_refreshed == 0
+
+
+def test_real_document_change_stands_out_among_provenance_refreshes(tmp_path: Path):
+    db_path = _database(tmp_path / "measures.db")
+    record = _record()
+    record["documents"].append(dict(record["documents"][0], role="analysis"))
+    jsonl = _write(tmp_path / "records.jsonl", [record])
+    load_jsonl(jsonl, db_path=db_path, commit=True)
+    record["snapshot_id"] = "20260821T035115Z"
+    record["scraped_at"] = "2026-08-21T03:51:15+00:00"
+    record["documents"][1]["sha256"] = "e" * 64
+    record["documents"].append(dict(record["documents"][0], role="argument_for"))
+    _write(jsonl, [record])
+    report = load_jsonl(jsonl, db_path=db_path, commit=True)
+    assert report.changed == 0
+    assert (report.documents_inserted, report.documents_updated, report.documents_removed) == (1, 1, 0)
+    assert report.documents_provenance_refreshed == 1
+
+
+def test_reordered_measure_actions_do_not_swap_document_ownership(tmp_path: Path, monkeypatch):
+    from src.scrapers.registrar import loader
+    db_path = _database(tmp_path / "measures.db")
+    records = [_record(count=2), _record(count=2, row=2, letter="B", digest_char="B")]
+    jsonl = _write(tmp_path / "records.jsonl", records)
+    plan = loader._plan_documents
+
+    def reversed_plan(connection, records_by_id, actions):
+        return plan(connection, records_by_id, list(reversed(actions)))
+
+    monkeypatch.setattr(loader, "_plan_documents", reversed_plan)
+    assert load_jsonl(jsonl, db_path=db_path, commit=True).documents_inserted == 2
+    with sqlite3.connect(db_path) as connection:
+        actual = dict(connection.execute(
+            "SELECT m.measure_id, d.source_url FROM measures m JOIN measure_documents d ON m.id = d.measure_id"
+        ))
+    assert actual == {record["measure"]["measure_id"]: record["documents"][0]["source_url"] for record in records}

@@ -18,6 +18,14 @@ from typing import Iterable, Optional
 from ...config import DB_PATH
 from ...database.models import BallotMeasure
 from ...database.operations import Database
+from ...database.measure_documents import (
+    SCHEMA as DOCUMENT_SCHEMA,
+    FIELDS as DOCUMENT_FIELDS,
+    CONTENT_FIELDS as DOCUMENT_CONTENT_FIELDS,
+    document_rows,
+    read_document_rows,
+    validate_document,
+)
 from .county_config import COUNTY_CONFIGS, get_county_config
 from .parser import SCHEMA_VERSION, canonicalize_document_url
 
@@ -103,6 +111,18 @@ class _Plan:
     conflicts: tuple[str, ...]
     identities: tuple["_IdentityRegistration", ...] = ()
     scope_should_advance: bool = False
+    document_changes: tuple["_DocumentChange", ...] = ()
+
+
+@dataclass(frozen=True)
+class _DocumentChange:
+    canonical_measure_id: str
+    documents: tuple[dict, ...]
+    inserted: int
+    updated: int
+    removed: int
+    provenance_refreshed: int
+    removed_roles: tuple[str, ...]
 
 
 @dataclass(frozen=True)
@@ -128,6 +148,14 @@ class LoadReport:
     actions: tuple[str, ...]
     backup_path: Optional[Path] = None
     scope_advanced: bool = False
+    documents_inserted: int = 0
+    documents_updated: int = 0
+    documents_removed: int = 0
+    documents_provenance_refreshed: int = 0
+
+    @property
+    def documents_changed(self) -> int:
+        return self.documents_inserted + self.documents_updated + self.documents_removed
 
     @property
     def changed(self) -> int:
@@ -231,6 +259,7 @@ def _has_table(connection: sqlite3.Connection, table_name: str) -> bool:
 def _ensure_registrar_schema(connection: sqlite3.Connection) -> None:
     for statement in _REGISTRAR_SCHEMA:
         connection.execute(statement)
+    connection.execute(DOCUMENT_SCHEMA)
 
 
 def read_normalized_jsonl(path: Path) -> NormalizedBatch:
@@ -346,6 +375,10 @@ def read_normalized_jsonl(path: Path) -> NormalizedBatch:
             required_document = {"role", "source_url", "snapshot_filename", "sha256", "size_bytes", "content_type"}
             if not required_document.issubset(document):
                 raise NormalizedDataError(f"record {index} has malformed document metadata")
+            try:
+                validate_document(document)
+            except ValueError as exc:
+                raise NormalizedDataError(f"record {index} has invalid document metadata: {exc}") from exc
             role = document["role"]
             if role in roles:
                 raise NormalizedDataError(f"record {index} repeats document role {role!r}")
@@ -629,6 +662,7 @@ def _plan_load(
     conflicts: list[str] = []
     identities: list[_IdentityRegistration] = []
     present_ids: set[str] = set()
+    records_by_canonical_id: dict[str, dict] = {}
 
     scope = _scope_state(connection, batch)
     if scope is not None:
@@ -660,6 +694,11 @@ def _plan_load(
             conflicts.append(identity_conflict)
             continue
         assert model is not None and registration is not None
+        canonical_id = str(model.measure_id)
+        if canonical_id in records_by_canonical_id:
+            conflicts.append(f"multiple input records resolve to canonical identity {canonical_id}")
+            continue
+        records_by_canonical_id[canonical_id] = record
         identities.append(registration)
         present_ids.add(str(model.measure_id))
         exact_row = connection.execute(
@@ -751,7 +790,67 @@ def _plan_load(
         tuple(conflicts),
         tuple(identities),
         scope_should_advance and not conflicts,
+        _plan_documents(connection, records_by_canonical_id, actions) if not conflicts else (),
     )
+
+
+def _plan_documents(
+    connection: sqlite3.Connection, records_by_canonical_id: dict[str, dict], actions: list[_Action],
+) -> tuple[_DocumentChange, ...]:
+    changes = []
+    measure_actions = [action for action in actions if action.kind != "deactivate"]
+    actions_by_id = {action.measure_id: action for action in measure_actions}
+    if (len(actions_by_id) != len(measure_actions)
+            or actions_by_id.keys() != records_by_canonical_id.keys()):
+        raise RegistrarLoadError("document plan does not match the validated measure batch")
+    for canonical_id, record in records_by_canonical_id.items():
+        action = actions_by_id[canonical_id]
+        expected = document_rows(record)
+        before = {
+            row["role"]: row
+            for row in read_document_rows(connection, action.target_id)
+        } if action.target_id is not None else {}
+        after = {row["role"]: row for row in expected}
+        inserted = len(after.keys() - before.keys())
+        removed_roles = tuple(sorted(before.keys() - after.keys()))
+        updated = 0
+        provenance_refreshed = 0
+        for role in before.keys() & after.keys():
+            if any(before[role][field] != after[role][field] for field in DOCUMENT_CONTENT_FIELDS):
+                updated += 1
+            elif before[role] != after[role]:
+                provenance_refreshed += 1
+        changed_rows = tuple(row for row in expected if before.get(row["role"]) != row)
+        if changed_rows or removed_roles:
+            changes.append(_DocumentChange(
+                canonical_id, changed_rows, inserted, updated, len(removed_roles),
+                provenance_refreshed, removed_roles,
+            ))
+    return tuple(changes)
+
+
+def _persist_documents(
+    connection: sqlite3.Connection, batch: NormalizedBatch, changes: tuple[_DocumentChange, ...],
+) -> None:
+    for change in changes:
+        row = connection.execute(
+            "SELECT id FROM measures WHERE measure_id = ? AND data_source = ?",
+            (change.canonical_measure_id, batch.data_source),
+        ).fetchall()
+        if len(row) != 1:
+            raise RegistrarLoadError(f"document target is not unique: {change.canonical_measure_id}")
+        target_id = row[0][0]
+        connection.executemany(
+            "DELETE FROM measure_documents WHERE measure_id = ? AND role = ?",
+            [(target_id, role) for role in change.removed_roles],
+        )
+        connection.executemany(
+            f"INSERT INTO measure_documents (measure_id, {', '.join(DOCUMENT_FIELDS)}) "
+            f"VALUES ({', '.join('?' for _ in range(len(DOCUMENT_FIELDS) + 1))}) "
+            "ON CONFLICT(measure_id, role) DO UPDATE SET "
+            + ", ".join(f"{field} = excluded.{field}" for field in DOCUMENT_FIELDS if field != "role"),
+            [(target_id, *(document[field] for field in DOCUMENT_FIELDS)) for document in change.documents],
+        )
 
 
 def _insert(connection: sqlite3.Connection, model: BallotMeasure) -> None:
@@ -936,6 +1035,10 @@ def _report(
         actions=action_lines,
         backup_path=backup_path,
         scope_advanced=committed and plan.scope_should_advance,
+        documents_inserted=sum(change.inserted for change in plan.document_changes),
+        documents_updated=sum(change.updated for change in plan.document_changes),
+        documents_removed=sum(change.removed for change in plan.document_changes),
+        documents_provenance_refreshed=sum(change.provenance_refreshed for change in plan.document_changes),
     )
 
 
@@ -965,6 +1068,7 @@ def load_jsonl(
         any(action.kind != "skip" for action in plan.actions)
         or plan.scope_should_advance
         or identities_need_persist
+        or bool(plan.document_changes)
     )
     if not commit or plan.conflicts or not needs_write:
         return _report(jsonl_path, db_path, commit, False, plan)
@@ -999,6 +1103,7 @@ def load_jsonl(
                 assert action.target_id is not None and action.updates is not None
                 _update(connection, action.target_id, action.updates)
         _persist_identities(connection, batch, locked_plan.identities)
+        _persist_documents(connection, batch, locked_plan.document_changes)
         if locked_plan.scope_should_advance:
             _advance_scope(connection, batch)
         connection.commit()
@@ -1048,6 +1153,11 @@ def main(argv: Optional[list[str]] = None) -> int:
     print(
         f"{mode} inserted={report.inserted} updated={report.updated} "
         f"deactivated={report.deactivated} skipped={report.skipped} conflicts={len(report.conflicts)}"
+    )
+    print(
+        f"document_roles inserted={report.documents_inserted} "
+        f"updated={report.documents_updated} removed={report.documents_removed} "
+        f"provenance_refreshed={report.documents_provenance_refreshed}"
     )
     if report.backup_path:
         print(f"backup={report.backup_path}")

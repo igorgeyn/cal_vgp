@@ -196,6 +196,42 @@ def _put_snapshot(
     return paths
 
 
+def test_reviewed_chino_hills_rename_preserves_origin_without_weakening_guard():
+    from src.scrapers.registrar.county_config import get_county_config
+
+    old_url = "https://uploads.rov.sbcounty.gov/ROV/Elections/2026/1103/Measures/CityofChinoHills/FT_CityofChinoHills.pdf"
+    new_url = old_url.replace("FT_CityofChinoHills.pdf", "FT_ChinoHills.pdf")
+    origin = replace(
+        _synthetic_row(4, "TBD", "Transactions and Use Tax Measure", old_url),
+        jurisdiction="City of Chino Hills",
+    )
+    lettered = replace(origin, table_row=12, letter="J")
+    renamed = replace(
+        lettered,
+        description="Transactions and Use Tax",
+        documents=(replace(origin.documents[0], url=new_url, table_row=12, measure_letter="J"),),
+    )
+
+    def prior_lineages():
+        lineages = []
+        _link_snapshot(lineages, _synthetic_snapshot("20260727T171800Z", (origin,)))
+        _link_snapshot(lineages, _synthetic_snapshot("20260828T005152Z", (lettered,)))
+        return lineages
+
+    transition = _synthetic_snapshot("20260831T185331Z", (renamed,))
+    with pytest.raises(LineageConflictError, match="letter.*contradicts"):
+        _link_snapshot(prior_lineages(), transition)
+    lineages = prior_lineages()
+    original = lineages[0]
+    overrides = get_county_config("sb").lineage_overrides
+    assert _link_snapshot(lineages, transition, overrides)[0] is original
+    assert _link_snapshot(
+        lineages, _synthetic_snapshot("20260907T172437Z", (renamed,)), overrides,
+    )[0] is original
+    assert len(lineages) == 1
+    assert (original.origin_snapshot_id, original.origin_table_row) == ("20260727T171800Z", 4)
+
+
 def test_parser_maps_lettered_snapshot_and_writes_deterministically(tmp_path: Path):
     store = LocalArtifactStore(tmp_path / "raw")
     _put_snapshot(store, "20260814T035115Z", "measures_2026_1103_lettered.html")

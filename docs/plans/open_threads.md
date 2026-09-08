@@ -1,5 +1,21 @@
 # Open threads
 
+> **September 8 release:** Igor approved F1. Production loading and the actual
+> paired-build gate passed: 49 measures with 239 official-document links.
+> Publication is underway at https://cal-vgp.igorgeyn.com/; see
+> [the current release handoff](f1_post_review_release_20260908.md).
+> Next is the capture/parse/publication handoff, then election-status rendering.
+> Earlier load/publication status below is historical.
+
+> **September 7 priority update:** Igor accepted F1 and reliable updates before
+> expansion; two useful counties by October 5, Alameda conditional. Budget:
+> 10 Igor-hours/week plus LLM execution. The sequence below is the August 31
+> backlog; [forward_plan_20260907.md](forward_plan_20260907.md) supersedes its
+> ordering. San Mateo is loaded locally (20 SB + 29 SMC); publication was still
+> pending in the review brief. F1 is now implemented and verified on a copy,
+> with no production load or publication; see
+> [official_documents_20260907.md](official_documents_20260907.md).
+
 > **The "what do I actually do next" checklist**, in one place. For the
 > durable backlog read [`../WORKING_LIST.md`](../WORKING_LIST.md); for
 > the Bay Area county sequence and its architectural debts read

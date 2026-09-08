@@ -42,6 +42,11 @@ COUNTY_CONFIGS = {
             # The same reviewed transition under the immutable production
             # snapshot IDs. Keep the fixture pair above for local replay tests.
             ("20260814T035115Z", 4): ("20260727T171800Z", 1),
+            # Reviewed production rename: Chino Hills J lost "Measure" in
+            # its description and every document URL changed. Resolution,
+            # full text, analysis and argument-against bytes are identical
+            # across Aug 28/31. See official_documents_release_20260907.md.
+            ("20260831T185331Z", 12): ("20260727T171800Z", 4),
         },
     ),
     "smc": RegistrarCountyConfig(

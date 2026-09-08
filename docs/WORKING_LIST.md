@@ -1,5 +1,55 @@
 # CalBallot Working List
 
+> **Current resume point — 2026-09-08:** Igor approved the reviewed F1 release.
+> The pinned September 7 SB/SMC snapshots are loaded into production, with
+> backups and no-write replay verified. The real paired build and production
+> gate pass: 239 official-document links on 49 measures; 12,361 active measures.
+> Production HTML matches the reviewed candidate; IDs and unrelated enrichments
+> are preserved. Publication is underway at https://cal-vgp.igorgeyn.com/.
+> See [the release handoff](plans/f1_post_review_release_20260908.md).
+> **Next after deployment verification:** capture/parse/publication handoff,
+> then election-status rendering. The review chronology below is historical.
+>
+> **Accepted priority — 2026-09-07:** Igor accepted **documents and reliable
+> updates before county expansion**, with 10 Igor-hours/week and substantially
+> more LLM execution time. Two useful counties by October 5 is the commitment;
+> Alameda is conditional on the September 18 gate.
+>
+> **F1 implemented locally:** document-role persistence, dry-run change counts,
+> grouped official links in the modal, and capture provenance in site JSON.
+> Production database and deployed root artifacts have not been changed.
+> Read [the accepted forward plan](plans/forward_plan_20260907.md) and
+> [F1 verification/handoff](plans/official_documents_20260907.md).
+> Claude review assessed and fixes verified: **261 registrar/site tests pass**;
+> content changes and provenance refreshes are separated, ID attachment fails
+> loudly, and CLI field-filter coverage is added. See the
+> [review response](plans/official_documents_review_response_20260907.md).
+> [Results transition design](plans/results_transition_20260907.md) is drafted;
+> implementation remains for October.
+>
+> **Release prepared:** latest September 7 R2 captures replayed and loaded on a
+> copy; full production CLI build preserves real enrichments. Two additional
+> release fixes cover Chino Hills J continuity and renamed county type labels.
+> **268 tests pass.** See [the concrete release review](plans/official_documents_release_20260907.md).
+> Production SQLite and root artifacts remain untouched. Remote main is five
+> commits behind: publication also delivers the 29 already-local SMC measures.
+>
+> **September 8 review:** Claude returned READY WITH CONDITIONS. Codex's
+> independent SQL check found nine null normalized outcomes counted in local
+> context denominators; correct this and qualify the comparison before sign-off.
+> Claude's proposed post-load command also needs a production-specific verifier.
+> See [the review disposition](plans/f1_claude_review_disposition_20260908.md).
+>
+> **Corrections implemented:** unresolved outcomes are excluded from context
+> rates and sample eligibility, comparison limits are explained, and an explicit
+> production verifier replaces the rehearsal-only command. Two independent
+> loads/full paired builds exercise the gate. See the
+> [updated release handoff](plans/f1_post_review_release_20260908.md).
+>
+> **Next:** updated release sign-off and production publication, then the
+> capture/parse/publication handoff and election-status rendering.
+> The August resume instructions below are historical.
+
 > Snapshot: **2026-08-27**. Branch: `main`, in sync with
 > `origin/main`. Last commit: `ac432cc`.
 >
@@ -20,7 +70,7 @@
 
 ---
 
-## Next chunk (resume here)
+## Archived next chunk (August 27; superseded above)
 
 **Drift cadence is now a measured cost:** three events (Aug 10 tax
 rate statement, Aug 24 notice of election, plus the Jul 27 launch

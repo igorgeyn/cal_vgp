@@ -1,5 +1,7 @@
 """Reviewed local-measure type crosswalk and build-time context."""
 
+import pytest
+
 from src.website.local_measure_context import (
     LOCAL_MEASURE_CATEGORY_CROSSWALK,
     attach_local_historical_context,
@@ -33,9 +35,13 @@ def _current(description="Bond Measure", *, county="San Bernardino"):
 def test_reviewed_crosswalk_keeps_transportation_explicitly_unmapped():
     assert LOCAL_MEASURE_CATEGORY_CROSSWALK == {
         "Bond Measure": "GO Bond",
+        "School Bonds": "GO Bond",
+        "Municipal Bonds": "GO Bond",
+        "District Bonds": "GO Bond",
         "Municipal Code Amendment": "Ordinance",
         "Charter Amendment": "Charter Amendment",
         "Transactions and Use Tax Measure": "Sales Tax",
+        "Transactions and Use Tax": "Sales Tax",
         "Transient Occupancy Tax": "Transient Occupancy Tax",
         "Special Parcel Tax": "Property Tax",
         "Local Transportation Improvement Program": None,
@@ -43,6 +49,18 @@ def test_reviewed_crosswalk_keeps_transportation_explicitly_unmapped():
     assert get_reviewed_historical_category("  bond   measure ") == "GO Bond"
     assert get_reviewed_historical_category("Local Transportation Improvement Program") is None
     assert get_reviewed_historical_category("Unreviewed type") is None
+
+
+def test_county_label_refresh_preserves_existing_context_and_adds_confirmed_sales_tax():
+    old = [_current("Bond Measure"), _current("Transactions and Use Tax Measure")]
+    new = [_current(label) for label in (
+        "School Bonds", "Municipal Bonds", "District Bonds", "Transactions and Use Tax",
+    )]
+    history = _history(8, passed=5) + _history(6, category="Sales Tax", passed=2)
+    assert attach_local_historical_context(history + old + new) == 6
+    for row in new[:3]:
+        assert row['local_historical_context'] == old[0]['local_historical_context']
+    assert new[3]['local_historical_context'] == old[1]['local_historical_context']
 
 
 def test_context_is_county_scoped_and_excludes_registrar_rows():
@@ -96,7 +114,29 @@ def test_context_is_suppressed_below_five_and_for_unmapped_type():
     assert "local_historical_context" not in unmapped
 
 
-def test_all_reviewed_cohorts_produce_the_verified_card_statistics():
+@pytest.mark.parametrize("unknown", [None, "PassT", "1", 2])
+def test_unknown_outcomes_do_not_count_as_failures_or_extend_date_range(unknown):
+    current = _current()
+    history = _history(5, passed=3)
+    missing = {**history[0], "passed": unknown, "year": 1900, "percent_yes": 99, "pass_fail": "PassT"}
+    assert attach_local_historical_context([missing, *history, current]) == 1
+    assert current['local_historical_context']['total'] == 5
+    assert current['local_historical_context']['passed'] == 3
+    assert current['local_historical_context']['pass_rate'] == 60
+    assert current['local_historical_context']['since'] == 1998
+    assert missing['passed'] == unknown  # Never repair raw data in the display layer.
+
+
+@pytest.mark.parametrize("known_count", [0, 4])
+def test_unknown_outcomes_cannot_satisfy_minimum_sample(known_count):
+    current = _current()
+    current['local_historical_context'] = {'stale': True}
+    missing = [{**row, 'passed': None} for row in _history(10)]
+    assert attach_local_historical_context(_history(known_count) + missing + [current]) == 0
+    assert 'local_historical_context' not in current
+
+
+def test_decided_cohorts_produce_expected_statistics():
     cohorts = {
         "Bond Measure": ("GO Bond", 90, 60, 1998, 67),
         "Municipal Code Amendment": ("Ordinance", 71, 40, 1998, 56),

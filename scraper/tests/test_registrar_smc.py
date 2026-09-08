@@ -498,6 +498,21 @@ def test_active_anchor_full_fixture_capture_and_offline_parse(store, tmp_path):
     assert by_role["resolution"]["snapshot_filename"] == by_role["text"]["snapshot_filename"]
     assert by_role["text"]["snapshot_filename"] == by_role["tax_rate_statement"]["snapshot_filename"]
 
+    # The same fixture must reach the reader with all roles, including shared
+    # county packets, rather than stopping at normalized JSONL.
+    from src.database.operations import Database
+    from src.database.measure_documents import documents_for_website
+    from src.scrapers.registrar.loader import load_jsonl
+    database = Database(tmp_path / "documents.db")
+    database.close()
+    loaded = load_jsonl(tmp_path / "smc.jsonl", db_path=database.db_path, commit=True)
+    assert loaded.documents_inserted == 167
+    with database:
+        public = documents_for_website(database.connect())
+    assert len(public) == 29
+    assert sum(len(documents) for documents in public.values()) == 135
+    assert sum(len(document["roles"]) for documents in public.values() for document in documents) == 167
+
 
 def test_second_snapshot_links_shared_packet_rows_by_unique_documents(store, tmp_path):
     first = make_scraper(store, full_fixture_responses(), when=ACTIVE_NOW).scrape()

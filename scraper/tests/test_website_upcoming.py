@@ -57,7 +57,11 @@ def test_local_measure_type_prefers_classification_then_description():
 def test_compact_local_measure_type_uses_reviewed_short_labels():
     for description, expected in (
         ("Bond Measure", "Bond"),
+        ("School Bonds", "Bond"),
+        ("Municipal Bonds", "Bond"),
+        ("District Bonds", "Bond"),
         ("Transactions and Use Tax Measure", "Sales tax"),
+        ("Transactions and Use Tax", "Sales tax"),
         ("Municipal Code Amendment", "Municipal code"),
         ("Local Transportation Improvement Program", "Transportation"),
     ):
