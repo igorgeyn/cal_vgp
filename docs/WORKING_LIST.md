@@ -5,9 +5,11 @@
 > backups and no-write replay verified. The real paired build and production
 > gate pass: 239 official-document links on 49 measures; 12,361 active measures.
 > Production HTML matches the reviewed candidate; IDs and unrelated enrichments
-> are preserved. Publication is underway at https://cal-vgp.igorgeyn.com/.
+> are preserved. **Published and verified:** https://cal-vgp.igorgeyn.com/.
+> Release `ec89711` deployed successfully; served artifacts and live desktop /
+> mobile document, context and Finance checks passed. No scrape was triggered.
 > See [the release handoff](plans/f1_post_review_release_20260908.md).
-> **Next after deployment verification:** capture/parse/publication handoff,
+> **Next:** capture/parse/publication handoff,
 > then election-status rendering. The review chronology below is historical.
 >
 > **Accepted priority — 2026-09-07:** Igor accepted **documents and reliable

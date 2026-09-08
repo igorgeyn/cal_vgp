@@ -4,7 +4,8 @@ This supersedes the September 7 candidate's historical-context values and
 post-load verification instructions. The document/identity release scope is
 unchanged. Igor approved the reviewed candidate on September 8. Production
 loading, backups, identical-snapshot replay and the actual paired-build gate
-have passed. Publication is underway at https://cal-vgp.igorgeyn.com/.
+have passed. Release `ec89711` is published and verified at
+https://cal-vgp.igorgeyn.com/.
 
 ## Approved production execution
 
@@ -22,8 +23,22 @@ Production artifact SHA-256:
 - `measures-data.json`: `f35c845f6e983250ca83acce7018ed5cc5a06d08064a6a5bee9334f415449c72`
 
 The release commit uses `[skip ci]` to avoid the push-triggered registrar
-scrape. Pages publication is verified separately against these actual hashes.
-No new county scraping is authorized or needed for this release.
+scrape. Only Pages ran for this commit; its deployment succeeded at
+2026-09-08 14:11:13 UTC (run `34236586413`). No county scrape was triggered.
+
+Both public files returned HTTP 200 and match their committed bytes. Git
+normalizes the generated HTML's 14,301 CRLF line endings to LF; that is the
+only difference from the production file above. Its committed/served SHA-256
+is `8d1cabf15232cc121de1286ffb04880d848511b0de6c79e487862c49e912bf53`.
+The JSON hash is unchanged. `production/deployment-verification.json` records
+this exact production-to-commit-to-served comparison.
+
+Live Chromium checks passed at desktop (1440px) and mobile (390px): SB J/I,
+SMC R/regional document modals, September 7 capture dates, keyboard navigation,
+clearing documents on historical measures, Finance content, and untruncated
+context statistics in both counties. There were no JavaScript page errors.
+Reports and screenshots are under `production/`. No county documents were
+fetched during these checks. Publication is complete; refresh handoff is next.
 
 ## Corrections
 

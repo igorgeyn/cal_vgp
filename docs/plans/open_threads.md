@@ -2,7 +2,7 @@
 
 > **September 8 release:** Igor approved F1. Production loading and the actual
 > paired-build gate passed: 49 measures with 239 official-document links.
-> Publication is underway at https://cal-vgp.igorgeyn.com/; see
+> Release `ec89711` is deployed and verified at https://cal-vgp.igorgeyn.com/; see
 > [the current release handoff](f1_post_review_release_20260908.md).
 > Next is the capture/parse/publication handoff, then election-status rendering.
 > Earlier load/publication status below is historical.
