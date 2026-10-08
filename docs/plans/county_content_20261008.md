@@ -6,19 +6,20 @@ a separate CalBallot explanation, approval requirement, source/page citations
 and review date. Forty have links to real historical records underlying their
 same-county/broad-type comparisons. All 239 official-document groups remain.
 
+**Published and served verified:** release `61309719` via [PR #7](https://github.com/igorgeyn/cal_vgp/pull/7). [Pages deployment](https://github.com/igorgeyn/cal_vgp/actions/runs/37860249030) succeeded; all 56 sampled served artifacts match the tested bytes, including every changed county page. All 49 county modals passed live at 1440/390px, including finance fallback, page-to-explorer return, preserved statewide/historical Finance and the Measure Z correction. Private R2 recovery read-back passed.
+
 The tested candidate is private scratch
 `scraper/data/county_content/20261008/candidate-02/site/`. Publication and served
-verification are separate release gates; the final PR receipt records them.
+verification have passed; the final PR receipt and evidence JSON record them.
 Baseline: `7a4bccb9`. Branch: `county-content-r1`.
 
 ## Reader examples
 
-After release, review [Burlingame R](https://cal-vgp.igorgeyn.com/measures/12443.html)
+Review [Burlingame R](https://cal-vgp.igorgeyn.com/measures/12443.html)
 for bond principal versus repayment; [regional transit](https://cal-vgp.igorgeyn.com/measures/12442.html)
 for five-county scope; [Belmont Y](https://cal-vgp.igorgeyn.com/measures/12450.html)
 for the square-foot tax base; and [Redwood City E](https://cal-vgp.igorgeyn.com/measures/12460.html)
-for the rent-regulation explanation and qualifications. These links point at
-production and show the update only after publication.
+for the rent-regulation explanation and qualifications. These links show the verified production update.
 
 The same explanations appear in the local carousel, searchable catalog previews,
 modal and individual pages. Modal explanations display in full. Official
@@ -121,3 +122,5 @@ plan. Next: R2 routine refresh/diffs and accepted-publication manifest, R3 calen
 status consistency, R4 honest results fallback and R5 operating rehearsal. Alameda
 follows those essential gates; San Francisco and Contra Costa require fresh source
 assessment. Statewide card aesthetics remain deferred as Igor requested.
+
+Recovery update SHA-256: `838170fde15a9379fa6eabd451cf447d5af4ed423dc3361bd8e6a5286ffe7ade`. The private restore checked 277 workspace inputs and all 12,382 public files. The tested build and live response hashes are in the evidence JSON.
