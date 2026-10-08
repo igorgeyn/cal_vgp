@@ -1,0 +1,659 @@
+{
+  "qualified.html": {
+    "url": "https://www.sos.ca.gov/elections/ballot-measures/qualified-ballot-measures",
+    "final_url": "https://www.sos.ca.gov/elections/ballot-measures/qualified-ballot-measures",
+    "captured_at": "2026-10-08T21:31:59.646383+00:00",
+    "sha256": "0de9b53ee310e68013a8bd49459ee88d350751be54301db6937df9e228449e87",
+    "bytes": 67690,
+    "status": 200,
+    "content_type": "text/html; charset=UTF-8"
+  },
+  "prop-1-index.html": {
+    "url": "https://voterguide.sos.ca.gov/propositions/1/index.htm",
+    "final_url": "https://voterguide.sos.ca.gov/propositions/1/index.htm",
+    "captured_at": "2026-10-08T21:32:27.387732+00:00",
+    "sha256": "8e9b91104bd5c6a62f143b01b7a82359348a43943351283bc5b84e5f7e638365",
+    "bytes": 14122,
+    "status": 200,
+    "content_type": "text/html"
+  },
+  "prop-1-title-summary.html": {
+    "url": "https://voterguide.sos.ca.gov/propositions/1/title-summary.htm",
+    "final_url": "https://voterguide.sos.ca.gov/propositions/1/title-summary.htm",
+    "captured_at": "2026-10-08T21:32:29.443532+00:00",
+    "sha256": "1a0d32d4904bd4248c7d74281b4714ae6d0f823012e107dfe03333fca25bd8e9",
+    "bytes": 14063,
+    "status": 200,
+    "content_type": "text/html"
+  },
+  "prop-1-analysis.html": {
+    "url": "https://voterguide.sos.ca.gov/propositions/1/analysis.htm",
+    "final_url": "https://voterguide.sos.ca.gov/propositions/1/analysis.htm",
+    "captured_at": "2026-10-08T21:32:31.468706+00:00",
+    "sha256": "e0233a638b2bbd4729157d52b63c2577ee17efaf26da2e3d5c7f0bb5f60eb08b",
+    "bytes": 20653,
+    "status": 200,
+    "content_type": "text/html"
+  },
+  "prop-1-arguments-rebuttals.html": {
+    "url": "https://voterguide.sos.ca.gov/propositions/1/arguments-rebuttals.htm",
+    "final_url": "https://voterguide.sos.ca.gov/propositions/1/arguments-rebuttals.htm",
+    "captured_at": "2026-10-08T21:32:33.499731+00:00",
+    "sha256": "87067e1b8ec24b49ac7e91bd69517a173025a8f705f01a891eb425c81e0b01c9",
+    "bytes": 17541,
+    "status": 200,
+    "content_type": "text/html"
+  },
+  "prop-2-index.html": {
+    "url": "https://voterguide.sos.ca.gov/propositions/2/index.htm",
+    "final_url": "https://voterguide.sos.ca.gov/propositions/2/index.htm",
+    "captured_at": "2026-10-08T21:32:35.532586+00:00",
+    "sha256": "88a6df4b07e4d9c03f6492089d6eb09a53d993bd9446c0ee8a64dd19a01b00dd",
+    "bytes": 14630,
+    "status": 200,
+    "content_type": "text/html"
+  },
+  "prop-2-title-summary.html": {
+    "url": "https://voterguide.sos.ca.gov/propositions/2/title-summary.htm",
+    "final_url": "https://voterguide.sos.ca.gov/propositions/2/title-summary.htm",
+    "captured_at": "2026-10-08T21:32:37.673562+00:00",
+    "sha256": "180f81b4a6f50e77e84c9074207a99c439a9d5ee65f4a52b6227c1f261c477b1",
+    "bytes": 13428,
+    "status": 200,
+    "content_type": "text/html"
+  },
+  "prop-2-analysis.html": {
+    "url": "https://voterguide.sos.ca.gov/propositions/2/analysis.htm",
+    "final_url": "https://voterguide.sos.ca.gov/propositions/2/analysis.htm",
+    "captured_at": "2026-10-08T21:32:39.750634+00:00",
+    "sha256": "bfd4e53b66056e3ab7f131e2967ed08cc2664dfc87c46aa2f9c9681f57577a54",
+    "bytes": 21050,
+    "status": 200,
+    "content_type": "text/html"
+  },
+  "prop-2-arguments-rebuttals.html": {
+    "url": "https://voterguide.sos.ca.gov/propositions/2/arguments-rebuttals.htm",
+    "final_url": "https://voterguide.sos.ca.gov/propositions/2/arguments-rebuttals.htm",
+    "captured_at": "2026-10-08T21:32:41.775185+00:00",
+    "sha256": "afce28e5acc36db08897836b84aca672d3fa24de0c69da38560cbffa3a9f9839",
+    "bytes": 24232,
+    "status": 200,
+    "content_type": "text/html"
+  },
+  "prop-3-index.html": {
+    "url": "https://voterguide.sos.ca.gov/propositions/3/index.htm",
+    "final_url": "https://voterguide.sos.ca.gov/propositions/3/index.htm",
+    "captured_at": "2026-10-08T21:32:43.831080+00:00",
+    "sha256": "2c5a8a858bae92405059f3348640c2eb603b79d3370a25346825b8820cce6e6f",
+    "bytes": 14732,
+    "status": 200,
+    "content_type": "text/html"
+  },
+  "prop-3-title-summary.html": {
+    "url": "https://voterguide.sos.ca.gov/propositions/3/title-summary.htm",
+    "final_url": "https://voterguide.sos.ca.gov/propositions/3/title-summary.htm",
+    "captured_at": "2026-10-08T21:32:45.985457+00:00",
+    "sha256": "12ea508c3a47619f9998d6248a2a303cca0ccfe434292b7b3508160b57493614",
+    "bytes": 12950,
+    "status": 200,
+    "content_type": "text/html"
+  },
+  "prop-3-analysis.html": {
+    "url": "https://voterguide.sos.ca.gov/propositions/3/analysis.htm",
+    "final_url": "https://voterguide.sos.ca.gov/propositions/3/analysis.htm",
+    "captured_at": "2026-10-08T21:32:48.017024+00:00",
+    "sha256": "90f023035631612fd89a3c35bac0cd1d1ea8f85b98396851fe4abc7210f6813f",
+    "bytes": 15836,
+    "status": 200,
+    "content_type": "text/html"
+  },
+  "prop-3-arguments-rebuttals.html": {
+    "url": "https://voterguide.sos.ca.gov/propositions/3/arguments-rebuttals.htm",
+    "final_url": "https://voterguide.sos.ca.gov/propositions/3/arguments-rebuttals.htm",
+    "captured_at": "2026-10-08T21:32:50.034876+00:00",
+    "sha256": "4ead7782594b1792a95095af7133b207b9cc41b3b7529cb972261c4308f84918",
+    "bytes": 25822,
+    "status": 200,
+    "content_type": "text/html"
+  },
+  "prop-4-index.html": {
+    "url": "https://voterguide.sos.ca.gov/propositions/4/index.htm",
+    "final_url": "https://voterguide.sos.ca.gov/propositions/4/index.htm",
+    "captured_at": "2026-10-08T21:32:52.063626+00:00",
+    "sha256": "a9a6cd716abee2acb097673a5b5aec327d9839f4b7a250ca6365c12826531692",
+    "bytes": 14912,
+    "status": 200,
+    "content_type": "text/html"
+  },
+  "prop-4-title-summary.html": {
+    "url": "https://voterguide.sos.ca.gov/propositions/4/title-summary.htm",
+    "final_url": "https://voterguide.sos.ca.gov/propositions/4/title-summary.htm",
+    "captured_at": "2026-10-08T21:32:54.091048+00:00",
+    "sha256": "84287de8e87242cc8eb72e3f52e34031b79bf02524c918842a2b1e80272ba735",
+    "bytes": 13686,
+    "status": 200,
+    "content_type": "text/html"
+  },
+  "prop-4-analysis.html": {
+    "url": "https://voterguide.sos.ca.gov/propositions/4/analysis.htm",
+    "final_url": "https://voterguide.sos.ca.gov/propositions/4/analysis.htm",
+    "captured_at": "2026-10-08T21:32:56.124542+00:00",
+    "sha256": "cc24dbdea75f12729b994230260072cc9f575cdd64ebf748e567236b68363f6d",
+    "bytes": 18044,
+    "status": 200,
+    "content_type": "text/html"
+  },
+  "prop-4-arguments-rebuttals.html": {
+    "url": "https://voterguide.sos.ca.gov/propositions/4/arguments-rebuttals.htm",
+    "final_url": "https://voterguide.sos.ca.gov/propositions/4/arguments-rebuttals.htm",
+    "captured_at": "2026-10-08T21:32:58.155759+00:00",
+    "sha256": "b6a3baedfcccd53044b1f6a0e293655b695a8617001c7c8802392ad2c25546e6",
+    "bytes": 26227,
+    "status": 200,
+    "content_type": "text/html"
+  },
+  "prop-5-index.html": {
+    "url": "https://voterguide.sos.ca.gov/propositions/5/index.htm",
+    "final_url": "https://voterguide.sos.ca.gov/propositions/5/index.htm",
+    "captured_at": "2026-10-08T21:33:00.219986+00:00",
+    "sha256": "a26b4c6e95bb1cee8ad0bef0eb8f810804bcdc620c034a8b8b2550af9f747133",
+    "bytes": 14487,
+    "status": 200,
+    "content_type": "text/html"
+  },
+  "prop-5-title-summary.html": {
+    "url": "https://voterguide.sos.ca.gov/propositions/5/title-summary.htm",
+    "final_url": "https://voterguide.sos.ca.gov/propositions/5/title-summary.htm",
+    "captured_at": "2026-10-08T21:33:02.253095+00:00",
+    "sha256": "043ad21f864d21ddded094052210a4d8aeba11dd1a77c303d11314251cb5673f",
+    "bytes": 13622,
+    "status": 200,
+    "content_type": "text/html"
+  },
+  "prop-5-analysis.html": {
+    "url": "https://voterguide.sos.ca.gov/propositions/5/analysis.htm",
+    "final_url": "https://voterguide.sos.ca.gov/propositions/5/analysis.htm",
+    "captured_at": "2026-10-08T21:33:04.401345+00:00",
+    "sha256": "e3cd78a473c633e86a78b0bd795191c0e61fd6a55b5dcd8ba49f51a305791afd",
+    "bytes": 21467,
+    "status": 200,
+    "content_type": "text/html"
+  },
+  "prop-5-arguments-rebuttals.html": {
+    "url": "https://voterguide.sos.ca.gov/propositions/5/arguments-rebuttals.htm",
+    "final_url": "https://voterguide.sos.ca.gov/propositions/5/arguments-rebuttals.htm",
+    "captured_at": "2026-10-08T21:33:06.440588+00:00",
+    "sha256": "89cde9f91af06ff436ac504829177bf1f62c4aef4a66369d42237435ae12909d",
+    "bytes": 25179,
+    "status": 200,
+    "content_type": "text/html"
+  },
+  "prop-37-index.html": {
+    "url": "https://voterguide.sos.ca.gov/propositions/37/index.htm",
+    "final_url": "https://voterguide.sos.ca.gov/propositions/37/index.htm",
+    "captured_at": "2026-10-08T21:33:08.482086+00:00",
+    "sha256": "d479c8aec2d709a5975b3b18427a9e27a361b26c1cad6b9b9937675310f3a082",
+    "bytes": 14105,
+    "status": 200,
+    "content_type": "text/html"
+  },
+  "prop-37-title-summary.html": {
+    "url": "https://voterguide.sos.ca.gov/propositions/37/title-summary.htm",
+    "final_url": "https://voterguide.sos.ca.gov/propositions/37/title-summary.htm",
+    "captured_at": "2026-10-08T21:33:10.545680+00:00",
+    "sha256": "777716c59554dba88123ae434a22ba584dc4e4df754e6c029aeb3631a787fe22",
+    "bytes": 12624,
+    "status": 200,
+    "content_type": "text/html"
+  },
+  "prop-37-analysis.html": {
+    "url": "https://voterguide.sos.ca.gov/propositions/37/analysis.htm",
+    "final_url": "https://voterguide.sos.ca.gov/propositions/37/analysis.htm",
+    "captured_at": "2026-10-08T21:33:12.691719+00:00",
+    "sha256": "8a38cbf09b2e823e2d561c1ab3cfcbda4beb03b38d5adbb2bb9c78f1b90909db",
+    "bytes": 17834,
+    "status": 200,
+    "content_type": "text/html"
+  },
+  "prop-37-arguments-rebuttals.html": {
+    "url": "https://voterguide.sos.ca.gov/propositions/37/arguments-rebuttals.htm",
+    "final_url": "https://voterguide.sos.ca.gov/propositions/37/arguments-rebuttals.htm",
+    "captured_at": "2026-10-08T21:33:14.771486+00:00",
+    "sha256": "bf4165bcf6f3041b725b12340cbd27cc4a6f32e6f529fa4426f48e3e1762e691",
+    "bytes": 17568,
+    "status": 200,
+    "content_type": "text/html"
+  },
+  "prop-38-index.html": {
+    "url": "https://voterguide.sos.ca.gov/propositions/38/index.htm",
+    "final_url": "https://voterguide.sos.ca.gov/propositions/38/index.htm",
+    "captured_at": "2026-10-08T21:33:16.819116+00:00",
+    "sha256": "06a367daa26a7bf6de1f0433daf8bd0d88cc04fe5242d6476d0cfcc670d2effc",
+    "bytes": 15054,
+    "status": 200,
+    "content_type": "text/html"
+  },
+  "prop-38-title-summary.html": {
+    "url": "https://voterguide.sos.ca.gov/propositions/38/title-summary.htm",
+    "final_url": "https://voterguide.sos.ca.gov/propositions/38/title-summary.htm",
+    "captured_at": "2026-10-08T21:33:18.840748+00:00",
+    "sha256": "f9224d375f4e11c2a2f29b58d8d0fbbad8feb5128eb98c3e13356cbf4c1ceda2",
+    "bytes": 13109,
+    "status": 200,
+    "content_type": "text/html"
+  },
+  "prop-38-analysis.html": {
+    "url": "https://voterguide.sos.ca.gov/propositions/38/analysis.htm",
+    "final_url": "https://voterguide.sos.ca.gov/propositions/38/analysis.htm",
+    "captured_at": "2026-10-08T21:33:20.876357+00:00",
+    "sha256": "3914d5e90c5ff06dfaecc2bc4aad06afb040bf029695fdf77f423df00da9d1d2",
+    "bytes": 19491,
+    "status": 200,
+    "content_type": "text/html"
+  },
+  "prop-38-arguments-rebuttals.html": {
+    "url": "https://voterguide.sos.ca.gov/propositions/38/arguments-rebuttals.htm",
+    "final_url": "https://voterguide.sos.ca.gov/propositions/38/arguments-rebuttals.htm",
+    "captured_at": "2026-10-08T21:33:22.920584+00:00",
+    "sha256": "d0127117d80f2e29d36448f8b58f051fc3bc428942779f6fd6b303663b9a3ee2",
+    "bytes": 27885,
+    "status": 200,
+    "content_type": "text/html"
+  },
+  "prop-39-index.html": {
+    "url": "https://voterguide.sos.ca.gov/propositions/39/index.htm",
+    "final_url": "https://voterguide.sos.ca.gov/propositions/39/index.htm",
+    "captured_at": "2026-10-08T21:33:24.962794+00:00",
+    "sha256": "99c6c26430d04ddd334968cb73169aa79c980c8488783b0559aabf069ad954db",
+    "bytes": 14596,
+    "status": 200,
+    "content_type": "text/html"
+  },
+  "prop-39-title-summary.html": {
+    "url": "https://voterguide.sos.ca.gov/propositions/39/title-summary.htm",
+    "final_url": "https://voterguide.sos.ca.gov/propositions/39/title-summary.htm",
+    "captured_at": "2026-10-08T21:33:26.996933+00:00",
+    "sha256": "b56a7793fca13f387a39aa59ac0f414ef55c5f8af5ca847ab2c67e01b12e2aac",
+    "bytes": 13023,
+    "status": 200,
+    "content_type": "text/html"
+  },
+  "prop-39-analysis.html": {
+    "url": "https://voterguide.sos.ca.gov/propositions/39/analysis.htm",
+    "final_url": "https://voterguide.sos.ca.gov/propositions/39/analysis.htm",
+    "captured_at": "2026-10-08T21:33:29.076633+00:00",
+    "sha256": "24f161bc106bdcd7c13ddf20fa541e2942fad86b03aff1a02fff4a0001d41523",
+    "bytes": 20652,
+    "status": 200,
+    "content_type": "text/html"
+  },
+  "prop-39-arguments-rebuttals.html": {
+    "url": "https://voterguide.sos.ca.gov/propositions/39/arguments-rebuttals.htm",
+    "final_url": "https://voterguide.sos.ca.gov/propositions/39/arguments-rebuttals.htm",
+    "captured_at": "2026-10-08T21:33:31.112981+00:00",
+    "sha256": "27b109c658c61f48c98ff3d5caea14d5c48db444f30370d17b691cacf86e9570",
+    "bytes": 23818,
+    "status": 200,
+    "content_type": "text/html"
+  },
+  "prop-40-index.html": {
+    "url": "https://voterguide.sos.ca.gov/propositions/40/index.htm",
+    "final_url": "https://voterguide.sos.ca.gov/propositions/40/index.htm",
+    "captured_at": "2026-10-08T21:33:33.171593+00:00",
+    "sha256": "05002934a51f0b17521bcf8ba22f46465d06338e3249dd27f6afaf598e876166",
+    "bytes": 14990,
+    "status": 200,
+    "content_type": "text/html"
+  },
+  "prop-40-title-summary.html": {
+    "url": "https://voterguide.sos.ca.gov/propositions/40/title-summary.htm",
+    "final_url": "https://voterguide.sos.ca.gov/propositions/40/title-summary.htm",
+    "captured_at": "2026-10-08T21:33:35.208908+00:00",
+    "sha256": "2fe49eb1cea4760f7b5bceacc02726b15ca00f88ef30c8d9914dd411209345a4",
+    "bytes": 12930,
+    "status": 200,
+    "content_type": "text/html"
+  },
+  "prop-40-analysis.html": {
+    "url": "https://voterguide.sos.ca.gov/propositions/40/analysis.htm",
+    "final_url": "https://voterguide.sos.ca.gov/propositions/40/analysis.htm",
+    "captured_at": "2026-10-08T21:33:37.362079+00:00",
+    "sha256": "871436a6efb9abc71647ad0ea93b4a66a9640f3ab758c4ecaffb79cb1e821b17",
+    "bytes": 17161,
+    "status": 200,
+    "content_type": "text/html"
+  },
+  "prop-40-arguments-rebuttals.html": {
+    "url": "https://voterguide.sos.ca.gov/propositions/40/arguments-rebuttals.htm",
+    "final_url": "https://voterguide.sos.ca.gov/propositions/40/arguments-rebuttals.htm",
+    "captured_at": "2026-10-08T21:33:39.424987+00:00",
+    "sha256": "522aea5f5a4ac7e6f3a0ea192ca4f52663b2f1dc7b4a1fc2f15a183f5d06c7a9",
+    "bytes": 28218,
+    "status": 200,
+    "content_type": "text/html"
+  },
+  "prop-41-index.html": {
+    "url": "https://voterguide.sos.ca.gov/propositions/41/index.htm",
+    "final_url": "https://voterguide.sos.ca.gov/propositions/41/index.htm",
+    "captured_at": "2026-10-08T21:33:41.472648+00:00",
+    "sha256": "77c65632d47d05453c27a5914c13dc6f806af999802be13a1b810bfa44a13c46",
+    "bytes": 15317,
+    "status": 200,
+    "content_type": "text/html"
+  },
+  "prop-41-title-summary.html": {
+    "url": "https://voterguide.sos.ca.gov/propositions/41/title-summary.htm",
+    "final_url": "https://voterguide.sos.ca.gov/propositions/41/title-summary.htm",
+    "captured_at": "2026-10-08T21:33:43.613887+00:00",
+    "sha256": "7b5cf4d824e666d8e4be05724b97dd99ed3bd329450b0242a120583adef0a740",
+    "bytes": 13030,
+    "status": 200,
+    "content_type": "text/html"
+  },
+  "prop-41-analysis.html": {
+    "url": "https://voterguide.sos.ca.gov/propositions/41/analysis.htm",
+    "final_url": "https://voterguide.sos.ca.gov/propositions/41/analysis.htm",
+    "captured_at": "2026-10-08T21:33:45.648099+00:00",
+    "sha256": "d909d8674060c50c3a4ee19a4171a313efcfa837f2ebf8a92a28f15c3006b26e",
+    "bytes": 19148,
+    "status": 200,
+    "content_type": "text/html"
+  },
+  "prop-41-arguments-rebuttals.html": {
+    "url": "https://voterguide.sos.ca.gov/propositions/41/arguments-rebuttals.htm",
+    "final_url": "https://voterguide.sos.ca.gov/propositions/41/arguments-rebuttals.htm",
+    "captured_at": "2026-10-08T21:33:47.825695+00:00",
+    "sha256": "62c9f65b3119992c6205e5e4312e9b9cfe1a5a87f3649ba2350ed4ee561088d9",
+    "bytes": 25125,
+    "status": 200,
+    "content_type": "text/html"
+  },
+  "prop-42-index.html": {
+    "url": "https://voterguide.sos.ca.gov/propositions/42/index.htm",
+    "final_url": "https://voterguide.sos.ca.gov/propositions/42/index.htm",
+    "captured_at": "2026-10-08T21:33:49.886135+00:00",
+    "sha256": "3ff804fbc5397b04e344556dcf47e75f6098c8b467bb3d143d5b988d85b2d64f",
+    "bytes": 14947,
+    "status": 200,
+    "content_type": "text/html"
+  },
+  "prop-42-title-summary.html": {
+    "url": "https://voterguide.sos.ca.gov/propositions/42/title-summary.htm",
+    "final_url": "https://voterguide.sos.ca.gov/propositions/42/title-summary.htm",
+    "captured_at": "2026-10-08T21:33:52.032555+00:00",
+    "sha256": "575d7626be523f2b03fb0db0aa85a96d83374e338116bc2e87aa0deb9f860250",
+    "bytes": 12816,
+    "status": 200,
+    "content_type": "text/html"
+  },
+  "prop-42-analysis.html": {
+    "url": "https://voterguide.sos.ca.gov/propositions/42/analysis.htm",
+    "final_url": "https://voterguide.sos.ca.gov/propositions/42/analysis.htm",
+    "captured_at": "2026-10-08T21:33:54.194833+00:00",
+    "sha256": "1c994e846a4448e11f19ddce5ee4fa35f4bf00778b8ef25e0c3e3339dd8200bc",
+    "bytes": 14951,
+    "status": 200,
+    "content_type": "text/html"
+  },
+  "prop-42-arguments-rebuttals.html": {
+    "url": "https://voterguide.sos.ca.gov/propositions/42/arguments-rebuttals.htm",
+    "final_url": "https://voterguide.sos.ca.gov/propositions/42/arguments-rebuttals.htm",
+    "captured_at": "2026-10-08T21:33:56.228943+00:00",
+    "sha256": "b2347b6cd683e432acce57131eb6ef37d00e11a08e1b76e396a22d1a9e3153be",
+    "bytes": 24874,
+    "status": 200,
+    "content_type": "text/html"
+  },
+  "prop-43-index.html": {
+    "url": "https://voterguide.sos.ca.gov/propositions/43/index.htm",
+    "final_url": "https://voterguide.sos.ca.gov/propositions/43/index.htm",
+    "captured_at": "2026-10-08T21:33:58.262859+00:00",
+    "sha256": "8502f1125889e963c95384828e21fbf9f17544dd164097279d56298fd2d5be0a",
+    "bytes": 14873,
+    "status": 200,
+    "content_type": "text/html"
+  },
+  "prop-43-title-summary.html": {
+    "url": "https://voterguide.sos.ca.gov/propositions/43/title-summary.htm",
+    "final_url": "https://voterguide.sos.ca.gov/propositions/43/title-summary.htm",
+    "captured_at": "2026-10-08T21:34:00.625660+00:00",
+    "sha256": "2ce2a2b2f3aae3bb03f74806e3a92fc46753e076857d035eb0a28d10995c2af6",
+    "bytes": 13515,
+    "status": 200,
+    "content_type": "text/html"
+  },
+  "prop-43-analysis.html": {
+    "url": "https://voterguide.sos.ca.gov/propositions/43/analysis.htm",
+    "final_url": "https://voterguide.sos.ca.gov/propositions/43/analysis.htm",
+    "captured_at": "2026-10-08T21:34:02.685343+00:00",
+    "sha256": "3d60e0036cb6e8ce34352b0325b0c7a00b93f01d1d824c496ef187e46bebe3dc",
+    "bytes": 14425,
+    "status": 200,
+    "content_type": "text/html"
+  },
+  "prop-43-arguments-rebuttals.html": {
+    "url": "https://voterguide.sos.ca.gov/propositions/43/arguments-rebuttals.htm",
+    "final_url": "https://voterguide.sos.ca.gov/propositions/43/arguments-rebuttals.htm",
+    "captured_at": "2026-10-08T21:34:04.727111+00:00",
+    "sha256": "c53a2b2bdb0d47912c04a08f5e5cf0cc84a5781e06aaddb625a03db964a201d2",
+    "bytes": 26714,
+    "status": 200,
+    "content_type": "text/html"
+  },
+  "prop-44-index.html": {
+    "url": "https://voterguide.sos.ca.gov/propositions/44/index.htm",
+    "final_url": "https://voterguide.sos.ca.gov/propositions/44/index.htm",
+    "captured_at": "2026-10-08T21:34:06.755358+00:00",
+    "sha256": "fef744fe6f44c2468f9967354eaae0b79298bba9d47d7b1e798471efa0c2d05e",
+    "bytes": 14742,
+    "status": 200,
+    "content_type": "text/html"
+  },
+  "prop-44-title-summary.html": {
+    "url": "https://voterguide.sos.ca.gov/propositions/44/title-summary.htm",
+    "final_url": "https://voterguide.sos.ca.gov/propositions/44/title-summary.htm",
+    "captured_at": "2026-10-08T21:34:08.818263+00:00",
+    "sha256": "b149d15bf81fbb7bea7f3ab2b990b9217bdaf7a7afe5643404d8471805b97112",
+    "bytes": 12824,
+    "status": 200,
+    "content_type": "text/html"
+  },
+  "prop-44-analysis.html": {
+    "url": "https://voterguide.sos.ca.gov/propositions/44/analysis.htm",
+    "final_url": "https://voterguide.sos.ca.gov/propositions/44/analysis.htm",
+    "captured_at": "2026-10-08T21:34:10.895275+00:00",
+    "sha256": "431812aeaa17909043739a2a3ad943d593fcead4f1d6796a2f535b0d7bb6be6f",
+    "bytes": 16302,
+    "status": 200,
+    "content_type": "text/html"
+  },
+  "prop-44-arguments-rebuttals.html": {
+    "url": "https://voterguide.sos.ca.gov/propositions/44/arguments-rebuttals.htm",
+    "final_url": "https://voterguide.sos.ca.gov/propositions/44/arguments-rebuttals.htm",
+    "captured_at": "2026-10-08T21:34:12.935708+00:00",
+    "sha256": "6f2ecfa2de55d34abe34af0131551a1fb246b59bc49c97a01276a43e1f210e9b",
+    "bytes": 28235,
+    "status": 200,
+    "content_type": "text/html"
+  },
+  "prop-45-index.html": {
+    "url": "https://voterguide.sos.ca.gov/propositions/45/index.htm",
+    "final_url": "https://voterguide.sos.ca.gov/propositions/45/index.htm",
+    "captured_at": "2026-10-08T21:34:14.963988+00:00",
+    "sha256": "e22d750c6af5ccafa8e24314696755ec23a8b3c646c202529608bff064e89849",
+    "bytes": 15237,
+    "status": 200,
+    "content_type": "text/html"
+  },
+  "prop-45-title-summary.html": {
+    "url": "https://voterguide.sos.ca.gov/propositions/45/title-summary.htm",
+    "final_url": "https://voterguide.sos.ca.gov/propositions/45/title-summary.htm",
+    "captured_at": "2026-10-08T21:34:16.993215+00:00",
+    "sha256": "8369157682ff896351f9de7c754a86fe622bb6c072f232956119aae10fc95b17",
+    "bytes": 13355,
+    "status": 200,
+    "content_type": "text/html"
+  },
+  "prop-45-analysis.html": {
+    "url": "https://voterguide.sos.ca.gov/propositions/45/analysis.htm",
+    "final_url": "https://voterguide.sos.ca.gov/propositions/45/analysis.htm",
+    "captured_at": "2026-10-08T21:34:19.017611+00:00",
+    "sha256": "ae545d43c044e15985a61e872ed1f9073b7771ebe902e3a0f3778496aad20835",
+    "bytes": 22410,
+    "status": 200,
+    "content_type": "text/html"
+  },
+  "prop-45-arguments-rebuttals.html": {
+    "url": "https://voterguide.sos.ca.gov/propositions/45/arguments-rebuttals.htm",
+    "final_url": "https://voterguide.sos.ca.gov/propositions/45/arguments-rebuttals.htm",
+    "captured_at": "2026-10-08T21:34:21.077949+00:00",
+    "sha256": "0a3efaa416afe27bea97b7adee4851532fa573740c19feff70d27ca84c3c9a8f",
+    "bytes": 26813,
+    "status": 200,
+    "content_type": "text/html"
+  },
+  "finance-index.html": {
+    "url": "https://www.sos.ca.gov/campaign-lobbying/helpful-resources/measure-contributions/2026-ballot-measure-contribution-totals",
+    "final_url": "https://www.sos.ca.gov/campaign-lobbying/helpful-resources/measure-contributions/2026-ballot-measure-contribution-totals",
+    "captured_at": "2026-10-08T21:34:23.441595+00:00",
+    "sha256": "fdf5547f640e5eb122b6c8af4f4ca1e1d70deb69b106bdacbb5ef3367bae1eac",
+    "bytes": 62485,
+    "status": 200,
+    "content_type": "text/html; charset=UTF-8"
+  },
+  "prop-1-finance.html": {
+    "url": "https://www.sos.ca.gov/campaign-lobbying/helpful-resources/measure-contributions/2026-ballot-measure-contribution-totals/proposition-1-sb-417-limon-veterans-and-affordable-housing-bond-act-2026-ch-16-2026",
+    "final_url": "https://www.sos.ca.gov/campaign-lobbying/helpful-resources/measure-contributions/2026-ballot-measure-contribution-totals/proposition-1-sb-417-limon-veterans-and-affordable-housing-bond-act-2026-ch-16-2026",
+    "captured_at": "2026-10-08T21:34:25.594242+00:00",
+    "sha256": "229ec523de0ff4c4321f0605664bf1bcbc00b66e1ef2bdcfadeeeee1399b9dc9",
+    "bytes": 61163,
+    "status": 200,
+    "content_type": "text/html; charset=UTF-8"
+  },
+  "prop-2-finance.html": {
+    "url": "https://www.sos.ca.gov/campaign-lobbying/helpful-resources/measure-contributions/2026-ballot-measure-contribution-totals/proposition-2-aca-20-gabriel-save-californias-future-act-res-ch-130-2026",
+    "final_url": "https://www.sos.ca.gov/campaign-lobbying/helpful-resources/measure-contributions/2026-ballot-measure-contribution-totals/proposition-2-aca-20-gabriel-save-californias-future-act-res-ch-130-2026",
+    "captured_at": "2026-10-08T21:34:27.660811+00:00",
+    "sha256": "e56c13f06dba1431138ed8bae3d2c9437f3fcd83e216c70c6ad37f622e62988c",
+    "bytes": 58502,
+    "status": 200,
+    "content_type": "text/html; charset=UTF-8"
+  },
+  "prop-3-finance.html": {
+    "url": "https://www.sos.ca.gov/campaign-lobbying/helpful-resources/measure-contributions/2026-ballot-measure-contribution-totals/proposition-3-provides-permanent-funding-schools-and-healthcare-extending-existing-tax-high-incomes-initiative-constitutional-am",
+    "final_url": "https://www.sos.ca.gov/campaign-lobbying/helpful-resources/measure-contributions/2026-ballot-measure-contribution-totals/proposition-3-provides-permanent-funding-schools-and-healthcare-extending-existing-tax-high-incomes-initiative-constitutional-am",
+    "captured_at": "2026-10-08T21:34:30.080796+00:00",
+    "sha256": "f8aee1f926dbea3788e122f45d40c12a81ad4ade4369808fa2afc9a119f63357",
+    "bytes": 63542,
+    "status": 200,
+    "content_type": "text/html; charset=UTF-8"
+  },
+  "prop-4-finance.html": {
+    "url": "https://www.sos.ca.gov/campaign-lobbying/helpful-resources/measure-contributions/2026-ballot-measure-contribution-totals/proposition-4-sb-42-umberg-political-reform-act-1974-public-campaign-financing-california-fair-elections-act-2026-ch-245-2025",
+    "final_url": "https://www.sos.ca.gov/campaign-lobbying/helpful-resources/measure-contributions/2026-ballot-measure-contribution-totals/proposition-4-sb-42-umberg-political-reform-act-1974-public-campaign-financing-california-fair-elections-act-2026-ch-245-2025",
+    "captured_at": "2026-10-08T21:34:33.354580+00:00",
+    "sha256": "0bbaafd347ee3fadfb9a1f2e31760ddda784e62ad6f0e2cda5d4efe52fe553c1",
+    "bytes": 60532,
+    "status": 200,
+    "content_type": "text/html; charset=UTF-8"
+  },
+  "prop-5-finance.html": {
+    "url": "https://www.sos.ca.gov/campaign-lobbying/helpful-resources/measure-contributions/2026-ballot-measure-contribution-totals/proposition-5-sca-1-newman-elections-recall-state-officers-res-ch-204-2024",
+    "final_url": "https://www.sos.ca.gov/campaign-lobbying/helpful-resources/measure-contributions/2026-ballot-measure-contribution-totals/proposition-5-sca-1-newman-elections-recall-state-officers-res-ch-204-2024",
+    "captured_at": "2026-10-08T21:34:35.411055+00:00",
+    "sha256": "ae5e1d7b249770556ef22daf19f2fa85607e124f5a5e374142abfb19921edf7f",
+    "bytes": 58506,
+    "status": 200,
+    "content_type": "text/html; charset=UTF-8"
+  },
+  "prop-37-finance.html": {
+    "url": "https://www.sos.ca.gov/campaign-lobbying/helpful-resources/measure-contributions/2026-ballot-measure-contribution-totals/proposition-37-creates-loan-program-middle-income-buyers-qualified-new-homes-initiative-statute",
+    "final_url": "https://www.sos.ca.gov/campaign-lobbying/helpful-resources/measure-contributions/2026-ballot-measure-contribution-totals/proposition-37-creates-loan-program-middle-income-buyers-qualified-new-homes-initiative-statute",
+    "captured_at": "2026-10-08T21:34:37.499284+00:00",
+    "sha256": "036f10708da192b25adf6259c28c988fc0214de766cf796c0a4b8a539a547574",
+    "bytes": 60082,
+    "status": 200,
+    "content_type": "text/html; charset=UTF-8"
+  },
+  "prop-38-finance.html": {
+    "url": "https://www.sos.ca.gov/campaign-lobbying/helpful-resources/measure-contributions/2026-ballot-measure-contribution-totals/proposition-38-authorizes-bonds-immunology-research-initiative-statut",
+    "final_url": "https://www.sos.ca.gov/campaign-lobbying/helpful-resources/measure-contributions/2026-ballot-measure-contribution-totals/proposition-38-authorizes-bonds-immunology-research-initiative-statut",
+    "captured_at": "2026-10-08T21:34:39.954205+00:00",
+    "sha256": "ffd694ea3ca705836fc9bdee3adc68c67c4cdebda5e9f9aca6a4629b93a7dd94",
+    "bytes": 62049,
+    "status": 200,
+    "content_type": "text/html; charset=UTF-8"
+  },
+  "prop-39-finance.html": {
+    "url": "https://www.sos.ca.gov/campaign-lobbying/helpful-resources/measure-contributions/2026-ballot-measure-contribution-totals/proposition-39-establishes-additional-voter-identification-and-citizenship-verification-requirements-initiative-constitutional-a",
+    "final_url": "https://www.sos.ca.gov/campaign-lobbying/helpful-resources/measure-contributions/2026-ballot-measure-contribution-totals/proposition-39-establishes-additional-voter-identification-and-citizenship-verification-requirements-initiative-constitutional-a",
+    "captured_at": "2026-10-08T21:34:42.308541+00:00",
+    "sha256": "3dda4999c37b2340151b9ca25efc4d233dcec5d9681167415f30ccbfa548eefc",
+    "bytes": 64477,
+    "status": 200,
+    "content_type": "text/html; charset=UTF-8"
+  },
+  "prop-40-finance.html": {
+    "url": "https://www.sos.ca.gov/campaign-lobbying/helpful-resources/measure-contributions/2026-ballot-measure-contribution-totals/proposition-40-imposes-one-time-tax-certain-individuals-and-trusts-initiative-constitutional-amendment-and-statute",
+    "final_url": "https://www.sos.ca.gov/campaign-lobbying/helpful-resources/measure-contributions/2026-ballot-measure-contribution-totals/proposition-40-imposes-one-time-tax-certain-individuals-and-trusts-initiative-constitutional-amendment-and-statute",
+    "captured_at": "2026-10-08T21:34:44.371863+00:00",
+    "sha256": "32ae4bea376af10e3cdcea309ea595123b957cab871747ba8c781156bbffcd57",
+    "bytes": 63819,
+    "status": 200,
+    "content_type": "text/html; charset=UTF-8"
+  },
+  "prop-41-finance.html": {
+    "url": "https://www.sos.ca.gov/campaign-lobbying/helpful-resources/measure-contributions/2026-ballot-measure-contribution-totals/proposition-41-requires-audits-programs-funded-new-state-special-taxes-prohibits-new-state-taxes-are-excluded-existing-voter-app",
+    "final_url": "https://www.sos.ca.gov/campaign-lobbying/helpful-resources/measure-contributions/2026-ballot-measure-contribution-totals/proposition-41-requires-audits-programs-funded-new-state-special-taxes-prohibits-new-state-taxes-are-excluded-existing-voter-app",
+    "captured_at": "2026-10-08T21:34:46.811066+00:00",
+    "sha256": "f2b5b1d0b4070483043b33eab2262da1430a6798bd0a7a35a8a46cda5d5b10cf",
+    "bytes": 62079,
+    "status": 200,
+    "content_type": "text/html; charset=UTF-8"
+  },
+  "prop-42-finance.html": {
+    "url": "https://www.sos.ca.gov/campaign-lobbying/helpful-resources/measure-contributions/2026-ballot-measure-contribution-totals/proposition-42-prohibits-new-state-personal-property-taxes-and-certain-retroactive-state-taxes-initiative-constitutional-amendme",
+    "final_url": "https://www.sos.ca.gov/campaign-lobbying/helpful-resources/measure-contributions/2026-ballot-measure-contribution-totals/proposition-42-prohibits-new-state-personal-property-taxes-and-certain-retroactive-state-taxes-initiative-constitutional-amendme",
+    "captured_at": "2026-10-08T21:34:49.196955+00:00",
+    "sha256": "209f4015db7699b6a2502f614c7278bebb40d31b6d2ddd547a83ce16499afb3f",
+    "bytes": 61832,
+    "status": 200,
+    "content_type": "text/html; charset=UTF-8"
+  },
+  "prop-43-finance.html": {
+    "url": "https://www.sos.ca.gov/campaign-lobbying/helpful-resources/measure-contributions/2026-ballot-measure-contribution-totals/proposition-43-aca-22-wicks-local-taxes-limitation-res-ch-132-2026",
+    "final_url": "https://www.sos.ca.gov/campaign-lobbying/helpful-resources/measure-contributions/2026-ballot-measure-contribution-totals/proposition-43-aca-22-wicks-local-taxes-limitation-res-ch-132-2026",
+    "captured_at": "2026-10-08T21:34:51.684350+00:00",
+    "sha256": "eecf2225e10883a2acf803525b738f3be7df4cfe973332c41da019340a578286",
+    "bytes": 62642,
+    "status": 200,
+    "content_type": "text/html; charset=UTF-8"
+  },
+  "prop-44-finance.html": {
+    "url": "https://www.sos.ca.gov/campaign-lobbying/helpful-resources/measure-contributions/2026-ballot-measure-contribution-totals/proposition-44-requires-community-health-clinics-spend-90-percent-revenue-program-services-initiative-statute",
+    "final_url": "https://www.sos.ca.gov/campaign-lobbying/helpful-resources/measure-contributions/2026-ballot-measure-contribution-totals/proposition-44-requires-community-health-clinics-spend-90-percent-revenue-program-services-initiative-statute",
+    "captured_at": "2026-10-08T21:34:53.732843+00:00",
+    "sha256": "ee2ff8f4520c63ac34644b043f540d54ece91c18b198c0c7e1e4f1da6382e139",
+    "bytes": 61774,
+    "status": 200,
+    "content_type": "text/html; charset=UTF-8"
+  },
+  "prop-45-finance.html": {
+    "url": "https://www.sos.ca.gov/campaign-lobbying/helpful-resources/measure-contributions/2026-ballot-measure-contribution-totals/proposition-45-modifies-environmental-review-certain-projects-initiative-statute",
+    "final_url": "https://www.sos.ca.gov/campaign-lobbying/helpful-resources/measure-contributions/2026-ballot-measure-contribution-totals/proposition-45-modifies-environmental-review-certain-projects-initiative-statute",
+    "captured_at": "2026-10-08T21:34:56.993954+00:00",
+    "sha256": "0ae31451622a90c92456d62aa855f0e6a80e481d29b3fbd65d5e2e681a069c0e",
+    "bytes": 62981,
+    "status": 200,
+    "content_type": "text/html; charset=UTF-8"
+  },
+  "fppc.html": {
+    "url": "https://www.fppc.ca.gov/search-filings/top-10-contributors-list/november-2026-general-election/",
+    "final_url": "https://www.fppc.ca.gov/search-filings/top-10-contributors-list/november-2026-general-election/",
+    "captured_at": "2026-10-08T21:34:59.829594+00:00",
+    "sha256": "c0f13547374956f5ea089617c6e1239adce6a495b45732834b973bc141b850ea",
+    "bytes": 153353,
+    "status": 200,
+    "content_type": "text/html; charset=utf-8"
+  }
+}

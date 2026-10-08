@@ -23,12 +23,15 @@ import argparse
 import html
 import json
 import re
+import sys
 from datetime import date
 from pathlib import Path
 from urllib.parse import urlsplit
 
 BASE_URL = "https://cal-vgp.igorgeyn.com"
 ROOT = Path(__file__).parent
+sys.path.insert(0, str(ROOT / 'scraper'))
+from src.website.statewide_content import render_sections as render_statewide_sections, STYLE as STATEWIDE_STYLE
 
 
 def esc(s):
@@ -180,7 +183,7 @@ PAGE = """<!DOCTYPE html>
         .document-meta {{ display: block; font-size: 0.8rem; color: #6B5F48; margin-top: 0.3rem; }}
         a {{ color: #A8841E; }}
         footer {{ margin-top: 2.5rem; font-size: 0.85rem; color: #999080; }}
-    </style>
+    {statewide_style}</style>
 </head>
 <body>
     <div class="wrap">
@@ -191,7 +194,7 @@ PAGE = """<!DOCTYPE html>
         {votes_html}
         {summary_html}
         {source_html}
-        {documents_html}
+        {statewide_details}{documents_html}
         <a class="cta" href="/#m={mid}">Open in the CalBallot explorer &rarr;</a>
         <footer>
             <p>CalBallot &mdash; a free explorer for 12,000+ California ballot measures, 1911 to present.
@@ -247,6 +250,11 @@ def build_page(m):
             source_html += f'<p class="src">Source captured {esc(m["official_source_captured_at"][:10])}.</p>'
 
     title_tag = f"{title} — {juris}, {year} | CalBallot"
+    guide = m.get('statewide_guide')
+    statewide_details = ''
+    if guide:
+        sections = render_statewide_sections(guide)
+        statewide_details = sections['main'] + '<h2>Research</h2>' + sections['research'] + '<h2>Campaign finance</h2>' + sections['finance']
     return PAGE.format(
         title_tag=esc(truncate(title_tag, 110)),
         meta_desc=esc(desc),
@@ -263,6 +271,8 @@ def build_page(m):
         summary_html=summary_html,
         source_html=source_html,
         documents_html=official_documents_html(m),
+        statewide_style=STATEWIDE_STYLE if guide else '',
+        statewide_details=statewide_details,
         mid=mid,
     )
 
@@ -286,6 +296,8 @@ def build_site_pages(site_dir):
     # a plausible-looking partial bundle.
     for measure in measures:
         official_documents_html(measure)
+        if measure.get('statewide_guide'):
+            render_statewide_sections(measure['statewide_guide'])
     out_dir.mkdir()
 
     for m in measures:

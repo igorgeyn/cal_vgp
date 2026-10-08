@@ -1,0 +1,235 @@
+{
+  "status": "reviewed_candidate_ready_for_publication",
+  "election_date": "2026-11-03",
+  "qualified_propositions": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    37,
+    38,
+    39,
+    40,
+    41,
+    42,
+    43,
+    44,
+    45
+  ],
+  "source_capture_date": "2026-10-08",
+  "finance_source_as_of": "2026-10-06",
+  "source_html_pages": 73,
+  "tests_passed": 83,
+  "browser": {
+    "html_sha256": "6a7d7e2bc290da3ec715442529eaa3af7f0691d7149dfee13553ac2b414c518b",
+    "cases": [
+      {
+        "width": 1440,
+        "checked_ids": [
+          12467,
+          12468,
+          10960,
+          10956,
+          2,
+          12469,
+          12470,
+          12471,
+          12472,
+          12473,
+          12474,
+          12475,
+          12476,
+          12477
+        ],
+        "no_page_errors": true,
+        "versioned_data": true,
+        "no_horizontal_overflow": true
+      },
+      {
+        "width": 390,
+        "checked_ids": [
+          12467,
+          12468,
+          10960,
+          10956,
+          2,
+          12469,
+          12470,
+          12471,
+          12472,
+          12473,
+          12474,
+          12475,
+          12476,
+          12477
+        ],
+        "no_page_errors": true,
+        "versioned_data": true,
+        "no_horizontal_overflow": true
+      },
+      {
+        "width": 320,
+        "checked_ids": [
+          12467,
+          12468,
+          10960,
+          10956,
+          2,
+          12469,
+          12470,
+          12471,
+          12472,
+          12473,
+          12474,
+          12475,
+          12476,
+          12477
+        ],
+        "no_page_errors": true,
+        "versioned_data": true,
+        "no_horizontal_overflow": true
+      }
+    ]
+  },
+  "strict_build": {
+    "started_at_local": "2026-10-08T15:11:43.222497",
+    "finished_at_local": "2026-10-08T15:12:57.678883",
+    "exit_code": 0,
+    "strict": true,
+    "input_manifest_sha256": "08e651536ca215ac04d69a6166468815f7af158f51b86ff2cef6a7b291d5e98d",
+    "candidate_db_sha256": "261c6766e1647a85d58ac812221a3667a424cfee48d93dccf1e9a7e8c07075b7",
+    "html_sha256": "6a7d7e2bc290da3ec715442529eaa3af7f0691d7149dfee13553ac2b414c518b",
+    "json_sha256": "8ea848c910ce625a12388b7b3ee39081c1635c57814bb34717b9fd97960186f0"
+  },
+  "production_databases_unchanged": {
+    "scraper/data/ballot_measures.db": "ef1359e482db2c54fe41068771932aaac7c9fc1db372e2e1d8cbbed1f505d9da",
+    "scraper/data/finance/finance_statewide_v2.db": "485b6aeeae636c9e1c0de2477b9824c6b46e3d19ac4d81954a080e6e43e411c9",
+    "scraper/data/finance/finance_statewide_v3.db": "253d34712100be60eec793a54282d4734ef79d600d0bbc63370e5f71c01d0b53"
+  },
+  "county_records_unchanged": 49,
+  "withdrawn_record_unchanged": true,
+  "unrelated_pages_byte_identical": 12358,
+  "regenerated_legacy_export_timestamps": 129,
+  "published_candidate_sha256": {
+    "index.html": "6a7d7e2bc290da3ec715442529eaa3af7f0691d7149dfee13553ac2b414c518b",
+    "measures-data.json": "8ea848c910ce625a12388b7b3ee39081c1635c57814bb34717b9fd97960186f0",
+    "measures/10956.html": "e33f44ba8d4efc34fd9e7dbca83fdbb5bd1b64310a451048bbb64bf90cc0e404",
+    "measures/10960.html": "34cce792720187b8d5e931c9ba2e4e0d69a290f62bdd7825542012a6bb1bc0aa",
+    "measures/12467.html": "283867212609254a08033f43a361ad5d86f8319ea7f8c14c75a1f0111fea8d69",
+    "measures/12468.html": "885eb33d808b3f137d21bb038d05798d9fd3a568d0b8e7a6b34f06da26c44081",
+    "measures/12469.html": "c710f680527df6716b8a0eca8930d06ab2ba2c250fdf8fb1a496ab587f4e80fa",
+    "measures/12470.html": "46029620c754a7a333821f8e87f0b8725b23337f61a09236641d5ef56483b1d4",
+    "measures/12471.html": "5c25a20bc7a6faa13cdfba535b63a520e5b6585c3922f7f8b8a033059500a654",
+    "measures/12472.html": "cdbed1b165b409dafbe7ba5bba076495cf61dab15d6477af0bc2cc28fda38ece",
+    "measures/12473.html": "d8a7b3571249b09cfaf9474682b545f21d57beea54423c651794e996e43c3498",
+    "measures/12474.html": "f30371e9f4f95f02df7bf7d8491276ff029c73e113707adb11a9bf6e3c355bc3",
+    "measures/12475.html": "a223ce32de9adbab645ab658511d4e5d6c26f41376e6cba781c6112def4ee38e",
+    "measures/12476.html": "6edc48f78782ea939064bbecbf858157a69ebe597df795171ba69ae8f5c592c4",
+    "measures/12477.html": "04e8c0d43fb0995ab823e1ca2a9b7e655e75859ac41d816eb9755b2ab3d4cd5f",
+    "measures/2.html": "454560eaad264194d93c365ab57adf37d439ddf86ef7c848550a21b610a1a402"
+  },
+  "code_sha256": {
+    ".gitattributes": "801c48fac2e514a9d8efabd5904fc54ed9dce32b55fdbe77539b46301533ccc8",
+    "build_measure_pages.py": "561219ae5c5f58acf34d2e8319332f1b144e008362807b2b861f4eb436ea4513",
+    "scraper/scripts/generate_site.py": "f92b7f5ec77570b8f64daffc730d90c8fadb436b554a34b04ed979dc75647a4f",
+    "scraper/scripts/build_statewide_content.py": "519445ef0f6882e5ca015d3c527cc3fff29a3e65b8404cea569c0b765bff657b",
+    "scraper/scripts/check_statewide_content_browser.py": "9e5003424225fb7a67a9365f30a7802a13a7ae0942997a4db1d5ae20a1c694bf",
+    "scraper/src/website/generator.py": "83025dae87785289e32c9ebc7780dbcb1ceb490b7c855fdfb119620d566a0096",
+    "scraper/src/website/statewide_content.py": "7c4d650b19d2fbd715c3ff6290ae4642736453bbe2ad26073ccce75ca4f00156",
+    "scraper/src/website/data/statewide_2026.json": "171d36d70792359b1d4ea1603a6913eb5e715fca8db76fca5b9d50b181a14048",
+    "scraper/tests/test_statewide_content.py": "ba25896bc2bca48a198d251485b6a95f60204e80e4dae25e1f2a284a1c0d50f3",
+    "scraper/tests/test_statewide_ballot.py": "810cb53bd96252502ecf0a5d324276b7959e859c0bbea93b949d4852794a0074"
+  },
+  "review": {
+    "ready_to_publish": true,
+    "tests": 83,
+    "browser_widths": [
+      1440,
+      390,
+      320
+    ],
+    "html_sha256": "6a7d7e2bc290da3ec715442529eaa3af7f0691d7149dfee13553ac2b414c518b",
+    "finance_donor_rows_unchanged": 195,
+    "full_preservation_verified": true
+  },
+  "recovery": {
+    "seal": {
+      "archive_sha256": "f8d55e8da319122cae7226360a771f2058eb328fd1acbfaba7998ef5f0427a1b",
+      "archive_bytes": 8202122,
+      "manifest_sha256": "2cd4c076f8e97ea9072a9bc91954baacc9eb2abd2ffd9e84b6e073f754b77c3a",
+      "files": 123
+    },
+    "restore": {
+      "verified": true,
+      "files": 123,
+      "archive_sha256": "f8d55e8da319122cae7226360a771f2058eb328fd1acbfaba7998ef5f0427a1b",
+      "workspace_inputs_verified": 271,
+      "public_files_verified": 12382,
+      "strict_rebuild": {
+        "started_at_local": "2026-10-08T15:11:43.222497",
+        "finished_at_local": "2026-10-08T15:12:57.678883",
+        "exit_code": 0,
+        "strict": true,
+        "input_manifest_sha256": "08e651536ca215ac04d69a6166468815f7af158f51b86ff2cef6a7b291d5e98d",
+        "candidate_db_sha256": "261c6766e1647a85d58ac812221a3667a424cfee48d93dccf1e9a7e8c07075b7",
+        "html_sha256": "6a7d7e2bc290da3ec715442529eaa3af7f0691d7149dfee13553ac2b414c518b",
+        "json_sha256": "8ea848c910ce625a12388b7b3ee39081c1635c57814bb34717b9fd97960186f0"
+      }
+    },
+    "r2": {
+      "bucket": "cal-vgp-registrar-raw",
+      "prefix": "recovery/20261008-statewide-content/f8d55e8da319122cae7226360a771f2058eb328fd1acbfaba7998ef5f0427a1b",
+      "objects": {
+        "recovery/20261008-statewide-content/f8d55e8da319122cae7226360a771f2058eb328fd1acbfaba7998ef5f0427a1b/recovery-update.zip": {
+          "bytes": 8202122,
+          "sha256": "f8d55e8da319122cae7226360a771f2058eb328fd1acbfaba7998ef5f0427a1b",
+          "read_back_verified": true
+        },
+        "recovery/20261008-statewide-content/f8d55e8da319122cae7226360a771f2058eb328fd1acbfaba7998ef5f0427a1b/recovery-manifest.json": {
+          "bytes": 24277,
+          "sha256": "2cd4c076f8e97ea9072a9bc91954baacc9eb2abd2ffd9e84b6e073f754b77c3a",
+          "read_back_verified": true
+        },
+        "recovery/20261008-statewide-content/f8d55e8da319122cae7226360a771f2058eb328fd1acbfaba7998ef5f0427a1b/update.json": {
+          "bytes": 1213397,
+          "sha256": "a060a3bb02840cdf02d83143f8c293b976c698b25e8bff003c0567d3dfeb7b49",
+          "read_back_verified": true
+        },
+        "recovery/20261008-statewide-content/f8d55e8da319122cae7226360a771f2058eb328fd1acbfaba7998ef5f0427a1b/verification/recovery-restore.json": {
+          "bytes": 755,
+          "sha256": "7520d99d1c0e5828616a3cb28826ca3c65b664f3de1f3c2840a8df1e8b23f1ac",
+          "read_back_verified": true
+        }
+      },
+      "verified_at": "2026-10-08T22:16:45.203216+00:00",
+      "public_access_changed": false
+    }
+  },
+  "local_public_promotion": {
+    "verified": true,
+    "changed_public_paths": [
+      "index.html",
+      "measures-data.json",
+      "measures/10956.html",
+      "measures/10960.html",
+      "measures/12467.html",
+      "measures/12468.html",
+      "measures/12469.html",
+      "measures/12470.html",
+      "measures/12471.html",
+      "measures/12472.html",
+      "measures/12473.html",
+      "measures/12474.html",
+      "measures/12475.html",
+      "measures/12476.html",
+      "measures/12477.html",
+      "measures/2.html"
+    ],
+    "html_sha256": "6a7d7e2bc290da3ec715442529eaa3af7f0691d7149dfee13553ac2b414c518b",
+    "json_sha256": "8ea848c910ce625a12388b7b3ee39081c1635c57814bb34717b9fd97960186f0",
+    "public_files_checked": 12382,
+    "mirrors_identical": true,
+    "databases_unchanged": true
+  }
+}

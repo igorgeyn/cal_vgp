@@ -300,6 +300,14 @@ def main(argv=None):
             local_context_count,
         )
 
+        # The statewide overlay must precede semantic queries: legacy summaries
+        # and generic labels are not the accepted descriptions of this slate.
+        from src.database.statewide_ballot import attach_statewide_ballot_fields
+        from src.website.statewide_content import attach_statewide_content
+        measures_for_website = attach_statewide_content(
+            attach_statewide_ballot_fields(generator.db.connect(), measures_for_website)
+        )
+
         # Compute historical context for pending measures using semantic similarity
         # Embed pending measure text, compare against historical embeddings
         pending_context_count = 0
@@ -346,6 +354,21 @@ def main(argv=None):
                 import os
                 model = SentenceTransformer(os.environ.get('CALBALLOT_EMBEDDING_MODEL', 'all-MiniLM-L6-v2'))
 
+                # The legacy embedding cache uses canonical names reused across
+                # elections. Re-embed this bounded statewide corpus and retain
+                # integer identities, rather than guessing which year a vector
+                # named "Proposition 1" belongs to.
+                statewide_history = [h for h in measures_for_website
+                                     if h.get('county') in (None, '', 'Statewide')
+                                     and int(h.get('year') or 0) < 2026
+                                     and h.get('passed') in (0, 1)
+                                     and h.get('percent_yes') is not None
+                                     and 0 <= h['percent_yes'] <= 100]
+                statewide_embeddings = model.encode([
+                    ' '.join(str(h.get(k) or '') for k in ('title', 'summary_text', 'ballot_question', 'description'))
+                    for h in statewide_history
+                ], show_progress_bar=False) if statewide_history else np.array([])
+
                 for m in measures_for_website:
                     year = int(m.get('year', 0))
                     is_pending = year >= 2025 or (m.get('passed') is None and m.get('percent_yes') is None)
@@ -364,6 +387,9 @@ def main(argv=None):
                         str(m.get('ballot_question', '')),
                         str(m.get('description', '')),
                     ])).strip()
+                    statewide = bool(m.get('statewide_guide'))
+                    if statewide:
+                        text = m['official_title'] + ' ' + m['statewide_guide']['summary']
 
                     if len(text) < 10:
                         continue
@@ -374,13 +400,20 @@ def main(argv=None):
                         continue
 
                     # Cosine similarity
-                    norms = np.linalg.norm(hist_embeddings, axis=1) * np.linalg.norm(query_emb)
+                    comparison_measures = hist_measures
+                    comparison_embeddings = hist_embeddings
+                    if statewide:
+                        comparison_measures = statewide_history
+                        comparison_embeddings = statewide_embeddings
+                    if not comparison_measures:
+                        continue
+                    norms = np.linalg.norm(comparison_embeddings, axis=1) * np.linalg.norm(query_emb)
                     norms[norms == 0] = 1e-10
-                    sims = hist_embeddings @ query_emb / norms
-                    top_k = min(50, len(sims))
+                    sims = comparison_embeddings @ query_emb / norms
+                    top_k = min(12 if statewide else 50, len(sims))
                     top_indices = np.argsort(sims)[-top_k:][::-1]
 
-                    similar = [hist_measures[i] for i in top_indices if sims[i] > 0.3]
+                    similar = [comparison_measures[i] for i in top_indices if sims[i] > (0.4 if statewide else 0.3)]
                     if len(similar) < 3:
                         continue
 
@@ -404,9 +437,10 @@ def main(argv=None):
                     top_similar = []
                     for s in similar[:3]:
                         top_similar.append({
+                            **({'id': s['id']} if statewide else {}),
                             'year': s.get('year'),
                             'county': s.get('county'),
-                            'title': s.get('generated_title') or s.get('summary_title') or s.get('title', '')[:60],
+                            'title': (s.get('title') if statewide else None) or s.get('generated_title') or s.get('summary_title') or s.get('title', '')[:60],
                             'percent_yes': round(s['percent_yes'], 1) if s.get('percent_yes') else None,
                             'passed': s.get('passed'),
                             'similarity': round(float(sims[top_indices[similar.index(s)]]) * 100, 0) if similar.index(s) < len(top_indices) else None,
@@ -416,14 +450,17 @@ def main(argv=None):
                     with_pct = [(s, abs(s['percent_yes'] - 50)) for s in similar if s.get('percent_yes') and 0 <= s['percent_yes'] <= 100]
                     closest = sorted(with_pct, key=lambda x: x[1])[:3]
                     closest_measures = [{
+                        **({'id': s['id']} if statewide else {}),
                         'year': s.get('year'),
                         'county': s.get('county'),
-                        'title': s.get('generated_title') or s.get('title', '')[:60],
+                        'title': (s.get('title') if statewide else None) or s.get('generated_title') or s.get('title', '')[:60],
                         'percent_yes': round(s['percent_yes'], 1),
                         'passed': s.get('passed'),
                     } for s, _ in closest]
 
                     m['historical_context'] = {
+                        **({'scope': 'statewide', 'method': 'text_similarity',
+                            'comparison_ids': [s['id'] for s in similar]} if statewide else {}),
                         'matched_topic': matched_topic,
                         'total_similar': total,
                         'pass_rate': pass_rate,
@@ -433,6 +470,9 @@ def main(argv=None):
                         'top_similar': top_similar,
                         'closest_races': closest_measures,
                     }
+                    if statewide:
+                        for field in ('pass_rate', 'avg_yes', 'median_yes', 'closest_races'):
+                            m['historical_context'].pop(field)
                     pending_context_count += 1
 
             elif args.strict:

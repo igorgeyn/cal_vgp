@@ -2,6 +2,13 @@
 
 **Updated:** October 8, 2026.
 
+**Remaining reviews:** the [October 8 review plan](remaining_review_plan_20261008.md)
+turns the open work into six review batches, with evidence requirements, Claude
+handoffs, finding dispositions and revised October targets. Its batch numbers do
+not replace the delivery-part numbers here. It proposes completing essential
+refresh/election checks before county expansion; the accepted county sequence is
+unchanged. Use it for the next content pilot and current review scheduling.
+
 **Status:** Parts 1-2 are published and verified in release `3911602`, including
 the real production cutover, complete public pages, private recovery update and
 live desktop/mobile checks. Read the [release receipt](release_progress_20261008.md).

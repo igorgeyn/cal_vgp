@@ -1,5 +1,16 @@
 # Open threads
 
+> **Latest priority — October 8:** Igor requested the current statewide reader
+> components be completed first. The [statewide content handoff](statewide_content_20261008.md)
+> covers the verified 14-guide candidate and review corrections. Resume the county
+> content and operations queue below after its publication checks.
+
+> **Current review queue — October 8:** the
+> [remaining review plan](remaining_review_plan_20261008.md) consolidates the next
+> content, refresh, status, results, operating and expansion/design reviews.
+> Parts 1-2 do not need another full review absent new evidence or material changes.
+> Start with the mixed county-content pilot; the dated backlog below is historical.
+
 > **October 8 published checkpoint:** release `3911602` is live and verified;
 > see [the release receipt](release_progress_20261008.md). The statewide slate,
 > complete detail pages and corrected Measure Z document label are published.
