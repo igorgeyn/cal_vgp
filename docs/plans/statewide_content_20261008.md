@@ -1,6 +1,10 @@
 # Statewide reader content — October 8, 2026
 
-Status: reviewed and verified release candidate; publication receipt pending.
+Status: published and verified at https://cal-vgp.igorgeyn.com/.
+Release `3f9a5e00926244e545c2716ae7313e0e2ee487b3` merged in
+[PR #4](https://github.com/igorgeyn/cal_vgp/pull/4); the
+[Pages deployment](https://github.com/igorgeyn/cal_vgp/actions/runs/37852720968)
+succeeded. See the [machine-readable receipt](statewide_content_evidence_20261008.json).
 
 ## What needed changing
 
@@ -91,6 +95,21 @@ code/source package. The additive private recovery archive restored successfully
 All 271 composed workspace inputs and 12,382 public files match their manifests.
 It depends on the October 3 base and earlier October 8 recovery update; keep all
 three archives. Existing archived production databases remain current.
+
+The recovery update and verification receipts are stored under the existing
+private R2 bucket's `recovery/20261008-statewide-content/` prefix followed by the
+archive hash above. Uploads use immutable keys and full independent read-back
+hashes; no bucket access settings or registrar captures changed.
+
+All 21 checked live artifacts match the reviewed hashes: the root pair, all 14
+updated individual pages, withdrawn ACA 13, county Measure Z, a historical
+finance page, sitemap and usage guide. Actual live desktop/mobile interactions
+pass for every current Main/Research/Finance view, the direct-page route and the
+county/withdrawn/historical sentinels. The browser's actual HTML and catalog
+responses were hashed too. External browser requests were blocked; this is not
+a claim to have opened every official external document. Initial live verification
+hit Chromium inspector-cache eviction for the catalog; hashing a cloned fetch
+response in the browser resolved the harness issue without changing the site.
 
 ## Maintenance and remaining scope
 
