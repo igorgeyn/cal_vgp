@@ -3,9 +3,10 @@
 > **Statewide reader update — October 8:** Igor requested complete current
 > statewide components. The [content handoff](plans/statewide_content_20261008.md)
 > records the 14 source-backed guides, current campaign finance, statewide-only
-> historical comparisons and phone layout changes. The candidate passes the
-> 81-case focused suite and complete record/page preservation; final browser,
-> independent-review and publication receipts are tracked there. The earlier
+> historical comparisons and phone layout changes. Release `3f9a5e0` is live:
+> 83 focused tests, complete preservation, all-proposition desktop/mobile checks
+> and 21 served hashes pass. Claude's correction review is READY; private R2
+> recovery and read-back checks pass. Publication receipts are tracked there. The earlier
 > four-card screenshot does not match the live October 8 release. Resume the
 > remaining county and operations review sequence after this update.
 

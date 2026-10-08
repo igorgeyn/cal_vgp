@@ -1,5 +1,5 @@
 {
-  "status": "reviewed_candidate_ready_for_publication",
+  "status": "published_and_live_verified",
   "election_date": "2026-11-03",
   "qualified_propositions": [
     1,
@@ -200,9 +200,29 @@
           "bytes": 755,
           "sha256": "7520d99d1c0e5828616a3cb28826ca3c65b664f3de1f3c2840a8df1e8b23f1ac",
           "read_back_verified": true
+        },
+        "recovery/20261008-statewide-content/f8d55e8da319122cae7226360a771f2058eb328fd1acbfaba7998ef5f0427a1b/verification/deployment-verification.json": {
+          "bytes": 4624,
+          "sha256": "7a3a5f6eb612e9e917fb1ff73b5cd746e6052a36b0b786f7bedc7f154ab8a1e8",
+          "read_back_verified": true
+        },
+        "recovery/20261008-statewide-content/f8d55e8da319122cae7226360a771f2058eb328fd1acbfaba7998ef5f0427a1b/verification/public-promotion.json": {
+          "bytes": 762,
+          "sha256": "761982830ad2e6dc7b64244b91778c55f2a1516fcc41a2d33c4840f21ba7c475",
+          "read_back_verified": true
+        },
+        "recovery/20261008-statewide-content/f8d55e8da319122cae7226360a771f2058eb328fd1acbfaba7998ef5f0427a1b/verification/staged-verification.json": {
+          "bytes": 8112,
+          "sha256": "19688e6071705cb4918f9c9284c81da865f4cb70c236010174b176a0dc2e3a9a",
+          "read_back_verified": true
+        },
+        "recovery/20261008-statewide-content/f8d55e8da319122cae7226360a771f2058eb328fd1acbfaba7998ef5f0427a1b/verification/review-disposition.json": {
+          "bytes": 274,
+          "sha256": "0eec67b48cbb852195a4a13d9608e9756b74733bf93ecdc087209c743909465e",
+          "read_back_verified": true
         }
       },
-      "verified_at": "2026-10-08T22:16:45.203216+00:00",
+      "verified_at": "2026-10-08T22:22:57.096519+00:00",
       "public_access_changed": false
     }
   },
@@ -231,5 +251,166 @@
     "public_files_checked": 12382,
     "mirrors_identical": true,
     "databases_unchanged": true
+  },
+  "deployment": {
+    "commit": "3f9a5e00926244e545c2716ae7313e0e2ee487b3",
+    "checked_at": "2026-10-08T22:21:21.743783+00:00",
+    "served": {
+      "index.html": {
+        "sha256": "6a7d7e2bc290da3ec715442529eaa3af7f0691d7149dfee13553ac2b414c518b",
+        "bytes": 6057166,
+        "status": 200
+      },
+      "measures-data.json": {
+        "sha256": "8ea848c910ce625a12388b7b3ee39081c1635c57814bb34717b9fd97960186f0",
+        "bytes": 35733139,
+        "status": 200
+      },
+      "measures/10956.html": {
+        "sha256": "e33f44ba8d4efc34fd9e7dbca83fdbb5bd1b64310a451048bbb64bf90cc0e404",
+        "bytes": 21625,
+        "status": 200
+      },
+      "measures/10960.html": {
+        "sha256": "34cce792720187b8d5e931c9ba2e4e0d69a290f62bdd7825542012a6bb1bc0aa",
+        "bytes": 26728,
+        "status": 200
+      },
+      "measures/12467.html": {
+        "sha256": "283867212609254a08033f43a361ad5d86f8319ea7f8c14c75a1f0111fea8d69",
+        "bytes": 29103,
+        "status": 200
+      },
+      "measures/12468.html": {
+        "sha256": "885eb33d808b3f137d21bb038d05798d9fd3a568d0b8e7a6b34f06da26c44081",
+        "bytes": 23256,
+        "status": 200
+      },
+      "measures/12469.html": {
+        "sha256": "c710f680527df6716b8a0eca8930d06ab2ba2c250fdf8fb1a496ab587f4e80fa",
+        "bytes": 25063,
+        "status": 200
+      },
+      "measures/12470.html": {
+        "sha256": "46029620c754a7a333821f8e87f0b8725b23337f61a09236641d5ef56483b1d4",
+        "bytes": 25695,
+        "status": 200
+      },
+      "measures/12471.html": {
+        "sha256": "5c25a20bc7a6faa13cdfba535b63a520e5b6585c3922f7f8b8a033059500a654",
+        "bytes": 41043,
+        "status": 200
+      },
+      "measures/12472.html": {
+        "sha256": "cdbed1b165b409dafbe7ba5bba076495cf61dab15d6477af0bc2cc28fda38ece",
+        "bytes": 27623,
+        "status": 200
+      },
+      "measures/12473.html": {
+        "sha256": "d8a7b3571249b09cfaf9474682b545f21d57beea54423c651794e996e43c3498",
+        "bytes": 26536,
+        "status": 200
+      },
+      "measures/12474.html": {
+        "sha256": "f30371e9f4f95f02df7bf7d8491276ff029c73e113707adb11a9bf6e3c355bc3",
+        "bytes": 22484,
+        "status": 200
+      },
+      "measures/12475.html": {
+        "sha256": "a223ce32de9adbab645ab658511d4e5d6c26f41376e6cba781c6112def4ee38e",
+        "bytes": 28303,
+        "status": 200
+      },
+      "measures/12476.html": {
+        "sha256": "6edc48f78782ea939064bbecbf858157a69ebe597df795171ba69ae8f5c592c4",
+        "bytes": 25183,
+        "status": 200
+      },
+      "measures/12477.html": {
+        "sha256": "04e8c0d43fb0995ab823e1ca2a9b7e655e75859ac41d816eb9755b2ab3d4cd5f",
+        "bytes": 43313,
+        "status": 200
+      },
+      "measures/2.html": {
+        "sha256": "454560eaad264194d93c365ab57adf37d439ddf86ef7c848550a21b610a1a402",
+        "bytes": 23850,
+        "status": 200
+      },
+      "measures/1.html": {
+        "sha256": "2ce0ec975e3d9de02641447810bc8d1528bb09d228483c6ab56ebbfbe2c1b4fd",
+        "bytes": 4880,
+        "status": 200
+      },
+      "measures/12419.html": {
+        "sha256": "fdbfbf2312c5dae0035e21aa4e6e4e4568b82ce383dea28514c3e9945c18cf41",
+        "bytes": 6319,
+        "status": 200
+      },
+      "measures/10939.html": {
+        "sha256": "6203e98e8809cc6b34d1bcb0862227f3efc275a3daa7bc93547405b473383fe5",
+        "bytes": 5529,
+        "status": 200
+      },
+      "sitemap.xml": {
+        "sha256": "a8c12eb5740fd4458ca534a907417d05565d60b78476100abaeb9d7bb2524ab2",
+        "bytes": 1201828,
+        "status": 200
+      },
+      "use-calballot/index.html": {
+        "sha256": "7321959c1ec65ca6f8dc0eaf71ca531a07574a8cdf64c445d10f79d66ef486ea",
+        "bytes": 33770,
+        "status": 200
+      }
+    },
+    "browser": [
+      {
+        "width": 1440,
+        "statewide_ids": [
+          12467,
+          12468,
+          10960,
+          10956,
+          2,
+          12469,
+          12470,
+          12471,
+          12472,
+          12473,
+          12474,
+          12475,
+          12476,
+          12477
+        ],
+        "no_page_errors": true,
+        "current_and_historical_finance": true,
+        "county_and_withdrawal_preserved": true,
+        "actual_response_hashes": true
+      },
+      {
+        "width": 390,
+        "statewide_ids": [
+          12467,
+          12468,
+          10960,
+          10956,
+          2,
+          12469,
+          12470,
+          12471,
+          12472,
+          12473,
+          12474,
+          12475,
+          12476,
+          12477
+        ],
+        "no_page_errors": true,
+        "current_and_historical_finance": true,
+        "county_and_withdrawal_preserved": true,
+        "actual_response_hashes": true
+      }
+    ],
+    "verified": true,
+    "external_browser_requests_blocked": true
   }
 }

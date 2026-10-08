@@ -2,8 +2,11 @@
 
 > **Latest priority — October 8:** Igor requested the current statewide reader
 > components be completed first. The [statewide content handoff](statewide_content_20261008.md)
-> covers the verified 14-guide candidate and review corrections. Resume the county
-> content and operations queue below after its publication checks.
+> covers the published 14-guide update and review corrections. Release `3f9a5e0`
+> passed live verification. Resume the county content and operations queue below.
+> Historical-card keyboard access remains a broader card/accessibility follow-up;
+> current statewide cards now support keyboard opening. Current finance snapshots
+> do not yet provide transaction timelines, concentration or sector analytics.
 
 > **Current review queue — October 8:** the
 > [remaining review plan](remaining_review_plan_20261008.md) consolidates the next
