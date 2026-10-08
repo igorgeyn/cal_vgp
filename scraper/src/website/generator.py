@@ -3,6 +3,7 @@ Website generator for ballot measures
 Generates modern, responsive HTML with faceted navigation
 """
 import json
+import hashlib
 import logging
 from pathlib import Path
 from typing import Dict, List, Optional
@@ -13,6 +14,7 @@ from ..database.operations import Database
 from ..database.models import BallotMeasure
 from ..database.measure_documents import documents_for_website
 from ..database.statewide_ballot import attach_statewide_ballot_fields
+from .statewide_content import attach_statewide_content, load_package, render_future_ballots, STYLE as STATEWIDE_STYLE
 from ..config import WEBSITE_CONFIG, BASE_DIR
 from ..utils import TitleGenerator
 from ..utils.topic_mapping import get_display_topic, get_all_display_categories
@@ -136,6 +138,7 @@ class WebsiteGenerator:
         # associations do not pass through the BallotMeasure field filter.
         connection = self.db.connect()
         measures = attach_statewide_ballot_fields(connection, measures)
+        measures = attach_statewide_content(measures)
         official_documents = documents_for_website(connection)
         if official_documents:
             document_identities = {
@@ -690,6 +693,7 @@ class WebsiteGenerator:
         # Load finance data if available
         finance_data = self._load_finance_data()
         finance_json = json.dumps(finance_data, default=str)
+        future_statewide_html = render_future_ballots(load_package()) if any(m.get('statewide_guide') for m in measures) else ''
 
         # Load compact analysis payload if available
         insights_data = self._load_insights_data()
@@ -800,9 +804,9 @@ class WebsiteGenerator:
                 <button onclick="localStorage.setItem('cbIntroDismissed','1'); document.getElementById('welcomeIntro').remove();" aria-label="Dismiss introduction" title="Dismiss (won't show again)" style="position: absolute; top: 0.6rem; right: 0.85rem; background: none; border: none; font-size: 1.35rem; line-height: 1; color: var(--text-tertiary); cursor: pointer;">&times;</button>
                 <h2 style="font-size: 1.4rem; font-weight: 800; color: var(--text-primary); margin-bottom: 0.4rem;">Every California ballot measure, in one place.</h2>
                 <p style="font-size: 0.95rem; line-height: 1.55; color: var(--text-secondary); max-width: 75ch; margin-bottom: 1rem;">
-                    CalBallot is a free explorer for California's statewide and local ballot measures, from {stats.get('year_min', 1911)} to the ones on the next ballot. Every measure comes with a plain-language AI summary alongside the official record: what it proposed, where it was voted on, and how it turned out.
+                    CalBallot is a free explorer for California's statewide and local ballot measures, from {stats.get('year_min', 1911)} to the ones on the next ballot. Read official ballot information, historical results and sourced explanations where available.
                 </p>
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(19rem, 1fr)); gap: 0.55rem 2.5rem; font-size: 0.88rem; color: var(--text-secondary); max-width: 48rem;">
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(19rem, 100%), 1fr)); gap: 0.55rem 2.5rem; font-size: 0.88rem; color: var(--text-secondary); max-width: 48rem;">
                     <span><strong style="color: var(--primary);">Search</strong> &mdash; look up any measure by title, topic, or year</span>
                     <span><strong style="color: var(--primary);">Grid / List</strong> &mdash; browse and filter the full catalog</span>
                     <span><strong style="color: var(--primary);">Insights</strong> &mdash; trends and analysis from the data</span>
@@ -1379,6 +1383,7 @@ class WebsiteGenerator:
                     <div>
                         <span class="upcoming-band-eyebrow">California statewide</span>
                         <h3>Statewide measures</h3>
+                        <p id="statewideSourceNote" class="statewide-source-note"></p>
                     </div>
                     <span class="upcoming-band-count" id="statewideUpcomingCount"></span>
                 </div>
@@ -1402,6 +1407,7 @@ class WebsiteGenerator:
                 <div class="carousel-dots" id="heroCarouselDots">
                     <!-- Will be populated by JavaScript -->
                 </div>
+                {future_statewide_html}
                 <section class="upcoming-local-band" aria-labelledby="localMeasuresTitle">
                     <div class="upcoming-local-band-header">
                         <div>
@@ -1735,6 +1741,8 @@ class WebsiteGenerator:
                             <ul id="modalOfficialDocumentList" class="official-document-list"></ul>
                         </div>
 
+                        <div id="modalStatewideMain" class="measure-detail-section" style="display: none;"></div>
+
                         <div id="modalRelatedSection" class="measure-detail-section" style="display: none;">
                             <h3>🔗 Related Measures</h3>
                             <div id="modalRelatedMeasures" class="measure-detail-related"></div>
@@ -1749,7 +1757,7 @@ class WebsiteGenerator:
                     <!-- TAB: Research -->
                     <div class="modal-tab-panel" id="tabResearch">
                         <div id="modalBriefingSection" class="measure-detail-section" style="display: none;">
-                            <h3>📋 Research Briefing <span class="info-tip" data-tip="An AI-generated summary synthesizing official sources, historical context, and key facts about this measure. Produced by CalBallot's research agent.">i</span></h3>
+                            <h3 id="modalBriefingHeading">📋 Research Briefing <span class="info-tip" data-tip="An AI-generated summary synthesizing official sources, historical context, and key facts about this measure. Produced by CalBallot's research agent.">i</span></h3>
                             <div id="modalBriefingContent"></div>
                         </div>
 
@@ -2559,7 +2567,7 @@ class WebsiteGenerator:
         """Get CSS styles for the website"""
         return """
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
-
+        """ + STATEWIDE_STYLE + """
         /* Modern CSS Reset and Variables */
         * {
             margin: 0;
@@ -9796,7 +9804,7 @@ class WebsiteGenerator:
             // Capture a #m=<id> deep link before init (applyFilters/updateURL rewrites the hash)
             const initialMeasureLink = window.location.hash.match(/^#m=(\d+)/);
             try {{
-                const resp = await fetch('measures-data.json');
+                const resp = await fetch('measures-data.json?v={hashlib.sha256(measures_json.encode("utf-8")).hexdigest()[:20]}', {{cache: 'no-cache'}});
                 if (!resp.ok) throw new Error('HTTP ' + resp.status);
                 allMeasures = await resp.json();
             }} catch (err) {{
@@ -10968,6 +10976,8 @@ class WebsiteGenerator:
                         measure.status_reason || measure.official_description || measure.description,
                         measure.official_description || measure.status_reason ? '' : measure.summary_text,
                         measure.topic_primary,
+                        measure.statewide_guide ? measure.display_topic : '',
+                        measure.statewide_guide?.short_title || '',
                         measure.year
                     ].filter(Boolean).join(' ').toLowerCase();
 
@@ -11165,6 +11175,11 @@ class WebsiteGenerator:
             const statewideCount = document.getElementById('statewideUpcomingCount');
             if (statewideCount) {{
                 statewideCount.textContent = `${{heroMeasures.length.toLocaleString()}} measure${{heroMeasures.length === 1 ? '' : 's'}}`;
+            }}
+            const statewideSourceNote = document.getElementById('statewideSourceNote');
+            if (statewideSourceNote) {{
+                const guide = heroMeasures.find(m => m.statewide_guide)?.statewide_guide;
+                statewideSourceNote.textContent = guide ? `November 3, 2026 · Official guide, fiscal analysis, arguments and campaign finance · Sources captured ${{guide.sources.overview.captured_at.slice(0, 10)}}` : '';
             }}
             renderLocalMeasures();
 
@@ -14541,7 +14556,7 @@ class WebsiteGenerator:
 
         function renderTimeline(measure) {{
             if (measure.ballot_status === 'qualified') {{
-                return '<p>On the November 3, 2026 ballot.</p>';
+                return '<p>On the November 3, 2026 ballot.</p>' + (measure.statewide_guide ? `<p class="text-secondary">${{escapeHtml(measure.statewide_guide.qualification_method)}}.</p>` : '');
             }}
             if (measure.ballot_status === 'withdrawn') return '';
             const stage = getMeasureStage(measure);
@@ -14610,11 +14625,18 @@ class WebsiteGenerator:
             return null; // No displayable ID
         }}
 
+        function activateStatewideCard(event, card) {{
+            if (event.key === 'Enter' || event.key === ' ') {{
+                event.preventDefault();
+                card.click();
+            }}
+        }}
+
         // Create card HTML - simplified, cleaner design
         function createCard(measure, featured = false, featuredReason = null, isHero = false) {{
             // Use generated title if available, otherwise fall back to original
             const displayMeasureId = getDisplayMeasureId(measure);
-            const title = getCleanTitle(measure, displayMeasureId);
+            const title = measure.statewide_guide?.short_title || getCleanTitle(measure, displayMeasureId);
             const displayTitle = buildDisplayTitle(title, displayMeasureId);
             const year = measure.year || 'Unknown';
             const passed = measure.passed;
@@ -14641,7 +14663,7 @@ class WebsiteGenerator:
             }} else if (measure.generated_title && measure.original_title) {{
                 summary = measure.original_title;
             }}
-            if (isPending && measure.historical_context && !summary) {{
+            if (isPending && !measure.statewide_guide && measure.historical_context && !summary) {{
                 const ctx = measure.historical_context;
                 summary = `California has voted on ${{ctx.total_similar.toLocaleString()}} similar ${{ctx.matched_topic.toLowerCase()}} measures since ${{ctx.year_range.split('-')[0]}}. They passed ${{ctx.pass_rate}}% of the time with a median YES vote of ${{ctx.median_yes}}%.`;
             }} else if (isPending && !summary) {{
@@ -14661,20 +14683,21 @@ class WebsiteGenerator:
                 </div>
             ` : '';
 
-            const topic = measure.topic_primary || measure.category_topic || '';
+            const topic = measure.statewide_guide ? measure.display_topic : (measure.topic_primary || measure.category_topic || '');
             const source = measure.source_display || measure.data_source || measure.source || '';
 
             // Determine card class - add pending-measure class for 2026+ measures
             let cardClass = isHero ? 'hero' : (featured ? 'featured' : '');
             if (measure.is_landmark) cardClass += ' landmark';
             if (isPending) cardClass += ' pending-measure';
+            if (measure.statewide_guide) cardClass += ' statewide-card';
 
             // Build meta items - % Yes / topic / source / landmark flag.
             // % Yes stays in the meta row (v1 had moved it to the header;
             // that read as awkward floating text — reverted).
             const metaItems = [];
             if (measure.status_reason) metaItems.push('CA SOS withdrawal record');
-            else if (measure.official_description) metaItems.push('Official CA SOS description');
+            else if (measure.official_description && !measure.statewide_guide) metaItems.push('Official CA SOS description');
             if (measure.is_landmark) metaItems.push('⭐ Historic');
             if (percentYes != null && !isPending) metaItems.push(`${{Math.round(percentYes)}}% Yes`);
             if (topic) metaItems.push(escapeHtml(topic));
@@ -14685,7 +14708,7 @@ class WebsiteGenerator:
             const mIdx = allMeasures.indexOf(measure);
 
             return `
-                <div class="measure-card ${{cardClass}}" data-midx="${{mIdx}}" onclick="viewMeasure(allMeasures[this.dataset.midx])">
+                <div class="measure-card ${{cardClass}}" data-midx="${{mIdx}}" onclick="viewMeasure(allMeasures[this.dataset.midx])" ${{measure.statewide_guide ? 'role="button" tabindex="0" onkeydown="activateStatewideCard(event,this)"' : ''}}>
                     <div class="card-header">
                         <span class="card-year">${{year}}</span>
                         <span class="badge badge-${{passedClass}}">${{passedText}}</span>
@@ -14868,7 +14891,7 @@ class WebsiteGenerator:
             // Related measures section - populated from recommendations
             const relatedSection = document.getElementById('modalRelatedSection');
             const relatedContainer = document.getElementById('modalRelatedMeasures');
-            const measureRecs = recommendations[measure.measure_id];
+            const measureRecs = measure.statewide_guide ? null : recommendations[measure.measure_id];
 
             if (measureRecs && measureRecs.length > 0) {{
                 // Build related measures cards
@@ -14908,7 +14931,15 @@ class WebsiteGenerator:
             // Research briefing section (for measures with agent-generated briefings)
             const briefingSection = document.getElementById('modalBriefingSection');
             const briefingContent = document.getElementById('modalBriefingContent');
-            if (!measure.ballot_status && measure.briefing && measure.briefing.text) {{
+            const guideSections = measure.statewide_sections;
+            const statewideMain = document.getElementById('modalStatewideMain');
+            statewideMain.innerHTML = guideSections ? guideSections.main : '';
+            statewideMain.style.display = guideSections ? 'block' : 'none';
+            document.getElementById('modalBriefingHeading').innerHTML = guideSections ? 'Official analysis and arguments' : `📋 Research Briefing <span class="info-tip" data-tip="An AI-generated summary synthesizing official sources, historical context, and key facts about this measure. Produced by CalBallot's research agent.">i</span>`;
+            if (guideSections) {{
+                briefingContent.innerHTML = guideSections.research;
+                briefingSection.style.display = 'block';
+            }} else if (!measure.ballot_status && measure.briefing && measure.briefing.text) {{
                 let bHtml = '';
                 const b = measure.briefing;
 
@@ -15035,11 +15066,16 @@ class WebsiteGenerator:
             if (measure.ballot_status !== 'withdrawn' && measure.historical_context) {{
                 const ctx = measure.historical_context;
                 let ctxHtml = `<div style="padding:0.5rem 0;">`;
-                ctxHtml += `<h3>📊 Measures Like This <span class="info-tip" data-tip="Semantically similar past measures found using AI embeddings across CalBallot's 12,000+ measure database. Shows how voters decided on comparable issues.">i</span></h3>`;
+                ctxHtml += ctx.scope === 'statewide' ? '<h3>Related statewide history</h3>' : `<h3>📊 Measures Like This <span class="info-tip" data-tip="Semantically similar past measures found using AI embeddings across CalBallot's 12,000+ measure database. Shows how voters decided on comparable issues.">i</span></h3>`;
+                if (ctx.scope === 'statewide') ctxHtml += '<p class="text-secondary">Text-based matches among historical statewide measures. These are context, not a forecast; provisions, voting rules and political circumstances may differ.</p>';
                 ctxHtml += `<div style="font-size:0.85rem;color:#555;line-height:1.5;">`;
-                ctxHtml += `We found <strong>${{ctx.total_similar}}</strong> semantically similar past measures (mostly <strong>${{ctx.matched_topic}}</strong>). `;
-                ctxHtml += `They passed <strong>${{ctx.pass_rate}}%</strong> of the time `;
-                ctxHtml += `with a median YES vote of <strong>${{ctx.median_yes}}%</strong>.`;
+                if (ctx.scope === 'statewide') {{
+                    ctxHtml += `Explore past statewide measures selected by text similarity. This is a selected set, not a representative sample of election outcomes.`;
+                }} else {{
+                    ctxHtml += `We found <strong>${{ctx.total_similar}}</strong> semantically similar past measures (mostly <strong>${{ctx.matched_topic}}</strong>). `;
+                    ctxHtml += `They passed <strong>${{ctx.pass_rate}}%</strong> of the time `;
+                    ctxHtml += `with a median YES vote of <strong>${{ctx.median_yes}}%</strong>.`;
+                }}
                 ctxHtml += `</div>`;
 
                 // Helper: build a tile card for a similar measure, clickable to open its detail
@@ -15050,14 +15086,14 @@ class WebsiteGenerator:
                     const title = item.title ? item.title.substring(0, 55) : 'Untitled';
                     const county = item.county || '';
                     // Try to find this measure in allMeasures for clickthrough
-                    const match = allMeasures.find(m =>
+                    const match = item.id ? allMeasures.find(m => m.id === item.id) : allMeasures.find(m =>
                         m.year == item.year && m.county === county &&
                         (m.percent_yes && Math.abs(m.percent_yes - item.percent_yes) < 0.5)
                     );
                     const clickAttr = match ? `data-midx="${{allMeasures.indexOf(match)}}" onclick="viewMeasure(allMeasures[this.dataset.midx])" style="cursor:pointer;"` : '';
                     return `<div class="related-card" ${{clickAttr}}>
                         <div class="related-header">
-                            <span class="related-id">${{escapeHtml(county)}}</span>
+                            <span class="related-id">${{escapeHtml(item.id && match ? getDisplayMeasureId(match) || county : county)}}</span>
                             <span class="related-year">${{item.year}}</span>
                         </div>
                         <div class="related-title" style="font-size:0.75rem;line-height:1.3;">${{escapeHtml(title)}}</div>
@@ -15077,7 +15113,7 @@ class WebsiteGenerator:
                 }}
 
                 // Closest races — tile grid
-                if (ctx.closest_races && ctx.closest_races.length > 0) {{
+                if (ctx.scope !== 'statewide' && ctx.closest_races && ctx.closest_races.length > 0) {{
                     ctxHtml += `<div style="font-size:0.8rem;font-weight:600;margin-top:0.75rem;margin-bottom:0.4rem;">Closest races on similar measures:</div>`;
                     ctxHtml += `<div class="measure-detail-related" style="grid-template-columns:repeat(3,1fr);gap:0.4rem;">`;
                     ctx.closest_races.forEach(cr => {{ ctxHtml += buildContextTile(cr); }});
@@ -15105,7 +15141,10 @@ class WebsiteGenerator:
             // v2 finance keyed on measure_db_id (str of measure.id) since
             // bare measure_id ("PROP_1") isn't unique across cycles.
             const fd = financeData[String(measure.id)];
-            if (fd) {{
+            if (guideSections) {{
+                financeContent.innerHTML = guideSections.finance;
+                financeSection.style.display = 'block';
+            }} else if (fd) {{
                 financeContent.innerHTML = buildFinanceHTML(fd, measure);
                 financeSection.style.display = 'block';
             }} else {{

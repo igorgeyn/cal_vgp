@@ -1,5 +1,23 @@
 # CalBallot Working List
 
+> **Statewide reader update — October 8:** Igor requested complete current
+> statewide components. The [content handoff](plans/statewide_content_20261008.md)
+> records the 14 source-backed guides, current campaign finance, statewide-only
+> historical comparisons and phone layout changes. The candidate passes the
+> 81-case focused suite and complete record/page preservation; final browser,
+> independent-review and publication receipts are tracked there. The earlier
+> four-card screenshot does not match the live October 8 release. Resume the
+> remaining county and operations review sequence after this update.
+
+> **Remaining review plan — October 8:** use the
+> [six-batch review and execution plan](plans/remaining_review_plan_20261008.md)
+> and its [task checklist](plans/remaining_review_checklist_20261008.md)
+> for current next steps. Start with a mixed SB/SMC content pilot and capture-health
+> triage; then complete content, refresh, status, results and operational reviews.
+> It recommends essential election-readiness gates before Alameda enablement,
+> preserves the accepted county order, and keeps card design as a later review.
+> This is a plan, not evidence that any of those remaining reviews has run.
+
 > **Published and verified - October 8:** release `3911602` is live at
 > https://cal-vgp.igorgeyn.com/. Read the [release checkpoint](plans/release_progress_20261008.md)
 > and [evidence/served receipt](plans/statewide_release_evidence_20261008.json).

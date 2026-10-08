@@ -1,0 +1,132 @@
+{
+  "election_date": "2026-11-03",
+  "editorial_note": "Short titles and topics are CalBallot navigation labels. Full official titles remain visible in details. Identity mapping preserves the accepted October 8 release.",
+  "entries": [
+    {
+      "id": 12467,
+      "canonical_id": "PROP_1_2026",
+      "proposition_number": 1,
+      "official_title": "Authorizes Bonds for Housing Affordability Programs. Legislative Statute.",
+      "source_url": "https://voterguide.sos.ca.gov/propositions/1/index.htm",
+      "short_title": "Housing affordability bonds",
+      "topic": "Housing & Land Use"
+    },
+    {
+      "id": 12468,
+      "canonical_id": "PROP_2_2026",
+      "proposition_number": 2,
+      "official_title": "Increases State’s Rainy Day Fund. Legislative Constitutional Amendment.",
+      "source_url": "https://voterguide.sos.ca.gov/propositions/2/index.htm",
+      "short_title": "State rainy day fund",
+      "topic": "Taxes & Finance"
+    },
+    {
+      "id": 10960,
+      "canonical_id": "INIT_1993",
+      "proposition_number": 3,
+      "official_title": "Provides Permanent Funding for Schools and Health Care by Extending Existing Tax on High Incomes. Initiative Constitutional Amendment.",
+      "source_url": "https://voterguide.sos.ca.gov/propositions/3/index.htm",
+      "short_title": "Permanent high-income tax rates",
+      "topic": "Education"
+    },
+    {
+      "id": 10956,
+      "canonical_id": "SB_42",
+      "proposition_number": 4,
+      "official_title": "Repeals Prohibition Against Public Funding of Election Campaigns. Legislative Statute.",
+      "source_url": "https://voterguide.sos.ca.gov/propositions/4/index.htm",
+      "short_title": "Public campaign financing",
+      "topic": "Government & Elections"
+    },
+    {
+      "id": 2,
+      "canonical_id": "SCA 1 (Newman) Elections: recall of state officers",
+      "proposition_number": 5,
+      "official_title": "Changes Recall Election Process for Statewide Officers. Legislative Constitutional Amendment.",
+      "source_url": "https://voterguide.sos.ca.gov/propositions/5/index.htm",
+      "short_title": "Recall election rules",
+      "topic": "Government & Elections"
+    },
+    {
+      "id": 12469,
+      "canonical_id": "PROP_37_2026",
+      "proposition_number": 37,
+      "official_title": "Creates Loan Program for Middle-Income Buyers of Qualified New Homes. Initiative Statute.",
+      "source_url": "https://voterguide.sos.ca.gov/propositions/37/index.htm",
+      "short_title": "Loans for middle-income homebuyers",
+      "topic": "Housing & Land Use"
+    },
+    {
+      "id": 12470,
+      "canonical_id": "PROP_38_2026",
+      "proposition_number": 38,
+      "official_title": "Authorizes Bonds for Immunology Medical Research. Initiative Statute.",
+      "source_url": "https://voterguide.sos.ca.gov/propositions/38/index.htm",
+      "short_title": "Immunology research bonds",
+      "topic": "Healthcare & Welfare"
+    },
+    {
+      "id": 12471,
+      "canonical_id": "PROP_39_2026",
+      "proposition_number": 39,
+      "official_title": "Prohibits Citizens from Voting Unless They Present Government-Issued Identification. Initiative Constitutional Amendment.",
+      "source_url": "https://voterguide.sos.ca.gov/propositions/39/index.htm",
+      "short_title": "Voter identification requirements",
+      "topic": "Government & Elections"
+    },
+    {
+      "id": 12472,
+      "canonical_id": "PROP_40_2026",
+      "proposition_number": 40,
+      "official_title": "Imposes One-Time Tax on Certain Taxpayers. Initiative Constitutional Amendment and Statute.",
+      "source_url": "https://voterguide.sos.ca.gov/propositions/40/index.htm",
+      "short_title": "One-time wealth tax",
+      "topic": "Taxes & Finance"
+    },
+    {
+      "id": 12473,
+      "canonical_id": "PROP_41_2026",
+      "proposition_number": 41,
+      "official_title": "Prohibits New State Taxes That Exclude Revenues from State Spending Limit. Requires Audits for New State Special Taxes. Initiative Constitutional Amendment.",
+      "source_url": "https://voterguide.sos.ca.gov/propositions/41/index.htm",
+      "short_title": "State tax audits and spending limits",
+      "topic": "Taxes & Finance"
+    },
+    {
+      "id": 12474,
+      "canonical_id": "PROP_42_2026",
+      "proposition_number": 42,
+      "official_title": "Prohibits New State Personal Property Taxes and Certain Retroactive State Taxes. Initiative Constitutional Amendment.",
+      "source_url": "https://voterguide.sos.ca.gov/propositions/42/index.htm",
+      "short_title": "Personal property and retroactive taxes",
+      "topic": "Taxes & Finance"
+    },
+    {
+      "id": 12475,
+      "canonical_id": "PROP_43_2026",
+      "proposition_number": 43,
+      "official_title": "Limits Voters’ Ability to Raise Revenues for Local Government Services. Legislative Constitutional Amendment.",
+      "source_url": "https://voterguide.sos.ca.gov/propositions/43/index.htm",
+      "short_title": "Local tax voting requirements",
+      "topic": "Government & Elections"
+    },
+    {
+      "id": 12476,
+      "canonical_id": "PROP_44_2026",
+      "proposition_number": 44,
+      "official_title": "Requires Community Health Clinics Spend 90% Of Revenue on Program Services. Initiative Statute.",
+      "source_url": "https://voterguide.sos.ca.gov/propositions/44/index.htm",
+      "short_title": "Community clinic spending",
+      "topic": "Healthcare & Welfare"
+    },
+    {
+      "id": 12477,
+      "canonical_id": "PROP_45_2026",
+      "proposition_number": 45,
+      "official_title": "Modifies Environmental Review for Certain Projects. Initiative Statute.",
+      "source_url": "https://voterguide.sos.ca.gov/propositions/45/index.htm",
+      "short_title": "Environmental review changes",
+      "topic": "Environment & Natural Resources"
+    }
+  ]
+}

@@ -159,6 +159,17 @@ def test_public_assignment_reaches_both_build_paths(database, tmp_path, monkeypa
     run(database, True)
     db = Database(database)
     generator = WebsiteGenerator(db, tmp_path / 'site' / 'index.html')
+    # This fixture deliberately starts new IDs above 20003, whereas the sealed
+    # production content uses its real IDs. Bind the content to these explicit
+    # fixture assignments rather than weakening the production identity check.
+    from src.website.statewide_content import load_package, attach_statewide_content
+    package = load_package()
+    assignments = {r['proposition_number']: r['measure_id'] for r in db.connect().execute(
+        "SELECT proposition_number, measure_id FROM statewide_ballot_entries WHERE ballot_status='qualified'")}
+    for entry in package['entries']:
+        entry['id'] = assignments[entry['proposition_number']]
+    monkeypatch.setattr('src.website.generator.attach_statewide_content',
+                        lambda measures: attach_statewide_content(measures, package))
     monkeypatch.setattr(generator, '_load_finance_data', lambda: {})
     monkeypatch.setattr(generator, '_load_insights_data', lambda: {})
     monkeypatch.setattr(generator, '_load_recommendations', lambda: {})
