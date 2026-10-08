@@ -6682,9 +6682,60 @@
             }
         }
         
+        :root { --browse-header-offset: 100px; }
+        html { scroll-padding-top: var(--browse-header-offset); }
+        .header .view-controls { flex-wrap: wrap; max-width: 100%; }
+        .pagination-container .pagination-controls { flex-wrap: wrap; justify-content: center; max-width: 100%; }
+        .browse-anchor, #browse-navigation, #main-content, #resultsContainer { scroll-margin-top: 16px; }
+        .browse-skip-link {
+            position: fixed; top: 8px; left: 8px; z-index: 10001;
+            padding: 12px 18px; background: #fff; color: #172f40;
+            transform: translateY(-200%); border: 2px solid #172f40;
+        }
+        .browse-skip-link:focus { transform: none; }
+        .browse-jump-nav {
+            display: flex; align-items: center; flex-wrap: wrap; gap: 4px 24px;
+            padding: 12px 18px; margin-bottom: 24px;
+            border: 1px solid var(--border); border-radius: 8px;
+            background: var(--bg-primary);
+        }
+        .browse-jump-label { font-size: .8rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--text-secondary); }
+        .browse-jump-nav ol { display: flex; flex-wrap: wrap; gap: 0 24px; list-style: none; margin: 0; padding: 0; }
+        .browse-jump-nav a, .browse-return {
+            display: inline-flex; align-items: center; gap: 6px; min-height: 44px;
+            color: #244c63; text-decoration: underline; text-underline-offset: 4px;
+            font-size: .9rem; font-weight: 600;
+        }
+        .browse-jump-nav a:hover, .browse-return:hover { color: #122b3a; text-decoration-thickness: 2px; }
+        .browse-jump-nav a:focus-visible, .browse-return:focus-visible,
+        .browse-anchor:focus-visible, #browse-navigation:focus-visible,
+        .measure-list-item:focus-visible {
+            outline: 3px solid #244c63; outline-offset: 4px; border-radius: 3px;
+        }
+        .browse-catalog-header { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: 16px; margin: 12px 0 20px; }
+        .browse-catalog-header h2 { margin: 0 0 6px; font-size: 1.5rem; }
+        .browse-catalog-header p { margin: 0; color: var(--text-secondary); max-width: 680px; font-size: .9rem; }
+        .browse-return { flex-shrink: 0; }
+        .results-list .measure-list-item { grid-template-columns: auto minmax(0, 1fr) auto; overflow-wrap: anywhere; }
+        .results-list .measure-list-item > div { min-width: 0; }
+        .hero-section .upcoming-statewide-heading h2,
+        .upcoming-local-band .upcoming-local-band-header h2 { margin: .15rem 0 0; font-size: 1.35rem; }
+        .upcoming-local-band .browse-section-title { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 16px; }
+        .hero-section .hero-header { text-align: left; margin-bottom: 1.5rem; }
+        .hero-section .hero-title { font-size: 1rem; font-weight: 500; color: var(--text-secondary); }
+        .hero-section .hero-description { margin: 0; max-width: none; font-size: .85rem; }
+        @media (max-width: 580px) {
+            .browse-jump-nav { padding: 8px 14px; gap: 0 16px; margin-bottom: 16px; }
+            .browse-jump-nav ol { width: 100%; gap: 0 20px; }
+            .browse-catalog-header { flex-direction: column; gap: 4px; }
+            .results-list .measure-list-item { grid-template-columns: auto minmax(0, 1fr); gap: 6px 12px; }
+            .results-list .measure-list-item > div:last-child { grid-column: 2; text-align: left !important; }
+        }
+
     </style>
 </head>
 <body>
+    <a class="browse-skip-link" href="#main-content">Skip to main content</a>
     <!-- Header -->
     <header class="header">
         <div class="header-content">
@@ -6758,25 +6809,83 @@
     <!-- Main Content -->
     <div class="main-container-full">
         <!-- Main Content Area -->
-        <main class="content-full">
-            <!-- Welcome / first-time orientation -->
-            <section id="welcomeIntro" style="position: relative; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow-sm); padding: 1.5rem 3rem 1.4rem 1.75rem; margin-bottom: 1.25rem;">
-                <button onclick="localStorage.setItem('cbIntroDismissed','1'); document.getElementById('welcomeIntro').remove();" aria-label="Dismiss introduction" title="Dismiss (won't show again)" style="position: absolute; top: 0.6rem; right: 0.85rem; background: none; border: none; font-size: 1.35rem; line-height: 1; color: var(--text-tertiary); cursor: pointer;">&times;</button>
-                <h2 style="font-size: 1.4rem; font-weight: 800; color: var(--text-primary); margin-bottom: 0.4rem;">Every California ballot measure, in one place.</h2>
-                <p style="font-size: 0.95rem; line-height: 1.55; color: var(--text-secondary); max-width: 75ch; margin-bottom: 1rem;">
-                    CalBallot is a free explorer for California's statewide and local ballot measures, from 1911 to the ones on the next ballot. Read official ballot information, historical results and sourced explanations where available.
-                </p>
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(19rem, 100%), 1fr)); gap: 0.55rem 2.5rem; font-size: 0.88rem; color: var(--text-secondary); max-width: 48rem;">
-                    <span><strong style="color: var(--primary);">Search</strong> &mdash; look up any measure by title, topic, or year</span>
-                    <span><strong style="color: var(--primary);">Grid / List</strong> &mdash; browse and filter the full catalog</span>
-                    <span><strong style="color: var(--primary);">Insights</strong> &mdash; trends and analysis from the data</span>
-                    <span><strong style="color: var(--primary);">Explore</strong> &mdash; pass rates by topic and jurisdiction</span>
-                    <span><strong style="color: var(--primary);">Ask AI</strong> &mdash; query the data in plain English (bring your own key)</span>
+        <main class="content-full" id="main-content" tabindex="-1">
+            
+            <nav id="browse-navigation" class="browse-jump-nav" aria-label="Jump to a section" tabindex="-1">
+                <span class="browse-jump-label">Jump to</span>
+                <ol>
+                    <li><a href="#statewide-measures" data-browse-jump="statewide-measures">Statewide measures</a></li>
+                    <li><a href="#local-measures" data-browse-jump="local-measures">Local measures</a></li>
+                    <li><a href="#full-catalog" data-browse-jump="full-catalog" id="catalogJumpLink">Full grid</a></li>
+                </ol>
+            </nav>
+
+            <!-- Upcoming 2026 Ballot Measures Section -->
+            <div class="hero-section" id="heroSection">
+                <div class="hero-header">
+                    <p class="hero-title">November 3, 2026 election</p>
                 </div>
-                <p style="margin: 0.9rem 0 0 0; font-size: 0.85rem;"><a href="#" onclick="openAboutModal(); return false;" style="color: var(--primary); font-weight: 600; text-decoration: none;">How this works &mdash; data sources &amp; methodology &rarr;</a></p>
-                <p style="margin: 0.45rem 0 0 0; font-size: 0.85rem;"><a href="/use-calballot/" style="color: var(--primary); font-weight: 600; text-decoration: none;">Using CalBallot for reporting, research, or civic work? See how CalBallot can help &rarr;</a></p>
-            </section>
-            <script>if (localStorage.getItem('cbIntroDismissed')) document.getElementById('welcomeIntro').remove();</script>
+                <div class="upcoming-statewide-heading">
+                    <div>
+                        <span class="upcoming-band-eyebrow">California statewide</span>
+                        <h2 id="statewide-measures" class="browse-anchor" tabindex="-1">Statewide measures</h2>
+                        <p id="statewideSourceNote" class="statewide-source-note"></p>
+                    </div>
+                    <span class="upcoming-band-count" id="statewideUpcomingCount"></span>
+                </div>
+                <div class="hero-carousel">
+                    <button class="carousel-btn carousel-prev" onclick="heroCarouselPrev()" aria-label="Previous">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="15 18 9 12 15 6"></polyline>
+                        </svg>
+                    </button>
+                    <div class="carousel-track-container">
+                        <div class="carousel-track" id="heroGrid">
+                            <!-- Will be populated by JavaScript -->
+                        </div>
+                    </div>
+                    <button class="carousel-btn carousel-next" onclick="heroCarouselNext()" aria-label="Next">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="9 18 15 12 9 6"></polyline>
+                        </svg>
+                    </button>
+                </div>
+                <div class="carousel-dots" id="heroCarouselDots">
+                    <!-- Will be populated by JavaScript -->
+                </div>
+                <details class="statewide-future"><summary>Looking ahead: statewide measures assigned to 2028</summary><ul><li><strong>March 07, 2028:</strong> <a href="https://elections.cdn.sos.ca.gov/ballot-measures/pdf/sb895-ch1040.pdf" target="_blank" rel="noopener noreferrer">SB 895 (Wiener) California Science and Health Research Bond Act. (Ch. 1040, 2026) (PDF)</a></li><li><strong>November 07, 2028:</strong> <a href="https://elections.cdn.sos.ca.gov/ballot-measures/pdf/aca-7.pdf" target="_blank" rel="noopener noreferrer">ACA 7 (Jackson) Government preferences. (Res. Ch. 223, 2026) (PDF)</a></li></ul><p>These later assignments are listed separately from the November 2026 propositions. <a href="https://www.sos.ca.gov/elections/ballot-measures/qualified-ballot-measures" target="_blank" rel="noopener noreferrer">See the SOS qualified list</a>.</p></details>
+                <section class="upcoming-local-band" aria-labelledby="local-measures">
+                    <div class="upcoming-local-band-header">
+                        <div>
+                            <span class="upcoming-band-eyebrow">Official county records</span>
+                            <div class="browse-section-title">
+                                <h2 id="local-measures" class="browse-anchor" tabindex="-1">Local measures</h2>
+                                <a class="browse-return" href="#browse-navigation" data-browse-jump="browse-navigation">Back to jump links <span aria-hidden="true">&uarr;</span></a>
+                            </div>
+                        </div>
+                        <div class="local-band-controls">
+                            <label for="localCountySelect">County</label>
+                            <select id="localCountySelect" class="local-county-select"
+                                    onchange="selectLocalCounty(this.value)" aria-controls="localMeasuresContent">
+                                <option>Loading county coverage&hellip;</option>
+                            </select>
+                            <span class="upcoming-band-count" id="localUpcomingCount"></span>
+                        </div>
+                    </div>
+                    <p class="upcoming-local-scope" id="localMeasuresScope"></p>
+                    <div id="localMeasuresContent">
+                        <!-- Will be populated by JavaScript -->
+                    </div>
+                </section>
+            </div>
+            
+            <div class="browse-catalog-header" id="catalogHeader">
+                <div>
+                    <h2 id="full-catalog" class="browse-anchor" tabindex="-1">Full grid</h2>
+                    <p>Search and filter the full collection of statewide and local measures, including historical elections.</p>
+                </div>
+                <a class="browse-return" href="#browse-navigation" data-browse-jump="browse-navigation">Back to jump links <span aria-hidden="true">↑</span></a>
+            </div>
 
             <!-- View Mode Switcher -->
             <div class="view-switcher">
@@ -7328,67 +7437,25 @@
                 </div>
             </div>
 
-            <!-- Upcoming 2026 Ballot Measures Section -->
-            <div class="hero-section" id="heroSection">
-                <div class="hero-header">
-                    <h2 class="hero-title">🗳️ Upcoming 2026 Ballot Measures</h2>
-                    <p class="hero-description">
-                        Get informed about California's upcoming ballot measures before you vote.
-                        <span style="display: block; margin-top: 0.5rem; font-size: 0.85rem; color: var(--text-tertiary);">
-                            📋 Open a measure for its description and official sources.
-                        </span>
-                    </p>
+            <!-- Welcome / first-time orientation -->
+            <section id="welcomeIntro" style="position: relative; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow-sm); padding: 1.5rem 3rem 1.4rem 1.75rem; margin-bottom: 1.25rem;">
+                <button onclick="localStorage.setItem('cbIntroDismissed','1'); document.getElementById('welcomeIntro').remove();" aria-label="Dismiss introduction" title="Dismiss (won't show again)" style="position: absolute; top: 0.6rem; right: 0.85rem; background: none; border: none; font-size: 1.35rem; line-height: 1; color: var(--text-tertiary); cursor: pointer;">&times;</button>
+                <h2 style="font-size: 1.4rem; font-weight: 800; color: var(--text-primary); margin-bottom: 0.4rem;">Every California ballot measure, in one place.</h2>
+                <p style="font-size: 0.95rem; line-height: 1.55; color: var(--text-secondary); max-width: 75ch; margin-bottom: 1rem;">
+                    CalBallot is a free explorer for California's statewide and local ballot measures, from 1911 to the ones on the next ballot. Read official ballot information, historical results and sourced explanations where available.
+                </p>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(19rem, 100%), 1fr)); gap: 0.55rem 2.5rem; font-size: 0.88rem; color: var(--text-secondary); max-width: 48rem;">
+                    <span><strong style="color: var(--primary);">Search</strong> &mdash; look up any measure by title, topic, or year</span>
+                    <span><strong style="color: var(--primary);">Grid / List</strong> &mdash; browse and filter the full catalog</span>
+                    <span><strong style="color: var(--primary);">Insights</strong> &mdash; trends and analysis from the data</span>
+                    <span><strong style="color: var(--primary);">Explore</strong> &mdash; pass rates by topic and jurisdiction</span>
+                    <span><strong style="color: var(--primary);">Ask AI</strong> &mdash; query the data in plain English (bring your own key)</span>
                 </div>
-                <div class="upcoming-statewide-heading">
-                    <div>
-                        <span class="upcoming-band-eyebrow">California statewide</span>
-                        <h3>Statewide measures</h3>
-                        <p id="statewideSourceNote" class="statewide-source-note"></p>
-                    </div>
-                    <span class="upcoming-band-count" id="statewideUpcomingCount"></span>
-                </div>
-                <div class="hero-carousel">
-                    <button class="carousel-btn carousel-prev" onclick="heroCarouselPrev()" aria-label="Previous">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <polyline points="15 18 9 12 15 6"></polyline>
-                        </svg>
-                    </button>
-                    <div class="carousel-track-container">
-                        <div class="carousel-track" id="heroGrid">
-                            <!-- Will be populated by JavaScript -->
-                        </div>
-                    </div>
-                    <button class="carousel-btn carousel-next" onclick="heroCarouselNext()" aria-label="Next">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <polyline points="9 18 15 12 9 6"></polyline>
-                        </svg>
-                    </button>
-                </div>
-                <div class="carousel-dots" id="heroCarouselDots">
-                    <!-- Will be populated by JavaScript -->
-                </div>
-                <details class="statewide-future"><summary>Looking ahead: statewide measures assigned to 2028</summary><ul><li><strong>March 07, 2028:</strong> <a href="https://elections.cdn.sos.ca.gov/ballot-measures/pdf/sb895-ch1040.pdf" target="_blank" rel="noopener noreferrer">SB 895 (Wiener) California Science and Health Research Bond Act. (Ch. 1040, 2026) (PDF)</a></li><li><strong>November 07, 2028:</strong> <a href="https://elections.cdn.sos.ca.gov/ballot-measures/pdf/aca-7.pdf" target="_blank" rel="noopener noreferrer">ACA 7 (Jackson) Government preferences. (Res. Ch. 223, 2026) (PDF)</a></li></ul><p>These later assignments are listed separately from the November 2026 propositions. <a href="https://www.sos.ca.gov/elections/ballot-measures/qualified-ballot-measures" target="_blank" rel="noopener noreferrer">See the SOS qualified list</a>.</p></details>
-                <section class="upcoming-local-band" aria-labelledby="localMeasuresTitle">
-                    <div class="upcoming-local-band-header">
-                        <div>
-                            <span class="upcoming-band-eyebrow">Official county records</span>
-                            <h3 id="localMeasuresTitle">Local measures</h3>
-                        </div>
-                        <div class="local-band-controls">
-                            <label for="localCountySelect">County</label>
-                            <select id="localCountySelect" class="local-county-select"
-                                    onchange="selectLocalCounty(this.value)" aria-controls="localMeasuresContent">
-                                <option>Loading county coverage&hellip;</option>
-                            </select>
-                            <span class="upcoming-band-count" id="localUpcomingCount"></span>
-                        </div>
-                    </div>
-                    <p class="upcoming-local-scope" id="localMeasuresScope"></p>
-                    <div id="localMeasuresContent">
-                        <!-- Will be populated by JavaScript -->
-                    </div>
-                </section>
-            </div>
+                <p style="margin: 0.9rem 0 0 0; font-size: 0.85rem;"><a href="#" onclick="openAboutModal(); return false;" style="color: var(--primary); font-weight: 600; text-decoration: none;">How this works &mdash; data sources &amp; methodology &rarr;</a></p>
+                <p style="margin: 0.45rem 0 0 0; font-size: 0.85rem;"><a href="/use-calballot/" style="color: var(--primary); font-weight: 600; text-decoration: none;">Using CalBallot for reporting, research, or civic work? See how CalBallot can help &rarr;</a></p>
+            </section>
+            <script>if (localStorage.getItem('cbIntroDismissed')) document.getElementById('welcomeIntro').remove();</script>
+
         </main>
     </div>
 
@@ -7747,6 +7814,54 @@
 
     <script>
         
+        
+        const browseTargetIds = ['statewide-measures', 'local-measures', 'full-catalog', 'browse-navigation'];
+        let measureReturnURL = null;
+
+        function scrollToBrowseTarget(id, focusTarget = false) {
+            if (!browseTargetIds.includes(id)) return;
+            const target = document.getElementById(id);
+            if (!target || !target.getClientRects().length) return;
+            if (focusTarget) target.focus({preventScroll: true});
+            // Instant scrolling avoids unnecessary motion and works with reduced-motion preferences.
+            target.scrollIntoView({behavior: 'instant', block: 'start'});
+        }
+
+        function syncBrowseNavigation() {
+            const label = currentView === 'list' ? 'Full list' : 'Full grid';
+            document.getElementById('full-catalog').textContent = label;
+            document.getElementById('catalogJumpLink').textContent = label;
+            document.querySelectorAll('[data-browse-jump]').forEach(link => {
+                const url = new URL(window.location.href);
+                url.hash = link.dataset.browseJump;
+                link.href = url.pathname + url.search + url.hash;
+            });
+            document.querySelectorAll('#gridView, #listView, #insightsView, #exploreView, .view-card').forEach(button => {
+                const active = button.id === currentView + 'View' || button.id === currentView + 'ViewCard';
+                button.classList.toggle('active', active);
+                button.setAttribute('aria-pressed', String(active));
+            });
+        }
+
+        function initializeBrowseNavigation() {
+            const header = document.querySelector('.header');
+            const updateOffset = () => document.documentElement.style.setProperty(
+                '--browse-header-offset', Math.ceil(header.getBoundingClientRect().height) + 'px');
+            updateOffset();
+            new ResizeObserver(updateOffset).observe(header);
+            document.querySelectorAll('[data-browse-jump]').forEach(link => {
+                link.addEventListener('click', event => {
+                    if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+                    event.preventDefault();
+                    const url = new URL(link.href);
+                    if (url.href !== window.location.href) history.pushState(null, '', url);
+                    scrollToBrowseTarget(link.dataset.browseJump, event.detail === 0);
+                });
+            });
+            syncBrowseNavigation();
+        }
+
+
         // Data
         let allMeasures = [];  // populated at startup from measures-data.json
         const topics = [{"topic": "Education", "count": 639}, {"topic": "General Services", "count": 258}, {"topic": "Revenues: Tax Creation/Incr./Contin.", "count": 102}, {"topic": "Governance: Organization", "count": 86}, {"topic": "\u00a0Tax & Revenue\u00a0", "count": 74}, {"topic": "Governance", "count": 71}, {"topic": "Governance: Political Reform/Term Limits", "count": 56}, {"topic": "Governance: Elections", "count": 55}, {"topic": "\u00a0Local Government\u00a0", "count": 54}, {"topic": "\u00a0Judiciary\u00a0", "count": 47}, {"topic": "Land Use: Zoning", "count": 46}, {"topic": "Transport: Roads", "count": 38}, {"topic": "\u00a0Criminal Justice\u00a0", "count": 35}, {"topic": "\u00a0Legislatures\u00a0", "count": 33}, {"topic": "Safety", "count": 31}, {"topic": "\u00a0Elections\u00a0", "count": 30}, {"topic": "Public Safety", "count": 29}, {"topic": "Safety: Multiple Emergency Services", "count": 27}, {"topic": "Land Use", "count": 27}, {"topic": "\u00a0Civil & Constitutional Law\u00a0", "count": 27}];
@@ -8310,7 +8425,7 @@
         };
 
         // State
-        let currentView = 'grid';
+        let currentView = new URLSearchParams(window.location.search).get('view') === 'list' ? 'list' : 'grid';
         let matrixSortCol = null;
         let matrixSortDir = 'desc';
         let currentFilters = {
@@ -8339,7 +8454,7 @@
         // Pagination state
         let pagination = {
             currentPage: 1,
-            itemsPerPage: 12,
+            itemsPerPage: currentView === 'list' ? 10 : 12,
             totalPages: 0
         };
 
@@ -8350,8 +8465,9 @@
 
         // Initialize
         document.addEventListener('DOMContentLoaded', async () => {
-            // Capture a #m=<id> deep link before init (applyFilters/updateURL rewrites the hash)
+            // Preserve measure permalinks alongside section navigation.
             const initialMeasureLink = window.location.hash.match(/^#m=(\d+)/);
+            initializeBrowseNavigation();
             try {
                 const resp = await fetch('measures-data.json?v=8ea848c910ce625a1238', {cache: 'no-cache'});
                 if (!resp.ok) throw new Error('HTTP ' + resp.status);
@@ -8372,6 +8488,7 @@
             loadPageFromURL();
             applyFilters();
             initDuckDB();
+            requestAnimationFrame(() => scrollToBrowseTarget(window.location.hash.slice(1)));
             if (initialMeasureLink) {
                 const target = allMeasures.find(m => m.id === parseInt(initialMeasureLink[1]));
                 if (target) viewMeasure(target);
@@ -9300,23 +9417,26 @@
             });
         }
 
-        // Load page number from URL hash
+        // Keep the fragment available for section anchors and measure permalinks.
+        // Continue accepting older #page=2 links.
         function loadPageFromURL() {
-            const hash = window.location.hash;
-            const match = hash.match(/page=(\d+)/);
-            if (match) {
-                pagination.currentPage = Math.max(1, parseInt(match[1]));
-            }
+            const url = new URL(window.location.href);
+            const legacyPage = url.hash.match(/^#page=(\d+)$/);
+            const page = legacyPage ? legacyPage[1] : url.searchParams.get('page');
+            pagination.currentPage = Math.max(1, parseInt(page) || 1);
         }
 
-        // Update URL hash with current page
         function updateURL() {
-            const newHash = pagination.currentPage > 1 ? `#page=${pagination.currentPage}` : '';
-            if (window.location.hash !== newHash) {
-                history.replaceState(null, '', newHash || window.location.pathname);
-            }
+            const url = new URL(window.location.href);
+            if (currentView === 'list') url.searchParams.set('view', 'list');
+            else url.searchParams.delete('view');
+            if (pagination.currentPage > 1) url.searchParams.set('page', pagination.currentPage);
+            else url.searchParams.delete('page');
+            if (/^#page=\d+$/.test(url.hash)) url.hash = 'full-catalog';
+            if (url.href !== window.location.href) history.replaceState(null, '', url);
+            syncBrowseNavigation();
         }
-        
+
         // Setup event listeners
         function setupEventListeners() {
             // Search input with debounce
@@ -9328,13 +9448,31 @@
                     pagination.currentPage = 1; // Reset to first page on search
                     updateFilterCountBadges();
                     applyFilters();
+                    if (currentFilters.search) scrollToBrowseTarget('full-catalog');
                 }, 300);
             });
 
-            // Handle browser back/forward
-            window.addEventListener('hashchange', () => {
+            // Native fragment navigation and browser Back/Forward keep view and page.
+            window.addEventListener('popstate', () => {
+                const view = new URLSearchParams(window.location.search).get('view') === 'list' ? 'list' : 'grid';
+                if (currentView !== view) {
+                    currentView = view;
+                    pagination.itemsPerPage = view === 'list' ? 10 : 12;
+                }
                 loadPageFromURL();
                 updateResults();
+            });
+            window.addEventListener('hashchange', () => {
+                const measureLink = window.location.hash.match(/^#m=(\d+)$/);
+                if (measureLink) {
+                    const measure = allMeasures.find(m => m.id === Number(measureLink[1]));
+                    if (measure) viewMeasure(measure);
+                } else {
+                    if (document.getElementById('measureDetailModal').style.display === 'flex') closeMeasureDetail();
+                    loadPageFromURL();
+                    updateResults();
+                    scrollToBrowseTarget(window.location.hash.slice(1));
+                }
             });
         }
         
@@ -9679,25 +9817,10 @@
                 'measures found';
             document.getElementById('resultsDescription').textContent = desc;
             
-            // Determine if we should show hero section (only on "home" view with no filters)
-            const heroSection = document.getElementById('heroSection');
-            const isHomeView = !currentFilters.search &&
-                currentFilters.status.length === 0 &&
-                currentFilters.features.length === 0 &&
-                currentFilters.topics.length === 0 &&
-                currentFilters.selectedYears.length === 0 &&
-                (currentFilters.selectedDecades || []).length === 0 &&
-                (currentFilters.thresholds || []).length === 0 &&
-                (!currentFilters.regions || currentFilters.regions.length === 0) &&
-                (!currentFilters.measureTypes || currentFilters.measureTypes.length === 0) &&
-                !currentFilters.county &&
-                pagination.currentPage === 1;
-
-            if (isHomeView && (heroMeasures.length > 0 || localUpcomingMeasures.length > 0)) {
-                heroSection.style.display = 'block';
+            // Current-election sections remain separate from full-catalog filters.
+            if (!document.getElementById('heroSection').dataset.rendered) {
                 displayHero();
-            } else {
-                heroSection.style.display = 'none';
+                document.getElementById('heroSection').dataset.rendered = 'true';
             }
 
             // Display paginated results
@@ -11058,6 +11181,8 @@
             if (insights) insights.style.display = isInsights ? 'block' : 'none';
 
             const visibility = {
+                '#browse-navigation': isInsights || isExplore,
+                '#catalogHeader': isInsights || isExplore,
                 '#welcomeIntro': isInsights || isExplore,
                 '#statsRibbon': isInsights || isExplore,
                 '.filter-section-wrapper': isInsights || isExplore,
@@ -13282,7 +13407,7 @@
             
             const mIdx = allMeasures.indexOf(measure);
             return `
-                <div class="measure-list-item" data-midx="${mIdx}" onclick="viewMeasure(allMeasures[this.dataset.midx])">
+                <div class="measure-list-item" role="button" tabindex="0" data-midx="${mIdx}" onclick="viewMeasure(allMeasures[this.dataset.midx])" onkeydown="handleLocalCardKey(event, this)">
                     <div class="badge badge-${passedClass}">${passedText}</div>
                     <div>
                         <div style="font-weight: 500;">${escapeHtml(displayTitle)}</div>
@@ -13304,6 +13429,7 @@
         function viewMeasure(measure) {
             // Shareable permalink for this measure
             if (measure && measure.id != null) {
+                if (!window.location.hash.startsWith('#m=')) measureReturnURL = window.location.href;
                 history.replaceState(null, '', '#m=' + measure.id);
             }
             const modal = document.getElementById('measureDetailModal');
@@ -13732,8 +13858,9 @@
             modal.style.display = 'none';
             document.body.style.overflow = ''; // Restore scrolling
             if (window.location.hash.startsWith('#m=')) {
-                history.replaceState(null, '', window.location.pathname);
+                history.replaceState(null, '', measureReturnURL || window.location.pathname + window.location.search);
             }
+            measureReturnURL = null;
         }
 
         // Toggle summary truncation
@@ -13767,7 +13894,7 @@
             document.querySelectorAll('.view-card').forEach(card => card.classList.remove('active'));
             const viewCard = document.getElementById(view + 'ViewCard');
             if (viewCard) viewCard.classList.add('active');
-            displayResults();
+            updateResults();
         }
         
         // Clear all filters

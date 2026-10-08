@@ -14,6 +14,7 @@ from ..database.operations import Database
 from ..database.models import BallotMeasure
 from ..database.measure_documents import documents_for_website
 from ..database.statewide_ballot import attach_statewide_ballot_fields
+from .browse_navigation import NAV_HTML, CATALOG_HTML, STYLE as BROWSE_STYLE, SCRIPT as BROWSE_SCRIPT
 from .statewide_content import attach_statewide_content, load_package, render_future_ballots, STYLE as STATEWIDE_STYLE
 from ..config import WEBSITE_CONFIG, BASE_DIR
 from ..utils import TitleGenerator
@@ -725,6 +726,7 @@ class WebsiteGenerator:
     </style>
 </head>
 <body>
+    <a class="browse-skip-link" href="#main-content">Skip to main content</a>
     <!-- Header -->
     <header class="header">
         <div class="header-content">
@@ -798,26 +800,67 @@ class WebsiteGenerator:
     <!-- Main Content -->
     <div class="main-container-full">
         <!-- Main Content Area -->
-        <main class="content-full">
-            <!-- Welcome / first-time orientation -->
-            <section id="welcomeIntro" style="position: relative; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow-sm); padding: 1.5rem 3rem 1.4rem 1.75rem; margin-bottom: 1.25rem;">
-                <button onclick="localStorage.setItem('cbIntroDismissed','1'); document.getElementById('welcomeIntro').remove();" aria-label="Dismiss introduction" title="Dismiss (won't show again)" style="position: absolute; top: 0.6rem; right: 0.85rem; background: none; border: none; font-size: 1.35rem; line-height: 1; color: var(--text-tertiary); cursor: pointer;">&times;</button>
-                <h2 style="font-size: 1.4rem; font-weight: 800; color: var(--text-primary); margin-bottom: 0.4rem;">Every California ballot measure, in one place.</h2>
-                <p style="font-size: 0.95rem; line-height: 1.55; color: var(--text-secondary); max-width: 75ch; margin-bottom: 1rem;">
-                    CalBallot is a free explorer for California's statewide and local ballot measures, from {stats.get('year_min', 1911)} to the ones on the next ballot. Read official ballot information, historical results and sourced explanations where available.
-                </p>
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(19rem, 100%), 1fr)); gap: 0.55rem 2.5rem; font-size: 0.88rem; color: var(--text-secondary); max-width: 48rem;">
-                    <span><strong style="color: var(--primary);">Search</strong> &mdash; look up any measure by title, topic, or year</span>
-                    <span><strong style="color: var(--primary);">Grid / List</strong> &mdash; browse and filter the full catalog</span>
-                    <span><strong style="color: var(--primary);">Insights</strong> &mdash; trends and analysis from the data</span>
-                    <span><strong style="color: var(--primary);">Explore</strong> &mdash; pass rates by topic and jurisdiction</span>
-                    <span><strong style="color: var(--primary);">Ask AI</strong> &mdash; query the data in plain English (bring your own key)</span>
+        <main class="content-full" id="main-content" tabindex="-1">
+            {NAV_HTML}
+            <!-- Upcoming 2026 Ballot Measures Section -->
+            <div class="hero-section" id="heroSection">
+                <div class="hero-header">
+                    <p class="hero-title">November 3, 2026 election</p>
                 </div>
-                <p style="margin: 0.9rem 0 0 0; font-size: 0.85rem;"><a href="#" onclick="openAboutModal(); return false;" style="color: var(--primary); font-weight: 600; text-decoration: none;">How this works &mdash; data sources &amp; methodology &rarr;</a></p>
-                <p style="margin: 0.45rem 0 0 0; font-size: 0.85rem;"><a href="/use-calballot/" style="color: var(--primary); font-weight: 600; text-decoration: none;">Using CalBallot for reporting, research, or civic work? See how CalBallot can help &rarr;</a></p>
-            </section>
-            <script>if (localStorage.getItem('cbIntroDismissed')) document.getElementById('welcomeIntro').remove();</script>
-
+                <div class="upcoming-statewide-heading">
+                    <div>
+                        <span class="upcoming-band-eyebrow">California statewide</span>
+                        <h2 id="statewide-measures" class="browse-anchor" tabindex="-1">Statewide measures</h2>
+                        <p id="statewideSourceNote" class="statewide-source-note"></p>
+                    </div>
+                    <span class="upcoming-band-count" id="statewideUpcomingCount"></span>
+                </div>
+                <div class="hero-carousel">
+                    <button class="carousel-btn carousel-prev" onclick="heroCarouselPrev()" aria-label="Previous">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="15 18 9 12 15 6"></polyline>
+                        </svg>
+                    </button>
+                    <div class="carousel-track-container">
+                        <div class="carousel-track" id="heroGrid">
+                            <!-- Will be populated by JavaScript -->
+                        </div>
+                    </div>
+                    <button class="carousel-btn carousel-next" onclick="heroCarouselNext()" aria-label="Next">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="9 18 15 12 9 6"></polyline>
+                        </svg>
+                    </button>
+                </div>
+                <div class="carousel-dots" id="heroCarouselDots">
+                    <!-- Will be populated by JavaScript -->
+                </div>
+                {future_statewide_html}
+                <section class="upcoming-local-band" aria-labelledby="local-measures">
+                    <div class="upcoming-local-band-header">
+                        <div>
+                            <span class="upcoming-band-eyebrow">Official county records</span>
+                            <div class="browse-section-title">
+                                <h2 id="local-measures" class="browse-anchor" tabindex="-1">Local measures</h2>
+                                <a class="browse-return" href="#browse-navigation" data-browse-jump="browse-navigation">Back to jump links <span aria-hidden="true">&uarr;</span></a>
+                            </div>
+                        </div>
+                        <div class="local-band-controls">
+                            <label for="localCountySelect">County</label>
+                            <select id="localCountySelect" class="local-county-select"
+                                    onchange="selectLocalCounty(this.value)" aria-controls="localMeasuresContent">
+                                <option>Loading county coverage&hellip;</option>
+                            </select>
+                            <span class="upcoming-band-count" id="localUpcomingCount"></span>
+                        </div>
+                    </div>
+                    <p class="upcoming-local-scope" id="localMeasuresScope"></p>
+                    <div id="localMeasuresContent">
+                        <!-- Will be populated by JavaScript -->
+                    </div>
+                </section>
+            </div>
+            {CATALOG_HTML}
             <!-- View Mode Switcher -->
             <div class="view-switcher">
                 <button class="view-card active" id="gridViewCard" onclick="setView('grid')">
@@ -1368,67 +1411,25 @@ class WebsiteGenerator:
                 </div>
             </div>
 
-            <!-- Upcoming 2026 Ballot Measures Section -->
-            <div class="hero-section" id="heroSection">
-                <div class="hero-header">
-                    <h2 class="hero-title">🗳️ Upcoming 2026 Ballot Measures</h2>
-                    <p class="hero-description">
-                        Get informed about California's upcoming ballot measures before you vote.
-                        <span style="display: block; margin-top: 0.5rem; font-size: 0.85rem; color: var(--text-tertiary);">
-                            📋 Open a measure for its description and official sources.
-                        </span>
-                    </p>
+            <!-- Welcome / first-time orientation -->
+            <section id="welcomeIntro" style="position: relative; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow-sm); padding: 1.5rem 3rem 1.4rem 1.75rem; margin-bottom: 1.25rem;">
+                <button onclick="localStorage.setItem('cbIntroDismissed','1'); document.getElementById('welcomeIntro').remove();" aria-label="Dismiss introduction" title="Dismiss (won't show again)" style="position: absolute; top: 0.6rem; right: 0.85rem; background: none; border: none; font-size: 1.35rem; line-height: 1; color: var(--text-tertiary); cursor: pointer;">&times;</button>
+                <h2 style="font-size: 1.4rem; font-weight: 800; color: var(--text-primary); margin-bottom: 0.4rem;">Every California ballot measure, in one place.</h2>
+                <p style="font-size: 0.95rem; line-height: 1.55; color: var(--text-secondary); max-width: 75ch; margin-bottom: 1rem;">
+                    CalBallot is a free explorer for California's statewide and local ballot measures, from {stats.get('year_min', 1911)} to the ones on the next ballot. Read official ballot information, historical results and sourced explanations where available.
+                </p>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(19rem, 100%), 1fr)); gap: 0.55rem 2.5rem; font-size: 0.88rem; color: var(--text-secondary); max-width: 48rem;">
+                    <span><strong style="color: var(--primary);">Search</strong> &mdash; look up any measure by title, topic, or year</span>
+                    <span><strong style="color: var(--primary);">Grid / List</strong> &mdash; browse and filter the full catalog</span>
+                    <span><strong style="color: var(--primary);">Insights</strong> &mdash; trends and analysis from the data</span>
+                    <span><strong style="color: var(--primary);">Explore</strong> &mdash; pass rates by topic and jurisdiction</span>
+                    <span><strong style="color: var(--primary);">Ask AI</strong> &mdash; query the data in plain English (bring your own key)</span>
                 </div>
-                <div class="upcoming-statewide-heading">
-                    <div>
-                        <span class="upcoming-band-eyebrow">California statewide</span>
-                        <h3>Statewide measures</h3>
-                        <p id="statewideSourceNote" class="statewide-source-note"></p>
-                    </div>
-                    <span class="upcoming-band-count" id="statewideUpcomingCount"></span>
-                </div>
-                <div class="hero-carousel">
-                    <button class="carousel-btn carousel-prev" onclick="heroCarouselPrev()" aria-label="Previous">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <polyline points="15 18 9 12 15 6"></polyline>
-                        </svg>
-                    </button>
-                    <div class="carousel-track-container">
-                        <div class="carousel-track" id="heroGrid">
-                            <!-- Will be populated by JavaScript -->
-                        </div>
-                    </div>
-                    <button class="carousel-btn carousel-next" onclick="heroCarouselNext()" aria-label="Next">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <polyline points="9 18 15 12 9 6"></polyline>
-                        </svg>
-                    </button>
-                </div>
-                <div class="carousel-dots" id="heroCarouselDots">
-                    <!-- Will be populated by JavaScript -->
-                </div>
-                {future_statewide_html}
-                <section class="upcoming-local-band" aria-labelledby="localMeasuresTitle">
-                    <div class="upcoming-local-band-header">
-                        <div>
-                            <span class="upcoming-band-eyebrow">Official county records</span>
-                            <h3 id="localMeasuresTitle">Local measures</h3>
-                        </div>
-                        <div class="local-band-controls">
-                            <label for="localCountySelect">County</label>
-                            <select id="localCountySelect" class="local-county-select"
-                                    onchange="selectLocalCounty(this.value)" aria-controls="localMeasuresContent">
-                                <option>Loading county coverage&hellip;</option>
-                            </select>
-                            <span class="upcoming-band-count" id="localUpcomingCount"></span>
-                        </div>
-                    </div>
-                    <p class="upcoming-local-scope" id="localMeasuresScope"></p>
-                    <div id="localMeasuresContent">
-                        <!-- Will be populated by JavaScript -->
-                    </div>
-                </section>
-            </div>
+                <p style="margin: 0.9rem 0 0 0; font-size: 0.85rem;"><a href="#" onclick="openAboutModal(); return false;" style="color: var(--primary); font-weight: 600; text-decoration: none;">How this works &mdash; data sources &amp; methodology &rarr;</a></p>
+                <p style="margin: 0.45rem 0 0 0; font-size: 0.85rem;"><a href="/use-calballot/" style="color: var(--primary); font-weight: 600; text-decoration: none;">Using CalBallot for reporting, research, or civic work? See how CalBallot can help &rarr;</a></p>
+            </section>
+            <script>if (localStorage.getItem('cbIntroDismissed')) document.getElementById('welcomeIntro').remove();</script>
+
         </main>
     </div>
 
@@ -9191,13 +9192,15 @@ class WebsiteGenerator:
                 padding: 0.6rem 0.7rem;
             }
         }
-        """
+        """ + BROWSE_STYLE
 
     def _get_javascript(self, measures_json: str, topics_json: str,
                        recommendations_json: str, stats: Dict, quiz_json: str = "[]",
                        finance_json: str = "{}", insights_json: str = "{}") -> str:
         """Get JavaScript code for the website"""
         return f"""
+        {BROWSE_SCRIPT}
+
         // Data
         let allMeasures = [];  // populated at startup from measures-data.json
         const topics = {topics_json};
@@ -9761,7 +9764,7 @@ class WebsiteGenerator:
         }};
 
         // State
-        let currentView = 'grid';
+        let currentView = new URLSearchParams(window.location.search).get('view') === 'list' ? 'list' : 'grid';
         let matrixSortCol = null;
         let matrixSortDir = 'desc';
         let currentFilters = {{
@@ -9790,7 +9793,7 @@ class WebsiteGenerator:
         // Pagination state
         let pagination = {{
             currentPage: 1,
-            itemsPerPage: 12,
+            itemsPerPage: currentView === 'list' ? 10 : 12,
             totalPages: 0
         }};
 
@@ -9801,8 +9804,9 @@ class WebsiteGenerator:
 
         // Initialize
         document.addEventListener('DOMContentLoaded', async () => {{
-            // Capture a #m=<id> deep link before init (applyFilters/updateURL rewrites the hash)
+            // Preserve measure permalinks alongside section navigation.
             const initialMeasureLink = window.location.hash.match(/^#m=(\d+)/);
+            initializeBrowseNavigation();
             try {{
                 const resp = await fetch('measures-data.json?v={hashlib.sha256(measures_json.encode("utf-8")).hexdigest()[:20]}', {{cache: 'no-cache'}});
                 if (!resp.ok) throw new Error('HTTP ' + resp.status);
@@ -9823,6 +9827,7 @@ class WebsiteGenerator:
             loadPageFromURL();
             applyFilters();
             initDuckDB();
+            requestAnimationFrame(() => scrollToBrowseTarget(window.location.hash.slice(1)));
             if (initialMeasureLink) {{
                 const target = allMeasures.find(m => m.id === parseInt(initialMeasureLink[1]));
                 if (target) viewMeasure(target);
@@ -10751,23 +10756,26 @@ class WebsiteGenerator:
             }});
         }}
 
-        // Load page number from URL hash
+        // Keep the fragment available for section anchors and measure permalinks.
+        // Continue accepting older #page=2 links.
         function loadPageFromURL() {{
-            const hash = window.location.hash;
-            const match = hash.match(/page=(\d+)/);
-            if (match) {{
-                pagination.currentPage = Math.max(1, parseInt(match[1]));
-            }}
+            const url = new URL(window.location.href);
+            const legacyPage = url.hash.match(/^#page=(\d+)$/);
+            const page = legacyPage ? legacyPage[1] : url.searchParams.get('page');
+            pagination.currentPage = Math.max(1, parseInt(page) || 1);
         }}
 
-        // Update URL hash with current page
         function updateURL() {{
-            const newHash = pagination.currentPage > 1 ? `#page=${{pagination.currentPage}}` : '';
-            if (window.location.hash !== newHash) {{
-                history.replaceState(null, '', newHash || window.location.pathname);
-            }}
+            const url = new URL(window.location.href);
+            if (currentView === 'list') url.searchParams.set('view', 'list');
+            else url.searchParams.delete('view');
+            if (pagination.currentPage > 1) url.searchParams.set('page', pagination.currentPage);
+            else url.searchParams.delete('page');
+            if (/^#page=\d+$/.test(url.hash)) url.hash = 'full-catalog';
+            if (url.href !== window.location.href) history.replaceState(null, '', url);
+            syncBrowseNavigation();
         }}
-        
+
         // Setup event listeners
         function setupEventListeners() {{
             // Search input with debounce
@@ -10779,13 +10787,31 @@ class WebsiteGenerator:
                     pagination.currentPage = 1; // Reset to first page on search
                     updateFilterCountBadges();
                     applyFilters();
+                    if (currentFilters.search) scrollToBrowseTarget('full-catalog');
                 }}, 300);
             }});
 
-            // Handle browser back/forward
-            window.addEventListener('hashchange', () => {{
+            // Native fragment navigation and browser Back/Forward keep view and page.
+            window.addEventListener('popstate', () => {{
+                const view = new URLSearchParams(window.location.search).get('view') === 'list' ? 'list' : 'grid';
+                if (currentView !== view) {{
+                    currentView = view;
+                    pagination.itemsPerPage = view === 'list' ? 10 : 12;
+                }}
                 loadPageFromURL();
                 updateResults();
+            }});
+            window.addEventListener('hashchange', () => {{
+                const measureLink = window.location.hash.match(/^#m=(\d+)$/);
+                if (measureLink) {{
+                    const measure = allMeasures.find(m => m.id === Number(measureLink[1]));
+                    if (measure) viewMeasure(measure);
+                }} else {{
+                    if (document.getElementById('measureDetailModal').style.display === 'flex') closeMeasureDetail();
+                    loadPageFromURL();
+                    updateResults();
+                    scrollToBrowseTarget(window.location.hash.slice(1));
+                }}
             }});
         }}
         
@@ -11130,25 +11156,10 @@ class WebsiteGenerator:
                 'measures found';
             document.getElementById('resultsDescription').textContent = desc;
             
-            // Determine if we should show hero section (only on "home" view with no filters)
-            const heroSection = document.getElementById('heroSection');
-            const isHomeView = !currentFilters.search &&
-                currentFilters.status.length === 0 &&
-                currentFilters.features.length === 0 &&
-                currentFilters.topics.length === 0 &&
-                currentFilters.selectedYears.length === 0 &&
-                (currentFilters.selectedDecades || []).length === 0 &&
-                (currentFilters.thresholds || []).length === 0 &&
-                (!currentFilters.regions || currentFilters.regions.length === 0) &&
-                (!currentFilters.measureTypes || currentFilters.measureTypes.length === 0) &&
-                !currentFilters.county &&
-                pagination.currentPage === 1;
-
-            if (isHomeView && (heroMeasures.length > 0 || localUpcomingMeasures.length > 0)) {{
-                heroSection.style.display = 'block';
+            // Current-election sections remain separate from full-catalog filters.
+            if (!document.getElementById('heroSection').dataset.rendered) {{
                 displayHero();
-            }} else {{
-                heroSection.style.display = 'none';
+                document.getElementById('heroSection').dataset.rendered = 'true';
             }}
 
             // Display paginated results
@@ -12509,6 +12520,8 @@ class WebsiteGenerator:
             if (insights) insights.style.display = isInsights ? 'block' : 'none';
 
             const visibility = {{
+                '#browse-navigation': isInsights || isExplore,
+                '#catalogHeader': isInsights || isExplore,
                 '#welcomeIntro': isInsights || isExplore,
                 '#statsRibbon': isInsights || isExplore,
                 '.filter-section-wrapper': isInsights || isExplore,
@@ -14733,7 +14746,7 @@ class WebsiteGenerator:
             
             const mIdx = allMeasures.indexOf(measure);
             return `
-                <div class="measure-list-item" data-midx="${{mIdx}}" onclick="viewMeasure(allMeasures[this.dataset.midx])">
+                <div class="measure-list-item" role="button" tabindex="0" data-midx="${{mIdx}}" onclick="viewMeasure(allMeasures[this.dataset.midx])" onkeydown="handleLocalCardKey(event, this)">
                     <div class="badge badge-${{passedClass}}">${{passedText}}</div>
                     <div>
                         <div style="font-weight: 500;">${{escapeHtml(displayTitle)}}</div>
@@ -14755,6 +14768,7 @@ class WebsiteGenerator:
         function viewMeasure(measure) {{
             // Shareable permalink for this measure
             if (measure && measure.id != null) {{
+                if (!window.location.hash.startsWith('#m=')) measureReturnURL = window.location.href;
                 history.replaceState(null, '', '#m=' + measure.id);
             }}
             const modal = document.getElementById('measureDetailModal');
@@ -15183,8 +15197,9 @@ class WebsiteGenerator:
             modal.style.display = 'none';
             document.body.style.overflow = ''; // Restore scrolling
             if (window.location.hash.startsWith('#m=')) {{
-                history.replaceState(null, '', window.location.pathname);
+                history.replaceState(null, '', measureReturnURL || window.location.pathname + window.location.search);
             }}
+            measureReturnURL = null;
         }}
 
         // Toggle summary truncation
@@ -15218,7 +15233,7 @@ class WebsiteGenerator:
             document.querySelectorAll('.view-card').forEach(card => card.classList.remove('active'));
             const viewCard = document.getElementById(view + 'ViewCard');
             if (viewCard) viewCard.classList.add('active');
-            displayResults();
+            updateResults();
         }}
         
         // Clear all filters

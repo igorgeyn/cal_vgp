@@ -1,0 +1,162 @@
+{
+  "baseline_commit": "67d6bbc371dad28b624f47fb0bf3f73d2d766371",
+  "html_sha256": "5787ddf03ac7af2d3fa888f79f5059f8b29b686c821abf30a8a1ec50bbc0af45",
+  "html_normalized_sha256": "77a6be023bfe3c11a0475ba6c3cf58b4fd6df1faf0050ef43dfadffd06f5a347",
+  "json_sha256": "8ea848c910ce625a12388b7b3ee39081c1635c57814bb34717b9fd97960186f0",
+  "record_count": 12372,
+  "embedded_payloads_unchanged": {
+    "topics": "ff635cdfca8e2bbbd5415c591b338b6554f7912128b6e62d16ee193b6bd03294",
+    "recommendations": "2231853fa6dfe2a3546e39708258651cd0374fae0b4dca785f59da1f132b40ee",
+    "quizQuestions": "7639c273d1877af192af69b53701bd5fff6fe7e1fccafc0d6df4ba6836b0d3f2",
+    "financeData": "a278bdca2220f7fae66f52203cad80dd6f8002e6c090578f793fda14106df057",
+    "insightsData": "fd7e9e0ce997763072cd4ec22e69c4298a83a35f607033337e4bfe70f3231697"
+  },
+  "unit_tests": {
+    "passed": 83,
+    "duration_seconds": 80.75
+  },
+  "navigation_five_widths": [
+    {
+      "width": 1440,
+      "grid_and_list": "PASS",
+      "keyboard_focus_and_offset": "PASS",
+      "filters_county_pagination_history_reload": "PASS",
+      "legacy_and_measure_links": "PASS",
+      "page_errors": []
+    },
+    {
+      "width": 768,
+      "grid_and_list": "PASS",
+      "keyboard_focus_and_offset": "PASS",
+      "filters_county_pagination_history_reload": "PASS",
+      "legacy_and_measure_links": "PASS",
+      "page_errors": []
+    },
+    {
+      "width": 640,
+      "grid_and_list": "PASS",
+      "keyboard_focus_and_offset": "PASS",
+      "filters_county_pagination_history_reload": "PASS",
+      "legacy_and_measure_links": "PASS",
+      "page_errors": []
+    },
+    {
+      "width": 390,
+      "grid_and_list": "PASS",
+      "keyboard_focus_and_offset": "PASS",
+      "filters_county_pagination_history_reload": "PASS",
+      "legacy_and_measure_links": "PASS",
+      "page_errors": []
+    },
+    {
+      "width": 320,
+      "grid_and_list": "PASS",
+      "keyboard_focus_and_offset": "PASS",
+      "filters_county_pagination_history_reload": "PASS",
+      "legacy_and_measure_links": "PASS",
+      "page_errors": []
+    }
+  ],
+  "navigation_final_desktop_phone": [
+    {
+      "width": 1440,
+      "grid_and_list": "PASS",
+      "keyboard_focus_and_offset": "PASS",
+      "filters_county_pagination_history_reload": "PASS",
+      "legacy_and_measure_links": "PASS",
+      "page_errors": []
+    },
+    {
+      "width": 320,
+      "grid_and_list": "PASS",
+      "keyboard_focus_and_offset": "PASS",
+      "filters_county_pagination_history_reload": "PASS",
+      "legacy_and_measure_links": "PASS",
+      "page_errors": []
+    }
+  ],
+  "content_regression": {
+    "html_sha256": "bc19aa82d898ff101f3c83d693dc8f97bf12e775445fd4d26e5ffef8695d8864",
+    "cases": [
+      {
+        "width": 1440,
+        "checked_ids": [
+          12467,
+          12468,
+          10960,
+          10956,
+          2,
+          12469,
+          12470,
+          12471,
+          12472,
+          12473,
+          12474,
+          12475,
+          12476,
+          12477
+        ],
+        "no_page_errors": true,
+        "versioned_data": true,
+        "no_horizontal_overflow": true
+      },
+      {
+        "width": 390,
+        "checked_ids": [
+          12467,
+          12468,
+          10960,
+          10956,
+          2,
+          12469,
+          12470,
+          12471,
+          12472,
+          12473,
+          12474,
+          12475,
+          12476,
+          12477
+        ],
+        "no_page_errors": true,
+        "versioned_data": true,
+        "no_horizontal_overflow": true
+      },
+      {
+        "width": 320,
+        "checked_ids": [
+          12467,
+          12468,
+          10960,
+          10956,
+          2,
+          12469,
+          12470,
+          12471,
+          12472,
+          12473,
+          12474,
+          12475,
+          12476,
+          12477
+        ],
+        "no_page_errors": true,
+        "versioned_data": true,
+        "no_horizontal_overflow": true
+      }
+    ]
+  },
+  "notes": [
+    "Final HTML differs from final browser-tested HTML only by the standard bundle writer restoring original CRLF line endings.",
+    "Content regression precedes pagination wrapping and the final About-button/early-init fixes; final navigation checks exercise current modal links.",
+    "Only index.html changes among published assets. Production databases and all prepared records are unchanged."
+  ],
+  "review": {
+    "verdict": "READY WITH CONDITIONS",
+    "conditions_resolved_by_codex": true,
+    "raw_result_sha256": "90dfdae7c2477ba51b6b225d3829237b714ec91cb8d243621ae146aa10ee6050",
+    "dispositions": "browse_navigation_review_20261008.md"
+  },
+  "deployment": "See release PR description for post-deployment served-byte receipt.",
+  "release_pr": "https://github.com/igorgeyn/cal_vgp/pull/6"
+}

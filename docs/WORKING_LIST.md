@@ -1,5 +1,15 @@
 # CalBallot Working List
 
+> **Grid/List navigation — October 8:** Igor requested statewide measures first
+> and Jump to links for statewide, local and the full grid/list. The
+> [research and implementation note](plans/browse_navigation_20261008.md) records
+> the shared navigation, accessible targets, preserved URLs, and verification.
+> 83 focused tests and desktop/mobile navigation checks pass. Only the main
+> public HTML changes; measure data, research, finance and individual pages are
+> preserved. Claude returned READY WITH CONDITIONS; both conditions are resolved
+> in the final candidate. [PR #6](https://github.com/igorgeyn/cal_vgp/pull/6)
+> carries the release status and live verification receipt.
+
 > **Statewide reader update — October 8:** Igor requested complete current
 > statewide components. The [content handoff](plans/statewide_content_20261008.md)
 > records the 14 source-backed guides, current campaign finance, statewide-only
