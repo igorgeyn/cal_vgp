@@ -1,11 +1,16 @@
 # Release and county-content work — October 8, 2026
 
-Status: production database and local public bundle promoted and verified.
-**GitHub Pages publication/served checks pending at this checkpoint.**
+Status: **published and verified** at https://cal-vgp.igorgeyn.com/.
+Content release: `39116027510773e988b33b307bf9a44dde599654`.
+GitHub Pages run [37844458073](https://github.com/igorgeyn/cal_vgp/actions/runs/37844458073)
+deployed successfully on October 8 at 14:07:36 Pacific (21:07:36 UTC).
+All 22 checked served artifacts match the reviewed bytes, and live desktop/mobile
+checks pass for the 14 statewide cards, withdrawn ACA 13 route, Measure Z
+correction, and representative Finance. No registrar capture was triggered.
 The October 3 candidate is superseded by the corrected candidate described here.
-The user's October 8 instruction authorizes proceeding with review/publication;
-the earlier request for Claude review is being fulfilled through the installed
-CLI with only Read, Grep and Glob tools. Codex will assess the findings itself.
+The user's October 8 instruction authorized proceeding with review/publication.
+Both requested Claude reviews completed through the installed CLI with only
+Read, Grep and Glob tools. Codex assessed the findings and performed the checks.
 
 ## Reader-facing issue found during source inspection
 
@@ -95,6 +100,19 @@ Scratch root: `scraper/data/statewide_recon/20261008_release/`.
 - `tests-final.xml`: final focused suite; earlier failed fixture attempts remain
   separate. A test SQL placeholder count was corrected before this final run.
 - `claude-request.md`, `claude-result.json`: independent review request/result.
+- `production-promotion.json`, `production-preservation.json`, `public-promotion.json`:
+  actual successful cutover and checks of the production paths.
+- `staged-verification.json`: the committed public inventory and 28 machine-read
+  fixtures match their reviewed bytes. `.gitattributes` prevents Git newline
+  conversion from invalidating source evidence or changing served artifacts.
+- `deployment-verification.json`, `live/`: 22 actual served hashes and both
+  browser viewports. External browser requests were blocked; the live official
+  Measure Z PDF was verified separately.
+
+The normal release push was accepted using the account's existing administrator
+exception to the pull-request rule; no repository protection setting was changed.
+The release-receipt documentation update uses a pull request. The rule requires
+zero approving reviews and does not enforce protection for administrators.
 
 The original private R2 recovery archive remains immutable and valid for the
 October 3 baseline/candidate. The October 8 update is separately sealed, restored,
@@ -139,3 +157,11 @@ then SMC with visual transcription/OCR where required. Verify the question again
 the rendered source page, and source each explanation to official text or a
 verified impartial analysis. Keep advocacy separate. No content has been loaded
 or published from this preparation packet, and no additional county is enabled.
+`county-content/first-three-drafts.md` and its source-pinned JSON companion contain
+the first drafts for SB Measures Y, Z and A. Questions were checked against the
+rendered source pages; explanations remain drafts for the next content batch.
+
+Igor accepted the October 8 order: this release, richer content for the existing
+49 county records, Alameda, then a fresh SF/Contra Costa source assessment.
+Keep the missed refresh visible and continue the remaining operations/election/
+results work; neither more county names nor a release receipt completes it.

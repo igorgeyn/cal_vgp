@@ -1,5 +1,14 @@
 # Open threads
 
+> **October 8 published checkpoint:** release `3911602` is live and verified;
+> see [the release receipt](release_progress_20261008.md). The statewide slate,
+> complete detail pages and corrected Measure Z document label are published.
+> Recovery update, actual production preservation and live browser checks pass.
+> Next accepted work is sourced content for the existing 49 county records,
+> then Alameda, then a fresh SF/Contra Costa assessment. Operations/election/
+> results work remains. October 5 never acquired a runner; there is no newer
+> county capture after September 28. Older status sections below are historical.
+
 > **October 3 sequence:** Part 1 and the correction batch are verified on a
 > fresh isolated candidate; see the [current handoff](statewide_corrections_20261003.md)
 > and [six-part plan](six_part_delivery_plan_20260913.md). Next: independent review,
