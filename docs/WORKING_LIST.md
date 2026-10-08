@@ -1,6 +1,6 @@
 # CalBallot Working List
 
-> **County reader content — October 8:** the [county content handoff](plans/county_content_20261008.md)
+> **Published county reader content — October 8:** the [county content handoff](plans/county_content_20261008.md)
 > and [49-record ledger](plans/county_content_ledger_20261008.md) supersede the
 > older document-only status below. All 20 SB + 29 SMC questions/explanations
 > are source-verified, with approval requirements, page citations, 40 linked
@@ -11,7 +11,8 @@
 > Grid/List at five widths, preserved statewide components and 12,323 unchanged
 > unrelated detail pages. October 8 fresh captures match September 28 content;
 > no production database changes. The handoff/evidence receipt records recovery
-> and publication separately. Next is R2 routine refresh, then status/results
+> and publication separately. Release `61309719` / [PR #7](https://github.com/igorgeyn/cal_vgp/pull/7)
+> is live: all 56 served hashes and both live browser widths pass. Next is R2 routine refresh, then status/results
 > readiness before Alameda. Statewide card aesthetics remain deferred.
 
 > **Grid/List navigation — October 8:** Igor requested statewide measures first

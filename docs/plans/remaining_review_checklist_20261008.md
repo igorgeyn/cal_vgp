@@ -2,7 +2,7 @@
 
 **Updated:** October 8, 2026.  
 **Companion:** [remaining work and review plan](remaining_review_plan_20261008.md).  
-**Status:** R1's 49-record content implementation, source reviews and local integration checks are complete; publication is tracked separately. R2-R6 remain open.
+**Status:** R1 is published and served verified for all 49 records. Igor's optional product read remains available. R2-R6 remain open.
 
 Use this file to track execution; use the plan for rationale, detailed acceptance
 criteria and the reusable Claude prompt. R1-R6 are review batches, not the original
@@ -18,12 +18,13 @@ authorization when executing; these boxes do not create new approval requirement
 
 ## Start here
 
-1. **R1.01-R1.05:** prepare the mixed five-record content pilot and local preview.
-2. **R2.01:** check the missed-refresh follow-up while the pilot is being prepared.
-3. **R1.06-R1.07:** obtain Claude's pilot critique, assess it, and have Igor read the examples.
-4. **R1.08-R1.12:** work through the remaining county records in reviewed waves.
-5. Start **R4.01** source inventory early; complete R2-R5's essential readiness
-   work before enabling Alameda. R6 remains conditional.
+1. **R2.02-R2.11:** make refresh comparison, acceptance and publication routine; R2.01's fresh capture follow-up is complete.
+2. **R3:** complete shared calendar/status and reader-task checks.
+3. Start **R4.01** source inventory early, then implement the supported results fallback.
+4. **R5:** complete the integrated operating rehearsal.
+5. **R6:** enable Alameda only after essential readiness gates; statewide card aesthetics remain deferred.
+
+R1's source reviews, implementation and publication are complete. **R1.07** remains an optional Igor read of the live examples, not an outstanding engineering release blocker.
 
 ## Batch tracker
 
@@ -31,7 +32,7 @@ Update this table at each handoff. Dates are proposed targets, not evidence of c
 
 | Batch | Current state | Target | Handoff / verdict / release evidence |
 |---|---|---|---|
-| R1 county content | All 49 questions/explanations verified; 141 tests and browser checks pass; release receipt separate | Content ready Oct 8 | [Handoff](county_content_20261008.md) |
+| R1 county content | Published all 49; 141 tests, private recovery and 56 served hashes pass | Content ready Oct 8 | [Handoff](county_content_20261008.md) |
 | R2 refresh | Oct 8 run succeeded; source comparison unchanged; routine release automation still open | Oct 14 | [Capture and rehearsal evidence](county_content_20261008.md) |
 | R3 status and reader experience | Pending | Oct 18 | Pending |
 | R4 results | Design exists; source readiness and implementation review pending | Oct 22 | Pending |
@@ -67,7 +68,7 @@ is reviewed and published, with honest fallbacks for unresolved sources.
 - [x] **R1.09** Complete SB in waves of roughly 5-10 records, using the per-wave review gate below. Verify every proposed question and explanation against its evidence.
 - [x] **R1.10** Complete SMC in waves grouped by source difficulty. Resolve packet page ownership, visually check OCR/transcription, and record damaged or missing-source exceptions.
 - [x] **R1.11** Perform integration checks for long/missing content, source attribution, shared PDFs, search/previews and all detail surfaces; record second checks for changed amounts/qualifications and difficult transcriptions.
-- [ ] **R1.12** Release accepted waves under the applicable authorization, preserve IDs/documents/Finance/history, and record separate totals for verified questions, verified explanations, unresolved sources and published content. Close R1 through the common gate.
+- [x] **R1.12** Release accepted waves under the applicable authorization, preserve IDs/documents/Finance/history, and record separate totals for verified questions, verified explanations, unresolved sources and published content. Close R1 through the common gate.
 
 **Evidence to attach:** ledger, pilot and wave packets, source comparisons,
 Claude reviews/dispositions, persistence checks, reader previews and release receipts.

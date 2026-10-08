@@ -2,7 +2,7 @@
   "schema_version": 1,
   "date": "2026-10-08",
   "baseline_commit": "7a4bccb9ebd7273c78942f8d47e993cf47a309dd",
-  "status": "reviewed_release_candidate; deployment receipt recorded separately",
+  "status": "published_and_served_verified",
   "counts": {
     "records": 12372,
     "reviewed_questions": 49,
@@ -277,10 +277,6 @@
     "reviewed_questions": 49,
     "reviewed_explanations": 49,
     "unresolved_content_sources": 0,
-    "open_release_checks": [
-      "private recovery restore/read-back",
-      "PR promotion/deployment/served verification"
-    ],
     "later_work": [
       "R2 routine refresh",
       "R3 date transitions",
@@ -288,6 +284,10 @@
       "R5 operating rehearsal",
       "conditional Alameda",
       "local finance ingestion"
+    ],
+    "checks_pending_at_candidate_review": [
+      "private recovery restore/read-back",
+      "PR promotion/deployment/served verification"
     ]
   },
   "recovery": {
@@ -331,13 +331,23 @@
           "sha256": "2ac62ee107f34c74aa9d56992e8c1b67323a962154dd7df553ebb18b9873deb4",
           "read_back_verified": true
         },
+        "recovery/20261008-county-content/838170fde15a9379fa6eabd451cf447d5af4ed423dc3361bd8e6a5286ffe7ade/verification/deployment-verification.json": {
+          "bytes": 11530,
+          "sha256": "0fde3d55507ea77b2cd7f5a50836389cacfc3218cd2e4a9edee6d919e21e1512",
+          "read_back_verified": true
+        },
+        "recovery/20261008-county-content/838170fde15a9379fa6eabd451cf447d5af4ed423dc3361bd8e6a5286ffe7ade/verification/public-promotion.json": {
+          "bytes": 1746,
+          "sha256": "bfdbdc773d2d1cd5b029f349a0fa43cb2c0ac0ec730a95eab8b1d8d8eea16aac",
+          "read_back_verified": true
+        },
         "recovery/20261008-county-content/838170fde15a9379fa6eabd451cf447d5af4ed423dc3361bd8e6a5286ffe7ade/verification/review-disposition.json": {
           "bytes": 1033,
           "sha256": "e0eff409cc6d8c0a1d66aebe9c4ad2aa82d2bd16022115678e7a5f4fe1b166d7",
           "read_back_verified": true
         }
       },
-      "verified_at": "2026-10-08T23:33:02.853182+00:00",
+      "verified_at": "2026-10-08T23:37:30.897079+00:00",
       "public_access_changed": false
     }
   },
@@ -406,5 +416,413 @@
     "public_files_checked": 12382,
     "mirrors_identical": true,
     "databases_unchanged": true
-  }
+  },
+  "deployment": {
+    "commit": "61309719af2669954bf7b94d26ddf68f6244a10f",
+    "checked_at": "2026-10-08T23:36:43.353308+00:00",
+    "served": {
+      "index.html": {
+        "sha256": "b0257999de740c6ed15990d0c44915b0e75de5bd1137e7ef6fb34794622c2cc8",
+        "bytes": 6068392,
+        "status": 200
+      },
+      "measures-data.json": {
+        "sha256": "1921e5d463a450b5d0d017b673be0a86e47eb8a89fe82864890c2cbc5b3a72d1",
+        "bytes": 36064624,
+        "status": 200
+      },
+      "measures/12418.html": {
+        "sha256": "062e056c23ab88b432fc3512be6f734fd03bda7fb1258e9489199638bf07f811",
+        "bytes": 11833,
+        "status": 200
+      },
+      "measures/12419.html": {
+        "sha256": "f22b35e02e8ddf0c30d0c9cc7f241fdec0e928db4c7a25876f55e64882a13063",
+        "bytes": 11886,
+        "status": 200
+      },
+      "measures/12420.html": {
+        "sha256": "39ea40c62bb858f06a47d11a4ce63ad6ca9c8285639338123045c48840b58075",
+        "bytes": 12607,
+        "status": 200
+      },
+      "measures/12421.html": {
+        "sha256": "ba9d0241588b76b690eee8207d6b97f1d4764fcc5a05a7a5de0b612e282f1e55",
+        "bytes": 11539,
+        "status": 200
+      },
+      "measures/12422.html": {
+        "sha256": "16f4066f95832c2160f43801b7d699c8e993b9f0f36874103eb87fca71946f86",
+        "bytes": 11860,
+        "status": 200
+      },
+      "measures/12423.html": {
+        "sha256": "0a65212d43b187fc1cfe40e6c88e29b43a25c0a16cab36535b45fa8d554772ab",
+        "bytes": 11335,
+        "status": 200
+      },
+      "measures/12424.html": {
+        "sha256": "c32720cbfaebcd2dc4e8f0d3c5dd6e42fd9b85aeb91ac82639f95f6eb03429f3",
+        "bytes": 10709,
+        "status": 200
+      },
+      "measures/12425.html": {
+        "sha256": "5ec45806b2c63d0bee3fd6411c4c6b8864ba8cf778ffc83cefcfb3e3ee06bb81",
+        "bytes": 10991,
+        "status": 200
+      },
+      "measures/12426.html": {
+        "sha256": "67efe10afa2d91d528846f3249f0f17cd1fb4e7d2908859f53160e5f52d63cb0",
+        "bytes": 11385,
+        "status": 200
+      },
+      "measures/12427.html": {
+        "sha256": "ad12c129c3e5a45bc53d3642fdd40421b8401b1583311c8c4849655517d880c9",
+        "bytes": 11057,
+        "status": 200
+      },
+      "measures/12428.html": {
+        "sha256": "a8a6037d6aaec73558273d6f4c20467b7e5833ac9258394c66c4375ec61b0a18",
+        "bytes": 11848,
+        "status": 200
+      },
+      "measures/12429.html": {
+        "sha256": "cefd3ec6752b8f713b5a94a2789e75ae4c66bd5062ab40689b0c649b26829343",
+        "bytes": 11981,
+        "status": 200
+      },
+      "measures/12430.html": {
+        "sha256": "d752f1e6ba620942618094d1f7a8a19a151dd78874eab909f4ccbf5323002036",
+        "bytes": 11058,
+        "status": 200
+      },
+      "measures/12431.html": {
+        "sha256": "ce4f1498f200cc07249b501ddec92a3231c0d3aab7d6a86f67538ad6a7eab779",
+        "bytes": 11544,
+        "status": 200
+      },
+      "measures/12432.html": {
+        "sha256": "60311513d10b8e37f34624e5d2525c892ff576b1a7872a6d06792497853f2f41",
+        "bytes": 11997,
+        "status": 200
+      },
+      "measures/12433.html": {
+        "sha256": "d2a3aebcb2d0b7a1845e6fa1cc87b36cd69c35e131e09d1e6e7a30ab1448713b",
+        "bytes": 10634,
+        "status": 200
+      },
+      "measures/12434.html": {
+        "sha256": "431dec3b6e3323047f2ddb869a56461b5c32acef884b4d9d7370dba20c9d0dc5",
+        "bytes": 10266,
+        "status": 200
+      },
+      "measures/12435.html": {
+        "sha256": "2741366700a5331f837dc5874fabb7b6110071c53628a4d1f6aca387f7cb68f4",
+        "bytes": 11048,
+        "status": 200
+      },
+      "measures/12436.html": {
+        "sha256": "5fe809c8540764d94c94de82521050de9a0d8548ca6ee853a4ecc82dfb11f71e",
+        "bytes": 11852,
+        "status": 200
+      },
+      "measures/12437.html": {
+        "sha256": "6c64498e4bdb7d8e54011261af98134a7ce7ae0c8bff7a12faf15687145f8676",
+        "bytes": 11747,
+        "status": 200
+      },
+      "measures/12438.html": {
+        "sha256": "da851186855268eca2a7831b3c7317b11a8779e99bd687f246f49e0688b2a821",
+        "bytes": 10234,
+        "status": 200
+      },
+      "measures/12439.html": {
+        "sha256": "ff35d4e8f97e3e76fc9277764ae3120ade96e3b1ef5737dfd8265fbbf9a75cc5",
+        "bytes": 10350,
+        "status": 200
+      },
+      "measures/12440.html": {
+        "sha256": "50bd1842265054da7636af9395a9a765b9475a22e3f21f6ee6ab7c215f5cf767",
+        "bytes": 10667,
+        "status": 200
+      },
+      "measures/12441.html": {
+        "sha256": "4b28156ac46a4d85f075261f57f4c1fe0a6d5afb51ec1cd9affd6faa0cf106f5",
+        "bytes": 10704,
+        "status": 200
+      },
+      "measures/12442.html": {
+        "sha256": "f955ebdfaff43c71928a804317289042da1557bcd053d12c0b7feaf466afc522",
+        "bytes": 12644,
+        "status": 200
+      },
+      "measures/12443.html": {
+        "sha256": "e2455ca116d0a988a9a48185f312d741c6b7bbc87dc52ef0bbc5fdd8effb592a",
+        "bytes": 12555,
+        "status": 200
+      },
+      "measures/12444.html": {
+        "sha256": "205d3919316642c2e6e63765b4e3ee7bfc71812981e98d6187a46ad5d649129a",
+        "bytes": 10899,
+        "status": 200
+      },
+      "measures/12445.html": {
+        "sha256": "ecef2776f11ac7a4cccf1af1b6ef0eb57ab11769d46ca53bbc2365613cf528eb",
+        "bytes": 11488,
+        "status": 200
+      },
+      "measures/12446.html": {
+        "sha256": "cae783a78a99690dd186013fa436e2315365eb4c3d25a86dbc0df60e9c7a9ab7",
+        "bytes": 11759,
+        "status": 200
+      },
+      "measures/12447.html": {
+        "sha256": "08cb93b970c708e229488ad719245812b11acfb0625b5b4b220f92d60bc7cdf2",
+        "bytes": 10921,
+        "status": 200
+      },
+      "measures/12448.html": {
+        "sha256": "3bc0b4be4452af72406021124ac47257689561a7b4e95f86432375fba042ecec",
+        "bytes": 12005,
+        "status": 200
+      },
+      "measures/12449.html": {
+        "sha256": "c8410f91531d2270015e01327c40a5f0323d74985639e9eb1f23fef0c1ddd3b5",
+        "bytes": 11876,
+        "status": 200
+      },
+      "measures/12450.html": {
+        "sha256": "1c150f653e0032e37cf76f5ee1dc5695d62e2edc963c00aeb7a598c286de99a8",
+        "bytes": 10804,
+        "status": 200
+      },
+      "measures/12451.html": {
+        "sha256": "ca955489d8c3d443d28b79c99f86c03581f4d035af999cc6a2c085ed89a584bc",
+        "bytes": 10899,
+        "status": 200
+      },
+      "measures/12452.html": {
+        "sha256": "e418960da8fab14cc8cfa34b3384aa63edad25bc3f9f2c6cdfbd5b08b37237f3",
+        "bytes": 11864,
+        "status": 200
+      },
+      "measures/12453.html": {
+        "sha256": "a9fabb2ac020e92cd62005795d5624ba8ef660b1aaa3a23a939724e66acd243c",
+        "bytes": 11771,
+        "status": 200
+      },
+      "measures/12454.html": {
+        "sha256": "4d6f497948e8199f6a17d4f1c79dd6504271340a0db3c2c859d130750ff36f1c",
+        "bytes": 9790,
+        "status": 200
+      },
+      "measures/12455.html": {
+        "sha256": "8b2441f5fd916a113591db0c5b35cce61df9669cf73001b233d1fde1cfb0af4a",
+        "bytes": 9864,
+        "status": 200
+      },
+      "measures/12456.html": {
+        "sha256": "76b12ccf32fb1249f41cfb5c89cef11e0815adacabb24494d3644010566de239",
+        "bytes": 9723,
+        "status": 200
+      },
+      "measures/12457.html": {
+        "sha256": "1ab0408ae78948a2c61a58633d16ab26718840dc5345a1c410c12fe886913c18",
+        "bytes": 10664,
+        "status": 200
+      },
+      "measures/12458.html": {
+        "sha256": "e4db883ba50987779b0481a41a542f565004b23234289fdeab081dc2b81115f7",
+        "bytes": 11884,
+        "status": 200
+      },
+      "measures/12459.html": {
+        "sha256": "8eeddd1f8f02a95944e8fd350ba78cb028fb142c83d047a8ab6df8d13c855e39",
+        "bytes": 10796,
+        "status": 200
+      },
+      "measures/12460.html": {
+        "sha256": "0384af8cbdf6b46d8e4414894773372bb9ab06c8641b10f617705aecba97e891",
+        "bytes": 11090,
+        "status": 200
+      },
+      "measures/12461.html": {
+        "sha256": "a9d657ac79b632d1f31d0daa58a274e50a91c2aa4985d08429c7dd9f46d9b3af",
+        "bytes": 9776,
+        "status": 200
+      },
+      "measures/12462.html": {
+        "sha256": "56b23a460b82ef68a327cd5ecac0663e288a5fcb0c2649730be0891204159225",
+        "bytes": 10003,
+        "status": 200
+      },
+      "measures/12463.html": {
+        "sha256": "16d920c117f36bb615fa8613c679e61f24c7f101ba6f4972dc7e65f27832f341",
+        "bytes": 11855,
+        "status": 200
+      },
+      "measures/12464.html": {
+        "sha256": "b7bd02f4c695f77ee5dc9111ebfabe127630a62b4312519e222be4f63a86a3e8",
+        "bytes": 11862,
+        "status": 200
+      },
+      "measures/12465.html": {
+        "sha256": "e4d1fbb179e8826d890ef8b1b0a354e532862d4f736190a6822e8b63b88062ee",
+        "bytes": 12180,
+        "status": 200
+      },
+      "measures/12466.html": {
+        "sha256": "90f0309fdb005b276721ded6270cac829c0b2f6c6d45a65411e5176d2915d271",
+        "bytes": 11423,
+        "status": 200
+      },
+      "measures/1.html": {
+        "sha256": "2ce0ec975e3d9de02641447810bc8d1528bb09d228483c6ab56ebbfbe2c1b4fd",
+        "bytes": 4880,
+        "status": 200
+      },
+      "measures/12471.html": {
+        "sha256": "5c25a20bc7a6faa13cdfba535b63a520e5b6585c3922f7f8b8a033059500a654",
+        "bytes": 41043,
+        "status": 200
+      },
+      "measures/10939.html": {
+        "sha256": "6203e98e8809cc6b34d1bcb0862227f3efc275a3daa7bc93547405b473383fe5",
+        "bytes": 5529,
+        "status": 200
+      },
+      "sitemap.xml": {
+        "sha256": "a8c12eb5740fd4458ca534a907417d05565d60b78476100abaeb9d7bb2524ab2",
+        "bytes": 1201828,
+        "status": 200
+      },
+      "use-calballot/index.html": {
+        "sha256": "7321959c1ec65ca6f8dc0eaf71ca531a07574a8cdf64c445d10f79d66ef486ea",
+        "bytes": 33770,
+        "status": 200
+      }
+    },
+    "browser": [
+      {
+        "width": 1440,
+        "county_ids": [
+          12420,
+          12421,
+          12422,
+          12424,
+          12425,
+          12426,
+          12427,
+          12428,
+          12423,
+          12429,
+          12430,
+          12431,
+          12432,
+          12433,
+          12434,
+          12435,
+          12436,
+          12437,
+          12418,
+          12419,
+          12442,
+          12439,
+          12458,
+          12454,
+          12452,
+          12462,
+          12460,
+          12463,
+          12466,
+          12464,
+          12465,
+          12455,
+          12440,
+          12447,
+          12438,
+          12445,
+          12459,
+          12453,
+          12457,
+          12456,
+          12443,
+          12461,
+          12446,
+          12441,
+          12448,
+          12449,
+          12451,
+          12450,
+          12444
+        ],
+        "no_page_errors": true,
+        "actual_response_hashes": true,
+        "standalone_return_link": true,
+        "finance_and_statewide_preserved": true
+      },
+      {
+        "width": 390,
+        "county_ids": [
+          12420,
+          12421,
+          12422,
+          12424,
+          12425,
+          12426,
+          12427,
+          12428,
+          12423,
+          12429,
+          12430,
+          12431,
+          12432,
+          12433,
+          12434,
+          12435,
+          12436,
+          12437,
+          12418,
+          12419,
+          12442,
+          12439,
+          12458,
+          12454,
+          12452,
+          12462,
+          12460,
+          12463,
+          12466,
+          12464,
+          12465,
+          12455,
+          12440,
+          12447,
+          12438,
+          12445,
+          12459,
+          12453,
+          12457,
+          12456,
+          12443,
+          12461,
+          12446,
+          12441,
+          12448,
+          12449,
+          12451,
+          12450,
+          12444
+        ],
+        "no_page_errors": true,
+        "actual_response_hashes": true,
+        "standalone_return_link": true,
+        "finance_and_statewide_preserved": true
+      }
+    ],
+    "verified": true
+  },
+  "release_checks_complete": true,
+  "pull_request": "https://github.com/igorgeyn/cal_vgp/pull/7",
+  "deployment_run": "https://github.com/igorgeyn/cal_vgp/actions/runs/37860249030"
 }

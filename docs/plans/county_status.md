@@ -18,8 +18,8 @@
 
 | County | Current coverage | Source check | Reader content |
 |---|---|---|---|
-| San Bernardino | 20 November 2026 measures; official documents live | October 8 capture unchanged from September 28 | All 20 questions/explanations verified; release tracked in the handoff |
-| San Mateo | 29 November 2026 measures; official documents live | October 8 capture unchanged from September 28 | All 29 questions/explanations verified; release tracked in the handoff |
+| San Bernardino | 20 November 2026 measures; official documents live | October 8 capture unchanged from September 28 | All 20 questions/explanations live and served verified |
+| San Mateo | 29 November 2026 measures; official documents live | October 8 capture unchanged from September 28 | All 29 questions/explanations live and served verified |
 | Alameda | Not enabled | Earlier scouting is historical | Next expansion after essential refresh/status/results checks |
 | San Francisco / Contra Costa | Not enabled | Fresh source reassessment required | Later conditional expansion |
 
