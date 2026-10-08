@@ -58,6 +58,7 @@ def main():
             page.goto('https://browse.test/', wait_until='domcontentloaded')
             ready()
             baseline_filtered = page.evaluate('filteredMeasures.length')
+            assert page.locator('.header button[onclick="openAboutModal()"]').get_attribute('aria-pressed') is None
             assert page.locator('#browse-navigation a').all_text_contents() == ['Statewide measures', 'Local measures', 'Full grid']
             assert page.evaluate('''() => {
                 const ids = ['browse-navigation', 'statewide-measures', 'local-measures', 'full-catalog', 'resultsContainer'];
@@ -84,6 +85,11 @@ def main():
                     link.focus()
                     page.keyboard.press('Enter')
                     positioned(target)
+                    if target == 'local-measures':
+                        page.keyboard.press('Tab')
+                        assert page.locator('.upcoming-local-band .browse-return').evaluate('(e) => e === document.activeElement')
+                        page.keyboard.press('Tab')
+                        assert page.locator('#localCountySelect').evaluate('(e) => e === document.activeElement')
                 page.keyboard.press('Tab')
                 assert page.locator('#catalogHeader .browse-return').evaluate('(e) => e === document.activeElement')
                 page.keyboard.press('Enter')
@@ -98,6 +104,7 @@ def main():
             assert page.locator('#heroGrid .statewide-card').count() == 14
             page.locator('#browse-navigation a[data-browse-jump="local-measures"]').click()
             positioned('local-measures')
+            assert page.locator('#browse-navigation a[data-browse-jump="local-measures"]').evaluate('(e) => e === document.activeElement')
             assert page.locator('#searchInput').input_value() == 'zzzz-unmatched-navigation-test'
             page.locator('#searchInput').fill('')
             page.wait_for_function('(n) => filteredMeasures.length === n', arg=baseline_filtered)
@@ -141,6 +148,8 @@ def main():
             assert not page.locator('#catalogHeader').is_visible()
             page.locator('#exploreView').click()
             assert not page.locator('#heroSection').is_visible()
+            assert not page.locator('#browse-navigation').is_visible()
+            assert not page.locator('#catalogHeader').is_visible()
             page.locator('#gridView').click()
             assert page.locator('#browse-navigation').is_visible()
             assert page.locator('#heroSection').is_visible()

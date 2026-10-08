@@ -151,6 +151,12 @@
     "Content regression precedes pagination wrapping and the final About-button/early-init fixes; final navigation checks exercise current modal links.",
     "Only index.html changes among published assets. Production databases and all prepared records are unchanged."
   ],
-  "review": "in progress",
-  "deployment": "not yet published"
+  "review": {
+    "verdict": "READY WITH CONDITIONS",
+    "conditions_resolved_by_codex": true,
+    "raw_result_sha256": "90dfdae7c2477ba51b6b225d3829237b714ec91cb8d243621ae146aa10ee6050",
+    "dispositions": "browse_navigation_review_20261008.md"
+  },
+  "deployment": "See release PR description for post-deployment served-byte receipt.",
+  "release_pr": "https://github.com/igorgeyn/cal_vgp/pull/6"
 }

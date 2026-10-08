@@ -6,7 +6,9 @@
 > the shared navigation, accessible targets, preserved URLs, and verification.
 > 83 focused tests and desktop/mobile navigation checks pass. Only the main
 > public HTML changes; measure data, research, finance and individual pages are
-> preserved. Independent review and release are being finalized.
+> preserved. Claude returned READY WITH CONDITIONS; both conditions are resolved
+> in the final candidate. [PR #6](https://github.com/igorgeyn/cal_vgp/pull/6)
+> carries the release status and live verification receipt.
 
 > **Statewide reader update — October 8:** Igor requested complete current
 > statewide components. The [content handoff](plans/statewide_content_20261008.md)

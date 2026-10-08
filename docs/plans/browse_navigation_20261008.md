@@ -65,4 +65,9 @@ sticky header. No user usability study has been conducted.
   the tested revisions. The standard output writer preserves the published
   Windows line endings; normalized final HTML exactly matches the final browser
   test. JSON and embedded analysis payloads are byte-identical to the baseline.
-- Status: implementation and verification complete; independent review underway.
+- Independent review: Claude returned READY WITH CONDITIONS. Its About-button
+  ARIA finding had already been corrected; its missing-report condition reflected
+  reading while browser checks were running. Both conditions are now satisfied.
+  [Review and dispositions](browse_navigation_review_20261008.md).
+- Release: [PR #6](https://github.com/igorgeyn/cal_vgp/pull/6). Its description
+  records publication and served-byte verification after deployment.
