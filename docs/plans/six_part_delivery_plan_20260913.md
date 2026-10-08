@@ -1,13 +1,23 @@
 # CalBallot: six-part delivery plan
 
-**Updated:** October 3, 2026.  
-**Status:** Part 1 and its review corrections are verified. Part 2's complete candidate and private R2 recovery are verified, including restore/rebuild and download checksum. Publication and Parts 3-6 remain.  
-**Next:** independently review the [combined Part 2 release](statewide_part2_20261003.md), then perform the reviewed production cutover and served-site checks. Production remains unchanged.
+**Updated:** October 8, 2026.
+
+**Status:** Parts 1-2 are published and verified in release `3911602`, including
+the real production cutover, complete public pages, private recovery update and
+live desktop/mobile checks. Read the [release receipt](release_progress_20261008.md).
+Parts 3-6 remain open.
+
+**Current user-accepted order:** after this release, fill the existing 49 county
+records with exact ballot questions and sourced explanations; then Alameda;
+then reassess San Francisco/Contra Costa. The first three SB content drafts and
+all 49 source-review packets are prepared, not loaded. Keep refresh operations,
+election transition and results readiness visible alongside that work. October 5's
+scheduled capture failed before execution; latest stored evidence is September 28.
 
 The September target windows below have elapsed. Do not infer completion from
 those dates. The October 3 handoff narrows the immediate sequence to the
-October 5 reader goal and lists the outstanding release gates. County expansion
-and card redesign remain deferred.
+October 5 reader goal. That deadline is now past; the October 8 receipt records
+actual completion of the release gates. Card redesign remains deferred.
 
 This is the current sequence following Claude's September 13 review and
 Codex's independent checks. It supersedes the ordering in

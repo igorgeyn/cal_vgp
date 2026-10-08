@@ -1,17 +1,23 @@
 # CalBallot Working List
 
-> **Current release work - October 8:** Igor authorized proceeding with review
-> and publication. Read the [release checkpoint](plans/release_progress_20261008.md).
+> **Published and verified - October 8:** release `3911602` is live at
+> https://cal-vgp.igorgeyn.com/. Read the [release checkpoint](plans/release_progress_20261008.md)
+> and [evidence/served receipt](plans/statewide_release_evidence_20261008.json).
 > Claude's combined review found no cutover blocker; its focused follow-up marked
 > the new Measure Z correction READY. Codex found that the county's purported
 > impartial-analysis link is actually its argument in favor. The exact PDF's
 > public label is corrected, with a visible note and raw evidence preserved.
 > **97 focused tests**, the full preservation gate and desktop/mobile checks pass.
-> The exclusive-transaction production cutover has passed on a real DB copy.
-> Publication is being executed; do not infer it from candidate files alone.
+> The actual exclusive-transaction production cutover and preservation gate pass.
+> All 22 sampled served artifacts match the reviewed bytes; live desktop/mobile
+> checks pass for the slate, withdrawn ACA 13, Measure Z note and Finance.
+> The updated private recovery archive restored, rebuilt and passed R2 read-back.
 > October 5's refresh never acquired a GitHub runner; latest stored captures
 > remain September 28. No new scrape was started. A source-review packet for
-> all 49 county measures is prepared; ballot wording/explanations are next.
+> all 49 county measures is prepared, with the first three visually checked
+> question/explanation drafts. Next: fill the existing county records, then
+> Alameda, then re-evaluate San Francisco/Contra Costa. Refresh operations and
+> election/results handling remain open; publication does not complete Parts 3-6.
 
 > **Current Part 2 work - October 3:** the complete release candidate is built
 > and verified; production remains unchanged. Read the
