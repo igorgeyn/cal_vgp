@@ -32,6 +32,15 @@ LOCAL_MEASURE_CATEGORY_CROSSWALK: dict[str, Optional[str]] = {
     "Transactions and Use Tax": "Sales Tax",
     "Transient Occupancy Tax": "Transient Occupancy Tax",
     "Special Parcel Tax": "Property Tax",
+    # Reviewed against the October 8 San Mateo questions and filing packets.
+    "Parcel Tax Measure": "Property Tax",
+    "Transient Occupancy Tax Measure": "Transient Occupancy Tax",
+    "Business License Tax Measure": "Business Tax",
+    "Charter Amendment Measure": "Charter Amendment",
+    "Charter Amendment Measure – Affirmation of Rights": "Charter Amendment",
+    "Charter Amendment Measure – Extension to Call a Special Election or Appoint": "Charter Amendment",
+    "Charter Amendment Measure – Extreme Weather Events": "Charter Amendment",
+    "Charter Amendment Measure – Reapportionment of Supervisorial Districts": "Charter Amendment",
     "Local Transportation Improvement Program": None,
 }
 
@@ -80,7 +89,7 @@ def attach_local_historical_context(
         for category in LOCAL_MEASURE_CATEGORY_CROSSWALK.values()
         if category
     }
-    aggregates = defaultdict(lambda: {"total": 0, "passed": 0, "since": None})
+    cohorts = defaultdict(list)
 
     for measure in measure_list:
         if _is_registrar_measure(measure):
@@ -100,11 +109,7 @@ def attach_local_historical_context(
         except (TypeError, ValueError):
             continue
 
-        aggregate = aggregates[(county, category.casefold())]
-        aggregate["total"] += 1
-        aggregate["passed"] += int(measure.get("passed") == 1)
-        if aggregate["since"] is None or year < aggregate["since"]:
-            aggregate["since"] = year
+        cohorts[(county, category.casefold())].append((year, measure))
 
     attached = 0
     for measure in measure_list:
@@ -117,20 +122,38 @@ def attach_local_historical_context(
         county = _county_key(
             measure.get("_historical_context_county", measure.get("county"))
         )
-        aggregate = aggregates.get((county, category.casefold()))
-        if not aggregate or aggregate["total"] < minimum_sample:
+        try:
+            election_year = int(measure.get('year'))
+        except (TypeError, ValueError):
+            continue
+        cohort = [(year, row) for year, row in cohorts.get((county, category.casefold()), [])
+                  if year < election_year]
+        if len(cohort) < minimum_sample:
             continue
 
-        total = aggregate["total"]
-        passed = aggregate["passed"]
+        total = len(cohort)
+        passed = sum(row['passed'] == 1 for _, row in cohort)
         measure["local_historical_context"] = {
             "category_type": category,
             "total": total,
             "passed": passed,
             "pass_rate": round(100 * passed / total),
-            "since": aggregate["since"],
+            "since": min(year for year, _ in cohort),
             "county_label": COUNTY_CONTEXT_LABELS.get(county, measure.get("county") or "county"),
         }
+        # Link only stable, public record IDs. The complete ID list permits an
+        # audit of the statistic; the UI offers the five most recent records.
+        linkable = [(year, row) for year, row in cohort if type(row.get('id')) is int and row['id'] > 0]
+        if len(linkable) == total and len({row['id'] for _, row in linkable}) == total:
+            linkable.sort(key=lambda item: (-item[0], item[1]['id']))
+            measure['local_historical_context'].update(
+                through=max(year for year, _ in cohort),
+                record_ids=[row['id'] for _, row in linkable],
+                records=[dict(id=row['id'], year=year, jurisdiction=(str(row['jurisdiction']) if row.get('jurisdiction') and not str(row['jurisdiction']).strip().isdigit() else str(row.get('county') or '') + ' County'),
+                              title=row.get('title') or '',
+                              designation=('Measure ' + str(row['measure_letter'])) if row.get('measure_letter') else (row.get('title') or 'Ballot measure'),
+                              passed=row['passed']) for year, row in linkable[:5]],
+            )
         attached += 1
 
     for measure in measure_list:

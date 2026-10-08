@@ -58,6 +58,20 @@
   .statewide-guide .sg-record > :last-child { display: block; margin-top: .3rem; }
 }
 
+.county-guide { font-size: .94rem; line-height: 1.65; color: #283b40; }
+.county-guide h3 { font-size: 1.05rem; margin: 1.3rem 0 .6rem; }
+.county-guide p { margin: .6rem 0; }
+.county-guide a { color: #245b68; text-decoration: underline; text-underline-offset: .15em; overflow-wrap: anywhere; }
+.county-guide a:focus-visible { outline: 3px solid #245b68; outline-offset: 3px; }
+.county-guide .cg-note { font-size: .82rem; color: #536166; }
+.county-guide blockquote { margin: .7rem 0; padding-left: 1rem; border-left: 3px solid #c1ad70; font-style: normal; }
+.county-guide details { border-top: 1px solid #d6d1bf; padding: .85rem 0; }
+.county-guide summary { cursor: pointer; font-weight: 600; }
+.county-guide ul { padding-left: 1.3rem; }
+.county-guide li { margin: .6rem 0; }
+.local-measure-card .local-card-explanation { font-size: .85rem; line-height: 1.5; color: #3e4c51; margin: .65rem 0; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.local-measure-card .local-card-content-label { font-size: .7rem; color: #536166; margin: .6rem 0 0; }
+
         /* Modern CSS Reset and Variables */
         * {
             margin: 0;
@@ -7762,6 +7776,8 @@
                             <p id="modalBallotText" class="measure-detail-ballot-text"></p>
                         </div>
 
+                        <div id="modalCountyGuide" class="measure-detail-section" style="display: none;"></div>
+
                         <div id="modalOfficialDocuments" class="measure-detail-section" style="display: none;">
                             <h3>Official documents</h3>
                             <p class="official-documents-note">Links open the county's current files. Last captured is when we retrieved the file, not its filing date. Labels follow the county listing unless a correction is noted; a file may cover several document types. An absent link does not mean a document was never filed.</p>
@@ -7804,7 +7820,7 @@
                             <div id="modalFinanceContent" class="measure-detail-finance"></div>
                         </div>
                         <div id="modalFinanceEmpty" class="measure-detail-section" style="display:none;">
-                            <p style="color:var(--text-tertiary);font-style:italic;">No campaign finance data available for this measure. (Finance coverage is statewide-only; local measures aren&rsquo;t in CAL-ACCESS.)</p>
+                            <p style="color:var(--text-tertiary);font-style:italic;">CalBallot has not linked campaign finance data to this measure. This does not mean no funds were raised or spent.</p>
                         </div>
                     </div>
                 </div>
@@ -8469,7 +8485,7 @@
             const initialMeasureLink = window.location.hash.match(/^#m=(\d+)/);
             initializeBrowseNavigation();
             try {
-                const resp = await fetch('measures-data.json?v=8ea848c910ce625a1238', {cache: 'no-cache'});
+                const resp = await fetch('measures-data.json?v=1921e5d463a450b5d0d0', {cache: 'no-cache'});
                 if (!resp.ok) throw new Error('HTTP ' + resp.status);
                 allMeasures = await resp.json();
             } catch (err) {
@@ -9661,7 +9677,8 @@
                         measure.measure_text,
                         measure.measure_id,
                         measure.status_reason || measure.official_description || measure.description,
-                        measure.official_description || measure.status_reason ? '' : measure.summary_text,
+                        measure.county_explanation || (measure.official_description || measure.status_reason ? '' : measure.summary_text),
+                        measure.county_guide?.question,
                         measure.topic_primary,
                         measure.statewide_guide ? measure.display_topic : '',
                         measure.statewide_guide?.short_title || '',
@@ -9928,6 +9945,7 @@
                     </div>
                     <h4 class="local-card-jurisdiction">${escapeHtml(jurisdiction)}</h4>
                     <span class="local-card-type">${escapeHtml(measureType)}</span>
+                    ${measure.county_explanation ? `<p class="local-card-content-label">CalBallot explanation</p><p class="local-card-explanation">${escapeHtml(measure.county_explanation)}</p>` : ''}
                     ${contextHtml}
                 </article>
             `;
@@ -13229,6 +13247,9 @@
         }
 
         function renderTimeline(measure) {
+            if (measure.county_guide) {
+                return '<p>Listed by the county for the November 3, 2026 election.</p>';
+            }
             if (measure.ballot_status === 'qualified') {
                 return '<p>On the November 3, 2026 ballot.</p>' + (measure.statewide_guide ? `<p class="text-secondary">${escapeHtml(measure.statewide_guide.qualification_method)}.</p>` : '');
             }
@@ -13325,7 +13346,9 @@
             // call. The v2 design tightens whitespace but keeps the
             // info-rich card shape.
             let summary = '';
-            if (measure.status_reason || measure.official_description) {
+            if (measure.county_explanation) {
+                summary = measure.county_explanation;
+            } else if (measure.status_reason || measure.official_description) {
                 summary = measure.status_reason || measure.official_description;
             } else if (measure.summary_text && measure.summary_text.length > 50 && !isAiRefusal(measure.summary_text) &&
                 !(isPending && isMetadataSummary(measure.summary_text))) {
@@ -13493,7 +13516,9 @@
             let summaryText = '';
             const summarySource = document.getElementById('modalSummarySource');
             summarySource.replaceChildren();
-            if (measure.official_description || measure.status_reason) {
+            if (measure.county_guide) {
+                summarySource.textContent = 'CalBallot explanation · AI-assisted and source-checked · Reviewed ' + measure.county_guide.reviewed_at;
+            } else if (measure.official_description || measure.status_reason) {
                 const sourceLink = document.createElement('a');
                 sourceLink.href = measure.source_url;
                 sourceLink.textContent = measure.status_reason ? 'Withdrawal recorded by the California Secretary of State' : 'Official description · California Secretary of State';
@@ -13503,7 +13528,10 @@
             }
 
             let summaryIsHtml = false;
-            if (measure.status_reason || measure.official_description) {
+            if (measure.county_explanation) {
+                summaryText = measure.county_explanation;
+                summaryEl.classList.remove('no-summary-text');
+            } else if (measure.status_reason || measure.official_description) {
                 summaryText = measure.status_reason || measure.official_description;
                 summaryEl.classList.remove('no-summary-text');
             } else if (measure.summary_text && !isAiRefusal(measure.summary_text) &&
@@ -13532,7 +13560,7 @@
             }
 
             // Show "Show more" toggle for long summaries (>400 chars)
-            if (summaryText.length > 400) {
+            if (summaryText.length > 400 && !measure.county_guide) {
                 summaryEl.classList.add('truncated');
                 summaryToggle.style.display = 'inline-block';
                 summaryToggle.textContent = 'Show more';
@@ -13556,12 +13584,16 @@
 
             // Ballot question section
             const ballotSection = document.getElementById('modalBallotQuestion');
-            if (!measure.ballot_status && measure.ballot_question && measure.ballot_question.length > 20) {
+            if (!measure.county_guide && !measure.ballot_status && measure.ballot_question && measure.ballot_question.length > 20) {
                 ballotSection.style.display = 'block';
                 document.getElementById('modalBallotText').textContent = measure.ballot_question;
             } else {
                 ballotSection.style.display = 'none';
             }
+
+            const countyGuide = document.getElementById('modalCountyGuide');
+            countyGuide.innerHTML = measure.county_sections || '';
+            countyGuide.style.display = measure.county_sections ? 'block' : 'none';
 
             // Related measures section - populated from recommendations
             const relatedSection = document.getElementById('modalRelatedSection');
@@ -13819,10 +13851,14 @@
             if (guideSections) {
                 financeContent.innerHTML = guideSections.finance;
                 financeSection.style.display = 'block';
+            } else if (measure.county_finance) {
+                financeContent.innerHTML = measure.county_finance;
+                financeSection.style.display = 'block';
             } else if (fd) {
                 financeContent.innerHTML = buildFinanceHTML(fd, measure);
                 financeSection.style.display = 'block';
             } else {
+                financeContent.innerHTML = '';
                 financeSection.style.display = 'none';
             }
 

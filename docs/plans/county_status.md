@@ -11,12 +11,26 @@
 > debts, and the gates are in
 > [`bay_area_county_workstream.md`](bay_area_county_workstream.md).
 >
-> **Last updated: 2026-08-31.** Update the row when a county's status
-> changes; update "Captured now" after a notable cron run.
+> **Current update: 2026-10-08.** The current table below supersedes the August
+> scouting history. Other counties have not been freshly reassessed by this update.
+
+## Current coverage — October 8
+
+| County | Current coverage | Source check | Reader content |
+|---|---|---|---|
+| San Bernardino | 20 November 2026 measures; official documents live | October 8 capture unchanged from September 28 | All 20 questions/explanations verified; release tracked in the handoff |
+| San Mateo | 29 November 2026 measures; official documents live | October 8 capture unchanged from September 28 | All 29 questions/explanations verified; release tracked in the handoff |
+| Alameda | Not enabled | Earlier scouting is historical | Next expansion after essential refresh/status/results checks |
+| San Francisco / Contra Costa | Not enabled | Fresh source reassessment required | Later conditional expansion |
+
+Two counties are enabled, with 49 current records and 239 grouped official
+document links. See the [county content handoff](county_content_20261008.md),
+[ledger](county_content_ledger_20261008.md) and [remaining checklist](remaining_review_checklist_20261008.md).
+The county-scoped records are not a complete address-specific ballot.
 
 ---
 
-## The board
+## Historical scouting board — August 31 (superseded for SB/SMC)
 
 | County | Share of local measures | Status | Publishes ahead? | Nov 2026 visible | Documents | Effort | Blocker |
 |---|---:|---|---|---|---|---|---|
@@ -32,7 +46,7 @@
 | **Riverside** | 4.1% | 🔴 blocked | unknown | unknown | unknown | 1d + 3–4d | Cloudflare; Playwright per-hop politeness unresolved |
 | *48 others* | 27.1% | ⚪ unexamined | — | — | — | — | see workplan Tier 3 |
 
-Coverage today: **1 of 58 counties — 3.3% of historical local measure
+Coverage at that historical checkpoint: **1 of 58 counties — 3.3% of historical local measure
 volume.** The ten counties above are 50.0% cumulative.
 
 ## The strategic answer (2026-08-31)

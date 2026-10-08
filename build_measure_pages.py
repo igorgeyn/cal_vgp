@@ -32,6 +32,7 @@ BASE_URL = "https://cal-vgp.igorgeyn.com"
 ROOT = Path(__file__).parent
 sys.path.insert(0, str(ROOT / 'scraper'))
 from src.website.statewide_content import render_sections as render_statewide_sections, STYLE as STATEWIDE_STYLE
+from src.website.county_content import render_sections as render_county_sections, render_finance as render_county_finance, STYLE as COUNTY_STYLE
 
 
 def esc(s):
@@ -125,7 +126,7 @@ def outcome(m):
 
 
 def meta_description(m, outcome_sentence):
-    for key in ("status_reason", "official_description", "summary_text", "ballot_question", "description"):
+    for key in ("county_explanation", "status_reason", "official_description", "summary_text", "ballot_question", "description"):
         if m.get(key):
             return truncate(m[key])
     return truncate(
@@ -228,7 +229,12 @@ def build_page(m):
         votes_html = f'<p class="votes"><strong>Result:</strong> {py:.1f}% yes{no_txt}{tv_txt}</p>'
 
     summary_html = ""
-    if m.get("status_reason") or m.get("official_description"):
+    if m.get('county_guide'):
+        summary_html = (
+            '<div class="summary"><div class="label">CalBallot explanation · AI-assisted and source-checked</div>'
+            f'<p>{esc(m["county_guide"]["explanation"])}</p></div>'
+        )
+    elif m.get("status_reason") or m.get("official_description"):
         label = "CA SOS withdrawal record" if m.get("status_reason") else "Official description - California Secretary of State"
         summary_html = (
             f'<div class="summary"><div class="label">{esc(label)}</div>'
@@ -255,6 +261,8 @@ def build_page(m):
     if guide:
         sections = render_statewide_sections(guide)
         statewide_details = sections['main'] + '<h2>Research</h2>' + sections['research'] + '<h2>Campaign finance</h2>' + sections['finance']
+    if m.get('county_guide'):
+        statewide_details = render_county_sections(m['county_guide'], m.get('local_historical_context')) + render_county_finance(m['county_guide'])
     return PAGE.format(
         title_tag=esc(truncate(title_tag, 110)),
         meta_desc=esc(desc),
@@ -271,7 +279,7 @@ def build_page(m):
         summary_html=summary_html,
         source_html=source_html,
         documents_html=official_documents_html(m),
-        statewide_style=STATEWIDE_STYLE if guide else '',
+        statewide_style=(STATEWIDE_STYLE if guide else '') + (COUNTY_STYLE if m.get('county_guide') else ''),
         statewide_details=statewide_details,
         mid=mid,
     )
