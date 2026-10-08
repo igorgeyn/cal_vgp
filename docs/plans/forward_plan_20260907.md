@@ -1,5 +1,10 @@
 # Forward plan — September 7, 2026
 
+> **Ordering superseded September 13:** use
+> [the six-part delivery plan](six_part_delivery_plan_20260913.md). It adds the
+> confirmed statewide correction and complete publication/recovery work before
+> routine refreshes. This document preserves the earlier reasoning and F1 contract.
+
 Igor accepted documents and reliable updates before county expansion. Budget:
 10 Igor-hours/week for now, with substantially more LLM execution time. Schedule
 six hours of Igor involvement and reserve four for review surprises and maintenance.

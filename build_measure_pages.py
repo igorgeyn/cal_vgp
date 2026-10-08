@@ -14,23 +14,72 @@ Design notes:
   use). If the database is ever rebuilt from scratch and ids reassigned,
   regenerate these pages in the same run (old URLs would otherwise 404).
 
-Run from the repo root after measures-data.json changes:
-  python build_measure_pages.py
+Run after generating a new candidate measures-data.json:
+  python build_measure_pages.py --site-dir <new-candidate-site>
+Existing measure pages or sitemap are never overwritten.
 """
 
+import argparse
 import html
 import json
-import shutil
+import re
 from datetime import date
 from pathlib import Path
+from urllib.parse import urlsplit
 
 BASE_URL = "https://cal-vgp.igorgeyn.com"
 ROOT = Path(__file__).parent
-OUT_DIR = ROOT / "measures"
 
 
 def esc(s):
     return html.escape(str(s), quote=True) if s is not None else ""
+
+
+def safe_http_url(value):
+    if not isinstance(value, str) or any(ord(c) < 32 for c in value) or "\\" in value:
+        return False
+    try:
+        parsed = urlsplit(value)
+        return bool(parsed.scheme in {"http", "https"} and parsed.hostname
+                    and not parsed.username and not parsed.password)
+    except ValueError:
+        return False
+
+
+def official_documents_html(measure):
+    """Render the already-grouped public model once per document, not per role."""
+    documents = measure.get("official_documents") or []
+    if not documents:
+        return ""
+    items = []
+    identities = set()
+    for document in documents:
+        url = document.get("source_url")
+        if not safe_http_url(url):
+            raise ValueError(f"Unsafe official document URL for measure {measure['id']}")
+        identity = (url, document.get("sha256"))
+        if identity in identities:
+            raise ValueError(f"Duplicate public document group for measure {measure['id']}")
+        identities.add(identity)
+        labels = document.get("labels") or document.get("roles") or ["Official document"]
+        label = " · ".join(labels)
+        captured = re.match(r"\d{4}-\d{2}-\d{2}", document.get("captured_at") or "")
+        vintage = f"Last captured {captured[0]}" if captured else "Capture date unavailable"
+        kind = "PDF" if (document.get("content_type") or "").split(";")[0] == "application/pdf" else "Document"
+        review_note = (f'<p class="document-meta">{esc(document["role_review_note"])}</p>'
+                       if document.get("role_review_note") else "")
+        items.append(
+            f'<li><a href="{esc(url)}" target="_blank" rel="noopener noreferrer">'
+            f'<span>{esc(label)}</span><span class="document-meta">'
+            f'{kind} · {esc(vintage)} · Opens in a new tab</span></a>{review_note}</li>'
+        )
+    return (
+        '<section class="official-documents" aria-labelledby="official-documents-title">'
+        '<h2 id="official-documents-title">Official documents</h2>'
+        '<p>Documents are hosted by the county. Capture dates describe when '
+        'CalBallot retrieved the files; the county may update its files.</p>'
+        '<ul>' + "".join(items) + '</ul></section>'
+    )
 
 
 def truncate(text, limit=155):
@@ -58,6 +107,8 @@ def jurisdiction_label(m):
 
 def outcome(m):
     """(badge_text, badge_color, sentence) for the measure's result."""
+    if m.get("ballot_status") == "withdrawn":
+        return ("Withdrawn", "#6B5F48", m["status_reason"])
     passed = m.get("passed")
     pct = m.get("percent_yes")
     pct_txt = f"{pct:.1f}% yes" if isinstance(pct, (int, float)) else None
@@ -71,7 +122,7 @@ def outcome(m):
 
 
 def meta_description(m, outcome_sentence):
-    for key in ("summary_text", "ballot_question", "description"):
+    for key in ("status_reason", "official_description", "summary_text", "ballot_question", "description"):
         if m.get(key):
             return truncate(m[key])
     return truncate(
@@ -117,7 +168,16 @@ PAGE = """<!DOCTYPE html>
                            text-transform: uppercase; color: #6B5F48; margin-bottom: 0.4rem; }}
         .cta {{ display: inline-block; background: #C9A23C; color: #111; font-weight: 700;
                 text-decoration: none; border-radius: 8px; padding: 0.65rem 1.2rem; margin-top: 1rem; }}
-        .src {{ font-size: 0.9rem; }}
+        .src {{ font-size: 0.9rem; overflow-wrap: anywhere; }}
+        .official-documents {{ margin: 1.5rem 0; }}
+        .official-documents h2 {{ font-size: 1.15rem; }}
+        .official-documents p {{ font-size: 0.9rem; color: #6B5F48; }}
+        .official-documents ul {{ padding: 0; list-style: none; }}
+        .official-documents li {{ margin: 0.6rem 0; }}
+        .official-documents a {{ display: block; padding: 0.8rem 1rem;
+            border: 1px solid #E0DAC8; border-radius: 8px; overflow-wrap: anywhere; color: #6B5F48; }}
+        .official-documents a:focus-visible {{ outline: 3px solid #6B5F48; outline-offset: 2px; }}
+        .document-meta {{ display: block; font-size: 0.8rem; color: #6B5F48; margin-top: 0.3rem; }}
         a {{ color: #A8841E; }}
         footer {{ margin-top: 2.5rem; font-size: 0.85rem; color: #999080; }}
     </style>
@@ -131,6 +191,7 @@ PAGE = """<!DOCTYPE html>
         {votes_html}
         {summary_html}
         {source_html}
+        {documents_html}
         <a class="cta" href="/#m={mid}">Open in the CalBallot explorer &rarr;</a>
         <footer>
             <p>CalBallot &mdash; a free explorer for 12,000+ California ballot measures, 1911 to present.
@@ -146,7 +207,9 @@ def build_page(m):
     mid = m["id"]
     # `summary_title` is a truncated first sentence of the summary, NOT a real
     # title — always prefer the actual `title` field.
-    title = m.get("title") or m.get("summary_title") or f"Ballot measure {mid}"
+    title = m.get("official_title") or m.get("title") or m.get("summary_title") or f"Ballot measure {mid}"
+    if m.get("proposition_number"):
+        title = f"Proposition {m['proposition_number']}: {title}"
     juris = jurisdiction_label(m)
     year = m.get("year") or ""
     badge_text, badge_color, outcome_sentence = outcome(m)
@@ -162,18 +225,26 @@ def build_page(m):
         votes_html = f'<p class="votes"><strong>Result:</strong> {py:.1f}% yes{no_txt}{tv_txt}</p>'
 
     summary_html = ""
-    if m.get("summary_text"):
+    if m.get("status_reason") or m.get("official_description"):
+        label = "CA SOS withdrawal record" if m.get("status_reason") else "Official description - California Secretary of State"
+        summary_html = (
+            f'<div class="summary"><div class="label">{esc(label)}</div>'
+            f"<p>{esc(m.get('status_reason') or m['official_description'])}</p></div>"
+        )
+    elif m.get("summary_text"):
         summary_html = (
             '<div class="summary"><div class="label">AI-generated plain-language summary</div>'
             f"<p>{esc(truncate(m['summary_text'], 600))}</p></div>"
         )
 
     source_html = ""
-    if m.get("source_url"):
+    if safe_http_url(m.get("source_url")):
         source_html = (
             f'<p class="src">Official source: <a href="{esc(m["source_url"])}" '
             f'rel="noopener">{esc(truncate(m["source_url"], 80))}</a></p>'
         )
+        if m.get("official_source_captured_at"):
+            source_html += f'<p class="src">Source captured {esc(m["official_source_captured_at"][:10])}.</p>'
 
     title_tag = f"{title} — {juris}, {year} | CalBallot"
     return PAGE.format(
@@ -191,23 +262,34 @@ def build_page(m):
         votes_html=votes_html,
         summary_html=summary_html,
         source_html=source_html,
+        documents_html=official_documents_html(m),
         mid=mid,
     )
 
 
-def main():
-    with open(ROOT / "measures-data.json", encoding="utf-8") as f:
+def build_site_pages(site_dir):
+    """Write a new page set; never delete a previous candidate or public tree."""
+    site_dir = Path(site_dir).resolve()
+    out_dir = site_dir / "measures"
+    with open(site_dir / "measures-data.json", encoding="utf-8") as f:
         measures = json.load(f)
 
     ids = [m["id"] for m in measures]
-    assert len(ids) == len(set(ids)), "measure ids are not unique"
+    if any(type(mid) is not int or mid < 1 for mid in ids) or len(ids) != len(set(ids)):
+        raise ValueError("Measure IDs must be unique positive integers")
 
-    if OUT_DIR.exists():
-        shutil.rmtree(OUT_DIR)
-    OUT_DIR.mkdir()
+    if out_dir.is_symlink() or out_dir.resolve().parent != site_dir:
+        raise ValueError("Measure output must be inside the selected site directory")
+    if out_dir.exists() or (site_dir / 'sitemap.xml').exists():
+        raise FileExistsError("Page set already exists; choose a fresh candidate directory")
+    # Validate documents before writing any page; a malformed URL must not leave
+    # a plausible-looking partial bundle.
+    for measure in measures:
+        official_documents_html(measure)
+    out_dir.mkdir()
 
     for m in measures:
-        (OUT_DIR / f"{m['id']}.html").write_text(build_page(m), encoding="utf-8")
+        (out_dir / f"{m['id']}.html").write_text(build_page(m), encoding="utf-8")
 
     today = date.today().isoformat()
     urls = [
@@ -224,9 +306,16 @@ def main():
         + "\n".join(urls)
         + "\n</urlset>\n"
     )
-    (ROOT / "sitemap.xml").write_text(sitemap, encoding="utf-8")
+    (site_dir / "sitemap.xml").write_text(sitemap, encoding="utf-8")
 
-    print(f"Wrote {len(measures)} pages to {OUT_DIR}/ and sitemap.xml ({len(urls)} URLs)")
+    print(f"Wrote {len(measures)} pages to {out_dir}/ and sitemap.xml ({len(urls)} URLs)")
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--site-dir", type=Path, required=True,
+                        help="Explicit candidate directory with JSON but no existing pages/sitemap")
+    build_site_pages(parser.parse_args().site_dir)
 
 
 if __name__ == "__main__":

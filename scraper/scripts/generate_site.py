@@ -63,6 +63,8 @@ def main(argv=None):
         action='store_true',
         help='Force regeneration even if no changes detected'
     )
+    parser.add_argument('--strict', action='store_true',
+                        help='Release build: fail if required enrichment inputs or computations fail')
     parser.add_argument(
         '--deploy',
         action='store_true',
@@ -173,7 +175,7 @@ def main(argv=None):
             prepare_upcoming_display_fields,
         )
         from src.website.local_measure_context import attach_local_historical_context
-        generator = WebsiteGenerator(database=Database(db_path), output_path=output_path)
+        generator = WebsiteGenerator(database=Database(db_path), output_path=output_path, strict=args.strict)
         
         # Prepare data for website
         # Convert measures to format needed by generator
@@ -214,6 +216,8 @@ def main(argv=None):
             if research_by_id:
                 logger.info(f"  Loaded research data for {len(research_by_id)} measures")
         except Exception as _e:
+            if args.strict:
+                raise RuntimeError('Required research projection failed') from _e
             logger.warning(f"  Could not load research data: {_e}")
 
         measures_for_website = []
@@ -310,6 +314,8 @@ def main(argv=None):
                 with open(meta_path) as _f:
                     emb_meta = _json.load(_f)
                 emb_ids = emb_meta.get('measure_ids', [])
+                if args.strict and (len(emb_ids) != len(embeddings) or not emb_ids):
+                    raise ValueError('Embedding metadata does not match the embedding matrix')
 
                 # Build id → index mapping and id → measure mapping
                 id_to_emb_idx = {str(mid): i for i, mid in enumerate(emb_ids)}
@@ -327,12 +333,18 @@ def main(argv=None):
                         hist_indices.append(idx)
                         hist_measures.append(m)
                 hist_embeddings = embeddings[hist_indices] if hist_indices else np.array([])
+                if args.strict and not hist_indices:
+                    raise ValueError('No historical embeddings available for release context')
 
                 logger.info(f"  Embedding similarity: {len(hist_indices)} historical measures with embeddings")
 
                 # Load model for pending measures
                 from sentence_transformers import SentenceTransformer
-                model = SentenceTransformer('all-MiniLM-L6-v2')
+                # An explicit local model makes recovery independent of a
+                # machine-specific Hugging Face cache. Default builds retain
+                # their existing cache lookup.
+                import os
+                model = SentenceTransformer(os.environ.get('CALBALLOT_EMBEDDING_MODEL', 'all-MiniLM-L6-v2'))
 
                 for m in measures_for_website:
                     year = int(m.get('year', 0))
@@ -423,9 +435,15 @@ def main(argv=None):
                     }
                     pending_context_count += 1
 
+            elif args.strict:
+                raise FileNotFoundError('Required embeddings.npz or embedding_metadata.json missing')
         except ImportError as e:
+            if args.strict:
+                raise RuntimeError('Required semantic context dependency missing') from e
             logger.warning(f"  Could not compute embedding similarity (missing dependency: {e}). Falling back to no context.")
         except Exception as e:
+            if args.strict:
+                raise RuntimeError('Required semantic context computation failed') from e
             logger.warning(f"  Error computing historical context: {e}")
 
         if pending_context_count:

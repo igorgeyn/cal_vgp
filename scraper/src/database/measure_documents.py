@@ -45,6 +45,28 @@ ROLE_LABELS = {
     "packet": "Measure packet",
 }
 
+# Reviewed against the archived PDF itself on 2026-10-08. The county lists
+# this same argument under both "Impartial" and "Argument For". Preserve raw
+# observations in SQLite; correct only the public interpretation of these exact
+# bytes. A different packet at this URL requires a fresh content review.
+SB_Z_ARGUMENT_URL = "https://uploads.rov.sbcounty.gov/ROV/Elections/2026/1103/Measures/SBCityUSD/AIF_SBCUSD.pdf"
+SB_Z_ARGUMENT_SHA256 = "297f20d5de893e76970be47c8f25f4cd66a69757ee5cea4fe762e8afa854631e"
+SB_Z_ROLE_NOTE = (
+    "This PDF contains the argument in favor. The county also links to it as an "
+    "impartial analysis; a separate impartial analysis has not been verified."
+)
+
+
+def apply_document_role_review(document: dict) -> None:
+    if document["source_url"] != SB_Z_ARGUMENT_URL or "analysis" not in document["roles"]:
+        return
+    if document["sha256"] != SB_Z_ARGUMENT_SHA256 or set(document["roles"]) != {"analysis", "argument_for"}:
+        raise ValueError("Reviewed Measure Z document changed; inspect its content before release")
+    document["source_roles"] = list(document["roles"])
+    document["roles"] = ["argument_for"]
+    document["role_review_note"] = SB_Z_ROLE_NOTE
+    document["role_reviewed_at"] = "2026-10-08"
+
 
 def has_documents_table(connection: sqlite3.Connection) -> bool:
     return connection.execute(
@@ -119,6 +141,7 @@ def documents_for_website(connection: sqlite3.Connection) -> dict[int, list[dict
     for measure_id, documents in grouped.items():
         for document in documents.values():
             document["roles"].sort(key=lambda role: (priority.get(role, 999), role))
+            apply_document_role_review(document)
             document["labels"] = [
                 ROLE_LABELS.get(role, role.replace("_", " ").capitalize())
                 for role in document["roles"]

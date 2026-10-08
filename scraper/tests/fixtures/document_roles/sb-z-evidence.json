@@ -1,0 +1,18 @@
+{
+  "inspected_at": "2026-10-08",
+  "measure_id": 12419,
+  "source_url": "https://uploads.rov.sbcounty.gov/ROV/Elections/2026/1103/Measures/SBCityUSD/AIF_SBCUSD.pdf",
+  "sha256": "297f20d5de893e76970be47c8f25f4cd66a69757ee5cea4fe762e8afa854631e",
+  "source_page": "https://elections.sbcounty.gov/elections/2026/1103/measures/",
+  "snapshot": "20260928T192225Z",
+  "pdf_page": 1,
+  "pdf_heading": "Argument in Favor of Measure Z",
+  "source_roles": [
+    "analysis",
+    "argument_for"
+  ],
+  "reviewed_roles": [
+    "argument_for"
+  ],
+  "reason": "The county page links the same advocacy PDF from Impartial and Argument For; no separate analysis is established by these links."
+}

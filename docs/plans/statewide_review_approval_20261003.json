@@ -1,0 +1,145 @@
+{
+  "review_sha256": "96da42cdfea40d9fcf74a15d072d6aafbae25639872464eb42cefc80709da6f6",
+  "election_date": "2026-11-03",
+  "review_path": "scraper/tests/fixtures/statewide/20260913/review-corrections.json",
+  "basis": "Scoped identity evidence reviewed in statewide_part1_review_response_20260913.md; this is an input integrity pin, not publication approval.",
+  "identity_crosswalk": [
+    {
+      "proposition_number": 1,
+      "existing_id": null,
+      "canonical_id": "PROP_1_2026",
+      "identity_evidence": [
+        "qualified.html: Proposition 1 links directly to the captured prop-1.html page; that page confirms number, election date, and official title.",
+        "All existing CA_SOS current/future rows (including inactive and duplicates) audited. No matching canonical record; add once. Similar policy subjects do not establish identity."
+      ]
+    },
+    {
+      "proposition_number": 2,
+      "existing_id": null,
+      "canonical_id": "PROP_2_2026",
+      "identity_evidence": [
+        "qualified.html: Proposition 2 links directly to the captured prop-2.html page; that page confirms number, election date, and official title.",
+        "All existing CA_SOS current/future rows (including inactive and duplicates) audited. No matching canonical record; add once. Similar policy subjects do not establish identity."
+      ]
+    },
+    {
+      "proposition_number": 3,
+      "existing_id": 10960,
+      "canonical_id": "INIT_1993",
+      "identity_evidence": [
+        "qualified.html: Proposition 3 links directly to the captured prop-3.html page; that page confirms number, election date, and official title.",
+        "eligible.html explicitly maps SOS initiative 1993 to Attorney General 25-0016. initiative-25-0016.pdf and prop-3-law.pdf carry the same formal California Children’s Education and Health Care Protection Act of 2026 and Article XIII Section 36 amendment. This supports existing canonical INIT_1993, independently of title similarity.",
+        "Existing id 10960 has stale INIT_2012 fingerprints despite canonical INIT_1993. Preserve all three legacy keys; do not regenerate them."
+      ]
+    },
+    {
+      "proposition_number": 4,
+      "existing_id": 10956,
+      "canonical_id": "SB_42",
+      "identity_evidence": [
+        "qualified.html: Proposition 4 links directly to the captured prop-4.html page; that page confirms number, election date, and official title.",
+        "prop-4-law.pdf, printed p.115: Proposition 4 was proposed by SB 42, Chapter 245, Statutes of 2025; California Fair Elections Act of 2026. Matches id 10956 canonical SB_42 and its existing sb-42.pdf source."
+      ]
+    },
+    {
+      "proposition_number": 5,
+      "existing_id": 2,
+      "canonical_id": "SCA 1 (Newman) Elections: recall of state officers",
+      "identity_evidence": [
+        "qualified.html: Proposition 5 links directly to the captured prop-5.html page; that page confirms number, election date, and official title.",
+        "prop-5-law.pdf, printed p.118: Proposition 5 was proposed by SCA 1, Resolution Chapter 204, Statutes of 2024. Matches id 2 and its existing sca-1-24.pdf source."
+      ]
+    },
+    {
+      "proposition_number": 37,
+      "existing_id": null,
+      "canonical_id": "PROP_37_2026",
+      "identity_evidence": [
+        "qualified.html: Proposition 37 links directly to the captured prop-37.html page; that page confirms number, election date, and official title.",
+        "All existing CA_SOS current/future rows (including inactive and duplicates) audited. No matching canonical record; add once. Similar policy subjects do not establish identity."
+      ]
+    },
+    {
+      "proposition_number": 38,
+      "existing_id": null,
+      "canonical_id": "PROP_38_2026",
+      "identity_evidence": [
+        "qualified.html: Proposition 38 links directly to the captured prop-38.html page; that page confirms number, election date, and official title.",
+        "All existing CA_SOS current/future rows (including inactive and duplicates) audited. No matching canonical record; add once. Similar policy subjects do not establish identity."
+      ]
+    },
+    {
+      "proposition_number": 39,
+      "existing_id": null,
+      "canonical_id": "PROP_39_2026",
+      "identity_evidence": [
+        "qualified.html: Proposition 39 links directly to the captured prop-39.html page; that page confirms number, election date, and official title.",
+        "All existing CA_SOS current/future rows (including inactive and duplicates) audited. No matching canonical record; add once. Similar policy subjects do not establish identity."
+      ]
+    },
+    {
+      "proposition_number": 40,
+      "existing_id": null,
+      "canonical_id": "PROP_40_2026",
+      "identity_evidence": [
+        "qualified.html: Proposition 40 links directly to the captured prop-40.html page; that page confirms number, election date, and official title.",
+        "All existing CA_SOS current/future rows (including inactive and duplicates) audited. No matching canonical record; add once. Similar policy subjects do not establish identity."
+      ]
+    },
+    {
+      "proposition_number": 41,
+      "existing_id": null,
+      "canonical_id": "PROP_41_2026",
+      "identity_evidence": [
+        "qualified.html: Proposition 41 links directly to the captured prop-41.html page; that page confirms number, election date, and official title.",
+        "All existing CA_SOS current/future rows (including inactive and duplicates) audited. No matching canonical record; add once. Similar policy subjects do not establish identity."
+      ]
+    },
+    {
+      "proposition_number": 42,
+      "existing_id": null,
+      "canonical_id": "PROP_42_2026",
+      "identity_evidence": [
+        "qualified.html: Proposition 42 links directly to the captured prop-42.html page; that page confirms number, election date, and official title.",
+        "All existing CA_SOS current/future rows (including inactive and duplicates) audited. No matching canonical record; add once. Similar policy subjects do not establish identity."
+      ]
+    },
+    {
+      "proposition_number": 43,
+      "existing_id": null,
+      "canonical_id": "PROP_43_2026",
+      "identity_evidence": [
+        "qualified.html: Proposition 43 links directly to the captured prop-43.html page; that page confirms number, election date, and official title.",
+        "All existing CA_SOS current/future rows (including inactive and duplicates) audited. No matching canonical record; add once. Similar policy subjects do not establish identity."
+      ]
+    },
+    {
+      "proposition_number": 44,
+      "existing_id": null,
+      "canonical_id": "PROP_44_2026",
+      "identity_evidence": [
+        "qualified.html: Proposition 44 links directly to the captured prop-44.html page; that page confirms number, election date, and official title.",
+        "All existing CA_SOS current/future rows (including inactive and duplicates) audited. No matching canonical record; add once. Similar policy subjects do not establish identity."
+      ]
+    },
+    {
+      "proposition_number": 45,
+      "existing_id": null,
+      "canonical_id": "PROP_45_2026",
+      "identity_evidence": [
+        "qualified.html: Proposition 45 links directly to the captured prop-45.html page; that page confirms number, election date, and official title.",
+        "All existing CA_SOS current/future rows (including inactive and duplicates) audited. No matching canonical record; add once. Similar policy subjects do not establish identity."
+      ]
+    }
+  ],
+  "withdrawal": {
+    "id": 1,
+    "canonical_id": "ACA 13 (Ward) Voting thresholds. (Res. Ch. 176, 20",
+    "identity_evidence": [
+      "qualified.html: ACA 13 (Resolution Chapter 176, 2023) removed June 25, 2026 pursuant to ACA 21 (Resolution Chapter 131, 2026).",
+      "aca-21.pdf directs withdrawal from consideration. Preserve the existing record, canonical keys, null raw election date, editorial content, and public archive visibility. Record withdrawn status for the 2026-11-03 slate; no future election assigned."
+    ],
+    "withdrawn_on": "2026-06-25",
+    "status_reason": "ACA 13 was removed from the November 3, 2026 ballot on June 25, 2026 pursuant to ACA 21 (Resolution Chapter 131, 2026)."
+  }
+}

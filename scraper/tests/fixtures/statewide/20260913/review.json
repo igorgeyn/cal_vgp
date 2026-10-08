@@ -1,0 +1,603 @@
+{
+  "schema_version": 1,
+  "election_date": "2026-11-03",
+  "reviewer": "Codex; isolated candidate, pending release review",
+  "reviewed_at": "2026-09-13T21:56:38.649090+00:00",
+  "captured_at": "2026-09-13T21:52:35.053329+00:00",
+  "artifacts": [
+    {
+      "file": "qualified.html",
+      "url": "https://www.sos.ca.gov/elections/ballot-measures/qualified-ballot-measures",
+      "final_url": "https://www.sos.ca.gov/elections/ballot-measures/qualified-ballot-measures",
+      "fetched_at": "2026-09-13T21:51:24.955252+00:00",
+      "content_type": "text/html",
+      "sha256": "3f935462629529652147d14b593441d82ee9de2843059cbedc369e6df95f231b",
+      "bytes": 67341
+    },
+    {
+      "file": "voter-guide.html",
+      "url": "https://voterguide.sos.ca.gov/propositions/",
+      "final_url": "https://voterguide.sos.ca.gov/propositions/",
+      "fetched_at": "2026-09-13T21:51:27.256411+00:00",
+      "content_type": "text/html",
+      "sha256": "b5605bfdcfd7dadc71ffe2082b15414a9e72454823f31859f224c4ebf51c7a4a",
+      "bytes": 12765
+    },
+    {
+      "file": "prop-1.html",
+      "url": "https://voterguide.sos.ca.gov/propositions/1/index.htm",
+      "final_url": "https://voterguide.sos.ca.gov/propositions/1/index.htm",
+      "fetched_at": "2026-09-13T21:51:29.155589+00:00",
+      "content_type": "text/html",
+      "sha256": "9f65e610325f0950d06ce39d3d158ab6964d45591e933e3de305bfc0dabbd683",
+      "bytes": 15138
+    },
+    {
+      "file": "prop-2.html",
+      "url": "https://voterguide.sos.ca.gov/propositions/2/index.htm",
+      "final_url": "https://voterguide.sos.ca.gov/propositions/2/index.htm",
+      "fetched_at": "2026-09-13T21:51:31.192903+00:00",
+      "content_type": "text/html",
+      "sha256": "40d0bba45bbb7faa9ce0a0c3e1db5fa4f6209642856162deaeca275d7ba2b812",
+      "bytes": 15648
+    },
+    {
+      "file": "prop-2-law.pdf",
+      "url": "https://vig.cdn.sos.ca.gov/2026/general/pdf/prop2-text-proposed-laws.pdf",
+      "final_url": "https://vig.cdn.sos.ca.gov/2026/general/pdf/prop2-text-proposed-laws.pdf",
+      "fetched_at": "2026-09-13T21:51:33.250610+00:00",
+      "content_type": "application/pdf",
+      "sha256": "2db2dd8fab47c6aff35343d7481c8aa04869bb0f9c785554f105f6312692e74c",
+      "bytes": 95567
+    },
+    {
+      "file": "prop-3.html",
+      "url": "https://voterguide.sos.ca.gov/propositions/3/index.htm",
+      "final_url": "https://voterguide.sos.ca.gov/propositions/3/index.htm",
+      "fetched_at": "2026-09-13T21:51:34.446054+00:00",
+      "content_type": "text/html",
+      "sha256": "f6289feaa0abb3b4736c8f397ad6f29be1290f5874938feafc7ff3d4da559926",
+      "bytes": 15748
+    },
+    {
+      "file": "prop-3-law.pdf",
+      "url": "https://vig.cdn.sos.ca.gov/2026/general/pdf/prop3-text-proposed-laws.pdf",
+      "final_url": "https://vig.cdn.sos.ca.gov/2026/general/pdf/prop3-text-proposed-laws.pdf",
+      "fetched_at": "2026-09-13T21:51:35.293527+00:00",
+      "content_type": "application/pdf",
+      "sha256": "6df0061d0b7af757a09fbf360c7eba725f9df11c24135f3825cbaab2eebc4978",
+      "bytes": 85182
+    },
+    {
+      "file": "prop-37.html",
+      "url": "https://voterguide.sos.ca.gov/propositions/37/index.htm",
+      "final_url": "https://voterguide.sos.ca.gov/propositions/37/index.htm",
+      "fetched_at": "2026-09-13T21:51:36.868333+00:00",
+      "content_type": "text/html",
+      "sha256": "e4920f72c40d235c0673e561c5794de49a8d352a27d245044d651543f45e640c",
+      "bytes": 15123
+    },
+    {
+      "file": "prop-38.html",
+      "url": "https://voterguide.sos.ca.gov/propositions/38/index.htm",
+      "final_url": "https://voterguide.sos.ca.gov/propositions/38/index.htm",
+      "fetched_at": "2026-09-13T21:51:38.857835+00:00",
+      "content_type": "text/html",
+      "sha256": "1525a724eaeb8db06ccda7662d2c4e55480f5a9dd39064a47e60c2e9ee8b4642",
+      "bytes": 16071
+    },
+    {
+      "file": "prop-39.html",
+      "url": "https://voterguide.sos.ca.gov/propositions/39/index.htm",
+      "final_url": "https://voterguide.sos.ca.gov/propositions/39/index.htm",
+      "fetched_at": "2026-09-13T21:51:40.848104+00:00",
+      "content_type": "text/html",
+      "sha256": "c7ede95c8c14acd9667fb31002e41dec210f08198c568d9b1ec5b8733d3cf402",
+      "bytes": 15611
+    },
+    {
+      "file": "prop-4.html",
+      "url": "https://voterguide.sos.ca.gov/propositions/4/index.htm",
+      "final_url": "https://voterguide.sos.ca.gov/propositions/4/index.htm",
+      "fetched_at": "2026-09-13T21:51:42.976712+00:00",
+      "content_type": "text/html",
+      "sha256": "0a9e70bda3e68f232d7cd3fefb3a95963cb5a966f8814f1a29e3ccd155f3ab65",
+      "bytes": 15928
+    },
+    {
+      "file": "prop-4-law.pdf",
+      "url": "https://vig.cdn.sos.ca.gov/2026/general/pdf/prop4-text-proposed-laws.pdf",
+      "final_url": "https://vig.cdn.sos.ca.gov/2026/general/pdf/prop4-text-proposed-laws.pdf",
+      "fetched_at": "2026-09-13T21:51:43.083284+00:00",
+      "content_type": "application/pdf",
+      "sha256": "d99518df7425e3d264f9fadb8dc669926414ce41387ae7364e8961de97693dae",
+      "bytes": 67422
+    },
+    {
+      "file": "prop-40.html",
+      "url": "https://voterguide.sos.ca.gov/propositions/40/index.htm",
+      "final_url": "https://voterguide.sos.ca.gov/propositions/40/index.htm",
+      "fetched_at": "2026-09-13T21:51:45.004328+00:00",
+      "content_type": "text/html",
+      "sha256": "aae0c49485991e5b58115caada830fdce9743c6bcfaa6d88343f36195c216c83",
+      "bytes": 16007
+    },
+    {
+      "file": "prop-41.html",
+      "url": "https://voterguide.sos.ca.gov/propositions/41/index.htm",
+      "final_url": "https://voterguide.sos.ca.gov/propositions/41/index.htm",
+      "fetched_at": "2026-09-13T21:51:47.030656+00:00",
+      "content_type": "text/html",
+      "sha256": "85785776b6ade1941135d8bdffb0e46bcccdede3b18cd97be5efcd700d6d5c0a",
+      "bytes": 16335
+    },
+    {
+      "file": "prop-42.html",
+      "url": "https://voterguide.sos.ca.gov/propositions/42/index.htm",
+      "final_url": "https://voterguide.sos.ca.gov/propositions/42/index.htm",
+      "fetched_at": "2026-09-13T21:51:48.876375+00:00",
+      "content_type": "text/html",
+      "sha256": "0ec9d6ad521899f8179931fc38fcd3fff757bd1fdf33512642c5966ddc8a8f47",
+      "bytes": 15964
+    },
+    {
+      "file": "prop-43.html",
+      "url": "https://voterguide.sos.ca.gov/propositions/43/index.htm",
+      "final_url": "https://voterguide.sos.ca.gov/propositions/43/index.htm",
+      "fetched_at": "2026-09-13T21:51:50.857781+00:00",
+      "content_type": "text/html",
+      "sha256": "8b115012c594c7709534befe7320b4dbfaa5d6f8017523d7bf58cceb0484a738",
+      "bytes": 15889
+    },
+    {
+      "file": "prop-44.html",
+      "url": "https://voterguide.sos.ca.gov/propositions/44/index.htm",
+      "final_url": "https://voterguide.sos.ca.gov/propositions/44/index.htm",
+      "fetched_at": "2026-09-13T21:51:52.843628+00:00",
+      "content_type": "text/html",
+      "sha256": "a372d89d31875663ee2b6e69561ab391dc1570845d06f95d73f07327e9ee2db8",
+      "bytes": 15893
+    },
+    {
+      "file": "prop-45.html",
+      "url": "https://voterguide.sos.ca.gov/propositions/45/index.htm",
+      "final_url": "https://voterguide.sos.ca.gov/propositions/45/index.htm",
+      "fetched_at": "2026-09-13T21:51:54.979797+00:00",
+      "content_type": "text/html",
+      "sha256": "d3be0492f60a82bcede0c4f288cde56f06539697293bc4a0205932c31831503a",
+      "bytes": 16388
+    },
+    {
+      "file": "prop-5.html",
+      "url": "https://voterguide.sos.ca.gov/propositions/5/index.htm",
+      "final_url": "https://voterguide.sos.ca.gov/propositions/5/index.htm",
+      "fetched_at": "2026-09-13T21:51:56.842877+00:00",
+      "content_type": "text/html",
+      "sha256": "a26eb5ca1af445dddc479f1fe56f775148d162a53f00a1cde97a59a816fccfba",
+      "bytes": 15504
+    },
+    {
+      "file": "prop-5-law.pdf",
+      "url": "https://vig.cdn.sos.ca.gov/2026/general/pdf/prop5-text-proposed-laws.pdf",
+      "final_url": "https://vig.cdn.sos.ca.gov/2026/general/pdf/prop5-text-proposed-laws.pdf",
+      "fetched_at": "2026-09-13T21:51:56.920641+00:00",
+      "content_type": "application/pdf",
+      "sha256": "8ba2b6327a12a45ce29641b82932170f6cb785336b47fa786bb3b46dbc1bc096",
+      "bytes": 44391
+    },
+    {
+      "file": "aca-21.pdf",
+      "url": "https://elections.cdn.sos.ca.gov/ballot-measures/pdf/aca-21.pdf",
+      "final_url": "https://elections.cdn.sos.ca.gov/ballot-measures/pdf/aca-21.pdf",
+      "fetched_at": "2026-09-13T21:51:59.628580+00:00",
+      "content_type": "application/pdf",
+      "sha256": "165b4f3548d583de47790e75216c0a2fc9df10c29f17d551a02a0f432392b373",
+      "bytes": 51055
+    },
+    {
+      "file": "eligible.html",
+      "url": "https://www.sos.ca.gov/elections/ballot-measures/initiative-and-referendum-status/eligible-statewide-initiative-measures",
+      "final_url": "https://www.sos.ca.gov/elections/ballot-measures/initiative-and-referendum-status/eligible-statewide-initiative-measures",
+      "fetched_at": "2026-09-13T21:52:32.364405+00:00",
+      "content_type": "text/html",
+      "bytes": 80665,
+      "sha256": "cf0120cda6e928c3a3cdb18f0cfba37d4aee0912baea4643a6bdd13b392b312c"
+    },
+    {
+      "file": "initiative-25-0016.pdf",
+      "url": "https://oag.ca.gov/system/files/initiatives/pdfs/25-0016%20%28%26quot%3BThe%20California%20Children%26%23039%3Bs%20Education%20and%20Health%20Care%20Protection%20Act%20of%202026%26quot%3B%29.pdf",
+      "final_url": "https://oag.ca.gov/system/files/initiatives/pdfs/25-0016%20%28%26quot%3BThe%20California%20Children%26%23039%3Bs%20Education%20and%20Health%20Care%20Protection%20Act%20of%202026%26quot%3B%29.pdf",
+      "fetched_at": "2026-09-13T21:52:35.053329+00:00",
+      "content_type": "application/pdf",
+      "bytes": 1702477,
+      "sha256": "f786fb537d889cc70da9f4e8a7efec0cd7a8d5d50101e783e1a8d62d3853e70d"
+    }
+  ],
+  "before_sha256": {
+    "1": "a96553c4b5472fc1f79b1556996dfb837f2450cf80cabc99d7150577e9c79322",
+    "2": "bc68aeaed4b66c17582b748611a9d9699fc4badc860dd9d87952abe35d2238f5",
+    "3": "afc621c29286fad457bb977039bea115a84f010b682390838850f5bfc024b839",
+    "1365": "a52addc579a9d9a5343fb6a88089582efedd53212ef9e2433fb8a6ef62a94f21",
+    "1366": "8d0ce9e6bfa4a1bf6ec19adaafec70611a994be7cc21d3afffedab5ae52144dd",
+    "1367": "aea3021c3f41224290013186a95799d37a618e5ecedae527cdfc8e9a416bcd03",
+    "10918": "916f60ad8e05de6336bbf62a4813fc1c01f5e72799441d01bad73b257ddd4a9c",
+    "10919": "8a6af367eb5d48520183f91f687dce5c38ddf6f536d2f1add37d04953adf37d0",
+    "10920": "b26b273ecd17e45202997ac0e71863736212e7b4e25e74cc347254ef398a0ba9",
+    "10956": "fbe9c66ba1097f15302240c6d01ee3686d671dfd453ba8e26c0458872942f156",
+    "10957": "57f0e26ecf325c0c75a3f21eccf911a96ef4fcc04fbac58e553cf7ca23d93e6c",
+    "10958": "e77269f5938d4a4c53ed99634fbaa4dc900970ef6d62286b8674e3403927d904",
+    "10959": "72d3c74cfb9401bbf5467e17fc80f3248171dba650d0158144fe0015c38486e9",
+    "10960": "d969d0c77f910f4f9661b937c89ed61a3e7b9cd353daa0e5763af07c4dd2d39d",
+    "10961": "7ec95ef25679b56085bbb98dada672d8e938ce21d753f247bf6b0fd71f844ef9",
+    "10962": "43ad87c9f89d9050525dcf9a968f0602f807d71f4468ca6d8dacfda96b24bb93",
+    "10963": "66aa6ab506eec4156dee67ae67d1fd36bc7c69b0c85902fb63e18373bb18d8b4",
+    "10964": "db1d6c589353101ef6772b65332c385a7d8a41a435ca19ad11f7925d48e7b0fd",
+    "10965": "3d5878d4e78a49669a78f4cf241611c5cf80806d0dd4d773b19feb81a181f165",
+    "10966": "0c5dea4ba4c1a285f968ebad9952218a144c504d4f05982b7c6397aab782c909",
+    "10967": "74f4e735a679c50c53424eafa09306868924c01c32c178ad3817c3cab25fd5c7",
+    "10968": "83b1cec3fdc16095110bab80c1904334508726805f2d3ef32942e75c0cf6ed86"
+  },
+  "entries": [
+    {
+      "proposition_number": 1,
+      "official_title": "Authorizes Bonds for Housing Affordability Programs. Legislative Statute.",
+      "source_url": "https://voterguide.sos.ca.gov/propositions/1/index.htm",
+      "category_type": "Legislative Statute",
+      "election_date": "2026-11-03",
+      "description": "Authorizes $11.25 billion in state general obligation bonds for housing affordability programs, including multifamily rental housing, mortgages for veterans, supportive housing, preservation of existing affordable housing, and downpayment assistance.",
+      "existing_id": null,
+      "canonical_id": "PROP_1",
+      "identity_evidence": [
+        "qualified.html: Proposition 1 links directly to the captured prop-1.html page; that page confirms number, election date, and official title.",
+        "All existing CA_SOS current/future rows (including inactive and duplicates) audited. No matching canonical record; add once. Similar policy subjects do not establish identity."
+      ]
+    },
+    {
+      "proposition_number": 2,
+      "official_title": "Increases State’s Rainy Day Fund. Legislative Constitutional Amendment.",
+      "source_url": "https://voterguide.sos.ca.gov/propositions/2/index.htm",
+      "category_type": "Legislative Constitutional Amendment",
+      "election_date": "2026-11-03",
+      "description": "Increases California's Rainy Day Fund, approved by voters in 2014, to provide funding for education, health care, public safety, and other essential services during economic downturns.",
+      "existing_id": null,
+      "canonical_id": "PROP_2",
+      "identity_evidence": [
+        "qualified.html: Proposition 2 links directly to the captured prop-2.html page; that page confirms number, election date, and official title.",
+        "All existing CA_SOS current/future rows (including inactive and duplicates) audited. No matching canonical record; add once. Similar policy subjects do not establish identity."
+      ]
+    },
+    {
+      "proposition_number": 3,
+      "official_title": "Provides Permanent Funding for Schools and Health Care by Extending Existing Tax on High Incomes. Initiative Constitutional Amendment.",
+      "source_url": "https://voterguide.sos.ca.gov/propositions/3/index.htm",
+      "category_type": "Initiative Constitutional Amendment",
+      "election_date": "2026-11-03",
+      "description": "Makes permanent existing voter-approved tax rates for individuals earning over $371,000 (adjusted annually for inflation). Allocates tax revenues to public education.",
+      "existing_id": 10960,
+      "canonical_id": "INIT_1993",
+      "identity_evidence": [
+        "qualified.html: Proposition 3 links directly to the captured prop-3.html page; that page confirms number, election date, and official title.",
+        "eligible.html explicitly maps SOS initiative 1993 to Attorney General 25-0016. initiative-25-0016.pdf and prop-3-law.pdf carry the same formal California Children’s Education and Health Care Protection Act of 2026 and Article XIII Section 36 amendment. This supports existing canonical INIT_1993, independently of title similarity.",
+        "Existing id 10960 has stale INIT_2012 fingerprints despite canonical INIT_1993. Preserve all three legacy keys; do not regenerate them."
+      ]
+    },
+    {
+      "proposition_number": 4,
+      "official_title": "Repeals Prohibition Against Public Funding of Election Campaigns. Legislative Statute.",
+      "source_url": "https://voterguide.sos.ca.gov/propositions/4/index.htm",
+      "category_type": "Legislative Statute",
+      "election_date": "2026-11-03",
+      "description": "Repeals prohibition on state and local governments offering public funding of candidate election campaigns. Public funding programs may not use funds earmarked for education, transportation, or public safety.",
+      "existing_id": 10956,
+      "canonical_id": "SB_42",
+      "identity_evidence": [
+        "qualified.html: Proposition 4 links directly to the captured prop-4.html page; that page confirms number, election date, and official title.",
+        "prop-4-law.pdf, printed p.115: Proposition 4 was proposed by SB 42, Chapter 245, Statutes of 2025; California Fair Elections Act of 2026. Matches id 10956 canonical SB_42 and its existing sb-42.pdf source."
+      ]
+    },
+    {
+      "proposition_number": 5,
+      "official_title": "Changes Recall Election Process for Statewide Officers. Legislative Constitutional Amendment.",
+      "source_url": "https://voterguide.sos.ca.gov/propositions/5/index.htm",
+      "category_type": "Legislative Constitutional Amendment",
+      "election_date": "2026-11-03",
+      "description": "Under current law, voters elect replacement candidates at the same time as the recall election. This measure instead fills recall vacancies by subsequent special election or appointment.",
+      "existing_id": 2,
+      "canonical_id": "SCA 1 (Newman) Elections: recall of state officers",
+      "identity_evidence": [
+        "qualified.html: Proposition 5 links directly to the captured prop-5.html page; that page confirms number, election date, and official title.",
+        "prop-5-law.pdf, printed p.118: Proposition 5 was proposed by SCA 1, Resolution Chapter 204, Statutes of 2024. Matches id 2 and its existing sca-1-24.pdf source."
+      ]
+    },
+    {
+      "proposition_number": 37,
+      "official_title": "Creates Loan Program for Middle-Income Buyers of Qualified New Homes. Initiative Statute.",
+      "source_url": "https://voterguide.sos.ca.gov/propositions/37/index.htm",
+      "category_type": "Initiative Statute",
+      "election_date": "2026-11-03",
+      "description": "Authorizes $25 billion in bonds to offer eligible buyers fixed-rate mortgages for up to 17% of purchase price of a newly constructed home priced below about $1.5 million. Borrowers must be California residents, occupy the home, meet income limits, and pay at least 3% down. Bonds repaid by mortgage payments, not State.",
+      "existing_id": null,
+      "canonical_id": "PROP_37",
+      "identity_evidence": [
+        "qualified.html: Proposition 37 links directly to the captured prop-37.html page; that page confirms number, election date, and official title.",
+        "All existing CA_SOS current/future rows (including inactive and duplicates) audited. No matching canonical record; add once. Similar policy subjects do not establish identity."
+      ]
+    },
+    {
+      "proposition_number": 38,
+      "official_title": "Authorizes Bonds for Immunology Medical Research. Initiative Statute.",
+      "source_url": "https://voterguide.sos.ca.gov/propositions/38/index.htm",
+      "category_type": "Initiative Statute",
+      "election_date": "2026-11-03",
+      "description": "Authorizes $8.4 billion in general obligation bonds for immunology and immunotherapy research, half to a single University of California-affiliated nonprofit medical research institute, half to research grants.",
+      "existing_id": null,
+      "canonical_id": "PROP_38",
+      "identity_evidence": [
+        "qualified.html: Proposition 38 links directly to the captured prop-38.html page; that page confirms number, election date, and official title.",
+        "All existing CA_SOS current/future rows (including inactive and duplicates) audited. No matching canonical record; add once. Similar policy subjects do not establish identity."
+      ]
+    },
+    {
+      "proposition_number": 39,
+      "official_title": "Prohibits Citizens from Voting Unless They Present Government-Issued Identification. Initiative Constitutional Amendment.",
+      "source_url": "https://voterguide.sos.ca.gov/propositions/39/index.htm",
+      "category_type": "Initiative Constitutional Amendment",
+      "election_date": "2026-11-03",
+      "description": "Invalidates mail ballots that do not have last four digits of designated government-issued identification number written on envelope. Prohibits in-person voting without presenting government-issued identification.",
+      "existing_id": null,
+      "canonical_id": "PROP_39",
+      "identity_evidence": [
+        "qualified.html: Proposition 39 links directly to the captured prop-39.html page; that page confirms number, election date, and official title.",
+        "All existing CA_SOS current/future rows (including inactive and duplicates) audited. No matching canonical record; add once. Similar policy subjects do not establish identity."
+      ]
+    },
+    {
+      "proposition_number": 40,
+      "official_title": "Imposes One-Time Tax on Certain Taxpayers. Initiative Constitutional Amendment and Statute.",
+      "source_url": "https://voterguide.sos.ca.gov/propositions/40/index.htm",
+      "category_type": "Initiative Constitutional Amendment and Statute",
+      "election_date": "2026-11-03",
+      "description": "Imposes 5% tax on certain taxpayers with assets over $1 billion; revenue primarily for health care. Exempts revenues from constitutional requirements for school funding and spending limit.",
+      "existing_id": null,
+      "canonical_id": "PROP_40",
+      "identity_evidence": [
+        "qualified.html: Proposition 40 links directly to the captured prop-40.html page; that page confirms number, election date, and official title.",
+        "All existing CA_SOS current/future rows (including inactive and duplicates) audited. No matching canonical record; add once. Similar policy subjects do not establish identity."
+      ]
+    },
+    {
+      "proposition_number": 41,
+      "official_title": "Prohibits New State Taxes That Exclude Revenues from State Spending Limit. Requires Audits for New State Special Taxes. Initiative Constitutional Amendment.",
+      "source_url": "https://voterguide.sos.ca.gov/propositions/41/index.htm",
+      "category_type": "Initiative Constitutional Amendment",
+      "election_date": "2026-11-03",
+      "description": "Nullifies state taxes enacted after January 1, 2026 that exempt their revenues from voter-approved state spending limit. Requires pre-election and recurring audits of programs funded by new special taxes.",
+      "existing_id": null,
+      "canonical_id": "PROP_41",
+      "identity_evidence": [
+        "qualified.html: Proposition 41 links directly to the captured prop-41.html page; that page confirms number, election date, and official title.",
+        "All existing CA_SOS current/future rows (including inactive and duplicates) audited. No matching canonical record; add once. Similar policy subjects do not establish identity."
+      ]
+    },
+    {
+      "proposition_number": 42,
+      "official_title": "Prohibits New State Personal Property Taxes and Certain Retroactive State Taxes. Initiative Constitutional Amendment.",
+      "source_url": "https://voterguide.sos.ca.gov/propositions/42/index.htm",
+      "category_type": "Initiative Constitutional Amendment",
+      "election_date": "2026-11-03",
+      "description": "Prohibits any new state tax (1) imposed on the ownership of personal property (all things people own other than real estate), or (2) that applies retroactively based on taxpayer’s past activities. Nullifies taxes enacted after January 1, 2026 that conflict with this measure.",
+      "existing_id": null,
+      "canonical_id": "PROP_42",
+      "identity_evidence": [
+        "qualified.html: Proposition 42 links directly to the captured prop-42.html page; that page confirms number, election date, and official title.",
+        "All existing CA_SOS current/future rows (including inactive and duplicates) audited. No matching canonical record; add once. Similar policy subjects do not establish identity."
+      ]
+    },
+    {
+      "proposition_number": 43,
+      "official_title": "Limits Voters’ Ability to Raise Revenues for Local Government Services. Legislative Constitutional Amendment.",
+      "source_url": "https://voterguide.sos.ca.gov/propositions/43/index.htm",
+      "category_type": "Legislative Constitutional Amendment",
+      "election_date": "2026-11-03",
+      "description": "Limits voters’ ability to pass voter-proposed local special taxes by increasing percentage of votes needed to approve such ballot measures from a majority (over 50%) to two-thirds, beginning January 1, 2027.",
+      "existing_id": null,
+      "canonical_id": "PROP_43",
+      "identity_evidence": [
+        "qualified.html: Proposition 43 links directly to the captured prop-43.html page; that page confirms number, election date, and official title.",
+        "All existing CA_SOS current/future rows (including inactive and duplicates) audited. No matching canonical record; add once. Similar policy subjects do not establish identity."
+      ]
+    },
+    {
+      "proposition_number": 44,
+      "official_title": "Requires Community Health Clinics Spend 90% Of Revenue on Program Services. Initiative Statute.",
+      "source_url": "https://voterguide.sos.ca.gov/propositions/44/index.htm",
+      "category_type": "Initiative Statute",
+      "election_date": "2026-11-03",
+      "description": "Imposes penalties on nonprofit Federally Qualified Health Centers (community clinics providing primary care to medically underserved areas and populations) that spend less than 90% of revenue on “program services” advancing their charitable purpose, including but not limited to patient services.",
+      "existing_id": null,
+      "canonical_id": "PROP_44",
+      "identity_evidence": [
+        "qualified.html: Proposition 44 links directly to the captured prop-44.html page; that page confirms number, election date, and official title.",
+        "All existing CA_SOS current/future rows (including inactive and duplicates) audited. No matching canonical record; add once. Similar policy subjects do not establish identity."
+      ]
+    },
+    {
+      "proposition_number": 45,
+      "official_title": "Modifies Environmental Review for Certain Projects. Initiative Statute.",
+      "source_url": "https://voterguide.sos.ca.gov/propositions/45/index.htm",
+      "category_type": "Initiative Statute",
+      "election_date": "2026-11-03",
+      "description": "Amends California Environmental Quality Act (CEQA) to expedite environmental review for certain projects (including most housing, transportation, water, and health projects) by setting deadlines to complete environmental review and resolve lawsuits challenging project approvals.",
+      "existing_id": null,
+      "canonical_id": "PROP_45",
+      "identity_evidence": [
+        "qualified.html: Proposition 45 links directly to the captured prop-45.html page; that page confirms number, election date, and official title.",
+        "All existing CA_SOS current/future rows (including inactive and duplicates) audited. No matching canonical record; add once. Similar policy subjects do not establish identity."
+      ]
+    }
+  ],
+  "withdrawal": {
+    "id": 1,
+    "canonical_id": "ACA 13 (Ward) Voting thresholds. (Res. Ch. 176, 20",
+    "identity_evidence": [
+      "qualified.html: ACA 13 (Resolution Chapter 176, 2023) removed June 25, 2026 pursuant to ACA 21 (Resolution Chapter 131, 2026).",
+      "aca-21.pdf directs withdrawal from consideration. Keep the existing record, canonical keys, null election date, and editorial content; set is_active=0 and record withdrawn assignment for 2026-11-03. No future election assigned."
+    ]
+  },
+  "dispositions": {
+    "1": {
+      "canonical_id": "ACA 13 (Ward) Voting thresholds. (Res. Ch. 176, 20",
+      "is_active": 1,
+      "is_duplicate": 0,
+      "master_id": null,
+      "action": "Withdraw from active slate; retain row and evidence."
+    },
+    "2": {
+      "canonical_id": "SCA 1 (Newman) Elections: recall of state officers",
+      "is_active": 1,
+      "is_duplicate": 0,
+      "master_id": null,
+      "action": "Match Proposition 5; preserve integer ID and all canonical keys."
+    },
+    "3": {
+      "canonical_id": "Assembly Bill 440, Chapter 82, Statutes of 2024",
+      "is_active": 0,
+      "is_duplicate": 0,
+      "master_id": null,
+      "action": "Leave inactive AB 440 (2024) untouched. No current official assignment to this bill; Proposition 2 is ACA 20 (2026), not AB 440."
+    },
+    "1365": {
+      "canonical_id": "ACA_13",
+      "is_active": 0,
+      "is_duplicate": 1,
+      "master_id": 1,
+      "action": "Leave inactive duplicate untouched; master_id=1."
+    },
+    "1366": {
+      "canonical_id": "SCA_1",
+      "is_active": 0,
+      "is_duplicate": 1,
+      "master_id": 2,
+      "action": "Leave inactive duplicate untouched; master_id=2."
+    },
+    "1367": {
+      "canonical_id": null,
+      "is_active": 0,
+      "is_duplicate": 1,
+      "master_id": 3,
+      "action": "Leave inactive duplicate untouched; master_id=3."
+    },
+    "10918": {
+      "canonical_id": null,
+      "is_active": 0,
+      "is_duplicate": 1,
+      "master_id": 1365,
+      "action": "Leave inactive duplicate untouched; master_id=1365."
+    },
+    "10919": {
+      "canonical_id": null,
+      "is_active": 0,
+      "is_duplicate": 1,
+      "master_id": 1366,
+      "action": "Leave inactive duplicate untouched; master_id=1366."
+    },
+    "10920": {
+      "canonical_id": null,
+      "is_active": 0,
+      "is_duplicate": 1,
+      "master_id": 1367,
+      "action": "Leave inactive duplicate untouched; master_id=1367."
+    },
+    "10956": {
+      "canonical_id": "SB_42",
+      "is_active": 1,
+      "is_duplicate": 0,
+      "master_id": null,
+      "action": "Match Proposition 4; preserve integer ID and all canonical keys."
+    },
+    "10957": {
+      "canonical_id": "AB_440",
+      "is_active": 0,
+      "is_duplicate": 0,
+      "master_id": null,
+      "action": "Leave inactive AB 440 (2024) untouched. No current official assignment to this bill; Proposition 2 is ACA 20 (2026), not AB 440."
+    },
+    "10958": {
+      "canonical_id": "INIT_9034",
+      "is_active": 0,
+      "is_duplicate": 0,
+      "master_id": null,
+      "action": "Leave inactive parser artifact untouched; no identity evidence for reactivation."
+    },
+    "10959": {
+      "canonical_id": "INIT_2026",
+      "is_active": 0,
+      "is_duplicate": 0,
+      "master_id": null,
+      "action": "Leave inactive parser artifact untouched; no identity evidence for reactivation."
+    },
+    "10960": {
+      "canonical_id": "INIT_1993",
+      "is_active": 1,
+      "is_duplicate": 0,
+      "master_id": null,
+      "action": "Match Proposition 3; preserve integer ID and all canonical keys."
+    },
+    "10961": {
+      "canonical_id": "INIT_6814",
+      "is_active": 0,
+      "is_duplicate": 0,
+      "master_id": null,
+      "action": "Leave inactive parser artifact untouched; no identity evidence for reactivation."
+    },
+    "10962": {
+      "canonical_id": "INIT_1500",
+      "is_active": 0,
+      "is_duplicate": 0,
+      "master_id": null,
+      "action": "Leave inactive parser artifact untouched; no identity evidence for reactivation."
+    },
+    "10963": {
+      "canonical_id": "INIT_2025",
+      "is_active": 0,
+      "is_duplicate": 0,
+      "master_id": null,
+      "action": "Leave inactive parser artifact untouched; no identity evidence for reactivation."
+    },
+    "10964": {
+      "canonical_id": "INIT_1974",
+      "is_active": 0,
+      "is_duplicate": 1,
+      "master_id": 10956,
+      "action": "Leave inactive duplicate untouched; master_id=10956."
+    },
+    "10965": {
+      "canonical_id": "INIT_2024",
+      "is_active": 0,
+      "is_duplicate": 0,
+      "master_id": null,
+      "action": "Leave inactive parser artifact untouched; no identity evidence for reactivation."
+    },
+    "10966": {
+      "canonical_id": "INIT_1911",
+      "is_active": 0,
+      "is_duplicate": 0,
+      "master_id": null,
+      "action": "Leave inactive failed-to-qualify initiative 25-0005A1 untouched. No evidence that it is a current numbered measure; do not match on tax-policy similarity."
+    },
+    "10967": {
+      "canonical_id": "INIT_0011",
+      "is_active": 0,
+      "is_duplicate": 0,
+      "master_id": null,
+      "action": "Leave inactive parser artifact untouched; no identity evidence for reactivation."
+    },
+    "10968": {
+      "canonical_id": "INIT_0033",
+      "is_active": 0,
+      "is_duplicate": 0,
+      "master_id": null,
+      "action": "Leave inactive parser artifact untouched; no identity evidence for reactivation."
+    }
+  }
+}

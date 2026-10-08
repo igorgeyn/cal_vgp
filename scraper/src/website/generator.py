@@ -12,6 +12,7 @@ from collections import Counter
 from ..database.operations import Database
 from ..database.models import BallotMeasure
 from ..database.measure_documents import documents_for_website
+from ..database.statewide_ballot import attach_statewide_ballot_fields
 from ..config import WEBSITE_CONFIG, BASE_DIR
 from ..utils import TitleGenerator
 from ..utils.topic_mapping import get_display_topic, get_all_display_categories
@@ -97,12 +98,15 @@ def prepare_upcoming_display_fields(data: Dict) -> Dict:
 class WebsiteGenerator:
     """Generates static website from ballot measures data"""
     
-    def __init__(self, database: Database = None, output_path: Path = None, style: str = 'modern'):
+    def __init__(self, database: Database = None, output_path: Path = None, style: str = 'modern', strict: bool = False):
         self.db = database or Database()
         self.output_path = output_path or BASE_DIR.parent / WEBSITE_CONFIG.get('output_filename', 'index.html')
         self.template = style
+        self.strict = strict
         self.features = WEBSITE_CONFIG.get('features', {})
-        self.title_generator = TitleGenerator(database=self.db)
+        # A release renders the reviewed content without discovering providers
+        # or generating new editorial text as a build side effect.
+        self.title_generator = None if strict else TitleGenerator(database=self.db)
         
     def generate(self, measures: List[BallotMeasure] = None, stats: Dict = None) -> str:
         """Generate through the same paired-asset writer used by the CLI."""
@@ -131,6 +135,7 @@ class WebsiteGenerator:
         # Common boundary for both CLI and model-based generation. Document
         # associations do not pass through the BallotMeasure field filter.
         connection = self.db.connect()
+        measures = attach_statewide_ballot_fields(connection, measures)
         official_documents = documents_for_website(connection)
         if official_documents:
             document_identities = {
@@ -273,7 +278,8 @@ class WebsiteGenerator:
             data['display_category_type'] = get_display_category_type(data.get('category_type'))
 
             # Generate concise title if needed
-            data = self.title_generator.process_measure(data)
+            if self.title_generator is not None:
+                data = self.title_generator.process_measure(data)
             data = prepare_upcoming_display_fields(data)
 
             measures_data.append(data)
@@ -537,9 +543,13 @@ class WebsiteGenerator:
                     logger.info(f"Loaded recommendations for {len(neighbors)} measures")
                     return neighbors
             except Exception as e:
+                if self.strict:
+                    raise RuntimeError('Required recommendations input could not be read') from e
                 logger.warning(f"Could not load recommendations: {e}")
                 return {}
         else:
+            if self.strict:
+                raise FileNotFoundError('Required embedding_metadata.json missing')
             logger.info("No recommendations file found, skipping related measures")
             return {}
 
@@ -557,13 +567,19 @@ class WebsiteGenerator:
             from src.finance.schema import FINANCE_DB_PATH, FINANCE_DB_V3_PATH
             from src.finance.operations import FinanceDatabase
         except ImportError:
+            if self.strict:
+                raise RuntimeError('Required finance module unavailable')
             logger.info("Finance module not available, skipping finance data")
             return {}
 
         if not FINANCE_DB_PATH.exists():
+            if self.strict:
+                raise FileNotFoundError('Required finance v2 database missing')
             logger.info("Finance v2 DB not found, skipping finance data")
             return {}
         if not FINANCE_DB_V3_PATH.exists():
+            if self.strict:
+                raise FileNotFoundError('Required finance v3 database missing')
             logger.info("Finance v3 DB not found, skipping finance data")
             return {}
 
@@ -631,6 +647,8 @@ class WebsiteGenerator:
             )
             return result
         except Exception as e:
+            if self.strict:
+                raise RuntimeError('Required finance projection failed') from e
             logger.warning(f"Could not load finance data: {e}")
             return {}
 
@@ -638,6 +656,8 @@ class WebsiteGenerator:
         """Load compact precomputed Insights data."""
         insights_path = BASE_DIR / "data" / "insights.json"
         if not insights_path.exists():
+            if self.strict:
+                raise FileNotFoundError('Required Insights input missing')
             logger.info("Insights data not found, skipping Insights payload")
             return {}
         try:
@@ -646,6 +666,8 @@ class WebsiteGenerator:
             logger.info(f"Loaded Insights data from {insights_path}")
             return payload
         except Exception as e:
+            if self.strict:
+                raise RuntimeError('Required Insights projection failed') from e
             logger.warning(f"Could not load Insights data: {e}")
             return {}
 
@@ -1300,7 +1322,11 @@ class WebsiteGenerator:
                             <div class="status-chip" data-status="pending" onclick="toggleStatusFilter('pending')">
                                 <span class="status-chip-icon">⏳</span>
                                 <span class="status-chip-name">Pending/Unknown</span>
-                                <span class="status-chip-count">({stats['total_measures'] - stats['passed'] - stats['failed']:,})</span>
+                                <span class="status-chip-count">({stats['total_measures'] - stats['passed'] - stats['failed'] - sum(m.get('ballot_status') == 'withdrawn' for m in measures):,})</span>
+                            </div>
+                            <div class="status-chip" data-status="withdrawn" onclick="toggleStatusFilter('withdrawn')">
+                                <span class="status-chip-name">Withdrawn</span>
+                                <span class="status-chip-count">({sum(m.get('ballot_status') == 'withdrawn' for m in measures):,})</span>
                             </div>
                         </div>
                     </div>
@@ -1345,7 +1371,7 @@ class WebsiteGenerator:
                     <p class="hero-description">
                         Get informed about California's upcoming ballot measures before you vote.
                         <span style="display: block; margin-top: 0.5rem; font-size: 0.85rem; color: var(--text-tertiary);">
-                            📋 Full official details will be available as the election approaches.
+                            📋 Open a measure for its description and official sources.
                         </span>
                     </p>
                 </div>
@@ -1677,6 +1703,7 @@ class WebsiteGenerator:
 
                         <div class="measure-detail-section">
                             <h3>📝 Summary</h3>
+                            <p id="modalSummarySource" class="text-secondary"></p>
                             <p id="modalSummary" class="measure-detail-summary"></p>
                             <span id="summaryToggle" class="summary-toggle" style="display:none;" onclick="toggleSummary()">Show more</span>
                         </div>
@@ -1704,7 +1731,7 @@ class WebsiteGenerator:
 
                         <div id="modalOfficialDocuments" class="measure-detail-section" style="display: none;">
                             <h3>Official documents</h3>
-                            <p class="official-documents-note">Links open the county's current files. Last captured is when we retrieved the file, not its filing date. Labels follow the county listing; a file may cover several document types. An absent link does not mean a document was never filed.</p>
+                            <p class="official-documents-note">Links open the county's current files. Last captured is when we retrieved the file, not its filing date. Labels follow the county listing unless a correction is noted; a file may cover several document types. An absent link does not mean a document was never filed.</p>
                             <ul id="modalOfficialDocumentList" class="official-document-list"></ul>
                         </div>
 
@@ -9263,7 +9290,7 @@ class WebsiteGenerator:
         }}
 
         function getCleanTitle(measure, displayMeasureId) {{
-            const rawTitle = measure.generated_title || measure.title || measure.measure_text || '';
+            const rawTitle = measure.official_title || measure.generated_title || measure.title || measure.measure_text || '';
             let title = normalizeText(rawTitle);
 
             if (isBadTitle(title)) {{
@@ -9834,7 +9861,8 @@ class WebsiteGenerator:
                         total_votes BIGINT,
                         yes_votes BIGINT,
                         no_votes BIGINT,
-                        data_source VARCHAR
+                        data_source VARCHAR,
+                        ballot_status VARCHAR
                     )
                 `);
 
@@ -9846,7 +9874,7 @@ class WebsiteGenerator:
                         const esc = s => (s || '').substring(0, 150).replace(/'/g, "''");
                         const num = n => (n != null && !isNaN(n)) ? n : 'NULL';
                         const passed = m.passed === 1 ? 1 : m.passed === 0 ? 0 : 'NULL';
-                        return `('${{esc(m.measure_id)}}','${{esc(m.title || m.concise_title)}}',${{num(m.year)}},'${{esc(m.county)}}','${{esc(m.topic_primary)}}','${{esc(m.display_topic)}}',${{passed}},${{num(m.percent_yes)}},${{num(m.total_votes)}},${{num(m.yes_votes)}},${{num(m.no_votes)}},'${{esc(m.data_source)}}')`;
+                        return `('${{esc(m.measure_id)}}','${{esc(m.official_title || m.title || m.concise_title)}}',${{num(m.year)}},'${{esc(m.county)}}','${{esc(m.topic_primary)}}','${{esc(m.display_topic)}}',${{passed}},${{num(m.percent_yes)}},${{num(m.total_votes)}},${{num(m.yes_votes)}},${{num(m.no_votes)}},'${{esc(m.data_source)}}','${{esc(m.ballot_status)}}')`;
                     }}).join(',');
                     await duckDBConn.query(`INSERT INTO measures VALUES ${{values}}`);
                 }}
@@ -9905,15 +9933,16 @@ class WebsiteGenerator:
 
         // Select 2026 upcoming measures for hero section
         function selectHeroMeasures() {{
-            const upcoming = allMeasures.filter(m => parseInt(m.year) === 2026);
+            const upcoming = allMeasures.filter(m => parseInt(m.year) === 2026 && m.ballot_status !== 'withdrawn');
             const isStatewide = m => m.upcoming_scope
                 ? m.upcoming_scope === 'statewide'
                 : !m.county || m.county === 'Statewide';
 
-            // Preserve the existing statewide carousel ordering and card renderer.
+            // Public proposition numbers are distinct from stable lineage IDs.
             heroMeasures = upcoming
                 .filter(isStatewide)
-                .sort((a, b) => (a.measure_id || '').localeCompare(b.measure_id || ''));
+                .sort((a, b) => (a.proposition_number || Infinity) - (b.proposition_number || Infinity)
+                    || (a.measure_id || '').localeCompare(b.measure_id || ''));
 
             localUpcomingMeasures = upcoming
                 .filter(m => !isStatewide(m))
@@ -10216,7 +10245,7 @@ class WebsiteGenerator:
             normalizeYearFilters();
             const defaultYearMin = {stats.get('year_min', 1902)};
             const defaultYearMax = {stats.get('year_max', 2026)};
-            const statusLabels = {{ passed: 'Passed', failed: 'Failed', pending: 'Pending/Unknown' }};
+            const statusLabels = {{ passed: 'Passed', failed: 'Failed', pending: 'Pending/Unknown', withdrawn: 'Withdrawn' }};
             const levelLabels = {{ statewide: 'Statewide', local: 'Local' }};
             const tokens = [];
 
@@ -10820,8 +10849,23 @@ class WebsiteGenerator:
         }}
         
         // Apply filters
+        function parsePropositionQuery(query) {{
+            const match = query.trim().match(/^(?:prop(?:osition)?\.?)\s*(\d+[a-z]?)(?:\s*(?:\(|,|-)\s*(\d{{4}})\)?|\s+(\d{{4}}))?$/i);
+            return match ? {{ number: match[1].toUpperCase(), year: Number(match[2] || match[3]) || null }} : null;
+        }}
+
+        function propositionDesignation(measure) {{
+            if (measure.county && measure.county !== 'Statewide') return null;
+            if (Number.isInteger(measure.proposition_number)) return String(measure.proposition_number);
+            const canonical = (measure.measure_id || '').match(/^(?:prop(?:osition)?\.?)\s*_?\s*(\d+[a-z]?)(?:_\d{{4}})?$/i);
+            if (canonical) return canonical[1].toUpperCase();
+            const title = (measure.title || '').match(/^proposition\s+(\d+[a-z]?)(?=\s|:|\.|$)/i);
+            return title ? title[1].toUpperCase() : null;
+        }}
+
         function applyFilters() {{
             normalizeYearFilters();
+            const designation = parsePropositionQuery(currentFilters.search || '');
             filteredMeasures = allMeasures.filter(measure => {{
                 // Year range filter (from sidebar)
                 const year = parseInt(measure.year);
@@ -10859,7 +10903,10 @@ class WebsiteGenerator:
                     if (currentFilters.status.includes('failed') && passed === 0) {{
                         matchesStatus = true;
                     }}
-                    if (currentFilters.status.includes('pending') && passed !== 1 && passed !== 0) {{
+                    if (currentFilters.status.includes('pending') && passed !== 1 && passed !== 0 && measure.ballot_status !== 'withdrawn') {{
+                        matchesStatus = true;
+                    }}
+                    if (currentFilters.status.includes('withdrawn') && measure.ballot_status === 'withdrawn') {{
                         matchesStatus = true;
                     }}
 
@@ -10908,13 +10955,18 @@ class WebsiteGenerator:
                 }}
 
                 // Search filter
-                if (currentFilters.search) {{
+                if (designation) {{
+                    if (propositionDesignation(measure) !== designation.number ||
+                        (designation.year !== null && year !== designation.year)) return false;
+                }} else if (currentFilters.search) {{
                     const searchText = [
                         measure.title,
+                        measure.official_title,
+                        measure.proposition_number ? `Prop ${{measure.proposition_number}} Proposition ${{measure.proposition_number}}` : '',
                         measure.measure_text,
                         measure.measure_id,
-                        measure.description,
-                        measure.summary_text,
+                        measure.status_reason || measure.official_description || measure.description,
+                        measure.official_description || measure.status_reason ? '' : measure.summary_text,
                         measure.topic_primary,
                         measure.year
                     ].filter(Boolean).join(' ').toLowerCase();
@@ -10951,9 +11003,9 @@ class WebsiteGenerator:
                 // Exclude upcoming/pending measures (2026+) from default view
                 // (they're featured in the dedicated hero section)
                 // Historical measures with null passed status are NOT excluded
-                if (!currentFilters.status.includes('pending') && currentFilters.selectedYears.length === 0 && (currentFilters.selectedDecades || []).length === 0) {{
+                if (!currentFilters.search && !currentFilters.status.includes('pending') && currentFilters.selectedYears.length === 0 && (currentFilters.selectedDecades || []).length === 0) {{
                     const measureYear = parseInt(measure.year);
-                    if (measure.passed !== 1 && measure.passed !== 0 && measureYear >= 2026) {{
+                    if (measure.passed !== 1 && measure.passed !== 0 && measureYear >= 2026 && measure.ballot_status !== 'withdrawn') {{
                         return false;
                     }}
                 }}
@@ -14442,6 +14494,12 @@ class WebsiteGenerator:
                 meta.textContent = fileType + (date ? ` · Last captured ${{date[0]}}` : '') + ' · Opens in a new tab';
                 link.appendChild(meta);
                 item.appendChild(link);
+                if (doc.role_review_note) {{
+                    const note = document.createElement('p');
+                    note.className = 'official-document-meta';
+                    note.textContent = doc.role_review_note;
+                    item.appendChild(note);
+                }}
                 list.appendChild(item);
             }}
             return documents;
@@ -14449,6 +14507,7 @@ class WebsiteGenerator:
 
         // Check if measure is pending (2026 or later, no vote data)
         function isPendingMeasure(measure) {{
+            if (measure.ballot_status === 'withdrawn') return false;
             const year = parseInt(measure.year);
             return year >= 2026 || (measure.passed !== 1 && measure.passed !== 0 && !measure.percent_yes);
         }}
@@ -14457,11 +14516,13 @@ class WebsiteGenerator:
         const MEASURE_STAGES = ['Filed', 'Circulating', 'Qualified', 'On Ballot', 'Voted'];
 
         function getMeasureStage(measure) {{
+            if (measure.ballot_status === 'withdrawn') return -1;
             // Determine stage from source_url and status
             const url = (measure.source_url || '').toLowerCase();
             const passed = measure.passed;
 
             if (passed === 1 || passed === 0) return 4; // Voted
+            if (measure.ballot_status === 'qualified') return 3;
             if (url.includes('qualified-ballot-measures')) return 3; // On Ballot (qualified)
             if (url.includes('25percent') || url.includes('circulating')) return 1; // Circulating
             if (url.includes('cleared-circulation') || url.includes('cleared')) return 0; // Filed/Cleared
@@ -14479,6 +14540,10 @@ class WebsiteGenerator:
         }}
 
         function renderTimeline(measure) {{
+            if (measure.ballot_status === 'qualified') {{
+                return '<p>On the November 3, 2026 ballot.</p>';
+            }}
+            if (measure.ballot_status === 'withdrawn') return '';
             const stage = getMeasureStage(measure);
             let html = '<div class="measure-timeline">';
             for (let i = 0; i < MEASURE_STAGES.length; i++) {{
@@ -14502,6 +14567,12 @@ class WebsiteGenerator:
 
         // Get human-readable measure designation (e.g., "Measure A", "Prop 36")
         function getDisplayMeasureId(measure) {{
+            if (measure.ballot_status === 'withdrawn' && (measure.measure_id || '').startsWith('ACA 13')) return 'ACA 13';
+            const designation = propositionDesignation(measure);
+            if (designation) return 'Prop ' + designation;
+            if (Number.isInteger(measure.proposition_number) && measure.proposition_number > 0) {{
+                return 'Prop ' + measure.proposition_number;
+            }}
             const mid = measure.measure_id || '';
             const letter = measure.measure_letter || '';
             const county = measure.county || '';
@@ -14550,15 +14621,17 @@ class WebsiteGenerator:
             const isPending = isPendingMeasure(measure);
 
             // Pending measures get special status display
-            const passedClass = isPending ? 'pending' : (passed === 1 ? 'passed' : passed === 0 ? 'failed' : 'pending');
-            const passedText = isPending ? '⏳ Upcoming' : (passed === 1 ? '✓ Passed' : passed === 0 ? '✗ Failed' : '• Pending');
+            const passedClass = measure.ballot_status === 'withdrawn' ? 'neutral' : isPending ? 'pending' : (passed === 1 ? 'passed' : passed === 0 ? 'failed' : 'pending');
+            const passedText = measure.ballot_status === 'withdrawn' ? 'Withdrawn' : isPending ? '⏳ Upcoming' : (passed === 1 ? '✓ Passed' : passed === 0 ? '✗ Failed' : '• Pending');
 
             // Description / summary preview — kept for all card variants
             // per Igor's pushback on v1's "cut descriptions entirely"
             // call. The v2 design tightens whitespace but keeps the
             // info-rich card shape.
             let summary = '';
-            if (measure.summary_text && measure.summary_text.length > 50 && !isAiRefusal(measure.summary_text) &&
+            if (measure.status_reason || measure.official_description) {{
+                summary = measure.status_reason || measure.official_description;
+            }} else if (measure.summary_text && measure.summary_text.length > 50 && !isAiRefusal(measure.summary_text) &&
                 !(isPending && isMetadataSummary(measure.summary_text))) {{
                 summary = measure.summary_text;
             }} else if (measure.ballot_question && measure.ballot_question.length > 50) {{
@@ -14572,7 +14645,7 @@ class WebsiteGenerator:
                 const ctx = measure.historical_context;
                 summary = `California has voted on ${{ctx.total_similar.toLocaleString()}} similar ${{ctx.matched_topic.toLowerCase()}} measures since ${{ctx.year_range.split('-')[0]}}. They passed ${{ctx.pass_rate}}% of the time with a median YES vote of ${{ctx.median_yes}}%.`;
             }} else if (isPending && !summary) {{
-                summary = 'Full measure details will be available closer to the election. Check back for official language, fiscal analysis, and voter guide information.';
+                summary = 'Open this measure for available information and official sources.';
             }}
             const maxLength = 200;
             const truncatedSummary = summary.length > maxLength ? summary.substring(0, maxLength) + '...' : summary;
@@ -14600,6 +14673,8 @@ class WebsiteGenerator:
             // % Yes stays in the meta row (v1 had moved it to the header;
             // that read as awkward floating text — reverted).
             const metaItems = [];
+            if (measure.status_reason) metaItems.push('CA SOS withdrawal record');
+            else if (measure.official_description) metaItems.push('Official CA SOS description');
             if (measure.is_landmark) metaItems.push('⭐ Historic');
             if (percentYes != null && !isPending) metaItems.push(`${{Math.round(percentYes)}}% Yes`);
             if (topic) metaItems.push(escapeHtml(topic));
@@ -14631,7 +14706,7 @@ class WebsiteGenerator:
             const year = measure.year || 'Unknown';
             const passed = measure.passed;
             const passedClass = passed === 1 ? 'passed' : passed === 0 ? 'failed' : 'pending';
-            const passedText = passed === 1 ? '✓' : passed === 0 ? '✗' : '?';
+            const passedText = measure.ballot_status === 'withdrawn' ? 'Withdrawn' : passed === 1 ? '✓' : passed === 0 ? '✗' : isPendingMeasure(measure) ? 'Upcoming' : '?';
             
             const mIdx = allMeasures.indexOf(measure);
             return `
@@ -14684,7 +14759,9 @@ class WebsiteGenerator:
             const badgesHtml = [];
             const passed = measure.passed;
 
-            if (isPending) {{
+            if (measure.ballot_status === 'withdrawn') {{
+                badgesHtml.push('<span class="badge badge-neutral">Withdrawn</span>');
+            }} else if (isPending) {{
                 badgesHtml.push(`<span class="badge badge-pending">⏳ Upcoming Election</span>`);
             }} else {{
                 const passedClass = passed === 1 ? 'passed' : passed === 0 ? 'failed' : 'pending';
@@ -14716,9 +14793,22 @@ class WebsiteGenerator:
             const summaryEl = document.getElementById('modalSummary');
             const summaryToggle = document.getElementById('summaryToggle');
             let summaryText = '';
+            const summarySource = document.getElementById('modalSummarySource');
+            summarySource.replaceChildren();
+            if (measure.official_description || measure.status_reason) {{
+                const sourceLink = document.createElement('a');
+                sourceLink.href = measure.source_url;
+                sourceLink.textContent = measure.status_reason ? 'Withdrawal recorded by the California Secretary of State' : 'Official description · California Secretary of State';
+                summarySource.appendChild(sourceLink);
+                const captured = (measure.official_source_captured_at || '').slice(0, 10);
+                if (captured) summarySource.append(' · Source captured ' + captured);
+            }}
 
             let summaryIsHtml = false;
-            if (measure.summary_text && !isAiRefusal(measure.summary_text) &&
+            if (measure.status_reason || measure.official_description) {{
+                summaryText = measure.status_reason || measure.official_description;
+                summaryEl.classList.remove('no-summary-text');
+            }} else if (measure.summary_text && !isAiRefusal(measure.summary_text) &&
                 !(isPending && isMetadataSummary(measure.summary_text))) {{
                 summaryText = measure.summary_text;
                 summaryEl.classList.remove('no-summary-text');
@@ -14727,8 +14817,7 @@ class WebsiteGenerator:
                 summaryEl.classList.remove('no-summary-text');
             }} else if (isPending) {{
                 summaryText = `<div class="pending-info-text">
-                    <strong>📋 Coming Soon:</strong> Full measure details, including the official ballot language,
-                    fiscal impact analysis, and arguments for and against, will be available as we approach the election.
+                    Open the official sources below for available measure details.
                 </div>`;
                 summaryIsHtml = true;
                 summaryEl.classList.remove('no-summary-text');
@@ -14769,7 +14858,7 @@ class WebsiteGenerator:
 
             // Ballot question section
             const ballotSection = document.getElementById('modalBallotQuestion');
-            if (measure.ballot_question && measure.ballot_question.length > 20) {{
+            if (!measure.ballot_status && measure.ballot_question && measure.ballot_question.length > 20) {{
                 ballotSection.style.display = 'block';
                 document.getElementById('modalBallotText').textContent = measure.ballot_question;
             }} else {{
@@ -14819,7 +14908,7 @@ class WebsiteGenerator:
             // Research briefing section (for measures with agent-generated briefings)
             const briefingSection = document.getElementById('modalBriefingSection');
             const briefingContent = document.getElementById('modalBriefingContent');
-            if (measure.briefing && measure.briefing.text) {{
+            if (!measure.ballot_status && measure.briefing && measure.briefing.text) {{
                 let bHtml = '';
                 const b = measure.briefing;
 
@@ -14943,7 +15032,7 @@ class WebsiteGenerator:
 
             // Render historical context in Research tab (not in Links section)
             const histCtxEl = document.getElementById('modalHistoricalContext');
-            if (measure.historical_context) {{
+            if (measure.ballot_status !== 'withdrawn' && measure.historical_context) {{
                 const ctx = measure.historical_context;
                 let ctxHtml = `<div style="padding:0.5rem 0;">`;
                 ctxHtml += `<h3>📊 Measures Like This <span class="info-tip" data-tip="Semantically similar past measures found using AI embeddings across CalBallot's 12,000+ measure database. Shows how voters decided on comparable issues.">i</span></h3>`;
@@ -15445,18 +15534,18 @@ class WebsiteGenerator:
         const DB_SCHEMA = `
 Table: measures (${allMeasures.length} rows)
 Columns:
-  - measure_id (VARCHAR): Unique identifier like "PROP_36", "MEASURE_A", etc.
+  - measure_id (VARCHAR): Canonical identifier; historical keys can repeat across years. New 2026 propositions use year-qualified keys like "PROP_1_2026".
   - title (VARCHAR): Full title/description of the measure
   - year (INTEGER): Election year (1998-2026)
   - county (VARCHAR): "Statewide" for propositions, or county name for local measures
   - topic (VARCHAR): Detailed topic category
   - display_topic (VARCHAR): Consolidated topic (~15 categories): Taxes & Revenue, Education, Public Safety, Healthcare, Environment, Housing, Transportation, Government Reform, Labor & Employment, Civil Rights, Cannabis, Water, Business Regulation, Social Services, Other
-  - passed (INTEGER): 1=passed, 0=failed, NULL=pending/upcoming
+  - passed (INTEGER): 1=passed, 0=failed, NULL=no recorded result (including withdrawn)
+  - ballot_status (VARCHAR): "qualified" or "withdrawn" for reviewed statewide assignments; empty for other records. Exclude withdrawn records when asking about upcoming measures.
   - percent_yes (DOUBLE): Percentage of yes votes (0-100)
   - total_votes (BIGINT): Total votes cast
   - yes_votes (BIGINT): Number of yes votes
   - no_votes (BIGINT): Number of no votes
-  - description (VARCHAR): Longer description text
   - data_source (VARCHAR): Where the data came from
 
 Sample values:

@@ -1,0 +1,261 @@
+{
+  "status": "locally_promoted_pending_pages",
+  "date": "2026-10-08",
+  "base_git_revision": "ec650a290992da7c7f903800419e59b523de8e9d",
+  "review": {
+    "combined": "READY WITH CONDITIONS",
+    "measure_z_correction": "READY",
+    "disposition": "No blocking code defect; actual FTS trigger documented, missed-run evidence recorded, execution gates checked separately."
+  },
+  "tests": {
+    "focused_passed": 97
+  },
+  "candidate": {
+    "started_at_local": "2026-10-08T13:43:08.987392",
+    "finished_at_local": "2026-10-08T13:44:08.501221",
+    "exit_code": 0,
+    "strict": true,
+    "input_manifest_sha256": "fb67291cc371c2eba86c7147c3d05480d0cc743d55086218cded65faae8a9753",
+    "candidate_db_sha256": "261c6766e1647a85d58ac812221a3667a424cfee48d93dccf1e9a7e8c07075b7",
+    "html_sha256": "9865cd7b412be312e25d08401e6714d64e3cc83981231c43418d317509aaaf37",
+    "json_sha256": "9daf143e2bb4cabdc6ae8e1c52fce45fe0594cfad2a8f301814c84d94eff2bac"
+  },
+  "production": {
+    "status": "applied",
+    "inserted_ids": [
+      12467,
+      12468,
+      12469,
+      12470,
+      12471,
+      12472,
+      12473,
+      12474,
+      12475,
+      12476,
+      12477
+    ],
+    "updated_ids": [
+      1,
+      2,
+      10956,
+      10960
+    ],
+    "baseline_sha256": "7ff2ca55cf5418d314da79dd5efc1dd651c940431097201808bc23b744c71964",
+    "candidate_sha256": "261c6766e1647a85d58ac812221a3667a424cfee48d93dccf1e9a7e8c07075b7",
+    "writer_exclusion": "SQLite BEGIN EXCLUSIVE",
+    "logical_candidate_match": true,
+    "backup": "C:\\Users\\igorg\\Desktop\\personal\\projects\\cal_vgp\\scraper\\data\\statewide_recon\\20261008_release\\production-backup.db",
+    "backup_sha256": "7ff2ca55cf5418d314da79dd5efc1dd651c940431097201808bc23b744c71964",
+    "production_sha256": "ef1359e482db2c54fe41068771932aaac7c9fc1db372e2e1d8cbbed1f505d9da"
+  },
+  "public_bundle": {
+    "verified": true,
+    "public_files": 12382,
+    "scraper_mirror_synchronized": true,
+    "html_sha256": "9865cd7b412be312e25d08401e6714d64e3cc83981231c43418d317509aaaf37",
+    "json_sha256": "9daf143e2bb4cabdc6ae8e1c52fce45fe0594cfad2a8f301814c84d94eff2bac",
+    "production_db_sha256": "ef1359e482db2c54fe41068771932aaac7c9fc1db372e2e1d8cbbed1f505d9da"
+  },
+  "source_status": {
+    "checked_at": "2026-10-08T20:24:56.612531+00:00",
+    "snapshots": {
+      "sb": [
+        "20260727T171800Z",
+        "20260803T144106Z",
+        "20260814T035115Z",
+        "20260817T124418Z",
+        "20260828T005152Z",
+        "20260831T185331Z",
+        "20260907T172437Z",
+        "20260914T175111Z",
+        "20260921T175755Z",
+        "20260928T192225Z"
+      ],
+      "smc": [
+        "20260901T024142Z",
+        "20260907T172914Z",
+        "20260914T175535Z",
+        "20260921T180228Z",
+        "20260928T192608Z"
+      ]
+    }
+  },
+  "missed_refresh": {
+    "checked_at": "2026-10-08T20:47:14.284441+00:00",
+    "run": {
+      "id": 37368780103,
+      "head_sha": "ec650a290992da7c7f903800419e59b523de8e9d",
+      "status": "completed",
+      "conclusion": "failure",
+      "created_at": "2026-10-05T20:17:09Z",
+      "html_url": "https://github.com/igorgeyn/cal_vgp/actions/runs/37368780103"
+    },
+    "jobs": [
+      {
+        "id": 111960351731,
+        "name": "scrape",
+        "conclusion": "cancelled",
+        "steps": []
+      }
+    ],
+    "annotations": [
+      {
+        "annotation_level": "failure",
+        "message": "The job was not acquired by Runner of type hosted even after multiple attempts"
+      },
+      {
+        "annotation_level": "notice",
+        "message": "\"The ubuntu-latest label will migrate to Ubuntu 26 beginning October 19, 2026. For more information, see https://github.com/actions/runner-images/issues/14748\""
+      },
+      {
+        "annotation_level": "notice",
+        "message": "\"The ubuntu-latest label will migrate to Ubuntu 26 beginning October 19, 2026. For more information, see https://github.com/actions/runner-images/issues/14748\""
+      },
+      {
+        "annotation_level": "notice",
+        "message": "\"The ubuntu-latest label will migrate to Ubuntu 26 beginning October 19, 2026. For more information, see https://github.com/actions/runner-images/issues/14748\""
+      }
+    ]
+  },
+  "measure_z_live_pdf": {
+    "source_url": "https://uploads.rov.sbcounty.gov/ROV/Elections/2026/1103/Measures/SBCityUSD/AIF_SBCUSD.pdf",
+    "checked_at": "2026-10-08",
+    "http_status": 200,
+    "bytes": 110164,
+    "sha256": "297f20d5de893e76970be47c8f25f4cd66a69757ee5cea4fe762e8afa854631e",
+    "matches_archived_pdf": true
+  },
+  "recovery_update": {
+    "seal": {
+      "archive_sha256": "a9c0d56163c0d195c4eee14cb2414e8e7fa8919a197ace89fb9605e9e90c3607",
+      "archive_bytes": 7784704,
+      "manifest_sha256": "6155f34df28989a5e05eb3681eccf96998351858d7ffa3f70fa5272e6e10acfc",
+      "files": 97
+    },
+    "restore": {
+      "verified": true,
+      "files": 97,
+      "archive_sha256": "a9c0d56163c0d195c4eee14cb2414e8e7fa8919a197ace89fb9605e9e90c3607",
+      "workspace_inputs_verified": 190,
+      "public_files_composition_verified": 12382,
+      "base_archive_sha256": "f0e016922367350b466bbe1ec2f8cd6c29edff06c5f432e1e28c40151df322c9"
+    },
+    "rebuild": {
+      "verified": true,
+      "databases": {
+        "baseline": {
+          "integrity_check": "ok",
+          "foreign_key_violations": 0,
+          "sha256": "7ff2ca55cf5418d314da79dd5efc1dd651c940431097201808bc23b744c71964"
+        },
+        "candidate": {
+          "integrity_check": "ok",
+          "foreign_key_violations": 0,
+          "sha256": "261c6766e1647a85d58ac812221a3667a424cfee48d93dccf1e9a7e8c07075b7"
+        },
+        "rebuilt": {
+          "integrity_check": "ok",
+          "foreign_key_violations": 0,
+          "sha256": "261c6766e1647a85d58ac812221a3667a424cfee48d93dccf1e9a7e8c07075b7"
+        },
+        "finance_v2": {
+          "integrity_check": "ok",
+          "foreign_key_violations": 0,
+          "sha256": "26df5412e166dda93c6e4079d89ee98f46c7e87df4cfdf346600d47661839487"
+        },
+        "finance_v3": {
+          "integrity_check": "ok",
+          "foreign_key_violations": 0,
+          "sha256": "d431f69289137f19fd431ab40cfb3b12876c9f381d2ddf44362b8fd04e52028c"
+        }
+      },
+      "registry_counts": {
+        "registrar_identities": 49,
+        "registrar_identity_aliases": 312,
+        "registrar_load_scopes": 2,
+        "measure_documents": 272,
+        "statewide_ballot_entries": 15
+      },
+      "document_role_joins": 272,
+      "finance_measure_ids_joined": 181,
+      "candidate_database_byte_identical": true,
+      "public_rows_exact_except_null_export_timestamps": 12372,
+      "regenerated_null_export_timestamps": 129,
+      "byte_identical_public_files": 12380,
+      "sitemap_urls_equal": true,
+      "restored_build_has_its_own_model_and_data": true,
+      "fresh_os_install_tested": false
+    },
+    "r2": {
+      "bucket": "cal-vgp-registrar-raw",
+      "prefix": "recovery/20261008-release/a9c0d56163c0d195c4eee14cb2414e8e7fa8919a197ace89fb9605e9e90c3607",
+      "base_archive_sha256": "f0e016922367350b466bbe1ec2f8cd6c29edff06c5f432e1e28c40151df322c9",
+      "objects": {
+        "recovery/20261008-release/a9c0d56163c0d195c4eee14cb2414e8e7fa8919a197ace89fb9605e9e90c3607/recovery-update.zip": {
+          "bytes": 7784704,
+          "sha256": "a9c0d56163c0d195c4eee14cb2414e8e7fa8919a197ace89fb9605e9e90c3607",
+          "read_back_verified": true
+        },
+        "recovery/20261008-release/a9c0d56163c0d195c4eee14cb2414e8e7fa8919a197ace89fb9605e9e90c3607/recovery-manifest.json": {
+          "bytes": 16292,
+          "sha256": "6155f34df28989a5e05eb3681eccf96998351858d7ffa3f70fa5272e6e10acfc",
+          "read_back_verified": true
+        },
+        "recovery/20261008-release/a9c0d56163c0d195c4eee14cb2414e8e7fa8919a197ace89fb9605e9e90c3607/update.json": {
+          "bytes": 1216146,
+          "sha256": "36a351a9a570af54ee2cd12a6f93476ccb5ee0029731a4f287c4776d16c34040",
+          "read_back_verified": true
+        },
+        "recovery/20261008-release/a9c0d56163c0d195c4eee14cb2414e8e7fa8919a197ace89fb9605e9e90c3607/production-measures.db": {
+          "bytes": 20238336,
+          "sha256": "ef1359e482db2c54fe41068771932aaac7c9fc1db372e2e1d8cbbed1f505d9da",
+          "read_back_verified": true
+        },
+        "recovery/20261008-release/a9c0d56163c0d195c4eee14cb2414e8e7fa8919a197ace89fb9605e9e90c3607/verification/update-restore.json": {
+          "bytes": 309,
+          "sha256": "8be39b62fb3dab93f384d50d47c42f77904bcdb5deb72b76eba617a67aa7c6e7",
+          "read_back_verified": true
+        },
+        "recovery/20261008-release/a9c0d56163c0d195c4eee14cb2414e8e7fa8919a197ace89fb9605e9e90c3607/verification/update-rebuild.json": {
+          "bytes": 1536,
+          "sha256": "e8d7ec7305e6a577ebde0154ff84120f0cfe5a6f9a463db1bb1396dc124c25b2",
+          "read_back_verified": true
+        },
+        "recovery/20261008-release/a9c0d56163c0d195c4eee14cb2414e8e7fa8919a197ace89fb9605e9e90c3607/verification/production-promotion.json": {
+          "bytes": 841,
+          "sha256": "fc84d9745a78a982896df01b81afb5e3d31dc7d6c761179ed0cdee00559840a0",
+          "read_back_verified": true
+        },
+        "recovery/20261008-release/a9c0d56163c0d195c4eee14cb2414e8e7fa8919a197ace89fb9605e9e90c3607/verification/claude-followup-review.md": {
+          "bytes": 2708,
+          "sha256": "beb3ea2a184f285bea167fe9550c2fa8c432a2c35f70a273868651c61158c7dd",
+          "read_back_verified": true
+        },
+        "recovery/20261008-release/a9c0d56163c0d195c4eee14cb2414e8e7fa8919a197ace89fb9605e9e90c3607/verification/tests-final.xml": {
+          "bytes": 13091,
+          "sha256": "943493d9421977c8128f9458aefe2f68b8f5c97ef5f16aabfbe3227212e98d03",
+          "read_back_verified": true
+        },
+        "recovery/20261008-release/a9c0d56163c0d195c4eee14cb2414e8e7fa8919a197ace89fb9605e9e90c3607/verification/preservation-final.json": {
+          "bytes": 4627,
+          "sha256": "25f12e80023c2d1aab6fa29f1b4f2dfb76952eace8330b22612d6c6a71d47f1f",
+          "read_back_verified": true
+        }
+      },
+      "verified_at": "2026-10-08T20:58:27.602384+00:00",
+      "public_access_changed": false,
+      "production_capture_objects_changed": false
+    }
+  },
+  "evidence_sha256": {
+    "tests-final.xml": "943493d9421977c8128f9458aefe2f68b8f5c97ef5f16aabfbe3227212e98d03",
+    "preservation-final.json": "25f12e80023c2d1aab6fa29f1b4f2dfb76952eace8330b22612d6c6a71d47f1f",
+    "site-final.json": "f1b0ad21a570839cbea15f3355c04a6ee0f037c424a3a24d9df54a6d44209f9b",
+    "browser-final/browser-report.json": "3401bb3659502d347c2bb91fbd5ac351bbdd59fc43bd3e73eb43f9fd8d708875",
+    "claude-review.md": "77475ed73a13d0b5db29a707c366e65a76d042d588a3b3b36ef645b798810b5c",
+    "claude-followup-review.md": "beb3ea2a184f285bea167fe9550c2fa8c432a2c35f70a273868651c61158c7dd",
+    "update-rebuild.json": "e8d7ec7305e6a577ebde0154ff84120f0cfe5a6f9a463db1bb1396dc124c25b2",
+    "production-promotion.json": "fc84d9745a78a982896df01b81afb5e3d31dc7d6c761179ed0cdee00559840a0"
+  }
+}

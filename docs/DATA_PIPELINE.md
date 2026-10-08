@@ -1722,4 +1722,37 @@ sqlite3 $DB ".backup 'data/ballot_measures_$(date +%Y%m%d).db'"
 
 ---
 
-*Document generated: February 2026*
+## Recovery note: production search index (verified October 8, 2026)
+
+The production `measure_search` table is an external-content FTS5 index over
+`measures`, with `content_rowid='id'`. The existing database contains this
+insertion trigger, verified directly in `sqlite_master`:
+
+```sql
+CREATE TRIGGER measure_search_insert
+AFTER INSERT ON measures
+BEGIN
+    INSERT INTO measure_search
+        (fingerprint, title, description, ballot_question, summary_title, summary_text, county)
+    VALUES
+        (new.fingerprint, new.title, new.description, new.ballot_question,
+         new.summary_title, new.summary_text, new.county);
+END;
+```
+
+This trigger is carried in the binary database backups; it is not created by
+the current versioned fresh-database schema. No update/delete synchronization
+triggers were present at this checkpoint. A schema-only recreation is therefore
+not equivalent to restoring the accepted database, and general index maintenance
+remains a follow-up. Do not silently rebuild or recreate the index during the
+bounded statewide release.
+
+The tested recovery restores the complete database, including its schema,
+trigger and index. The cutover verifier compares every indexed token's document,
+column and position via `fts5vocab`, plus document-size/configuration rows.
+Binary segment layout may differ without changing search results. Ordinary
+`SELECT * FROM measure_search` reads the external content and cannot by itself
+prove that those rows are indexed. The generated website's client-side search
+is a separate consumer of `measures-data.json`.
+
+*Original document generated: February 2026; recovery note added October 8, 2026.*

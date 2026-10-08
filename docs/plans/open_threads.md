@@ -1,5 +1,13 @@
 # Open threads
 
+> **October 3 sequence:** Part 1 and the correction batch are verified on a
+> fresh isolated candidate; see the [current handoff](statewide_corrections_20261003.md)
+> and [six-part plan](six_part_delivery_plan_20260913.md). Next: independent review,
+> source freshness, complete site/document bundle, off-machine recovery, and
+> reviewed staged promotion in Part 2. Production is unchanged. Later work remains
+> refresh operations, election status, results, and rehearsal. Earlier statements
+> below are historical; elapsed September dates do not establish completion.
+
 > **September 8 release:** Igor approved F1. Production loading and the actual
 > paired-build gate passed: 49 measures with 239 official-document links.
 > Release `ec89711` is deployed and verified at https://cal-vgp.igorgeyn.com/; see

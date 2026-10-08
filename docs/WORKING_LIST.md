@@ -1,6 +1,61 @@
 # CalBallot Working List
 
-> **Current resume point — 2026-09-08:** Igor approved the reviewed F1 release.
+> **Current release work - October 8:** Igor authorized proceeding with review
+> and publication. Read the [release checkpoint](plans/release_progress_20261008.md).
+> Claude's combined review found no cutover blocker; its focused follow-up marked
+> the new Measure Z correction READY. Codex found that the county's purported
+> impartial-analysis link is actually its argument in favor. The exact PDF's
+> public label is corrected, with a visible note and raw evidence preserved.
+> **97 focused tests**, the full preservation gate and desktop/mobile checks pass.
+> The exclusive-transaction production cutover has passed on a real DB copy.
+> Publication is being executed; do not infer it from candidate files alone.
+> October 5's refresh never acquired a GitHub runner; latest stored captures
+> remain September 28. No new scrape was started. A source-review packet for
+> all 49 county measures is prepared; ballot wording/explanations are next.
+
+> **Current Part 2 work - October 3:** the complete release candidate is built
+> and verified; production remains unchanged. Read the
+> [Part 2 handoff](plans/statewide_part2_20261003.md). All 12,372 detail pages,
+> 12,374 sitemap URLs, county document groups, strict real build, preservation
+> gate and desktop/mobile checks pass. There are 81 passing focused tests plus
+> two additional source-materialization cases. September 28 county captures
+> replay without reader-content changes; all 236 distinct document URLs return
+> PDF responses. The private archive restored, rebuilt and replayed both county
+> histories successfully. Its authorized R2 upload and independent download
+> match the same SHA-256; see the [sealed evidence](plans/statewide_part2_evidence_20261003.json).
+> Use the [Part 2 Claude prompt](codex/statewide_part2_review.md)
+> for the combined release review. Publication and served-site checks remain
+> open; no Part 2 completion or release sign-off is implied.
+
+> **Previous Part 1 checkpoint - October 3:** Part 1's review corrections are
+> implemented and verified on a fresh isolated candidate. Read the
+> [correction handoff](plans/statewide_corrections_20261003.md) and
+> [sealed evidence](plans/statewide_corrections_evidence_20261003.json).
+> 14 qualified propositions, a searchable withdrawn ACA 13 with preserved
+> routes, official descriptions, exact proposition search, year-qualified new
+> keys, independently pinned identities, and owned-copy safeguards are in place.
+> **61 focused tests pass**, along with the real build, preservation gate, and
+> desktop/mobile browser checks. The isolated site has 12,372 detail pages and
+> 12,374 sitemap URLs. Production and all eight pinned inputs are unchanged.
+> **Next:** independent review using the
+> [updated Claude prompt](codex/statewide_corrections_review.md), then Part 2's
+> source-freshness decision, complete asset/document bundle, tested off-machine
+> recovery, staged promotion, and publication review. No Part 2 sign-off yet.
+> The September 13 source captures remain September evidence, not October captures.
+> Nothing committed or published in this batch. Parts 2-6 remain; use the
+> [six-part plan](plans/six_part_delivery_plan_20260913.md), with its elapsed
+> September windows treated as historical targets. October 5 is two days away.
+> County expansion and card redesign stay deferred; budget remains about
+> 10 Igor-hours/week plus agents.
+
+> **Deferred design plan — September 13:** the card aesthetic review is recorded
+> in [the detailed card action plan](plans/card_design_action_plan_20260913.md).
+> Covers local, statewide, and archive cards, mobile layout, typography,
+> document availability, accessibility, implementation sequence, and acceptance.
+> First task when selected: a comparison sheet with real records. No redesign
+> implementation has started; this does not change the operational priorities below.
+
+> **Previous release checkpoint — 2026-09-08:** Igor approved the reviewed F1 release.
 > The pinned September 7 SB/SMC snapshots are loaded into production, with
 > backups and no-write replay verified. The real paired build and production
 > gate pass: 239 official-document links on 49 measures; 12,361 active measures.
@@ -812,6 +867,13 @@ checks pass; Phase F manual checklist signed off via browser spot-check).
       promote to Key Findings #6. Open question from redesign plan.
 
 ### FEATURE
+
+- [ ] **Improve measure-card design.** Detailed, deferred plan at
+      [card_design_action_plan_20260913.md](plans/card_design_action_plan_20260913.md).
+      Start with a real-content comparison sheet; then local mobile width and
+      readability, document availability, and a shared archive/statewide design.
+      Preserve the carousel, summaries, historical context, and data semantics.
+      No implementation or release is implied by recording this backlog item.
 
 - [ ] **Per-card deep-link URLs.** Add hash routing so each measure modal
       has a unique URL (e.g. `index.html#measure=PROP_27_2022`, optionally

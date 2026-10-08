@@ -1,0 +1,372 @@
+{
+  "status": "verified isolated Part 1 candidate; not published",
+  "head": "ec650a290992da7c7f903800419e59b523de8e9d",
+  "review_sha256": "ade578fb48668fbfd5b2f319cf5e6409805f706ec24001cb814d4f3918fc3a9a",
+  "code_sha256": {
+    "scraper/src/database/statewide_ballot.py": "9fd93d01bcc2b3a1df4291421cc9747a14d058d11f8d0012ca95713038571a59",
+    "scraper/src/website/generator.py": "4199c48763c8693a352d0fa2f9f467ead911e3210f7c6b27b4f90604804eede1",
+    "scraper/scripts/reconcile_statewide.py": "569f4b4cdb2a85b3869b959dc159a4fc97bc93f19bfa14ce21d47a9ce5b50c5c",
+    "scraper/scripts/verify_statewide_candidate.py": "7a17ce51f28696abc4dcd454f13b8451251611cf67c7cbf08f370c7269b7bb71",
+    "scraper/scripts/check_statewide_browser.py": "e956101af3d244bd947bcf66f401c466766b3665750f9c4623334da8f1bdbfd5",
+    "scraper/tests/test_statewide_ballot.py": "1ed94c10db3fcb3a2bd4c78997ac8f592d5b6e57a1722cd2c34e1d08ee31aa98"
+  },
+  "baseline_db_sha256": "fbe8b5edaea32b63597eb16d3ba5c2f2cfdca53eff2206a7c760a630c5dc1d28",
+  "production_inputs_sha256": {
+    "scraper/data/ballot_measures.db": "7ff2ca55cf5418d314da79dd5efc1dd651c940431097201808bc23b744c71964",
+    "index.html": "c7b8c1cb3ece1bfd95923fbf1db6e8a6a3eead7e278681c28d7fec27cbd3d40f",
+    "measures-data.json": "f35c845f6e983250ca83acce7018ed5cc5a06d08064a6a5bee9334f415449c72",
+    "scraper/data/finance/finance_statewide_v2.db": "485b6aeeae636c9e1c0de2477b9824c6b46e3d19ac4d81954a080e6e43e411c9",
+    "scraper/data/finance/finance_statewide_v3.db": "253d34712100be60eec793a54282d4734ef79d600d0bbc63370e5f71c01d0b53",
+    "scraper/data/embeddings.npz": "e3f6554f05a858248eed22a68107365f6a3d777c3e3e0c3b3cfe187580087dd4",
+    "scraper/data/embedding_metadata.json": "ffcdd22a6457f97d4fd29b438edff5bd6a60b6f179837f8a112a8312b47bb154",
+    "scraper/data/insights.json": "852ca8719e7318a243696167c3e7be35ee951a52030ebe3c783f96d763df2fcf"
+  },
+  "load": {
+    "before_sha256": "fbe8b5edaea32b63597eb16d3ba5c2f2cfdca53eff2206a7c760a630c5dc1d28",
+    "check": {
+      "status": "checked",
+      "review_sha256": "ade578fb48668fbfd5b2f319cf5e6409805f706ec24001cb814d4f3918fc3a9a",
+      "matched": 3,
+      "inserted": 11,
+      "withdrawn": 1,
+      "writes": 0
+    },
+    "applied": {
+      "status": "applied",
+      "review_sha256": "ade578fb48668fbfd5b2f319cf5e6409805f706ec24001cb814d4f3918fc3a9a",
+      "matched": 3,
+      "inserted": 11,
+      "withdrawn": 1,
+      "writes": 140,
+      "assignments": [
+        {
+          "measure_id": 1,
+          "canonical_id": "ACA 13 (Ward) Voting thresholds. (Res. Ch. 176, 20",
+          "proposition_number": null,
+          "ballot_status": "withdrawn"
+        },
+        {
+          "measure_id": 2,
+          "canonical_id": "SCA 1 (Newman) Elections: recall of state officers",
+          "proposition_number": 5,
+          "ballot_status": "qualified"
+        },
+        {
+          "measure_id": 10956,
+          "canonical_id": "SB_42",
+          "proposition_number": 4,
+          "ballot_status": "qualified"
+        },
+        {
+          "measure_id": 10960,
+          "canonical_id": "INIT_1993",
+          "proposition_number": 3,
+          "ballot_status": "qualified"
+        },
+        {
+          "measure_id": 12467,
+          "canonical_id": "PROP_1",
+          "proposition_number": 1,
+          "ballot_status": "qualified"
+        },
+        {
+          "measure_id": 12468,
+          "canonical_id": "PROP_2",
+          "proposition_number": 2,
+          "ballot_status": "qualified"
+        },
+        {
+          "measure_id": 12469,
+          "canonical_id": "PROP_37",
+          "proposition_number": 37,
+          "ballot_status": "qualified"
+        },
+        {
+          "measure_id": 12470,
+          "canonical_id": "PROP_38",
+          "proposition_number": 38,
+          "ballot_status": "qualified"
+        },
+        {
+          "measure_id": 12471,
+          "canonical_id": "PROP_39",
+          "proposition_number": 39,
+          "ballot_status": "qualified"
+        },
+        {
+          "measure_id": 12472,
+          "canonical_id": "PROP_40",
+          "proposition_number": 40,
+          "ballot_status": "qualified"
+        },
+        {
+          "measure_id": 12473,
+          "canonical_id": "PROP_41",
+          "proposition_number": 41,
+          "ballot_status": "qualified"
+        },
+        {
+          "measure_id": 12474,
+          "canonical_id": "PROP_42",
+          "proposition_number": 42,
+          "ballot_status": "qualified"
+        },
+        {
+          "measure_id": 12475,
+          "canonical_id": "PROP_43",
+          "proposition_number": 43,
+          "ballot_status": "qualified"
+        },
+        {
+          "measure_id": 12476,
+          "canonical_id": "PROP_44",
+          "proposition_number": 44,
+          "ballot_status": "qualified"
+        },
+        {
+          "measure_id": 12477,
+          "canonical_id": "PROP_45",
+          "proposition_number": 45,
+          "ballot_status": "qualified"
+        }
+      ]
+    },
+    "after_sha256": "656d1655c07380e7bcaffeb0608ca28d6c84d85fcfabf613f99eb4d9a4948726",
+    "replay": {
+      "status": "unchanged",
+      "review_sha256": "ade578fb48668fbfd5b2f319cf5e6409805f706ec24001cb814d4f3918fc3a9a",
+      "writes": 0
+    }
+  },
+  "preservation": {
+    "verified": true,
+    "review_sha256": "ade578fb48668fbfd5b2f319cf5e6409805f706ec24001cb814d4f3918fc3a9a",
+    "active_measures": 12371,
+    "statewide_propositions": 14,
+    "new_ids": [
+      12467,
+      12468,
+      12469,
+      12470,
+      12471,
+      12472,
+      12473,
+      12474,
+      12475,
+      12476,
+      12477
+    ],
+    "withdrawn_id": 1,
+    "row_field_diff": [
+      {
+        "id": 1,
+        "fields": {
+          "updated_at": {
+            "before": "2026-04-12 15:22:19.504788",
+            "after": "2026-09-13T21:56:38.649090+00:00"
+          },
+          "is_active": {
+            "before": 1,
+            "after": 0
+          },
+          "update_count": {
+            "before": 1,
+            "after": 2
+          }
+        }
+      },
+      {
+        "id": 2,
+        "fields": {
+          "election_type": {
+            "before": null,
+            "after": "general"
+          },
+          "election_date": {
+            "before": null,
+            "after": "2026-11-03"
+          },
+          "updated_at": {
+            "before": "2026-04-13 13:06:06.491689",
+            "after": "2026-09-13T21:56:38.649090+00:00"
+          },
+          "update_count": {
+            "before": 1,
+            "after": 2
+          }
+        }
+      },
+      {
+        "id": 10956,
+        "fields": {
+          "election_type": {
+            "before": "special",
+            "after": "general"
+          },
+          "election_date": {
+            "before": "November 3, 2026",
+            "after": "2026-11-03"
+          },
+          "updated_at": {
+            "before": "2026-04-12T10:52:14.172161",
+            "after": "2026-09-13T21:56:38.649090+00:00"
+          },
+          "update_count": {
+            "before": 0,
+            "after": 1
+          },
+          "election_type_imputed": {
+            "before": 1,
+            "after": 0
+          }
+        }
+      },
+      {
+        "id": 10960,
+        "fields": {
+          "election_type": {
+            "before": null,
+            "after": "general"
+          },
+          "election_date": {
+            "before": null,
+            "after": "2026-11-03"
+          },
+          "updated_at": {
+            "before": "2026-04-12T10:52:14.172320",
+            "after": "2026-09-13T21:56:38.649090+00:00"
+          },
+          "update_count": {
+            "before": 0,
+            "after": 1
+          }
+        }
+      }
+    ],
+    "unrelated_tables_preserved": [
+      "topics",
+      "measure_topics",
+      "measure_updates",
+      "scraper_runs",
+      "ca_historical_measures",
+      "ca_historical_search",
+      "ca_historical_search_data",
+      "ca_historical_search_idx",
+      "ca_historical_search_docsize",
+      "ca_historical_search_config",
+      "registrar_load_scopes",
+      "registrar_identities",
+      "registrar_identity_aliases",
+      "measure_documents"
+    ],
+    "existing_search_rows_preserved": 12414,
+    "new_search_rows": 11,
+    "public_changed_fields": {
+      "election_date": 3,
+      "source_url": 3,
+      "update_count": 3,
+      "external_links": 3,
+      "updated_at": 3,
+      "election_type": 3,
+      "ballot_status": 3,
+      "proposition_number": 3,
+      "official_title": 3,
+      "election_type_imputed": 1
+    },
+    "regenerated_null_timestamps": 129,
+    "measures_with_documents": 49,
+    "document_links": 239,
+    "embedded_payload_sha256": {
+      "financeData": "697c9732a5f5fb9236463196c634641c03ebef7bd38416595215adf503451e7f",
+      "insightsData": "1592a1c0203fe5748e66d7de872d8de2e357ce6e34ec5633f2696a4140c0e1e1",
+      "recommendations": "c135f5c664dd0005a2b3e17c87575abc6ea4eaeaa0032fa5991c1c38c7f814d5",
+      "topics": "99a7bc6c7f003738e9823cfa2527f438597d17ba70e7120af03c87a3a517bf74"
+    },
+    "production_inputs_unchanged": true,
+    "topic_count_delta": {
+      "Governance: Elections": -1
+    },
+    "candidate_db_sha256": "656d1655c07380e7bcaffeb0608ca28d6c84d85fcfabf613f99eb4d9a4948726",
+    "candidate_html_sha256": "fffa45f4102637543e8ed666305c1d4a6749dbeb0be5a7ed41e830ae3440a210",
+    "candidate_json_sha256": "6f42076a0271e56ec7fe12bf7ba28894879030b9b647518504641fa0d0ebf45f"
+  },
+  "browser": {
+    "cases": [
+      {
+        "viewport": "desktop",
+        "propositions": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          37,
+          38,
+          39,
+          40,
+          41,
+          42,
+          43,
+          44,
+          45
+        ],
+        "all_modals_checked": true,
+        "designation_search": true,
+        "county_document_groups": 49,
+        "county_links": 239,
+        "finance_preserved": true,
+        "page_errors": []
+      },
+      {
+        "viewport": "mobile",
+        "propositions": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          37,
+          38,
+          39,
+          40,
+          41,
+          42,
+          43,
+          44,
+          45
+        ],
+        "all_modals_checked": true,
+        "designation_search": true,
+        "county_document_groups": 49,
+        "county_links": 239,
+        "finance_preserved": true,
+        "page_errors": []
+      }
+    ],
+    "external_requests_blocked": true,
+    "html_sha256": "fffa45f4102637543e8ed666305c1d4a6749dbeb0be5a7ed41e830ae3440a210",
+    "json_sha256": "6f42076a0271e56ec7fe12bf7ba28894879030b9b647518504641fa0d0ebf45f"
+  },
+  "build": {
+    "started_at_local": "2026-09-13T15:10:33.905424",
+    "finished_at_local": "2026-09-13T15:11:05.214574",
+    "exit_code": 0
+  },
+  "verification": {
+    "focused_tests": 54,
+    "final_upcoming_tests_repeated": 8,
+    "paired_assets": [
+      "index.html",
+      "measures-data.json",
+      "use-calballot/index.html"
+    ],
+    "paired_assets_byte_identical": true,
+    "candidate_database_unchanged_by_build": true
+  },
+  "limitations": [
+    "No individual-page generation or publication in Part 1.",
+    "Browser checks block external requests; they do not assert live CDN/PDF availability.",
+    "Existing AI summaries retained, not re-reviewed as current official descriptions.",
+    "Off-machine restore and source-drift procedures remain for subsequent parts."
+  ]
+}

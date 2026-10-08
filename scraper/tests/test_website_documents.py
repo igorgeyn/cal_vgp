@@ -67,6 +67,7 @@ def test_official_document_browser_rendering(tmp_path, monkeypatch):
             "labels": ["Full ballot text", "Resolution", "<img src=x onerror=alert(1)>"],
             "content_type": "application/pdf",
             "captured_at": "2026-09-01T02:41:42+00:00",
+            "role_review_note": "County label corrected. <img src=x onerror=alert(1)>",
         }
         page.evaluate("data => renderOfficialDocuments(data)", {"official_documents": [document]})
         link = page.locator("#modalOfficialDocuments a")
@@ -74,6 +75,7 @@ def test_official_document_browser_rendering(tmp_path, monkeypatch):
         assert "Last captured 2026-09-01" in link.inner_text()
         assert "Full ballot text · Resolution" in link.inner_text()
         assert page.locator("img").count() == 0
+        assert "County label corrected." in page.locator("#modalOfficialDocuments p").inner_text()
         link.focus()
         assert link.evaluate("element => element === document.activeElement")
         assert link.get_attribute("rel") == "noopener noreferrer"

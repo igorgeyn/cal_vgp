@@ -1,0 +1,10 @@
+# Release evidence and generated artifacts are verified by SHA-256. Preserve
+# their exact bytes across staging and checkout, including on Windows.
+/scraper/tests/fixtures/statewide/20260913/sources/* -text
+/scraper/tests/fixtures/document_roles/*.pdf -text
+/index.html -text
+/measures-data.json -text
+/measures/*.html -text
+/sitemap.xml -text
+/use-calballot/index.html -text
+/favicon.svg -text
