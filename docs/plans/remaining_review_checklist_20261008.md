@@ -2,7 +2,7 @@
 
 **Updated:** October 8, 2026.  
 **Companion:** [remaining work and review plan](remaining_review_plan_20261008.md).  
-**Status:** checklist prepared; remaining implementation and reviews are not complete.
+**Status:** R1's 49-record content implementation, source reviews and local integration checks are complete; publication is tracked separately. R2-R6 remain open.
 
 Use this file to track execution; use the plan for rationale, detailed acceptance
 criteria and the reusable Claude prompt. R1-R6 are review batches, not the original
@@ -31,8 +31,8 @@ Update this table at each handoff. Dates are proposed targets, not evidence of c
 
 | Batch | Current state | Target | Handoff / verdict / release evidence |
 |---|---|---|---|
-| R1 county content | Three SB drafts and 49-record source packet prepared; mixed pilot pending | Pilot Oct 9-10; main content Oct 15 | Pending |
-| R2 refresh | Missed-run evidence saved; routine review pending | Oct 14 | Pending |
+| R1 county content | All 49 questions/explanations verified; 141 tests and browser checks pass; release receipt separate | Content ready Oct 8 | [Handoff](county_content_20261008.md) |
+| R2 refresh | Oct 8 run succeeded; source comparison unchanged; routine release automation still open | Oct 14 | [Capture and rehearsal evidence](county_content_20261008.md) |
 | R3 status and reader experience | Pending | Oct 18 | Pending |
 | R4 results | Design exists; source readiness and implementation review pending | Oct 22 | Pending |
 | R5 operations | Earlier release recovery verified; new integrated rehearsal pending | Oct 25 | Pending |
@@ -49,22 +49,24 @@ Reopen only for new evidence or relevant changes.
 - [x] Correct the exact Measure Z PDF's public role while preserving raw source evidence.
 - [x] Exercise the accepted release's production preservation, private recovery and served-site checks.
 
+Execution evidence: [October 8 county handoff](county_content_20261008.md). Completed boxes below are supported there; the extra Claude integration attempt was rate-limited and is not counted as a completed review.
+
 ## R1: County content
 
 **Gate:** all 49 records have an explicit content disposition; supported content
 is reviewed and published, with honest fallbacks for unresolved sources.
 
-- [ ] **R1.01** Create the 49-row ledger with stable ID, election/jurisdiction, question and explanation sources, page/hash, actual document role, extraction method, review status and fallback.
-- [ ] **R1.02** Correct the inventory wording so extractable county-labelled "analysis" is not treated as verified impartial content; retain the Measure Z exception.
-- [ ] **R1.03** Select the pilot: SB Y/Z/A (IDs 12418-12420), one difficult SMC scanned/composite source and the SMC regional measure without a letter. Verify the two SMC identities and source pages.
-- [ ] **R1.04** Compare all five questions against rendered source pages; verify each explanation's claims, amounts, units, estimates and qualifications. Record normalization and source conflicts; keep advocacy distinct.
-- [ ] **R1.05** Prepare the pilot preview in cards, modal and standalone pages, plus the proposed ownership/provenance rules for reviewed content.
-- [ ] **R1.06 — Claude + Codex** Obtain the pilot review of format, fidelity, neutrality and provenance; record inspected versus inaccessible sources; assess findings and correct supported defects.
-- [ ] **R1.07 — Igor** Read the concrete pilot for usefulness, density and voice; record decisions before repeating the format across all records.
-- [ ] **R1.08** Implement and verify content persistence: ordinary registrar refresh preserves reviewed content; changed source bytes flag dependent content for re-review; unrelated enrichment remains intact.
-- [ ] **R1.09** Complete SB in waves of roughly 5-10 records, using the per-wave review gate below. Verify every proposed question and explanation against its evidence.
-- [ ] **R1.10** Complete SMC in waves grouped by source difficulty. Resolve packet page ownership, visually check OCR/transcription, and record damaged or missing-source exceptions.
-- [ ] **R1.11** Perform integration checks for long/missing content, source attribution, shared PDFs, search/previews and all detail surfaces; record second checks for changed amounts/qualifications and difficult transcriptions.
+- [x] **R1.01** Create the 49-row ledger with stable ID, election/jurisdiction, question and explanation sources, page/hash, actual document role, extraction method, review status and fallback.
+- [x] **R1.02** Correct the inventory wording so extractable county-labelled "analysis" is not treated as verified impartial content; retain the Measure Z exception.
+- [x] **R1.03** Select the pilot: SB Y/Z/A (IDs 12418-12420), one difficult SMC scanned/composite source and the SMC regional measure without a letter. Verify the two SMC identities and source pages.
+- [x] **R1.04** Compare all five questions against rendered source pages; verify each explanation's claims, amounts, units, estimates and qualifications. Record normalization and source conflicts; keep advocacy distinct.
+- [x] **R1.05** Prepare the pilot preview in cards, modal and standalone pages, plus the proposed ownership/provenance rules for reviewed content.
+- [x] **R1.06 — Claude + Codex** Obtain the pilot review of format, fidelity, neutrality and provenance; record inspected versus inaccessible sources; assess findings and correct supported defects.
+- [ ] **R1.07 — Igor** Optional product read of the concrete examples remains available; implementation continued under Igor's explicit instruction to prioritize building, testing, validating and presenting county content. The source and implementation reviews are complete.
+- [x] **R1.08** Implement and verify content persistence: ordinary registrar refresh preserves reviewed content; changed source bytes flag dependent content for re-review; unrelated enrichment remains intact.
+- [x] **R1.09** Complete SB in waves of roughly 5-10 records, using the per-wave review gate below. Verify every proposed question and explanation against its evidence.
+- [x] **R1.10** Complete SMC in waves grouped by source difficulty. Resolve packet page ownership, visually check OCR/transcription, and record damaged or missing-source exceptions.
+- [x] **R1.11** Perform integration checks for long/missing content, source attribution, shared PDFs, search/previews and all detail surfaces; record second checks for changed amounts/qualifications and difficult transcriptions.
 - [ ] **R1.12** Release accepted waves under the applicable authorization, preserve IDs/documents/Finance/history, and record separate totals for verified questions, verified explanations, unresolved sources and published content. Close R1 through the common gate.
 
 **Evidence to attach:** ledger, pilot and wave packets, source comparisons,
@@ -75,7 +77,7 @@ Claude reviews/dispositions, persistence checks, reader previews and release rec
 **Gate:** unchanged, changed, failed and idle runs are distinguishable; a routine
 changed release targets at most one measured Igor-hour and preserves accepted content.
 
-- [ ] **R2.01** Inspect current available workflow/capture records, establish whether a later run succeeded, and record the October 5 failure follow-up and retained source vintage. Do not mistake runner acquisition failure for parser failure.
+- [x] **R2.01** Inspect current available workflow/capture records, establish whether a later run succeeded, and record the October 5 failure follow-up and retained source vintage. Do not mistake runner acquisition failure for parser failure.
 - [ ] **R2.02** Create a versioned accepted-publication manifest separate from evaluation records, with accurate capture, comparison, content-review and deployment times.
 - [ ] **R2.03** Produce readable diffs for additions/removals, content and identity changes, document URL/role/hash changes, and provenance-only updates.
 - [ ] **R2.04** Implement explicit unchanged/changed/failed-to-evaluate/idle states; ensure capture or parsing alone cannot advance the public baseline.

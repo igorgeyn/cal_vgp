@@ -33,7 +33,7 @@ def _current(description="Bond Measure", *, county="San Bernardino"):
 
 
 def test_reviewed_crosswalk_keeps_transportation_explicitly_unmapped():
-    assert LOCAL_MEASURE_CATEGORY_CROSSWALK == {
+    previous = {
         "Bond Measure": "GO Bond",
         "School Bonds": "GO Bond",
         "Municipal Bonds": "GO Bond",
@@ -46,9 +46,26 @@ def test_reviewed_crosswalk_keeps_transportation_explicitly_unmapped():
         "Special Parcel Tax": "Property Tax",
         "Local Transportation Improvement Program": None,
     }
+    assert previous.items() <= LOCAL_MEASURE_CATEGORY_CROSSWALK.items()
     assert get_reviewed_historical_category("  bond   measure ") == "GO Bond"
     assert get_reviewed_historical_category("Local Transportation Improvement Program") is None
     assert get_reviewed_historical_category("Unreviewed type") is None
+
+
+def test_new_county_types_link_auditable_prior_records_without_numeric_jurisdictions():
+    current = _current('Parcel Tax Measure', county='San Mateo')
+    history = _history(6, county='San Mateo', category='Property Tax', passed=4)
+    for index, row in enumerate(history):
+        row.update(id=100 + index, jurisdiction='1', measure_letter='A', title='School parcel tax')
+    future = dict(history[0], id=999, year=2028)
+    other_type = dict(history[0], id=998, category_type='GO Bond')
+    assert attach_local_historical_context(history + [future, other_type, current]) == 1
+    context = current['local_historical_context']
+    assert context['record_ids'] == [105, 104, 103, 102, 101, 100]
+    assert context['total'] == 6 and context['passed'] == 4
+    assert len(context['records']) == 5
+    assert all(r['jurisdiction'] == 'San Mateo County' for r in context['records'])
+    assert context['through'] == 2003
 
 
 def test_county_label_refresh_preserves_existing_context_and_adds_confirmed_sales_tax():

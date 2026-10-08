@@ -16,6 +16,7 @@ from ..database.measure_documents import documents_for_website
 from ..database.statewide_ballot import attach_statewide_ballot_fields
 from .browse_navigation import NAV_HTML, CATALOG_HTML, STYLE as BROWSE_STYLE, SCRIPT as BROWSE_SCRIPT
 from .statewide_content import attach_statewide_content, load_package, render_future_ballots, STYLE as STATEWIDE_STYLE
+from .county_content import attach_county_content, STYLE as COUNTY_STYLE
 from ..config import WEBSITE_CONFIG, BASE_DIR
 from ..utils import TitleGenerator
 from ..utils.topic_mapping import get_display_topic, get_all_display_categories
@@ -166,6 +167,7 @@ class WebsiteGenerator:
             {key: value for key, value in measure.items() if key != "official_documents"}
             for measure in measures
         ]
+        measures = attach_county_content(measures)
         html = self._generate_html(measures, stats, topics, recommendations)
         auxiliary_pages = {
             USE_CALBALLOT_PAGE: self._generate_use_calballot_html(
@@ -1736,6 +1738,8 @@ class WebsiteGenerator:
                             <p id="modalBallotText" class="measure-detail-ballot-text"></p>
                         </div>
 
+                        <div id="modalCountyGuide" class="measure-detail-section" style="display: none;"></div>
+
                         <div id="modalOfficialDocuments" class="measure-detail-section" style="display: none;">
                             <h3>Official documents</h3>
                             <p class="official-documents-note">Links open the county's current files. Last captured is when we retrieved the file, not its filing date. Labels follow the county listing unless a correction is noted; a file may cover several document types. An absent link does not mean a document was never filed.</p>
@@ -1778,7 +1782,7 @@ class WebsiteGenerator:
                             <div id="modalFinanceContent" class="measure-detail-finance"></div>
                         </div>
                         <div id="modalFinanceEmpty" class="measure-detail-section" style="display:none;">
-                            <p style="color:var(--text-tertiary);font-style:italic;">No campaign finance data available for this measure. (Finance coverage is statewide-only; local measures aren&rsquo;t in CAL-ACCESS.)</p>
+                            <p style="color:var(--text-tertiary);font-style:italic;">CalBallot has not linked campaign finance data to this measure. This does not mean no funds were raised or spent.</p>
                         </div>
                     </div>
                 </div>
@@ -2568,7 +2572,7 @@ class WebsiteGenerator:
         """Get CSS styles for the website"""
         return """
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
-        """ + STATEWIDE_STYLE + """
+        """ + STATEWIDE_STYLE + COUNTY_STYLE + """
         /* Modern CSS Reset and Variables */
         * {
             margin: 0;
@@ -11000,7 +11004,8 @@ class WebsiteGenerator:
                         measure.measure_text,
                         measure.measure_id,
                         measure.status_reason || measure.official_description || measure.description,
-                        measure.official_description || measure.status_reason ? '' : measure.summary_text,
+                        measure.county_explanation || (measure.official_description || measure.status_reason ? '' : measure.summary_text),
+                        measure.county_guide?.question,
                         measure.topic_primary,
                         measure.statewide_guide ? measure.display_topic : '',
                         measure.statewide_guide?.short_title || '',
@@ -11267,6 +11272,7 @@ class WebsiteGenerator:
                     </div>
                     <h4 class="local-card-jurisdiction">${{escapeHtml(jurisdiction)}}</h4>
                     <span class="local-card-type">${{escapeHtml(measureType)}}</span>
+                    ${{measure.county_explanation ? `<p class="local-card-content-label">CalBallot explanation</p><p class="local-card-explanation">${{escapeHtml(measure.county_explanation)}}</p>` : ''}}
                     ${{contextHtml}}
                 </article>
             `;
@@ -14568,6 +14574,9 @@ class WebsiteGenerator:
         }}
 
         function renderTimeline(measure) {{
+            if (measure.county_guide) {{
+                return '<p>Listed by the county for the November 3, 2026 election.</p>';
+            }}
             if (measure.ballot_status === 'qualified') {{
                 return '<p>On the November 3, 2026 ballot.</p>' + (measure.statewide_guide ? `<p class="text-secondary">${{escapeHtml(measure.statewide_guide.qualification_method)}}.</p>` : '');
             }}
@@ -14664,7 +14673,9 @@ class WebsiteGenerator:
             // call. The v2 design tightens whitespace but keeps the
             // info-rich card shape.
             let summary = '';
-            if (measure.status_reason || measure.official_description) {{
+            if (measure.county_explanation) {{
+                summary = measure.county_explanation;
+            }} else if (measure.status_reason || measure.official_description) {{
                 summary = measure.status_reason || measure.official_description;
             }} else if (measure.summary_text && measure.summary_text.length > 50 && !isAiRefusal(measure.summary_text) &&
                 !(isPending && isMetadataSummary(measure.summary_text))) {{
@@ -14832,7 +14843,9 @@ class WebsiteGenerator:
             let summaryText = '';
             const summarySource = document.getElementById('modalSummarySource');
             summarySource.replaceChildren();
-            if (measure.official_description || measure.status_reason) {{
+            if (measure.county_guide) {{
+                summarySource.textContent = 'CalBallot explanation · AI-assisted and source-checked · Reviewed ' + measure.county_guide.reviewed_at;
+            }} else if (measure.official_description || measure.status_reason) {{
                 const sourceLink = document.createElement('a');
                 sourceLink.href = measure.source_url;
                 sourceLink.textContent = measure.status_reason ? 'Withdrawal recorded by the California Secretary of State' : 'Official description · California Secretary of State';
@@ -14842,7 +14855,10 @@ class WebsiteGenerator:
             }}
 
             let summaryIsHtml = false;
-            if (measure.status_reason || measure.official_description) {{
+            if (measure.county_explanation) {{
+                summaryText = measure.county_explanation;
+                summaryEl.classList.remove('no-summary-text');
+            }} else if (measure.status_reason || measure.official_description) {{
                 summaryText = measure.status_reason || measure.official_description;
                 summaryEl.classList.remove('no-summary-text');
             }} else if (measure.summary_text && !isAiRefusal(measure.summary_text) &&
@@ -14871,7 +14887,7 @@ class WebsiteGenerator:
             }}
 
             // Show "Show more" toggle for long summaries (>400 chars)
-            if (summaryText.length > 400) {{
+            if (summaryText.length > 400 && !measure.county_guide) {{
                 summaryEl.classList.add('truncated');
                 summaryToggle.style.display = 'inline-block';
                 summaryToggle.textContent = 'Show more';
@@ -14895,12 +14911,16 @@ class WebsiteGenerator:
 
             // Ballot question section
             const ballotSection = document.getElementById('modalBallotQuestion');
-            if (!measure.ballot_status && measure.ballot_question && measure.ballot_question.length > 20) {{
+            if (!measure.county_guide && !measure.ballot_status && measure.ballot_question && measure.ballot_question.length > 20) {{
                 ballotSection.style.display = 'block';
                 document.getElementById('modalBallotText').textContent = measure.ballot_question;
             }} else {{
                 ballotSection.style.display = 'none';
             }}
+
+            const countyGuide = document.getElementById('modalCountyGuide');
+            countyGuide.innerHTML = measure.county_sections || '';
+            countyGuide.style.display = measure.county_sections ? 'block' : 'none';
 
             // Related measures section - populated from recommendations
             const relatedSection = document.getElementById('modalRelatedSection');
@@ -15158,10 +15178,14 @@ class WebsiteGenerator:
             if (guideSections) {{
                 financeContent.innerHTML = guideSections.finance;
                 financeSection.style.display = 'block';
+            }} else if (measure.county_finance) {{
+                financeContent.innerHTML = measure.county_finance;
+                financeSection.style.display = 'block';
             }} else if (fd) {{
                 financeContent.innerHTML = buildFinanceHTML(fd, measure);
                 financeSection.style.display = 'block';
             }} else {{
+                financeContent.innerHTML = '';
                 financeSection.style.display = 'none';
             }}
 

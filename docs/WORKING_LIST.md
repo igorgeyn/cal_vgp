@@ -1,5 +1,19 @@
 # CalBallot Working List
 
+> **County reader content — October 8:** the [county content handoff](plans/county_content_20261008.md)
+> and [49-record ledger](plans/county_content_ledger_20261008.md) supersede the
+> older document-only status below. All 20 SB + 29 SMC questions/explanations
+> are source-verified, with approval requirements, page citations, 40 linked
+> historical comparisons and honest local-finance lookup fallbacks. Three
+> independent Claude content reviews completed; an extra integration attempt
+> hit its session limit, so its verdict is explicitly incomplete. Codex's
+> integration checks pass: 141 tests, all county records at three widths,
+> Grid/List at five widths, preserved statewide components and 12,323 unchanged
+> unrelated detail pages. October 8 fresh captures match September 28 content;
+> no production database changes. The handoff/evidence receipt records recovery
+> and publication separately. Next is R2 routine refresh, then status/results
+> readiness before Alameda. Statewide card aesthetics remain deferred.
+
 > **Grid/List navigation — October 8:** Igor requested statewide measures first
 > and Jump to links for statewide, local and the full grid/list. The
 > [research and implementation note](plans/browse_navigation_20261008.md) records

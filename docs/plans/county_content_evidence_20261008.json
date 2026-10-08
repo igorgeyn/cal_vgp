@@ -1,0 +1,410 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-08",
+  "baseline_commit": "7a4bccb9ebd7273c78942f8d47e993cf47a309dd",
+  "status": "reviewed_release_candidate; deployment receipt recorded separately",
+  "counts": {
+    "records": 12372,
+    "reviewed_questions": 49,
+    "reviewed_explanations": 49,
+    "county_counts": {
+      "San Bernardino": 20,
+      "San Mateo": 29
+    },
+    "historical_link_cohorts": 40,
+    "official_document_groups": 239,
+    "unrelated_pages_byte_identical": 12323
+  },
+  "fresh_capture": {
+    "sb": {
+      "snapshot": "20261008T225445Z",
+      "records": 20,
+      "artifacts": 106,
+      "added": [],
+      "removed": [],
+      "changes": {}
+    },
+    "smc": {
+      "snapshot": "20261008T225908Z",
+      "records": 29,
+      "artifacts": 136,
+      "added": [],
+      "removed": [],
+      "changes": {}
+    }
+  },
+  "capture_run_url": "https://github.com/igorgeyn/cal_vgp/actions/runs/37856278296",
+  "preservation": {
+    "production_databases_unchanged": {
+      "scraper/data/ballot_measures.db": "ef1359e482db2c54fe41068771932aaac7c9fc1db372e2e1d8cbbed1f505d9da",
+      "scraper/data/finance/finance_statewide_v2.db": "485b6aeeae636c9e1c0de2477b9824c6b46e3d19ac4d81954a080e6e43e411c9",
+      "scraper/data/finance/finance_statewide_v3.db": "253d34712100be60eec793a54282d4734ef79d600d0bbc63370e5f71c01d0b53"
+    },
+    "finance_insights_topics_recommendations_quiz_unchanged": true,
+    "changed_measure_pages": [
+      "measures/12418.html",
+      "measures/12419.html",
+      "measures/12420.html",
+      "measures/12421.html",
+      "measures/12422.html",
+      "measures/12423.html",
+      "measures/12424.html",
+      "measures/12425.html",
+      "measures/12426.html",
+      "measures/12427.html",
+      "measures/12428.html",
+      "measures/12429.html",
+      "measures/12430.html",
+      "measures/12431.html",
+      "measures/12432.html",
+      "measures/12433.html",
+      "measures/12434.html",
+      "measures/12435.html",
+      "measures/12436.html",
+      "measures/12437.html",
+      "measures/12438.html",
+      "measures/12439.html",
+      "measures/12440.html",
+      "measures/12441.html",
+      "measures/12442.html",
+      "measures/12443.html",
+      "measures/12444.html",
+      "measures/12445.html",
+      "measures/12446.html",
+      "measures/12447.html",
+      "measures/12448.html",
+      "measures/12449.html",
+      "measures/12450.html",
+      "measures/12451.html",
+      "measures/12452.html",
+      "measures/12453.html",
+      "measures/12454.html",
+      "measures/12455.html",
+      "measures/12456.html",
+      "measures/12457.html",
+      "measures/12458.html",
+      "measures/12459.html",
+      "measures/12460.html",
+      "measures/12461.html",
+      "measures/12462.html",
+      "measures/12463.html",
+      "measures/12464.html",
+      "measures/12465.html",
+      "measures/12466.html"
+    ],
+    "allowed_display_fields": [
+      "county_guide",
+      "county_explanation",
+      "county_sections",
+      "county_finance",
+      "local_historical_context"
+    ],
+    "legacy_null_last_seen_timestamps_regenerated": 129
+  },
+  "tested_candidate": {
+    "html_sha256": "b0257999de740c6ed15990d0c44915b0e75de5bd1137e7ef6fb34794622c2cc8",
+    "json_sha256": "1921e5d463a450b5d0d017b673be0a86e47eb8a89fe82864890c2cbc5b3a72d1",
+    "code_sha256": {
+      ".gitignore": "074f4bfd00da2d52e7810639587729e45d26b2033ade554162ed297e2438b81b",
+      "build_measure_pages.py": "3900a3ec2802220926aed735bc3b5faa362ce35d9c9f38801cc022c0fb11a8da",
+      "scraper/src/website/generator.py": "b1a6e81ff857261e08fcdaac573969bb35d33c3dbb9443f72d1f9b7f4906e9be",
+      "scraper/src/website/local_measure_context.py": "10d2df8cdd3580abf9fcd01b367fd604c8d85781dbed1dab42f055688eb442d4",
+      "scraper/src/website/county_content.py": "79a4f6dc64bc275f0abfeabc75b8efd7d06caf987bf46a58866419659877152e",
+      "scraper/src/website/data/county_2026.json": "5738fae75e867909ad643ab9960df5691c9fd8b2876fdafde3c040e2c64d14dd",
+      "scraper/tests/test_county_content.py": "7a159b3c0f191de7656cb3a08deab3b3b262324c5fd3c6005b3aec8a92997f47",
+      "scraper/tests/test_local_measure_context.py": "a4be6df96fe4403e82b34ec7db41036d79d699d290c25afe680ae64598e8636d",
+      "scraper/scripts/check_county_content_browser.py": "05e03f03c6a0e4c58ce89900695bccf4a6a640d27224db3994138faf5b1ad62b"
+    }
+  },
+  "tests": {
+    "focused_passed": 141,
+    "xml_sha256": "1218653cd5455d2771803eb8db42b72691dff7bf1a2807ed5f40db3220352c12",
+    "county_browser": [
+      {
+        "width": 1440,
+        "reviewed": 49,
+        "errors": []
+      },
+      {
+        "width": 390,
+        "reviewed": 49,
+        "errors": []
+      },
+      {
+        "width": 320,
+        "reviewed": 49,
+        "errors": []
+      }
+    ],
+    "navigation_browser": [
+      {
+        "width": 1440,
+        "grid_and_list": "PASS",
+        "keyboard_focus_and_offset": "PASS",
+        "filters_county_pagination_history_reload": "PASS",
+        "legacy_and_measure_links": "PASS",
+        "page_errors": []
+      },
+      {
+        "width": 768,
+        "grid_and_list": "PASS",
+        "keyboard_focus_and_offset": "PASS",
+        "filters_county_pagination_history_reload": "PASS",
+        "legacy_and_measure_links": "PASS",
+        "page_errors": []
+      },
+      {
+        "width": 640,
+        "grid_and_list": "PASS",
+        "keyboard_focus_and_offset": "PASS",
+        "filters_county_pagination_history_reload": "PASS",
+        "legacy_and_measure_links": "PASS",
+        "page_errors": []
+      },
+      {
+        "width": 390,
+        "grid_and_list": "PASS",
+        "keyboard_focus_and_offset": "PASS",
+        "filters_county_pagination_history_reload": "PASS",
+        "legacy_and_measure_links": "PASS",
+        "page_errors": []
+      },
+      {
+        "width": 320,
+        "grid_and_list": "PASS",
+        "keyboard_focus_and_offset": "PASS",
+        "filters_county_pagination_history_reload": "PASS",
+        "legacy_and_measure_links": "PASS",
+        "page_errors": []
+      }
+    ],
+    "statewide_browser": {
+      "html_sha256": "b0257999de740c6ed15990d0c44915b0e75de5bd1137e7ef6fb34794622c2cc8",
+      "cases": [
+        {
+          "width": 1440,
+          "checked_ids": [
+            12467,
+            12468,
+            10960,
+            10956,
+            2,
+            12469,
+            12470,
+            12471,
+            12472,
+            12473,
+            12474,
+            12475,
+            12476,
+            12477
+          ],
+          "no_page_errors": true,
+          "versioned_data": true,
+          "no_horizontal_overflow": true
+        },
+        {
+          "width": 390,
+          "checked_ids": [
+            12467,
+            12468,
+            10960,
+            10956,
+            2,
+            12469,
+            12470,
+            12471,
+            12472,
+            12473,
+            12474,
+            12475,
+            12476,
+            12477
+          ],
+          "no_page_errors": true,
+          "versioned_data": true,
+          "no_horizontal_overflow": true
+        },
+        {
+          "width": 320,
+          "checked_ids": [
+            12467,
+            12468,
+            10960,
+            10956,
+            2,
+            12469,
+            12470,
+            12471,
+            12472,
+            12473,
+            12474,
+            12475,
+            12476,
+            12477
+          ],
+          "no_page_errors": true,
+          "versioned_data": true,
+          "no_horizontal_overflow": true
+        }
+      ]
+    }
+  },
+  "refresh_rehearsal": {
+    "verified": true,
+    "all_measure_rows_unchanged": true,
+    "reviewed_content_after_fresh_load": 49,
+    "identical_input_no_write": true,
+    "production_sha256_unchanged": "ef1359e482db2c54fe41068771932aaac7c9fc1db372e2e1d8cbbed1f505d9da"
+  },
+  "reviews": {
+    "ready_to_publish": true,
+    "decision_owner": "Codex",
+    "candidate": "candidate-02",
+    "html_sha256": "b0257999de740c6ed15990d0c44915b0e75de5bd1137e7ef6fb34794622c2cc8",
+    "json_sha256": "1921e5d463a450b5d0d017b673be0a86e47eb8a89fe82864890c2cbc5b3a72d1",
+    "content_reviews": {
+      "pilot": "READY WITH CONDITIONS; conditions resolved",
+      "sb_remaining_17": "READY",
+      "smc_remaining_27": "READY"
+    },
+    "claude_integration": {
+      "status": "incomplete",
+      "reason": "account session limit HTTP 429",
+      "reported_reset": "18:30 America/Los_Angeles"
+    },
+    "codex_integration": "READY",
+    "reviewed_questions": 49,
+    "reviewed_explanations": 49,
+    "unresolved_content_sources": 0,
+    "open_release_checks": [
+      "private recovery restore/read-back",
+      "PR promotion/deployment/served verification"
+    ],
+    "later_work": [
+      "R2 routine refresh",
+      "R3 date transitions",
+      "R4 results",
+      "R5 operating rehearsal",
+      "conditional Alameda",
+      "local finance ingestion"
+    ]
+  },
+  "recovery": {
+    "seal": {
+      "archive_sha256": "838170fde15a9379fa6eabd451cf447d5af4ed423dc3361bd8e6a5286ffe7ade",
+      "archive_bytes": 87171346,
+      "manifest_sha256": "b6c01cd078dd026a6011728109a45dc888d6984e6578b2207ab73cf56afff439",
+      "files": 274
+    },
+    "restore": {
+      "verified": true,
+      "files": 274,
+      "archive_sha256": "838170fde15a9379fa6eabd451cf447d5af4ed423dc3361bd8e6a5286ffe7ade",
+      "workspace_inputs_verified": 277,
+      "public_files_verified": 12382,
+      "archived_source_pdfs": 51,
+      "strict_real_rebuild": true,
+      "only_rebuild_differences": "129 pre-existing null last_seen_at display timestamps and the resulting catalog URL hash"
+    },
+    "r2": {
+      "bucket": "cal-vgp-registrar-raw",
+      "prefix": "recovery/20261008-county-content/838170fde15a9379fa6eabd451cf447d5af4ed423dc3361bd8e6a5286ffe7ade",
+      "objects": {
+        "recovery/20261008-county-content/838170fde15a9379fa6eabd451cf447d5af4ed423dc3361bd8e6a5286ffe7ade/recovery-update.zip": {
+          "bytes": 87171346,
+          "sha256": "838170fde15a9379fa6eabd451cf447d5af4ed423dc3361bd8e6a5286ffe7ade",
+          "read_back_verified": true
+        },
+        "recovery/20261008-county-content/838170fde15a9379fa6eabd451cf447d5af4ed423dc3361bd8e6a5286ffe7ade/recovery-manifest.json": {
+          "bytes": 48705,
+          "sha256": "b6c01cd078dd026a6011728109a45dc888d6984e6578b2207ab73cf56afff439",
+          "read_back_verified": true
+        },
+        "recovery/20261008-county-content/838170fde15a9379fa6eabd451cf447d5af4ed423dc3361bd8e6a5286ffe7ade/update.json": {
+          "bytes": 1215301,
+          "sha256": "1e613d42095a269e181c5f42cb0eb0cecd80de3067645c701c0957cd95af3ae3",
+          "read_back_verified": true
+        },
+        "recovery/20261008-county-content/838170fde15a9379fa6eabd451cf447d5af4ed423dc3361bd8e6a5286ffe7ade/verification/recovery-restore.json": {
+          "bytes": 390,
+          "sha256": "2ac62ee107f34c74aa9d56992e8c1b67323a962154dd7df553ebb18b9873deb4",
+          "read_back_verified": true
+        },
+        "recovery/20261008-county-content/838170fde15a9379fa6eabd451cf447d5af4ed423dc3361bd8e6a5286ffe7ade/verification/review-disposition.json": {
+          "bytes": 1033,
+          "sha256": "e0eff409cc6d8c0a1d66aebe9c4ad2aa82d2bd16022115678e7a5f4fe1b166d7",
+          "read_back_verified": true
+        }
+      },
+      "verified_at": "2026-10-08T23:33:02.853182+00:00",
+      "public_access_changed": false
+    }
+  },
+  "limitations": [
+    "Local campaign-finance committee linkage/totals not imported; official lookup resources provided.",
+    "Extra Claude integration review ended at account session limit; three full content reviews completed and Codex performed final integration assessment.",
+    "Routine refresh/publication automation, calendar status/results and additional counties remain separate review batches."
+  ],
+  "public_promotion": {
+    "verified": true,
+    "changed_public_paths": [
+      "index.html",
+      "measures-data.json",
+      "measures/12418.html",
+      "measures/12419.html",
+      "measures/12420.html",
+      "measures/12421.html",
+      "measures/12422.html",
+      "measures/12423.html",
+      "measures/12424.html",
+      "measures/12425.html",
+      "measures/12426.html",
+      "measures/12427.html",
+      "measures/12428.html",
+      "measures/12429.html",
+      "measures/12430.html",
+      "measures/12431.html",
+      "measures/12432.html",
+      "measures/12433.html",
+      "measures/12434.html",
+      "measures/12435.html",
+      "measures/12436.html",
+      "measures/12437.html",
+      "measures/12438.html",
+      "measures/12439.html",
+      "measures/12440.html",
+      "measures/12441.html",
+      "measures/12442.html",
+      "measures/12443.html",
+      "measures/12444.html",
+      "measures/12445.html",
+      "measures/12446.html",
+      "measures/12447.html",
+      "measures/12448.html",
+      "measures/12449.html",
+      "measures/12450.html",
+      "measures/12451.html",
+      "measures/12452.html",
+      "measures/12453.html",
+      "measures/12454.html",
+      "measures/12455.html",
+      "measures/12456.html",
+      "measures/12457.html",
+      "measures/12458.html",
+      "measures/12459.html",
+      "measures/12460.html",
+      "measures/12461.html",
+      "measures/12462.html",
+      "measures/12463.html",
+      "measures/12464.html",
+      "measures/12465.html",
+      "measures/12466.html"
+    ],
+    "html_sha256": "b0257999de740c6ed15990d0c44915b0e75de5bd1137e7ef6fb34794622c2cc8",
+    "json_sha256": "1921e5d463a450b5d0d017b673be0a86e47eb8a89fe82864890c2cbc5b3a72d1",
+    "public_files_checked": 12382,
+    "mirrors_identical": true,
+    "databases_unchanged": true
+  }
+}

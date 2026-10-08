@@ -1,0 +1,1793 @@
+{
+  "schema_version": 1,
+  "election_date": "2026-11-03",
+  "entries": [
+    {
+      "id": 12418,
+      "measure_id": "REG_SB_20261103_3896656C9F93312913EBA64FB4FCDD72E1B26592C9B0D2E961435E228770A6F9",
+      "county": "San Bernardino",
+      "jurisdiction": "San Bernardino Community College District",
+      "election_date": "2026-11-03",
+      "measure_letter": "Y",
+      "county_slug": "sb",
+      "question": "Local College Affordability, Job Training, Repairs Measure. To maintain affordable college education access, by repairing /upgrading San Bernardino Valley College, Crafton Hills College; preparing students/ veterans for high-demand careers including skilled trades, firefighting, healthcare; providing safe drinking water; removing asbestos, mold; repairing deteriorating gas lines; acquiring, constructing, repairing facilities, sites, equipment; shall San Bernardino Community College District’s measure authorizing $898,000,000 in bonds at legal rates, levying $25 per $100,000 of assessed valuation ($56,000,000 annually) while bonds are outstanding, requiring oversight, audits, be adopted?",
+      "explanation": "Authorize $898 million in bonds for facilities at San Bernardino Valley College and Crafton Hills College, including repairs, safety upgrades and job-training facilities. The ballot question estimates a levy of $25 per $100,000 of assessed value, raising $56 million annually while the bonds are outstanding. Oversight and audits are required.",
+      "reviewed_at": "2026-10-08",
+      "question_source": 0,
+      "explanation_sources": [
+        0
+      ],
+      "sources": [
+        {
+          "url": "https://uploads.rov.sbcounty.gov/ROV/Elections/2026/1103/Measures/SBCCD/FT_SBCCD.pdf",
+          "sha256": "ea4420a2f7563a4bac6fb0a609639633c7fe89864d03aeabc78016e95ddc7d8b",
+          "snapshot": "20260928T192225Z",
+          "pages": [
+            1
+          ],
+          "role": "text",
+          "verified_role": "ballot_question",
+          "label": "Official ballot wording",
+          "snapshot_id": "20261008T225445Z"
+        }
+      ],
+      "notes": [
+        "Property taxes use assessed value, which is not necessarily the property’s market value. The stated tax rate and annual revenue are estimates."
+      ],
+      "extraction_method": "PDF text plus visual comparison",
+      "vote_threshold": "55%",
+      "source_checked_at": "2026-10-08"
+    },
+    {
+      "id": 12419,
+      "measure_id": "REG_SB_20261103_0F4AE3608E58E60775B01EED06BAA9659D2A487D55CAFFA123047291245E82F5",
+      "county": "San Bernardino",
+      "jurisdiction": "San Bernardino City Unified School District",
+      "election_date": "2026-11-03",
+      "measure_letter": "Z",
+      "county_slug": "sb",
+      "question": "To repair/upgrade aging classrooms, labs, career technology, school facilities to support college/career readiness in math, science, engineering, arts, skilled trades; fix/replace deteriorating roofs, plumbing, HVAC, electrical; and upgrade schools to meet current health/safety codes and improve disabled access, shall San Bernardino City Unified School District’s measure authorizing $345,000,000 in bonds, at legal rates, be adopted, levying approximately $45 per $100,000 assessed value ($22,000,000 annually) while bonds are outstanding, with oversight, audits, and all money locally controlled?",
+      "explanation": "Authorize $345 million in bonds to repair and upgrade classrooms, career-technology facilities and other school buildings. The ballot question estimates a levy of approximately $45 per $100,000 of assessed value, raising $22 million annually while the bonds are outstanding. Oversight and audits are required.",
+      "reviewed_at": "2026-10-08",
+      "question_source": 0,
+      "explanation_sources": [
+        0
+      ],
+      "sources": [
+        {
+          "url": "https://uploads.rov.sbcounty.gov/ROV/Elections/2026/1103/Measures/SBCityUSD/RES_SBCityUSD.pdf",
+          "sha256": "afca8d7fba12f6c82846b1309ceaf470d59c2aa1d62afe285b87af81c05c3406",
+          "snapshot": "20260928T192225Z",
+          "pages": [
+            4
+          ],
+          "role": "resolution",
+          "verified_role": "ballot_question",
+          "label": "Official ballot wording",
+          "snapshot_id": "20261008T225445Z"
+        }
+      ],
+      "notes": [
+        "Property taxes use assessed value, which is not necessarily the property’s market value. The stated tax rate and annual revenue are estimates.",
+        "The county’s link labelled “Impartial Analysis” opens an argument in favor. This explanation uses the adopted resolution instead; the advocacy document is labelled as an argument below."
+      ],
+      "extraction_method": "PDF text plus visual comparison",
+      "vote_threshold": "55%",
+      "source_checked_at": "2026-10-08"
+    },
+    {
+      "id": 12420,
+      "measure_id": "REG_SB_20261103_84BC11A52344FBDD0B18B87F0D8C6074BE70B98E90EC3E87BC15865716A226E6",
+      "county": "San Bernardino",
+      "jurisdiction": "Upland Unified School District",
+      "election_date": "2026-11-03",
+      "measure_letter": "A",
+      "county_slug": "sb",
+      "question": "To improve the quality of education by modernizing, constructing, upgrading and equipping classrooms, restrooms and school facilities; improve career technical classrooms/labs; replace roofs; make safety/security improvements; and renovate/replace electrical, plumbing and sewer systems; shall Upland Unified School District’s measure be adopted, authorizing $236,700,000 of bonds at legal rates, levying approximately $47.50 per $100,000 assessed value (raising $14,200,000 annually) while bonds are outstanding, with audits, independent oversight, NO money for salaries, and all money staying local?",
+      "explanation": "Authorize $236.7 million in bonds to construct, modernize and repair Upland school facilities. The ballot question estimates a levy of approximately $47.50 per $100,000 of assessed value, raising $14.2 million annually while the bonds are outstanding. The measure requires audits and independent oversight.",
+      "reviewed_at": "2026-10-08",
+      "question_source": 0,
+      "explanation_sources": [
+        0
+      ],
+      "sources": [
+        {
+          "url": "https://uploads.rov.sbcounty.gov/ROV/Elections/2026/1103/Measures/UplandUSD/FT_UplandUSD.pdf",
+          "sha256": "00558fe8b40d575681c9332ae7efd03cf75df1f132acd94c142a6a1815462e5e",
+          "snapshot": "20260928T192225Z",
+          "pages": [
+            1,
+            2
+          ],
+          "role": "text",
+          "verified_role": "ballot_question",
+          "label": "Official ballot wording",
+          "snapshot_id": "20261008T225445Z"
+        }
+      ],
+      "notes": [
+        "Property taxes use assessed value, which is not necessarily the property’s market value. The stated tax rate and annual revenue are estimates."
+      ],
+      "extraction_method": "PDF text plus visual comparison",
+      "vote_threshold": "55%",
+      "source_checked_at": "2026-10-08"
+    },
+    {
+      "id": 12421,
+      "measure_id": "REG_SB_20261103_2745C49FBC8F4E0D450F3B9A9E3CA78FB01B21544F72CB6FD383327774ABA364",
+      "county": "San Bernardino",
+      "jurisdiction": "Beaumont Unified School District",
+      "election_date": "2026-11-03",
+      "measure_letter": "B",
+      "county_slug": "sb",
+      "question": "Without increasing current tax rates, to repair/replace deteriorating roofs, plumbing, HVAC and electrical systems; improve student safety/security; repair/upgrade aging classrooms, science labs, school/career technology facilities at existing schools to support college/career readiness in health sciences, engineering, skilled trades; shall Beaumont Unified School District’s measure be adopted authorizing $86,000,000 in bonds at legal rates, levying $20 per $100,000 assessed value ($6,000,000 annually) while bonds are outstanding, with audits, citizen oversight, all money locally controlled?",
+      "explanation": "Authorize $86 million in bonds to repair and upgrade Beaumont school facilities, including roofs, building systems, classrooms and career-technology facilities. The official question states that current tax rates would not increase and estimates $20 per $100,000 of assessed property value, raising $6 million annually while bonds are outstanding. Audits and citizen oversight are required.",
+      "reviewed_at": "2026-10-08",
+      "question_source": 0,
+      "explanation_sources": [
+        0
+      ],
+      "sources": [
+        {
+          "url": "https://uploads.rov.sbcounty.gov/ROV/Elections/2026/1103/Measures/BeaumontUSD/FT_BUSD.pdf",
+          "sha256": "e19df487e4519ec896a4b6aa70ab264b52f66594d9986e2f69f4b77a4eeb7cd4",
+          "snapshot": "20260928T192225Z",
+          "pages": [
+            1
+          ],
+          "role": "text",
+          "verified_role": "ballot_question",
+          "label": "Official ballot wording and filing",
+          "snapshot_id": "20261008T225445Z"
+        }
+      ],
+      "extraction_method": "PDF text plus visual comparison",
+      "notes": [
+        "Property taxes use assessed value, which may differ from market value. The stated tax rate and annual revenue are estimates."
+      ],
+      "vote_threshold": "55%",
+      "source_checked_at": "2026-10-08"
+    },
+    {
+      "id": 12422,
+      "measure_id": "REG_SB_20261103_1B99CBE9214817F33F9593A620787A0A15F13254804BF41EE7B7FACB334907B2",
+      "county": "San Bernardino",
+      "jurisdiction": "Barstow Community College District",
+      "election_date": "2026-11-03",
+      "measure_letter": "C",
+      "county_slug": "sb",
+      "question": "Barstow Community College Repair, Safety, Affordable Higher Education Measure. To repair/upgrade local community college classrooms/labs, maintain affordable higher education in classrooms preparing students/veterans for high-demand jobs/careers, including skilled trades, engineering, nursing; update aging computer technology, emergency systems; repair deteriorating gas/electrical lines; shall Barstow Community College District’s measure be adopted authorizing $37,000,000 in bonds at legal rates, levying approximately $25 per $100,000 assessed valuation ($2,500,000 annually) while bonds are outstanding, requiring spending disclosure, oversight, audits?",
+      "explanation": "Authorize $37 million in bonds to repair and upgrade Barstow Community College classrooms, labs, technology and building systems. The ballot question estimates approximately $25 per $100,000 of assessed property value, raising $2.5 million annually while bonds are outstanding. Spending disclosure, oversight and audits are required.",
+      "reviewed_at": "2026-10-08",
+      "question_source": 0,
+      "explanation_sources": [
+        0
+      ],
+      "sources": [
+        {
+          "url": "https://uploads.rov.sbcounty.gov/ROV/Elections/2026/1103/Measures/BarstowCCD/RES_BarstowCCD.pdf",
+          "sha256": "ce93075ca048c14aef2a7b3b34c98c03724d89d47a3e214f7311c1ef0eb10624",
+          "snapshot": "20260928T192225Z",
+          "pages": [
+            8
+          ],
+          "role": "resolution",
+          "verified_role": "ballot_question",
+          "label": "Official ballot wording and filing",
+          "snapshot_id": "20261008T225445Z"
+        }
+      ],
+      "extraction_method": "PDF text plus visual comparison",
+      "notes": [
+        "Property taxes use assessed value, which may differ from market value. The stated tax rate and annual revenue are estimates."
+      ],
+      "vote_threshold": "55%",
+      "source_checked_at": "2026-10-08"
+    },
+    {
+      "id": 12423,
+      "measure_id": "REG_SB_20261103_CB99BB24E177D66591BD04A801F1183B4E7AD433F8A141B3C9723C12C1F5EF86",
+      "county": "San Bernardino",
+      "jurisdiction": "San Bernardino County Transportation Authority",
+      "election_date": "2026-11-03",
+      "measure_letter": "I",
+      "county_slug": "sb",
+      "question": "San Bernardino County Road Repair/Traffic Relief Extension Without raising tax rates, shall an ordinance to fund repairing potholes; keeping local roads in good condition; completing freeway/highway projects to improve traffic flow/safety, reduce traffic bottlenecks; upgrading aging bridges/overpasses; creating local jobs; keeping student/senior/disabled/veteran transit fares low be adopted, extending the ½¢ voter-approved transportation sales tax, providing approximately $250,000,000 annually until ended by voters, requiring audits, oversight, spending disclosure, local control?",
+      "explanation": "Extend the existing half-cent transportation sales tax until ended by voters. The official question estimates approximately $250 million annually for road repairs, freeway and bridge improvements, and transit programs. It proposes extending the tax without raising its rate and requires audits, oversight, spending disclosure and local control.",
+      "reviewed_at": "2026-10-08",
+      "question_source": 0,
+      "explanation_sources": [
+        0
+      ],
+      "sources": [
+        {
+          "url": "https://uploads.rov.sbcounty.gov/ROV/Elections/2026/1103/Measures/County/FT_SBCTA.pdf",
+          "sha256": "b3942a6d04bb9d2469f05fdc6290772978cfe4f6a4fce98e0f16cc4186adb85c",
+          "snapshot": "20260928T192225Z",
+          "pages": [
+            17
+          ],
+          "role": "text",
+          "verified_role": "ballot_question",
+          "label": "Official ballot wording and filing",
+          "snapshot_id": "20261008T225445Z"
+        }
+      ],
+      "extraction_method": "PDF text plus visual comparison",
+      "notes": [],
+      "vote_threshold": "66.67%",
+      "source_checked_at": "2026-10-08"
+    },
+    {
+      "id": 12424,
+      "measure_id": "REG_SB_20261103_4F39DB70B0A444386B799ABF4A4C4A24821A090538CD7089D839F5B3FFC81B2F",
+      "county": "San Bernardino",
+      "jurisdiction": "City of Needles",
+      "election_date": "2026-11-03",
+      "measure_letter": "D",
+      "county_slug": "sb",
+      "question": "Shall the proposed amendment to section 503 of the City Charter of the City of Needles to increase the compensation for each member of the City Council from $1 per month to $150 per month be approved?",
+      "explanation": "Amend the Needles City Charter to increase compensation for each City Council member from $1 per month to $150 per month.",
+      "reviewed_at": "2026-10-08",
+      "question_source": 0,
+      "explanation_sources": [
+        0
+      ],
+      "sources": [
+        {
+          "url": "https://uploads.rov.sbcounty.gov/ROV/Elections/2026/1103/Measures/CityofNeedles/29/RES_CityofNeedles.pdf",
+          "sha256": "d8add9a76f7a19dd6735c7b730c0c64202cc9bc7741ed0b20416c4593581b103",
+          "snapshot": "20260928T192225Z",
+          "pages": [
+            2
+          ],
+          "role": "resolution",
+          "verified_role": "ballot_question",
+          "label": "Official ballot wording and filing",
+          "snapshot_id": "20261008T225445Z"
+        }
+      ],
+      "extraction_method": "PDF text plus visual comparison",
+      "notes": [],
+      "vote_threshold": "50%",
+      "source_checked_at": "2026-10-08"
+    },
+    {
+      "id": 12425,
+      "measure_id": "REG_SB_20261103_7A18A976EC35C1AC9CF025206D37E2E7A918D4D0650DB56D9874D331DC5BE5CD",
+      "county": "San Bernardino",
+      "jurisdiction": "City of Highland",
+      "election_date": "2026-11-03",
+      "measure_letter": "E",
+      "county_slug": "sb",
+      "question": "City of Highland Public Safety and Local Control Measure To maintain local funding for police, fire, emergency services; and improve critical infrastructure, including maintaining roads, bridges, drainage, 5th Street Corridor Interchange, and other improvement projects; shall the City of Highland enact a 1¢ sales tax, providing approximately $6.35 million annually, remaining in effect until ended by voters, with funds staying in the City and generated from purchases paid by both visitors and City residents?",
+      "explanation": "Establish a 1% sales tax in Highland, estimated to provide $6.35 million annually until ended by voters. Revenue would stay with the city for general municipal services, including police, fire, emergency services and infrastructure. The tax would apply to taxable purchases by residents and visitors.",
+      "reviewed_at": "2026-10-08",
+      "question_source": 0,
+      "explanation_sources": [
+        0
+      ],
+      "sources": [
+        {
+          "url": "https://uploads.rov.sbcounty.gov/ROV/Elections/2026/1103/Measures/CityofHighland/RES_CityofHighland.pdf",
+          "sha256": "43a0ef7d5f38fa5e5eb551d86949ff0fb2f36fb3f1398ccf8ada6f881433a631",
+          "snapshot": "20260928T192225Z",
+          "pages": [
+            3
+          ],
+          "role": "resolution",
+          "verified_role": "ballot_question",
+          "label": "Official ballot wording and filing",
+          "snapshot_id": "20261008T225445Z"
+        }
+      ],
+      "extraction_method": "PDF text plus visual comparison",
+      "notes": [],
+      "vote_threshold": "50%",
+      "source_checked_at": "2026-10-08"
+    },
+    {
+      "id": 12426,
+      "measure_id": "REG_SB_20261103_9FFFA1EF6F185189134BCC2E3950F9AC096B1092FAE34B0FA384DFE61C17707A",
+      "county": "San Bernardino",
+      "jurisdiction": "City of Chino",
+      "election_date": "2026-11-03",
+      "measure_letter": "F",
+      "county_slug": "sb",
+      "question": "Without taxing residents, and to support general city services such as 911/police response; protect local drinking water sources; retain/attract local businesses; shall the measure be adopted to reform City of Chino’s outdated business license ordinance with rates of $0.60 - $1.50 per $1,000 of gross receipts for larger businesses based on business category; and only $25 for smaller businesses (under $75,000), generating approximately $4,800,000 annually until ended by voters; with audits, spending disclosure, funds locally controlled?",
+      "explanation": "Change Chino’s business license tax. Larger businesses would pay $0.60 to $1.50 per $1,000 of gross receipts, depending on business category; businesses with $75,000 or less in gross receipts would pay $25. The question estimates $4.8 million annually until ended by voters. Revenue would enter the city’s General Fund for general services, with audits and spending disclosure.",
+      "reviewed_at": "2026-10-08",
+      "question_source": 0,
+      "explanation_sources": [
+        0
+      ],
+      "sources": [
+        {
+          "url": "https://uploads.rov.sbcounty.gov/ROV/Elections/2026/1103/Measures/CityofChino/RES_CityofChino.pdf",
+          "sha256": "8ccd6fea22df9e2b6d4ec05eba5b043a3af4ec1f0d4f4fbde835037cf68ba1fa",
+          "snapshot": "20260928T192225Z",
+          "pages": [
+            3
+          ],
+          "role": "resolution",
+          "verified_role": "ballot_question",
+          "label": "Official ballot wording and filing",
+          "snapshot_id": "20261008T225445Z"
+        }
+      ],
+      "extraction_method": "PDF text plus visual comparison",
+      "notes": [
+        "The question says “under $75,000” for the smaller-business rate; Section 7 of the same resolution says “$75,000 or less.” The explanation follows Section 7."
+      ],
+      "vote_threshold": "50%",
+      "source_checked_at": "2026-10-08"
+    },
+    {
+      "id": 12427,
+      "measure_id": "REG_SB_20261103_8F4D625C447325143F8CC6566C4DB9D5948D6EBE4E17D08134660B53FFB6254C",
+      "county": "San Bernardino",
+      "jurisdiction": "City of Twentynine Palms",
+      "election_date": "2026-11-03",
+      "measure_letter": "G",
+      "county_slug": "sb",
+      "question": "Shall the measure funding services for City of Twentynine Palms residents (including those required for maintaining 911 and emergency response times, police officers and patrols; repairing streets/sidewalks; responding to floods/natural disasters; maintaining clean and safe public parks; and upgrading the animal shelter) by levying a transaction (sales) and use tax of 1%, providing approximately $2,000,000 in funds annually until ended by voters, requiring audits, public spending disclosures, and that all funds are used locally, be adopted?",
+      "explanation": "Establish a 1% transactions and use tax in Twentynine Palms, estimated to raise $2 million annually until ended by voters. The question lists emergency response, police, street repairs, parks, disaster response and the animal shelter among services it would support. Audits, public spending disclosures and local use of funds are required.",
+      "reviewed_at": "2026-10-08",
+      "question_source": 0,
+      "explanation_sources": [
+        0
+      ],
+      "sources": [
+        {
+          "url": "https://uploads.rov.sbcounty.gov/ROV/Elections/2026/1103/Measures/CityofTwentyninePalms/RES_TP.pdf",
+          "sha256": "0ad40564b50f2cf7fe7e1a9e4266a4d0ec40bb81f5bb6c7baa967fc9f809e111",
+          "snapshot": "20260928T192225Z",
+          "pages": [
+            1
+          ],
+          "role": "resolution",
+          "verified_role": "ballot_question",
+          "label": "Official ballot wording and filing",
+          "snapshot_id": "20261008T225445Z"
+        }
+      ],
+      "extraction_method": "PDF text plus visual comparison",
+      "notes": [],
+      "vote_threshold": "50%",
+      "source_checked_at": "2026-10-08"
+    },
+    {
+      "id": 12428,
+      "measure_id": "REG_SB_20261103_8431F6224547FB5BCCD5564006838480E39A6E6458F1757C6122D97508256673",
+      "county": "San Bernardino",
+      "jurisdiction": "City of Ontario",
+      "election_date": "2026-11-03",
+      "measure_letter": "H",
+      "county_slug": "sb",
+      "question": "To maintain fire, paramedic, police, 911 response, anti-gang programs; respond to property crimes, thefts, burglaries; clean and maintain public areas; repair streets/potholes; address homelessness; increase access to affordable housing for seniors/families/individuals; retain/attract local businesses; for general City services; shall the measure establishing a half-cent sales tax providing approximately $32,500,000 annually until ended by voters; requiring audits, spending disclosure, funds locally controlled, be adopted?",
+      "explanation": "Establish a half-cent sales tax in Ontario, estimated to provide $32.5 million annually until ended by voters. It would fund general city services, with examples including emergency response, street repairs, homelessness services and affordable housing access. Audits, spending disclosure and local control of funds are required.",
+      "reviewed_at": "2026-10-08",
+      "question_source": 0,
+      "explanation_sources": [
+        0
+      ],
+      "sources": [
+        {
+          "url": "https://uploads.rov.sbcounty.gov/ROV/Elections/2026/1103/Measures/CityofOntario/RES_Ontario.pdf",
+          "sha256": "7970fee795d723df1b2cf71413d398a01fa93dba43aa89533e764959864e74ba",
+          "snapshot": "20260928T192225Z",
+          "pages": [
+            2
+          ],
+          "role": "resolution",
+          "verified_role": "ballot_question",
+          "label": "Official ballot wording and filing",
+          "snapshot_id": "20261008T225445Z"
+        }
+      ],
+      "extraction_method": "PDF text plus visual comparison",
+      "notes": [],
+      "vote_threshold": "50%",
+      "source_checked_at": "2026-10-08"
+    },
+    {
+      "id": 12429,
+      "measure_id": "REG_SB_20261103_0FCA13705CBC5DA787D6B33C950CF83C2D4780532FE0CBD46196BA6856643AAD",
+      "county": "San Bernardino",
+      "jurisdiction": "City of Chino Hills",
+      "election_date": "2026-11-03",
+      "measure_letter": "J",
+      "county_slug": "sb",
+      "question": "Chino Hills Services Measure: Shall the measure protecting Chino Hills’ financial stability and maintaining City services including public safety response times; reducing wildfire risk; preparing for/responding to wildfires/natural disasters; helping prevent crime, thefts, burglaries; keeping public areas safe/clean; protecting Clean Water Act resources; preserving/maintaining open space; supporting other city services by establishing a 1¢ sales tax, providing approximately $11,500,000 annually until ended by voters; with audits, spending disclosure, all funds used locally, be adopted?",
+      "explanation": "Establish a 1% sales tax in Chino Hills, estimated to provide $11.5 million annually until ended by voters. Revenue would support general city services, with examples including public safety, wildfire preparedness, clean-water resources and open-space maintenance. Audits, spending disclosure and local use of funds are required.",
+      "reviewed_at": "2026-10-08",
+      "question_source": 0,
+      "explanation_sources": [
+        0
+      ],
+      "sources": [
+        {
+          "url": "https://uploads.rov.sbcounty.gov/ROV/Elections/2026/1103/Measures/CityofChinoHills/RES_ChinoHills.pdf",
+          "sha256": "4b15853f6c2e195e46333a9faa452817f13ed2496e67a8a21e92ab4b785f7877",
+          "snapshot": "20260928T192225Z",
+          "pages": [
+            3
+          ],
+          "role": "resolution",
+          "verified_role": "ballot_question",
+          "label": "Official ballot wording and filing",
+          "snapshot_id": "20261008T225445Z"
+        }
+      ],
+      "extraction_method": "PDF text plus visual comparison",
+      "notes": [],
+      "vote_threshold": "50%",
+      "source_checked_at": "2026-10-08"
+    },
+    {
+      "id": 12430,
+      "measure_id": "REG_SB_20261103_8901CFD5842D23C6537838E62C0D1D09BCB132DB8CE19C1C5E97B8C94B23A2FD",
+      "county": "San Bernardino",
+      "jurisdiction": "City of Needles",
+      "election_date": "2026-11-03",
+      "measure_letter": "K",
+      "county_slug": "sb",
+      "question": "Shall the measure to maintain and improve quality of life by supporting local businesses and jobs; keeping public areas safe, clean, and well maintained; maintaining and improving streets, parks, and other public infrastructure; and funding other general City services, by increasing the City of Needles Transient Occupancy Tax paid primarily by hotel, motel, and short-term rental guests from 10% to 14% in phases, generating approximately $400,000 annually, with annual public disclosure and remaining in effect until ended by voters, be adopted?",
+      "explanation": "Increase Needles’ transient occupancy tax from 10% to 14% in phases. The tax is paid primarily by hotel, motel and short-term rental guests. The official question estimates approximately $400,000 annually for general city services and infrastructure, with annual public disclosure, until ended by voters.",
+      "reviewed_at": "2026-10-08",
+      "question_source": 0,
+      "explanation_sources": [
+        0
+      ],
+      "sources": [
+        {
+          "url": "https://uploads.rov.sbcounty.gov/ROV/Elections/2026/1103/Measures/CityofNeedles/27/RES_CityofNeedles.pdf",
+          "sha256": "18a2dbbf59022db2832c689d6e23467aaed82b8f71b5da10d107b2afb2f9d3a5",
+          "snapshot": "20260928T192225Z",
+          "pages": [
+            2
+          ],
+          "role": "resolution",
+          "verified_role": "ballot_question",
+          "label": "Official ballot wording and filing",
+          "snapshot_id": "20261008T225445Z"
+        }
+      ],
+      "extraction_method": "PDF text plus visual comparison",
+      "notes": [],
+      "vote_threshold": "50%",
+      "source_checked_at": "2026-10-08"
+    },
+    {
+      "id": 12431,
+      "measure_id": "REG_SB_20261103_973A2809DB723F30E501E63BF54BA0509D16621BE09359AF490A514284B55F63",
+      "county": "San Bernardino",
+      "jurisdiction": "City of Needles",
+      "election_date": "2026-11-03",
+      "measure_letter": "L",
+      "county_slug": "sb",
+      "question": "To improve the City of Needles including roads and transportation infrastructure; repairing and repaving streets; fixing potholes; maintaining community safety; improving parks and recreational facilities; and revitalizing downtown Main Street; shall the City of Needles measure be approved authorizing $11,200,000 of bonds at legal rates, generating on average $739,971 annually while bonds are outstanding at a rate of $60 per $100,000 assessed value, with annual audits, independent citizens' oversight, NO money for salaries and all money staying in Needles?",
+      "explanation": "Authorize $11.2 million in bonds for Needles roads, transportation infrastructure, parks, recreation facilities, community safety and downtown Main Street. The question estimates an average $739,971 annually while bonds are outstanding, at $60 per $100,000 of assessed property value. It requires annual audits and independent citizen oversight, with no money for salaries.",
+      "reviewed_at": "2026-10-08",
+      "question_source": 0,
+      "explanation_sources": [
+        0
+      ],
+      "sources": [
+        {
+          "url": "https://uploads.rov.sbcounty.gov/ROV/Elections/2026/1103/Measures/CityofNeedles/30/FT_CityofNeedles.pdf",
+          "sha256": "986dbfbc08bd1ba0779cd307a579c0df009decccb2c28058837b03c3ed3ef864",
+          "snapshot": "20260928T192225Z",
+          "pages": [
+            1,
+            2
+          ],
+          "role": "text",
+          "verified_role": "ballot_question",
+          "label": "Official ballot wording and filing",
+          "snapshot_id": "20261008T225445Z"
+        }
+      ],
+      "extraction_method": "PDF text plus visual comparison",
+      "notes": [
+        "Property taxes use assessed value, which may differ from market value. The stated tax rate and annual revenue are estimates."
+      ],
+      "vote_threshold": "66.67%",
+      "source_checked_at": "2026-10-08"
+    },
+    {
+      "id": 12432,
+      "measure_id": "REG_SB_20261103_F46A77DE47996F3E4CE46EA5588A8D33812E749CA9BB3FEA6E5A6903894A07E5",
+      "county": "San Bernardino",
+      "jurisdiction": "City of Upland",
+      "election_date": "2026-11-03",
+      "measure_letter": "M",
+      "county_slug": "sb",
+      "question": "Upland Business License Reform Measure To modernize City of Upland’s 31-year-old business license tax, with no tax increase to residents, lowering taxes on most small businesses, and ensuring large businesses pay their fair share for general city services such as: fixing potholes/streets; repairing infrastructure; and 9-1-1 response, shall the measure with rates between 0.065% and 0.2% of gross receipts, generating $3.3 million in local funds until ended by voters, and requiring independent audits, be adopted?",
+      "explanation": "Revise Upland’s business license tax using rates between 0.065% and 0.2% of gross receipts. Revenue would fund general city services, with examples including streets, infrastructure and emergency response. The question states that the measure would lower taxes on most small businesses, generate $3.3 million in local funds and remain in effect until ended by voters, with independent audits.",
+      "reviewed_at": "2026-10-08",
+      "question_source": 0,
+      "explanation_sources": [
+        0
+      ],
+      "sources": [
+        {
+          "url": "https://uploads.rov.sbcounty.gov/ROV/Elections/2026/1103/Measures/CityofUpland/RES_Upland.pdf",
+          "sha256": "c66d9160ccf35a3dea50546b06709ede97d5fbe5a06080edc474e22bdea6973e",
+          "snapshot": "20260928T192225Z",
+          "pages": [
+            5
+          ],
+          "role": "resolution",
+          "verified_role": "ballot_question",
+          "label": "Official ballot wording and filing",
+          "snapshot_id": "20261008T225445Z"
+        }
+      ],
+      "extraction_method": "PDF text plus visual comparison",
+      "notes": [],
+      "vote_threshold": "50%",
+      "source_checked_at": "2026-10-08"
+    },
+    {
+      "id": 12433,
+      "measure_id": "REG_SB_20261103_4366C0EC75DFBF837D22FFA95C0AFADCD02EEA6FC656B62FE469892BB2A84EE6",
+      "county": "San Bernardino",
+      "jurisdiction": "City of Grand Terrace",
+      "election_date": "2026-11-03",
+      "measure_letter": "N",
+      "county_slug": "sb",
+      "question": "GRAND TERRACE GENERAL SERVICES MEASURE. To maintain and enhance essential City services — including police protection, neighborhood patrols, 9-1-1 emergency response, and rapid response times — shall the City of Grand Terrace enact a one percent (1%) sales tax, providing approximately $1.2 million annually for general City use until ended by voters, with all funds staying local, public spending disclosure, and independent annual audits?",
+      "explanation": "Establish a 1% sales tax in Grand Terrace, estimated to provide $1.2 million annually for general city services until ended by voters. The question names police protection, neighborhood patrols and emergency response as examples. Funds would stay local, with public spending disclosure and independent annual audits.",
+      "reviewed_at": "2026-10-08",
+      "question_source": 0,
+      "explanation_sources": [
+        0
+      ],
+      "sources": [
+        {
+          "url": "https://uploads.rov.sbcounty.gov/ROV/Elections/2026/1103/Measures/CityofGrandTerrace/RES_GT.pdf",
+          "sha256": "31c055fc7e0f94615be383930d0568cd170574b34e4b67030e1f928fd2f52ca4",
+          "snapshot": "20260928T192225Z",
+          "pages": [
+            3
+          ],
+          "role": "resolution",
+          "verified_role": "ballot_question",
+          "label": "Official ballot wording and filing",
+          "snapshot_id": "20261008T225445Z"
+        }
+      ],
+      "extraction_method": "PDF text plus visual comparison",
+      "notes": [],
+      "vote_threshold": "50%",
+      "source_checked_at": "2026-10-08"
+    },
+    {
+      "id": 12434,
+      "measure_id": "REG_SB_20261103_FD3D94F35EA219EB990B2FF37FD228DECE5FEC5CE27D5B5A7F096FF97B4F07D4",
+      "county": "San Bernardino",
+      "jurisdiction": "City of Colton",
+      "election_date": "2026-11-03",
+      "measure_letter": "O",
+      "county_slug": "sb",
+      "question": "Shall the office of Colton City Treasurer be appointive?",
+      "explanation": "Make the Colton City Treasurer an appointed office rather than an elected office.",
+      "reviewed_at": "2026-10-08",
+      "question_source": 0,
+      "explanation_sources": [
+        0
+      ],
+      "sources": [
+        {
+          "url": "https://uploads.rov.sbcounty.gov/ROV/Elections/2026/1103/Measures/CityofColton/RES_CityofColton.pdf",
+          "sha256": "7e57ce2afb505113ab7513ab82759852d63a2b4210f5e02b5bdc803baecd94a7",
+          "snapshot": "20260928T192225Z",
+          "pages": [
+            2
+          ],
+          "role": "resolution",
+          "verified_role": "ballot_question",
+          "label": "Official ballot wording and filing",
+          "snapshot_id": "20261008T225445Z"
+        }
+      ],
+      "extraction_method": "PDF text plus visual comparison",
+      "notes": [],
+      "vote_threshold": "50%",
+      "source_checked_at": "2026-10-08"
+    },
+    {
+      "id": 12435,
+      "measure_id": "REG_SB_20261103_E8F62442FE7A43F82AE0ED3638CCDF77F4131E60956D0AF3ACDF400A82463CE7",
+      "county": "San Bernardino",
+      "jurisdiction": "City of Adelanto",
+      "election_date": "2026-11-03",
+      "measure_letter": "P",
+      "county_slug": "sb",
+      "question": "Shall the measure to provide funding for Adelanto city services, such as paving streets and fixing potholes, fire protection, paramedic, and 911 response; law enforcement and crime prevention; keeping public areas/parks safe/clean; addressing homelessness; and repairing aging storm drains, pipes, bridges, and public areas by establishing a 1% transactions and use tax, providing approximately $3,000,000 annually until ended by voters, requiring audits, public spending disclosure, all money controlled locally, be adopted?",
+      "explanation": "Establish a 1% transactions and use tax in Adelanto, estimated to provide $3 million annually until ended by voters. Revenue would fund general city services, including streets, emergency response, law enforcement, public spaces, homelessness services and infrastructure. Audits, public spending disclosure and local control of funds are required.",
+      "reviewed_at": "2026-10-08",
+      "question_source": 0,
+      "explanation_sources": [
+        0
+      ],
+      "sources": [
+        {
+          "url": "https://uploads.rov.sbcounty.gov/ROV/Elections/2026/1103/Measures/CityofAdelanto/RES_CityofAdelanto.pdf",
+          "sha256": "965dddaab6b22dd6c35235a306f2e8b22862c7846373f7e10463758b7f0c5d7a",
+          "snapshot": "20260928T192225Z",
+          "pages": [
+            2
+          ],
+          "role": "resolution",
+          "verified_role": "ballot_question",
+          "label": "Official ballot wording and filing",
+          "snapshot_id": "20261008T225445Z"
+        }
+      ],
+      "extraction_method": "PDF text plus visual comparison",
+      "notes": [],
+      "vote_threshold": "50%",
+      "source_checked_at": "2026-10-08"
+    },
+    {
+      "id": 12436,
+      "measure_id": "REG_SB_20261103_D0B5180285B7F2AB73DE80AA3B57B50DE4FD7D4286D7DD57E80D3EC5093EB54C",
+      "county": "San Bernardino",
+      "jurisdiction": "San Bernardino Mountains Community Hospital District",
+      "election_date": "2026-11-03",
+      "measure_letter": "Q",
+      "county_slug": "sb",
+      "question": "To repair and upgrade 75-year-old Mountains Community Hospital including: fixing deteriorating roofs, plumbing, electrical, and safety systems; upgrading/expanding emergency department, medical technology, and treatments; and maintaining local access to life-saving emergency medical care for accidents, heart attacks, strokes, and other emergencies, shall San Bernardino Mountains Community Hospital District’s measure be adopted authorizing $61,000,000 in bonds at legal rates, levying $25 per $100,000 assessed value ($3,500,000 annually) while bonds are outstanding, with independent oversight and all money locally-controlled?",
+      "explanation": "Authorize $61 million in bonds to repair, upgrade and expand Mountains Community Hospital. The question estimates $25 per $100,000 of assessed property value, raising $3.5 million annually while bonds are outstanding, with independent oversight and local control. The project list also allows part of the proceeds to refinance construction notes issued in 2025.",
+      "reviewed_at": "2026-10-08",
+      "question_source": 0,
+      "explanation_sources": [
+        0
+      ],
+      "sources": [
+        {
+          "url": "https://uploads.rov.sbcounty.gov/ROV/Elections/2026/1103/Measures/SBMCHD/FT_SBMCHD.pdf",
+          "sha256": "e2acc72f5de0bc553e00efd7d0425669b371bb494f252f5f796864b7a80b0fd1",
+          "snapshot": "20260928T192225Z",
+          "pages": [
+            1
+          ],
+          "role": "text",
+          "verified_role": "ballot_question",
+          "label": "Official ballot wording and filing",
+          "snapshot_id": "20261008T225445Z"
+        }
+      ],
+      "extraction_method": "PDF text plus visual comparison",
+      "notes": [
+        "Property taxes use assessed value, which may differ from market value. The stated tax rate and annual revenue are estimates."
+      ],
+      "vote_threshold": "66.67%",
+      "source_checked_at": "2026-10-08"
+    },
+    {
+      "id": 12437,
+      "measure_id": "REG_SB_20261103_1AABFD000352B25F52F7C32B247C199E3E3BE86A159DFD1AEFA21DF1A0636E92",
+      "county": "San Bernardino",
+      "jurisdiction": "Rim of the World Recreation and Park District",
+      "election_date": "2026-11-03",
+      "measure_letter": "R",
+      "county_slug": "sb",
+      "question": "Shall Rim of the World Recreation & Park District adopt a resolution increasing its annual special parcel tax from $22 to $37/parcel/year, with an annual escalator of 1%, until ended by voters, generating approximately $510,000 the first year, to sustain essential recreation services; improve and maintain parks, recreational facilities, and community amenities; address rising costs, emergency repair and disaster recovery; all funds remain local used only for these purposes with annual audit/ reporting?",
+      "explanation": "Increase the district’s annual special parcel tax from $22 to $37 per parcel, with a 1% annual increase, until ended by voters. The question estimates approximately $510,000 in the first year for recreation services, parks and facilities, emergency repairs and disaster recovery. Funds would stay local and be restricted to those purposes, with annual auditing and reporting.",
+      "reviewed_at": "2026-10-08",
+      "question_source": 0,
+      "explanation_sources": [
+        0
+      ],
+      "sources": [
+        {
+          "url": "https://uploads.rov.sbcounty.gov/ROV/Elections/2026/1103/Measures/RimoftheWorldRPD/RES_ROTW.pdf",
+          "sha256": "036b8ec7ff6c34553211172d66231a1cf47baaa6a9c3447eaaa2d97b6d324815",
+          "snapshot": "20260928T192225Z",
+          "pages": [
+            1
+          ],
+          "role": "resolution",
+          "verified_role": "ballot_question",
+          "label": "Official ballot wording and filing",
+          "snapshot_id": "20261008T225445Z"
+        }
+      ],
+      "extraction_method": "PDF text plus visual comparison",
+      "notes": [],
+      "vote_threshold": "66.67%",
+      "source_checked_at": "2026-10-08"
+    },
+    {
+      "id": 12438,
+      "measure_id": "REG_SMC_20261103_4A1D73192B9FE939E9102937141488F2348DF1533EE882950638A6289DE7F493",
+      "county": "San Mateo",
+      "jurisdiction": "San Mateo County",
+      "election_date": "2026-11-03",
+      "measure_letter": "L",
+      "county_slug": "smc",
+      "question": "Shall the San Mateo County Charter be amended to add a provision to the Charter Preamble designating long-term resilience to extreme weather events as a County priority?",
+      "explanation": "Add a provision to the San Mateo County Charter preamble identifying long-term resilience to extreme weather as a county priority.",
+      "reviewed_at": "2026-10-08",
+      "question_source": 0,
+      "explanation_sources": [
+        0
+      ],
+      "sources": [
+        {
+          "url": "https://smcacre.gov/system/files/2026-07/San%20Mateo%20County%20Amendments.pdf",
+          "sha256": "db9b218ebad34190631d655a933a558be422f90d367b4ad07c51ef85c59efae6",
+          "snapshot": "20260928T192608Z",
+          "pages": [
+            3
+          ],
+          "role": "text",
+          "verified_role": "ballot_question",
+          "label": "Official ballot wording and filing",
+          "snapshot_id": "20261008T225908Z"
+        }
+      ],
+      "extraction_method": "Manual transcription checked against rendered PDF",
+      "notes": [],
+      "vote_threshold": "50%",
+      "source_checked_at": "2026-10-08"
+    },
+    {
+      "id": 12439,
+      "measure_id": "REG_SMC_20261103_4280B763B9CD95F20E6C33D52145D26CD81E2CF975831446697C0844395DC680",
+      "county": "San Mateo",
+      "jurisdiction": "San Mateo County",
+      "election_date": "2026-11-03",
+      "measure_letter": "AA",
+      "county_slug": "smc",
+      "question": "Shall the San Mateo County Charter be amended to add a provision to the Charter Preamble affirming the County’s commitment to the dignity, civil rights, and equal protection of all County residents?",
+      "explanation": "Add a provision to the San Mateo County Charter preamble affirming the county’s commitment to the dignity, civil rights and equal protection of all county residents.",
+      "reviewed_at": "2026-10-08",
+      "question_source": 0,
+      "explanation_sources": [
+        0
+      ],
+      "sources": [
+        {
+          "url": "https://smcacre.gov/system/files/2026-07/San%20Mateo%20County%20Amendments.pdf",
+          "sha256": "db9b218ebad34190631d655a933a558be422f90d367b4ad07c51ef85c59efae6",
+          "snapshot": "20260928T192608Z",
+          "pages": [
+            4
+          ],
+          "role": "text",
+          "verified_role": "ballot_question",
+          "label": "Official ballot wording and filing",
+          "snapshot_id": "20261008T225908Z"
+        }
+      ],
+      "extraction_method": "Manual transcription checked against rendered PDF",
+      "notes": [],
+      "vote_threshold": "50%",
+      "source_checked_at": "2026-10-08"
+    },
+    {
+      "id": 12440,
+      "measure_id": "REG_SMC_20261103_3868218FDB1522B898EB34ED17DCA4D54CF2052DAFF17EA50D664290D7D90B94",
+      "county": "San Mateo",
+      "jurisdiction": "San Mateo County",
+      "election_date": "2026-11-03",
+      "measure_letter": "J",
+      "county_slug": "smc",
+      "question": "Shall the San Mateo County Charter be amended to extend the period in which the County Board of Supervisors is required to either call a special election or make an appointment in the event of a vacancy in an elected office other than the Board of Supervisors from 30 days to 60 days, and to require the Board to conduct at least one public meeting to receive public comment prior to any appointment?",
+      "explanation": "Give the Board of Supervisors 60 days, instead of 30, to call a special election or appoint someone after a vacancy in an elected county office other than the Board itself. Require at least one public meeting for comment before an appointment.",
+      "reviewed_at": "2026-10-08",
+      "question_source": 0,
+      "explanation_sources": [
+        0
+      ],
+      "sources": [
+        {
+          "url": "https://smcacre.gov/system/files/2026-07/San%20Mateo%20County%20Amendments.pdf",
+          "sha256": "db9b218ebad34190631d655a933a558be422f90d367b4ad07c51ef85c59efae6",
+          "snapshot": "20260928T192608Z",
+          "pages": [
+            5
+          ],
+          "role": "text",
+          "verified_role": "ballot_question",
+          "label": "Official ballot wording and filing",
+          "snapshot_id": "20261008T225908Z"
+        }
+      ],
+      "extraction_method": "Manual transcription checked against rendered PDF",
+      "notes": [],
+      "vote_threshold": "50%",
+      "source_checked_at": "2026-10-08"
+    },
+    {
+      "id": 12441,
+      "measure_id": "REG_SMC_20261103_3E95753EF021F96C4EDB01CAC1B4BCBBD579248807D962A7322634CA872C6EF9",
+      "county": "San Mateo",
+      "jurisdiction": "San Mateo County",
+      "election_date": "2026-11-03",
+      "measure_letter": "U",
+      "county_slug": "smc",
+      "question": "Shall the San Mateo County Charter be amended to require that supervisorial districts be reapportioned following each federal decennial census by an independent redistricting commission pursuant to applicable provisions of the California Elections Code?",
+      "explanation": "Require an independent redistricting commission to redraw San Mateo County supervisorial districts after each federal census, under the applicable California Elections Code provisions.",
+      "reviewed_at": "2026-10-08",
+      "question_source": 0,
+      "explanation_sources": [
+        0
+      ],
+      "sources": [
+        {
+          "url": "https://smcacre.gov/system/files/2026-07/San%20Mateo%20County%20Amendments.pdf",
+          "sha256": "db9b218ebad34190631d655a933a558be422f90d367b4ad07c51ef85c59efae6",
+          "snapshot": "20260928T192608Z",
+          "pages": [
+            6
+          ],
+          "role": "text",
+          "verified_role": "ballot_question",
+          "label": "Official ballot wording and filing",
+          "snapshot_id": "20261008T225908Z"
+        }
+      ],
+      "extraction_method": "Manual transcription checked against rendered PDF",
+      "notes": [],
+      "vote_threshold": "50%",
+      "source_checked_at": "2026-10-08"
+    },
+    {
+      "id": 12442,
+      "measure_id": "REG_SMC_20261103_48D51587957DBFE6F0C1288C06DA8DB91E8DF77B49CF3164F998CC52C74599F7",
+      "county": "San Mateo",
+      "jurisdiction": "Public Transit Revenue Measure District",
+      "election_date": "2026-11-03",
+      "measure_letter": "",
+      "county_slug": "smc",
+      "question": "To prevent major service cuts to BART and other transit, avoid increased traffic, and reduce pollution by: Preserving BART, Caltrain, VTA, SamTrans, AC Transit, Muni, other transit for everyone, including workers, students, seniors, persons with disabilities; Supporting transit safety, cleanliness, affordability, reliability; Repairing targeted roads/potholes; Requiring financial transparency, oversight, accountability; shall the measure enacting a 0.5% (Alameda, Contra Costa, San Mateo, Santa Clara counties), and 1% (San Francisco) sales tax for 14 years generating approximately $980,000,000 annually, be adopted?",
+      "explanation": "Impose a sales tax for 14 years to fund transit and specified transportation improvements across five Bay Area counties. The rate would be 0.5% in San Mateo, Alameda, Contra Costa and Santa Clara counties, and 1% in San Francisco. The estimated $980 million in annual revenue is for the entire district, not San Mateo alone. The measure includes financial reviews and independent oversight.",
+      "reviewed_at": "2026-10-08",
+      "question_source": 0,
+      "explanation_sources": [
+        0,
+        1
+      ],
+      "sources": [
+        {
+          "url": "https://smcacre.gov/system/files/2026-07/52-ENG-M206-Contest%20Code-Reso-Public%20Transit%20District%20Sales%20Tax_Redacted.pdf",
+          "sha256": "343dbfda30034769a5ca0f3db2b31281fb17cbe5ea2737c0e470e0e7b7b4347d",
+          "snapshot": "20260928T192608Z",
+          "pages": [
+            8
+          ],
+          "role": "text",
+          "verified_role": "ballot_question",
+          "label": "Official ballot wording",
+          "snapshot_id": "20261008T225908Z"
+        },
+        {
+          "url": "https://smcacre.gov/system/files/2026-08/52-ENG-M206-ImpartialAnalysis-Public-Transit-District-Sales-Tax.pdf",
+          "sha256": "88da1639b2d0cee37228184d0190eb6f277afa6456a53c2078d914bc25b0d031",
+          "snapshot": "20260928T192608Z",
+          "pages": [
+            1,
+            2
+          ],
+          "role": "analysis",
+          "verified_role": "impartial_analysis",
+          "label": "District counsel’s impartial analysis",
+          "snapshot_id": "20261008T225908Z"
+        }
+      ],
+      "notes": [
+        "Approval is determined by a majority of votes across the entire five-county district, according to the district counsel’s analysis. This San Mateo record is not a separate county tax proposal.",
+        "No measure letter was listed in the reviewed county capture."
+      ],
+      "extraction_method": "PDF text plus visual comparison",
+      "vote_threshold": "50%",
+      "source_checked_at": "2026-10-08"
+    },
+    {
+      "id": 12443,
+      "measure_id": "REG_SMC_20261103_B4CAC7D4A447B3A909C8E88CB98730B080DEE7E17768ABC3B9AC7D45EE16037A",
+      "county": "San Mateo",
+      "jurisdiction": "Burlingame School District",
+      "election_date": "2026-11-03",
+      "measure_letter": "R",
+      "county_slug": "smc",
+      "question": "To repair aging Burlingame schools and maintain academic excellence by fixing leaky roofs; removing dry rot, lead/asbestos; replacing aging plumbing/electrical systems; updating science, technology/engineering labs; and providing teachers with instructional tools to support student success, shall Burlingame Elementary School District’s measure authorizing $100,000,000 in bonds at legal interest rates be adopted, at $16.00 per $100,000 of assessed value (approximately $6,567,830 annually) while bonds are outstanding, with oversight, audits, no funds for administrators, and local control?",
+      "explanation": "Authorize $100 million in bonds to repair and upgrade Burlingame school facilities. The official question estimates $16 per $100,000 of assessed property value and approximately $6.57 million annually while bonds are outstanding. The district’s tax statement estimates about $195.5 million in total principal and interest, with the final tax collection in 2057–58. Actual rates and repayment timing may vary. Oversight and audits are required.",
+      "reviewed_at": "2026-10-08",
+      "question_source": 0,
+      "explanation_sources": [
+        0,
+        1,
+        2
+      ],
+      "sources": [
+        {
+          "url": "https://smcacre.gov/system/files/2026-07/52-ENG-M105-Contest%20Code-Reso-Burlingame%20ESD%20Bon_Redacted.pdf",
+          "sha256": "e16fa8a147865340d54aee5421dd9e545c5321ca9d9df4389034096b92701d1f",
+          "snapshot": "20260928T192608Z",
+          "pages": [
+            11
+          ],
+          "role": "text",
+          "verified_role": "ballot_question",
+          "label": "Official ballot wording",
+          "snapshot_id": "20261008T225908Z"
+        },
+        {
+          "url": "https://smcacre.gov/system/files/2026-07/52-ENG-M105-Contest%20Code-Reso-Burlingame%20ESD%20Bon_Redacted.pdf",
+          "sha256": "e16fa8a147865340d54aee5421dd9e545c5321ca9d9df4389034096b92701d1f",
+          "snapshot": "20260928T192608Z",
+          "pages": [
+            12
+          ],
+          "role": "tax_rate_statement",
+          "verified_role": "tax_rate_statement",
+          "label": "District tax rate statement",
+          "snapshot_id": "20261008T225908Z"
+        },
+        {
+          "url": "https://smcacre.gov/system/files/2026-08/52-ENG-MR-ImpartialAnalysis-Burlingame-ESD-Bond.pdf",
+          "sha256": "ddeb0a284c6526f6f01a13062350068311d157dba816049dda972745c003eab4",
+          "snapshot": "20260928T192608Z",
+          "pages": [
+            1,
+            2
+          ],
+          "role": "analysis",
+          "verified_role": "impartial_analysis",
+          "label": "County counsel’s impartial analysis",
+          "snapshot_id": "20261008T225908Z"
+        }
+      ],
+      "notes": [
+        "The $100 million authorization is the principal borrowed; estimated repayment also includes interest. Property taxes use assessed value, not market value.",
+        "The county lists “Burlingame School District”; the filed question uses “Burlingame Elementary School District.” They identify the same measure."
+      ],
+      "extraction_method": "Manual transcription of rendered PDF",
+      "vote_threshold": "55%",
+      "source_checked_at": "2026-10-08"
+    },
+    {
+      "id": 12444,
+      "measure_id": "REG_SMC_20261103_E3FB497442EC2C1F59FAD851C1E9CA22D63819D5B9802455C6B00E0F2508304B",
+      "county": "San Mateo",
+      "jurisdiction": "Cabrillo Unified School District",
+      "election_date": "2026-11-03",
+      "measure_letter": "Z",
+      "county_slug": "smc",
+      "question": "With funds that cannot be taken by the State or Federal Government and spent elsewhere, shall Cabrillo Unified School District’s measure to support local students by hiring and retaining highly qualified teachers and specialized educators; and expanding career training and college readiness programs, including agriculture, construction, and welding be adopted, replacing the current parcel tax at $239 per parcel for five years (raising $2,600,000 annually) with senior exemptions, no administrator salaries or pensions, and public disclosure of spending?",
+      "explanation": "Replace Cabrillo’s existing school parcel tax with a $239-per-parcel tax for five years, estimated to raise $2.6 million annually. Funds would support teachers, specialized educators, career training and college-readiness programs. The measure provides senior exemptions, prohibits use for administrator salaries or pensions, and requires public spending disclosure.",
+      "reviewed_at": "2026-10-08",
+      "question_source": 0,
+      "explanation_sources": [
+        0
+      ],
+      "sources": [
+        {
+          "url": "https://smcacre.gov/system/files/2026-07/52-ENG-M109-Contest%20Code-Reso-Cabrillo%20USD%20Parcel%20Tax.pdf",
+          "sha256": "a3be79e88d15dc14e57ec218320c9997b5ac9f61a83997e04c5e2de73e53ce3b",
+          "snapshot": "20260928T192608Z",
+          "pages": [
+            12
+          ],
+          "role": "text",
+          "verified_role": "ballot_question",
+          "label": "Official ballot wording and filing",
+          "snapshot_id": "20261008T225908Z"
+        }
+      ],
+      "extraction_method": "Manual transcription checked against rendered PDF",
+      "notes": [],
+      "vote_threshold": "66.67%",
+      "source_checked_at": "2026-10-08"
+    },
+    {
+      "id": 12445,
+      "measure_id": "REG_SMC_20261103_C1207F0CC18ADA1EBE26BF48C618F84D4F62FB4CFE3B3618513B0327C5C9C047",
+      "county": "San Mateo",
+      "jurisdiction": "Jefferson Union High School District",
+      "election_date": "2026-11-03",
+      "measure_letter": "M",
+      "county_slug": "smc",
+      "question": "With funds that cannot be taken by the State or Federal Government and spent elsewhere, shall Jefferson Union High School District’s measure to directly support teachers and academic programs; expand / enhance career training and college preparedness classes; and hire and retain qualified teachers and counselors at Jefferson High School, Oceana High School, Shasta High School, Terra Nova High School, Thornton High School, and Westmoor High School be adopted, replacing the 2018 parcel tax at $98 per parcel for ten years (raising $3.4 million annually) with full public disclosure of all spending?",
+      "explanation": "Replace Jefferson Union High School District’s 2018 parcel tax with a $98-per-parcel tax for ten years, estimated to raise $3.4 million annually. Funds would support teachers, counselors, academic programs, career training and college preparedness at the district’s six named high schools. Full public spending disclosure is required.",
+      "reviewed_at": "2026-10-08",
+      "question_source": 0,
+      "explanation_sources": [
+        0
+      ],
+      "sources": [
+        {
+          "url": "https://smcacre.gov/system/files/2026-07/52-ENG-M106-Contest%20Code-Reso-JUHSD%20Parcel%20Tax_Redacted.pdf",
+          "sha256": "b6b2d9c3bce3928ac3860571799df277e19a831d9d06d7ad4022f865ce4e5d52",
+          "snapshot": "20260928T192608Z",
+          "pages": [
+            8
+          ],
+          "role": "text",
+          "verified_role": "ballot_question",
+          "label": "Official ballot wording and filing",
+          "snapshot_id": "20261008T225908Z"
+        }
+      ],
+      "extraction_method": "Manual transcription checked against rendered PDF",
+      "notes": [],
+      "vote_threshold": "66.67%",
+      "source_checked_at": "2026-10-08"
+    },
+    {
+      "id": 12446,
+      "measure_id": "REG_SMC_20261103_5150D2460BC06B55E196C34C0B91D4BA6D4ECCB2DD15B7B41988DEEC6EB91035",
+      "county": "San Mateo",
+      "jurisdiction": "Pacifica School District",
+      "election_date": "2026-11-03",
+      "measure_letter": "T",
+      "county_slug": "smc",
+      "question": "To renew expiring local funding without increasing taxes, with local funding for elementary/middle schools the state cannot take away, to support strong math, science, history, reading/writing programs; attract/retain qualified teachers/counselors; maintain art/music/outdoor education programs, libraries and computer instruction, shall Pacifica School District’s measure be adopted, levying $118 per parcel, raising $1,300,000 annually for 10 years, with senior exemptions, independent oversight and no money for administrator salaries?",
+      "explanation": "Renew Pacifica School District’s expiring parcel tax at $118 per parcel for ten years, with estimated annual revenue of $1.3 million. It would support instructional programs, teachers, counselors, libraries and computer instruction. The measure includes senior exemptions and independent oversight, and prohibits spending on administrator salaries.",
+      "reviewed_at": "2026-10-08",
+      "question_source": 0,
+      "explanation_sources": [
+        0
+      ],
+      "sources": [
+        {
+          "url": "https://smcacre.gov/system/files/2026-06/52-ENG-M103-Contest%20Code-Reso-Pacifica%20SD%20Parcel%20Tax_Redacted.pdf",
+          "sha256": "bc7dbdf927311df3ec5d264fdfec8c799a1337e1ded8815a615d3fdbb25620a0",
+          "snapshot": "20260928T192608Z",
+          "pages": [
+            5
+          ],
+          "role": "text",
+          "verified_role": "ballot_question",
+          "label": "Official ballot wording and filing",
+          "snapshot_id": "20261008T225908Z"
+        }
+      ],
+      "extraction_method": "Manual transcription checked against rendered PDF",
+      "notes": [],
+      "vote_threshold": "66.67%",
+      "source_checked_at": "2026-10-08"
+    },
+    {
+      "id": 12447,
+      "measure_id": "REG_SMC_20261103_482E0F332DFF47D6C3EB201700838426C80C0270FE660CDBDF8261BA2738E11B",
+      "county": "San Mateo",
+      "jurisdiction": "San Carlos School District",
+      "election_date": "2026-11-03",
+      "measure_letter": "K",
+      "county_slug": "smc",
+      "question": "To protect outstanding educational programs, hands-on science, math, technology, arts, reading and writing, attract and retain high-quality teachers, maintain reasonable class sizes, and sustain property values, shall the San Carlos School District’s measure be adopted to replace its existing parcel tax at a $489 per parcel rate (raising approximately $4,400,000 annually) for 8 years, with annual cost-of-living adjustments, citizen oversight, senior exemptions, all funds spent locally and no funds used for administrator salaries?",
+      "explanation": "Replace San Carlos School District’s existing parcel tax with a $489-per-parcel tax for eight years, with annual cost-of-living adjustments. The question estimates approximately $4.4 million annually for educational programs, teachers and class sizes. The measure includes citizen oversight and senior exemptions, requires local spending and prohibits spending on administrator salaries.",
+      "reviewed_at": "2026-10-08",
+      "question_source": 0,
+      "explanation_sources": [
+        0
+      ],
+      "sources": [
+        {
+          "url": "https://smcacre.gov/system/files/2026-05/52-ENG-M101-Contest%20Code-Reso-San%20Carlos%20SD%20Parcel%20Tax_Redacted.pdf",
+          "sha256": "00dfb84d7bb7512dfe4f3ec651142a3e3438b0c688f6a4cdeb0413657989fb78",
+          "snapshot": "20260928T192608Z",
+          "pages": [
+            8
+          ],
+          "role": "text",
+          "verified_role": "ballot_question",
+          "label": "Official ballot wording and filing",
+          "snapshot_id": "20261008T225908Z"
+        }
+      ],
+      "extraction_method": "Manual transcription checked against rendered PDF",
+      "notes": [],
+      "vote_threshold": "66.67%",
+      "source_checked_at": "2026-10-08"
+    },
+    {
+      "id": 12448,
+      "measure_id": "REG_SMC_20261103_62720B57304B56A9F48BFEF144735E731F54C075EE7CDE001B44F76A64C31164",
+      "county": "San Mateo",
+      "jurisdiction": "San Mateo County Community College District",
+      "election_date": "2026-11-03",
+      "measure_letter": "V",
+      "county_slug": "smc",
+      "question": "Without increasing current tax rates and to protect affordable higher education at College of San Mateo, Cañada College, and Skyline College by repairing/constructing science, engineering, math, technology, skilled trades, and career-training classrooms that prepare students for in-demand careers; and repairing roofs, plumbing, electrical, shall San Mateo County Community College District’s measure authorizing $848,000,000 in bonds at legal rates be adopted, levying approximately $18 per $100,000 assessed value ($75,000,000 annually) while bonds are outstanding, with independent audits, oversight, and all money locally controlled?",
+      "explanation": "Authorize $848 million in bonds for facilities at College of San Mateo, Cañada College and Skyline College. The question states that current tax rates would not increase and estimates approximately $18 per $100,000 of assessed property value, raising $75 million annually while bonds are outstanding. Projects include instructional facilities and building-system repairs, with independent audits and oversight.",
+      "reviewed_at": "2026-10-08",
+      "question_source": 0,
+      "explanation_sources": [
+        0
+      ],
+      "sources": [
+        {
+          "url": "https://smcacre.gov/system/files/2026-08/52-ENG-M307-Contest%20Code-Reso-SMCCD%20Bond_Redacted.pdf",
+          "sha256": "2a44e4aec2b7613fd7c69583e39a7ef2211fba465c221eb9b2dceafd1a0993b7",
+          "snapshot": "20260928T192608Z",
+          "pages": [
+            14
+          ],
+          "role": "text",
+          "verified_role": "ballot_question",
+          "label": "Official ballot wording and filing",
+          "snapshot_id": "20261008T225908Z"
+        }
+      ],
+      "extraction_method": "Manual transcription checked against rendered PDF",
+      "notes": [
+        "Property taxes use assessed value, which may differ from market value. The stated tax rate and annual revenue are estimates."
+      ],
+      "vote_threshold": "55%",
+      "source_checked_at": "2026-10-08"
+    },
+    {
+      "id": 12449,
+      "measure_id": "REG_SMC_20261103_6B9514EE4FB50BEE25A4D36F67F2F9579759A0D73B05103ED2383106E516DC28",
+      "county": "San Mateo",
+      "jurisdiction": "San Mateo-Foster City School District",
+      "election_date": "2026-11-03",
+      "measure_letter": "W",
+      "county_slug": "smc",
+      "question": "To improve elementary and middle school classrooms for skilled trades, science, technology, engineering, and math; replace leaky roofs, old windows, fire alarms and emergency communications systems; provide affordable housing to attract/retain quality teachers/staff; acquire, construct, repair facilities, equipment, sites; shall San Mateo-Foster City School District’s measure be adopted, authorizing $498,000,000 in bonds at legal interest rates, levying $29 per $100,000 assessed value, averaging $35,000,000 annually while bonds are outstanding, with audits, independent oversight, and funds used locally?",
+      "explanation": "Authorize $498 million in bonds for school facilities, safety systems and affordable housing for teachers and staff. The question estimates a levy of $29 per $100,000 of assessed property value, averaging $35 million annually while bonds are outstanding. Audits, independent oversight and local use of funds are required.",
+      "reviewed_at": "2026-10-08",
+      "question_source": 0,
+      "explanation_sources": [
+        0
+      ],
+      "sources": [
+        {
+          "url": "https://smcacre.gov/system/files/2026-08/52-ENG-M306-Contest%20Code-Reso-SMFCSD%20Bond_Redacted.pdf",
+          "sha256": "df14dc287302eaa24029ee4664988e8161fac276a58d8afa757c24508ab39ba5",
+          "snapshot": "20260928T192608Z",
+          "pages": [
+            6
+          ],
+          "role": "text",
+          "verified_role": "ballot_question",
+          "label": "Official ballot wording and filing",
+          "snapshot_id": "20261008T225908Z"
+        }
+      ],
+      "extraction_method": "Manual transcription checked against rendered PDF",
+      "notes": [
+        "Property taxes use assessed value, which may differ from market value. The stated tax rate and annual revenue are estimates."
+      ],
+      "vote_threshold": "55%",
+      "source_checked_at": "2026-10-08"
+    },
+    {
+      "id": 12450,
+      "measure_id": "REG_SMC_20261103_A639D525D381B12B19EA2C7FA1D2F6540201111269C7110313CDC6659C939A80",
+      "county": "San Mateo",
+      "jurisdiction": "City of Belmont",
+      "election_date": "2026-11-03",
+      "measure_letter": "Y",
+      "county_slug": "smc",
+      "question": "City of Belmont Community Center Tax Measure Shall the ordinance providing funding for and maintaining supervised children’s play, youth, teen and adult programs, childcare, afterschool and senior programs in a disabled accessible, fire and earthquake resistant community center, usable as an emergency health and disaster relief facility, levying 33¢ per square foot of residential improvements and 54¢ per square foot of nonresidential improvements, providing $7,100,000 annually until ended by voters, with senior exemptions and independent audits, increasing the appropriation limit, be adopted?",
+      "explanation": "Establish a tax on building improvements to fund Belmont community-center operations and programs: 33 cents per square foot for residential improvements and 54 cents for nonresidential improvements. The question estimates $7.1 million annually until ended by voters. It includes senior exemptions, independent audits and an increase in the appropriation limit.",
+      "reviewed_at": "2026-10-08",
+      "question_source": 0,
+      "explanation_sources": [
+        0
+      ],
+      "sources": [
+        {
+          "url": "https://smcacre.gov/system/files/2026-08/52-ENG-M308-Contest%20Code-Reso-Belmont%20Special%20Tax_Redacted.pdf",
+          "sha256": "aaf00fbc8562ce0f8fac11c587d3b8c03a5875d270cc28ff0a59d66fffe99854",
+          "snapshot": "20260928T192608Z",
+          "pages": [
+            2
+          ],
+          "role": "text",
+          "verified_role": "ballot_question",
+          "label": "Official ballot wording and filing",
+          "snapshot_id": "20261008T225908Z"
+        }
+      ],
+      "extraction_method": "Manual transcription checked against rendered PDF",
+      "notes": [
+        "This tax uses square footage of improvements, rather than a flat amount per parcel."
+      ],
+      "vote_threshold": "50%",
+      "source_checked_at": "2026-10-08"
+    },
+    {
+      "id": 12451,
+      "measure_id": "REG_SMC_20261103_64FC91B61D21E265EBC5D1B153C84BBD4C1D861B50527F39A014FEBA8223F88B",
+      "county": "San Mateo",
+      "jurisdiction": "City of Brisbane",
+      "election_date": "2026-11-03",
+      "measure_letter": "X",
+      "county_slug": "smc",
+      "question": "Shall the measure updating the City’s Business License Tax by replacing the current tiered structure with a $50 tax for businesses with annual gross receipts of $25,000 or less and $50 plus $1.00 per $1,000 of gross receipts above $25,000 for most other businesses; establishing a minimum tax base equal to the cost of operations for businesses whose operating costs exceed gross receipts; and raising approximately $1,000,000 annually, until repealed by voters, be adopted?",
+      "explanation": "Replace Brisbane’s tiered business license tax. Businesses with annual gross receipts of $25,000 or less would pay $50; most others would pay $50 plus $1 per $1,000 above $25,000. Businesses whose operating costs exceed receipts would use operating costs as the minimum tax base. The question estimates approximately $1 million annually until repealed by voters.",
+      "reviewed_at": "2026-10-08",
+      "question_source": 0,
+      "explanation_sources": [
+        0
+      ],
+      "sources": [
+        {
+          "url": "https://smcacre.gov/system/files/2026-07/52-ENG-M302-Contest%20Code-Reso-City%20of%20Brisbane%20Business%20License%20Tax_Redacted_1.pdf",
+          "sha256": "dd2389d19c9923ae4af1be749cf7b50a3bc685714ca31b8849f7b8aa133ce3ef",
+          "snapshot": "20260928T192608Z",
+          "pages": [
+            2
+          ],
+          "role": "text",
+          "verified_role": "ballot_question",
+          "label": "Official ballot wording and filing",
+          "snapshot_id": "20261008T225908Z"
+        }
+      ],
+      "extraction_method": "Manual transcription checked against rendered PDF",
+      "notes": [],
+      "vote_threshold": "50%",
+      "source_checked_at": "2026-10-08"
+    },
+    {
+      "id": 12452,
+      "measure_id": "REG_SMC_20261103_118024B36F0781101BE6AABE91856EFAFED48B621203A4AF96D54E1A5EECCFA0",
+      "county": "San Mateo",
+      "jurisdiction": "City of Burlingame",
+      "election_date": "2026-11-03",
+      "measure_letter": "D",
+      "county_slug": "smc",
+      "question": "To support city services such as: maintaining city streets/sidewalks and repairing potholes; maintaining parks and trees; enhancing emergency response, preparedness, and wildfire prevention; and for general government use; shall the City of Burlingame measure be adopted raising the transient occupancy (hotel) tax from 12% to 15%, paid only by hotel and lodging guests, until ended by voters, providing an estimated $5,700,000 annually, all funds locally controlled, with independent citizen oversight?",
+      "explanation": "Increase Burlingame’s transient occupancy tax from 12% to 15%, paid by hotel and lodging guests. The question estimates $5.7 million annually until ended by voters for general city services, with independent citizen oversight and local control. Listed uses include streets, parks, emergency response and wildfire prevention.",
+      "reviewed_at": "2026-10-08",
+      "question_source": 0,
+      "explanation_sources": [
+        0
+      ],
+      "sources": [
+        {
+          "url": "https://smcacre.gov/system/files/2026-07/52-ENG-M107-Contest%20Code-Reso-Burlingame%20Occupancy%20Tax_Redacted_0.pdf",
+          "sha256": "71f422c7783479f57b833453179ba103c32053aa934d560492a906f4026e7169",
+          "snapshot": "20260928T192608Z",
+          "pages": [
+            2
+          ],
+          "role": "text",
+          "verified_role": "ballot_question",
+          "label": "Official ballot wording and filing",
+          "snapshot_id": "20261008T225908Z"
+        }
+      ],
+      "extraction_method": "Manual transcription checked against rendered PDF",
+      "notes": [],
+      "vote_threshold": "50%",
+      "source_checked_at": "2026-10-08"
+    },
+    {
+      "id": 12453,
+      "measure_id": "REG_SMC_20261103_48967B91930A718D895EB79D39C8025E745F0D4C636F4AFF74E8FD0445051D3D",
+      "county": "San Mateo",
+      "jurisdiction": "City of East Palo Alto",
+      "election_date": "2026-11-03",
+      "measure_letter": "O",
+      "county_slug": "smc",
+      "question": "East Palo Alto Community/Water/Public Safety Infrastructure Measure. Shall the measure constructing a Library, Emergency Command Center, civic center, youth sports park; replacing deteriorating water pipes to provide safe/ clean drinking water; repairing storm drains to prevent flooding; addressing earthquake safety, by authorizing East Palo Alto to issue $125,000,000 in general obligation bonds, with annual levies averaging $105.26 per $100,000 of assessed value (raising approximately $8,940,000 annually) while bonds are outstanding, with independent audits/ public disclosure, be adopted?",
+      "explanation": "Authorize $125 million in general obligation bonds for East Palo Alto public facilities, water pipes, storm drains and earthquake safety. Projects listed include a library, emergency command center, civic center and youth sports park. The question estimates an average annual levy of $105.26 per $100,000 of assessed property value, raising approximately $8.94 million annually while bonds are outstanding, with independent audits and public disclosure.",
+      "reviewed_at": "2026-10-08",
+      "question_source": 0,
+      "explanation_sources": [
+        0
+      ],
+      "sources": [
+        {
+          "url": "https://smcacre.gov/system/files/2026-07/52-ENG-M207-Contest%20Code-Reso-City%20of%20East%20Palo%20Alto%20Bond_Redacted.pdf",
+          "sha256": "2a4cbc33915d3b03626cac9c068c6bca0441fdd251e8fc1a31965ef1b4e25d2e",
+          "snapshot": "20260928T192608Z",
+          "pages": [
+            2
+          ],
+          "role": "text",
+          "verified_role": "ballot_question",
+          "label": "Official ballot wording and filing",
+          "snapshot_id": "20261008T225908Z"
+        }
+      ],
+      "extraction_method": "Manual transcription checked against rendered PDF",
+      "notes": [
+        "Property taxes use assessed value, which may differ from market value. The stated tax rate and annual revenue are estimates."
+      ],
+      "vote_threshold": "66.67%",
+      "source_checked_at": "2026-10-08"
+    },
+    {
+      "id": 12454,
+      "measure_id": "REG_SMC_20261103_24B9D35647DA50291E77B63C8096D68E629068BD930A74E14B008F477D1E41E2",
+      "county": "San Mateo",
+      "jurisdiction": "City of East Palo Alto",
+      "election_date": "2026-11-03",
+      "measure_letter": "CC",
+      "county_slug": "smc",
+      "question": "Shall the measure providing that no person shall be eligible to serve for more than three (3) consecutive full terms on the City Council be adopted, with service of partial terms exceeding two years qualifying as a full term?",
+      "explanation": "Limit East Palo Alto City Council service to three consecutive full terms. A partial term longer than two years would count as a full term.",
+      "reviewed_at": "2026-10-08",
+      "question_source": 0,
+      "explanation_sources": [
+        0
+      ],
+      "sources": [
+        {
+          "url": "https://smcacre.gov/system/files/2026-07/52-ENG-M207-Contest%20-Code-Reso-EPA%20Term%20Limits_Redacted.pdf",
+          "sha256": "daef22a2faeadd173026c342f400b8257b7de61600b359bcc9eb97c75ac9af1a",
+          "snapshot": "20260928T192608Z",
+          "pages": [
+            2
+          ],
+          "role": "text",
+          "verified_role": "ballot_question",
+          "label": "Official ballot wording and filing",
+          "snapshot_id": "20261008T225908Z"
+        }
+      ],
+      "extraction_method": "Manual transcription checked against rendered PDF",
+      "notes": [],
+      "vote_threshold": "50%",
+      "source_checked_at": "2026-10-08"
+    },
+    {
+      "id": 12455,
+      "measure_id": "REG_SMC_20261103_7FCAA56978B36B2F2C20550D75B658564DC57C3376CDFE2659C2E630261E9B55",
+      "county": "San Mateo",
+      "jurisdiction": "City of Half Moon Bay",
+      "election_date": "2026-11-03",
+      "measure_letter": "I",
+      "county_slug": "smc",
+      "question": "Shall the Measure, amending the City of Half Moon Bay Local Coastal Land Use Plan, Title 17 (Subdivisions) and Title 18 (Zoning) of the Half Moon Bay Municipal Code, and other conforming edits so that the Measure D “Downtown Area” is redefined as the area designated as the “Town Center” (Figure 2-2) of the Local Coastal Land Use Plan, be adopted?",
+      "explanation": "Change the boundary of the “Downtown Area” used by Half Moon Bay’s residential growth-management rules to match the Local Coastal Land Use Plan’s Town Center map. The city attorney says 286 residential parcels would be added and 40 removed from that area. Approval would also require California Coastal Commission certification before the change could take effect.",
+      "reviewed_at": "2026-10-08",
+      "question_source": 0,
+      "explanation_sources": [
+        0,
+        1
+      ],
+      "sources": [
+        {
+          "url": "https://smcacre.gov/system/files/2026-08/52-ENG-M309-Contest%20Code-Reso-Half%20Moon%20Bay%20Coastal%20Land_Redacted_0.pdf",
+          "sha256": "f9b8e79352f36d499bfa86ee55d00a4b9ec73bf33a90bf82cd04122685ca5338",
+          "snapshot": "20260928T192608Z",
+          "pages": [
+            3
+          ],
+          "role": "text",
+          "verified_role": "ballot_question",
+          "label": "Official ballot wording and filing",
+          "snapshot_id": "20261008T225908Z"
+        },
+        {
+          "url": "https://smcacre.gov/system/files/2026-08/52-ENG-MI-ImpartialAnalysis-Half-Moon-Bay-Coastal-Land_Redacted.pdf",
+          "sha256": "4f0adf00b5b516f7c2cd1869f8cbcbb152961a64b2af1e656c085584314a5bf8",
+          "snapshot": "20260928T192608Z",
+          "pages": [
+            1
+          ],
+          "role": "analysis",
+          "verified_role": "impartial_analysis",
+          "label": "City attorney’s impartial analysis",
+          "snapshot_id": "20261008T225908Z"
+        }
+      ],
+      "extraction_method": "Manual transcription checked against rendered PDF",
+      "notes": [],
+      "vote_threshold": "50%",
+      "source_checked_at": "2026-10-08"
+    },
+    {
+      "id": 12456,
+      "measure_id": "REG_SMC_20261103_A3894E8A8E533530BE19222827008F97865051D0877781BF2A9737E078D7682E",
+      "county": "San Mateo",
+      "jurisdiction": "City of Half Moon Bay",
+      "election_date": "2026-11-03",
+      "measure_letter": "Q",
+      "county_slug": "smc",
+      "question": "Shall Ordinance No. 2026-01, approving agreements with Mercy Housing California 110, L.P. (including a Ground Lease of Real Property for 99 years at a rate of $1/year, which is customary, and Affordable Housing and Property Disposition Agreement) providing for the development/operation of a Senior Affordable 40-Unit Residential Project for Agricultural Workers, which includes 2,653-square foot Community Space, at 535-555 Kelly Avenue in the City of Half Moon Bay, and authorizing other related actions, be adopted?",
+      "explanation": "Approve agreements for Mercy Housing to develop and operate a 40-unit affordable housing project for senior agricultural workers at 535–555 Kelly Avenue. The proposal includes 2,653 square feet of community space and a 99-year ground lease at $1 per year.",
+      "reviewed_at": "2026-10-08",
+      "question_source": 0,
+      "explanation_sources": [
+        0
+      ],
+      "sources": [
+        {
+          "url": "https://smcacre.gov/system/files/2026-08/52-ENG-M401-Contest%20Code-Reso-Half%20Moon%20Bay%20Housing%20Initiative_Redacted.pdf",
+          "sha256": "3b2ae9f9f12745043027c5b386aa34bf9fe972b5b17e522b424e5c7d7d515083",
+          "snapshot": "20260928T192608Z",
+          "pages": [
+            3
+          ],
+          "role": "resolution",
+          "verified_role": "ballot_question",
+          "label": "Official ballot wording and filing",
+          "snapshot_id": "20261008T225908Z"
+        }
+      ],
+      "extraction_method": "Manual transcription checked against rendered PDF",
+      "notes": [],
+      "vote_threshold": "50%",
+      "source_checked_at": "2026-10-08"
+    },
+    {
+      "id": 12457,
+      "measure_id": "REG_SMC_20261103_2113D4BCC137BFDCF490A9629215FB30AB2F1A9C0A883FC643B69EE14F88C5D9",
+      "county": "San Mateo",
+      "jurisdiction": "City of Menlo Park",
+      "election_date": "2026-11-03",
+      "measure_letter": "P",
+      "county_slug": "smc",
+      "question": "Should the measure, which prohibits the City of Menlo Park from making changes to City-owned downtown parking lot properties, including selling, leasing, or conveying any of the properties, authorizing a new use such as housing development on any of the properties, or modifying, altering, or constructing improvements on any of the properties, if such change would diminish parking availability, access or convenience, unless the voters pass another ballot measure to approve the change, be adopted?",
+      "explanation": "Require voter approval before Menlo Park changes city-owned downtown parking-lot properties in ways that reduce parking availability, access or convenience. Covered changes include selling or leasing the properties, allowing new uses such as housing, and construction or alterations. Approval would have to come through another ballot measure.",
+      "reviewed_at": "2026-10-08",
+      "question_source": 0,
+      "explanation_sources": [
+        0
+      ],
+      "sources": [
+        {
+          "url": "https://smcacre.gov/system/files/2026-05/52-ENG-M102-Contest%20Code-Reso-Menlo%20Park%20Muni%20Amendment_Redacted.pdf",
+          "sha256": "b4c7febfe4a4e77b32ffc71090a69e8f1bd9291fbaee6f718a28faab9fcb4282",
+          "snapshot": "20260928T192608Z",
+          "pages": [
+            2
+          ],
+          "role": "text",
+          "verified_role": "ballot_question",
+          "label": "Official ballot wording and filing",
+          "snapshot_id": "20261008T225908Z"
+        }
+      ],
+      "extraction_method": "Manual transcription checked against rendered PDF",
+      "notes": [],
+      "vote_threshold": "50%",
+      "source_checked_at": "2026-10-08"
+    },
+    {
+      "id": 12458,
+      "measure_id": "REG_SMC_20261103_F5CAF385843050FF3DB1A6AF0F0790C6820D96E7DC967D667CEDECF5800EBB29",
+      "county": "San Mateo",
+      "jurisdiction": "City of Pacifica",
+      "election_date": "2026-11-03",
+      "measure_letter": "BB",
+      "county_slug": "smc",
+      "question": "Pacifica City Services Measure. To protect Pacifica’s long-term financial stability; fund police, fire, 911 emergency response; prioritize paving streets in the worst conditions; keep parks, beaches and public spaces safe and maintained; and for general government use, shall the City of Pacifica’s measure establishing a 1% (1¢) transactions and use (sales) tax, generating approximately $5,000,000 annually until ended by voters, with public disclosure and local control of funds, and independent annual audits, be adopted?",
+      "explanation": "Establish a 1% sales tax in Pacifica, estimated to raise $5 million annually until ended by voters. Revenue would fund general city services, with examples including emergency response, street paving, parks and beaches. Public disclosure, local control and independent annual audits are required.",
+      "reviewed_at": "2026-10-08",
+      "question_source": 0,
+      "explanation_sources": [
+        0
+      ],
+      "sources": [
+        {
+          "url": "https://smcacre.gov/system/files/2026-08/52-ENG-M402-Contest%20Code-Reso-Pacifica%20Transactions%20and%20Use%20Tax_Redacted.pdf",
+          "sha256": "b1649da5de4e951043e388cbbf18c7b83130e6edff6914f999dc12c832a2f087",
+          "snapshot": "20260928T192608Z",
+          "pages": [
+            2
+          ],
+          "role": "text",
+          "verified_role": "ballot_question",
+          "label": "Official ballot wording and filing",
+          "snapshot_id": "20261008T225908Z"
+        }
+      ],
+      "extraction_method": "Manual transcription checked against rendered PDF",
+      "notes": [],
+      "vote_threshold": "50%",
+      "source_checked_at": "2026-10-08"
+    },
+    {
+      "id": 12459,
+      "measure_id": "REG_SMC_20261103_8064068F2187FE3FFE6A960657F93FF52E88EAD3FC44936758ADC32338D601C8",
+      "county": "San Mateo",
+      "jurisdiction": "Town of Portola Valley",
+      "election_date": "2026-11-03",
+      "measure_letter": "N",
+      "county_slug": "smc",
+      "question": "Town of Portola Valley Autonomy Measure. Shall the measure maintaining Portola Valley’s independent status be adopted, providing: wildfire prevention/vegetation management; 911 emergency response/police patrols; local zoning/planning services; storm drain repair; and general government services; by adopting a charter for the Town of Portola Valley solely for, and establishing a real property transfer tax of $10 per $1,000, paid by buyers or sellers of property, until ended by voters, providing approximately $2,000,000 in locally controlled funding annually, with independent oversight?",
+      "explanation": "Adopt a limited town charter and establish a real-property transfer tax of $10 per $1,000, paid by buyers or sellers when property is transferred. The question estimates approximately $2 million annually until ended by voters for general town services, with independent oversight. A yes vote would approve both the charter and the tax.",
+      "reviewed_at": "2026-10-08",
+      "question_source": 0,
+      "explanation_sources": [
+        0
+      ],
+      "sources": [
+        {
+          "url": "https://smcacre.gov/system/files/2026-07/52-ENG-M205-Contest%20Code-Reso-Portola%20Valley%20Transfer%20Tax_Redacted.pdf",
+          "sha256": "dee8e20e8db3f7a5a273d6923a5da9e494383ba98a26a0ffdd3b6917a4199ede",
+          "snapshot": "20260928T192608Z",
+          "pages": [
+            4
+          ],
+          "role": "text",
+          "verified_role": "ballot_question",
+          "label": "Official ballot wording and filing",
+          "snapshot_id": "20261008T225908Z"
+        }
+      ],
+      "extraction_method": "Manual transcription checked against rendered PDF",
+      "notes": [],
+      "vote_threshold": "50%",
+      "source_checked_at": "2026-10-08"
+    },
+    {
+      "id": 12460,
+      "measure_id": "REG_SMC_20261103_79F51B7BF9157811C4A435E7FE1B5A13CB73A22DE8E289CF001E7A780871EC8B",
+      "county": "San Mateo",
+      "jurisdiction": "City of Redwood City",
+      "election_date": "2026-11-03",
+      "measure_letter": "E",
+      "county_slug": "smc",
+      "question": "Shall the measure repealing Redwood City Municipal Code Chapter 42 and replacing it with a new Chapter 42 that (1) limits rent increases on multifamily housing built before February 1, 1995; (2) expands just-cause eviction protections to most rental housing, including single-family homes, ADUs, and affordable housing; (3) requires new City administration estimated to cost $5 million to $11 million annually, funded by annual rental property owner fees; and (4) increases relocation assistance for no-fault evictions, be adopted?",
+      "explanation": "Replace Redwood City’s rental-housing rules with expanded rent limits, eviction protections and relocation assistance. For covered units built before February 1, 1995, annual rent increases would generally be limited to 60% of local inflation, capped at 5%, with petitions for adjustments in specified circumstances. The question estimates $5 million to $11 million in annual city administration costs, funded by rental-property owner fees.",
+      "reviewed_at": "2026-10-08",
+      "question_source": 0,
+      "explanation_sources": [
+        0,
+        1
+      ],
+      "sources": [
+        {
+          "url": "https://smcacre.gov/system/files/2026-07/52-ENG-M108-Contest%20Code-Reso-RWC%20Housing_Redacted.pdf",
+          "sha256": "00f25b487f050792dadb03d7762213d36d190105efd4e695875b62f333259291",
+          "snapshot": "20260928T192608Z",
+          "pages": [
+            2
+          ],
+          "role": "text",
+          "verified_role": "ballot_question",
+          "label": "Official ballot wording and filing",
+          "snapshot_id": "20261008T225908Z"
+        },
+        {
+          "url": "https://smcacre.gov/system/files/2026-08/52-ENG-ME-ImpartialAnalysis-RWC-Housing_Redacted.pdf",
+          "sha256": "463224fce1815c4d3fd084336b7ccd1e380cc9c150f22bfc0bb1bf988139f75c",
+          "snapshot": "20260928T192608Z",
+          "pages": [
+            1,
+            2
+          ],
+          "role": "analysis",
+          "verified_role": "impartial_analysis",
+          "label": "City attorney’s impartial analysis",
+          "snapshot_id": "20261008T225908Z"
+        }
+      ],
+      "extraction_method": "Manual transcription checked against rendered PDF",
+      "notes": [
+        "Rent limits and eviction protections cover different groups of properties. The city attorney’s analysis describes the coverage, exceptions, rent-adjustment petitions and relocation payments."
+      ],
+      "vote_threshold": "50%",
+      "source_checked_at": "2026-10-08"
+    },
+    {
+      "id": 12461,
+      "measure_id": "REG_SMC_20261103_8F589AAE3380FCAF8773EBEA9A71DC6D3C57AE3DF4988C75E8FD8F27828E7265",
+      "county": "San Mateo",
+      "jurisdiction": "City of San Bruno",
+      "election_date": "2026-11-03",
+      "measure_letter": "S",
+      "county_slug": "smc",
+      "question": "Shall City of San Bruno Ordinance No. 1284, the 1977 zoning initiative that requires voter approval before the City Council can approve buildings exceeding specified height limits, residential density increases beyond 1974 zoning, multi-story parking structures, and certain roadway changes, be repealed given that State housing laws supersede local height limits and the ordinance interacts with current City economic development goals?",
+      "explanation": "Repeal San Bruno’s 1977 ordinance requiring a public vote before the City Council approves certain taller buildings, density increases, parking structures and road changes. The resolution states that future development proposals would still be subject to applicable planning policies, zoning, development standards, discretionary review and environmental review.",
+      "reviewed_at": "2026-10-08",
+      "question_source": 0,
+      "explanation_sources": [
+        0
+      ],
+      "sources": [
+        {
+          "url": "https://smcacre.gov/system/files/2026-07/52-ENG-M303-Contest%20Code-Reso-San%20Bruno%20Hosuing%20Permit%20and%20Development_Redacted.pdf",
+          "sha256": "eb4e70296f4e7abb53937614c33bf88c643138039a521495c8f8064e588278a2",
+          "snapshot": "20260928T192608Z",
+          "pages": [
+            2
+          ],
+          "role": "text",
+          "verified_role": "ballot_question",
+          "label": "Official ballot wording and filing",
+          "snapshot_id": "20261008T225908Z"
+        }
+      ],
+      "extraction_method": "Manual transcription checked against rendered PDF",
+      "notes": [],
+      "vote_threshold": "50%",
+      "source_checked_at": "2026-10-08"
+    },
+    {
+      "id": 12462,
+      "measure_id": "REG_SMC_20261103_639CF74D5B008BC4386AE0EDB17BF1DC9A1DF177B98DEA970EEE1187FA026503",
+      "county": "San Mateo",
+      "jurisdiction": "City of San Bruno",
+      "election_date": "2026-11-03",
+      "measure_letter": "DD",
+      "county_slug": "smc",
+      "question": "Shall the City of San Bruno Safe and Sane Fireworks Ordinance be repealed to prohibit the sale, use, and discharge of safe and sane fireworks in the City of San Bruno?",
+      "explanation": "Repeal San Bruno’s Safe and Sane Fireworks Ordinance and prohibit the sale, use and discharge of those fireworks in the city.",
+      "reviewed_at": "2026-10-08",
+      "question_source": 0,
+      "explanation_sources": [
+        0
+      ],
+      "sources": [
+        {
+          "url": "https://smcacre.gov/system/files/2026-07/52-ENG-M304-Contest%20Code-Reso-San%20Bruno%20Fireworks%20Ban_Redacted.pdf",
+          "sha256": "c04e2f5e8f672195d9bd3e7b90415bd0c39c76282f4c091c9573e08e2e4400c6",
+          "snapshot": "20260928T192608Z",
+          "pages": [
+            2
+          ],
+          "role": "text",
+          "verified_role": "ballot_question",
+          "label": "Official ballot wording and filing",
+          "snapshot_id": "20261008T225908Z"
+        }
+      ],
+      "extraction_method": "Manual transcription checked against rendered PDF",
+      "notes": [],
+      "vote_threshold": "50%",
+      "source_checked_at": "2026-10-08"
+    },
+    {
+      "id": 12463,
+      "measure_id": "REG_SMC_20261103_7623FFA7B2FC5B5FFEAF61E951678DBDBEE09EAC97CD3BDE25B6C254FCBCBA5B",
+      "county": "San Mateo",
+      "jurisdiction": "City of San Bruno",
+      "election_date": "2026-11-03",
+      "measure_letter": "EE",
+      "county_slug": "smc",
+      "question": "San Bruno Essential Services Protection Measure. To protect essential services such as: fixing potholes/city streets; providing rapid response to 9-1-1 emergency calls; maintaining library programs for children, teens, adults/seniors; maintaining parks/open space; and general city services, shall the measure be adopted simplifying/modernizing San Bruno’s business license ordinance, making rates more equitable/equal, updating the tax rate schedule as described in the ordinance, until ended by voters, raising $4,000,000 annually, with annual independent audits?",
+      "explanation": "Revise San Bruno’s business license ordinance and tax-rate schedule to fund general city services. The question estimates $4 million annually until ended by voters, with annual independent audits. The detailed rate schedule is in the official ordinance; the question names streets, emergency response, libraries and parks among the services supported.",
+      "reviewed_at": "2026-10-08",
+      "question_source": 0,
+      "explanation_sources": [
+        0
+      ],
+      "sources": [
+        {
+          "url": "https://smcacre.gov/system/files/2026-08/52-ENG-M305-Contest%20Code-Reso-San%20Bruno%20Business%20License%20Tax_Redacted.pdf",
+          "sha256": "7ca6b593aa3f383b3e875059b2967b3a0fb8f6d9fa049b6f6c48f63c0e7a04da",
+          "snapshot": "20260928T192608Z",
+          "pages": [
+            2
+          ],
+          "role": "text",
+          "verified_role": "ballot_question",
+          "label": "Official ballot wording and filing",
+          "snapshot_id": "20261008T225908Z"
+        }
+      ],
+      "extraction_method": "Manual transcription checked against rendered PDF",
+      "notes": [],
+      "vote_threshold": "50%",
+      "source_checked_at": "2026-10-08"
+    },
+    {
+      "id": 12464,
+      "measure_id": "REG_SMC_20261103_602C674DE1E220848B45DF1DFF09DB90D9D9FEEB38EF4E8E3C0544451A0AD90A",
+      "county": "San Mateo",
+      "jurisdiction": "City of San Carlos",
+      "election_date": "2026-11-03",
+      "measure_letter": "G",
+      "county_slug": "smc",
+      "question": "To provide funding for San Carlos city services, such as keeping local streets, sidewalks, storm drains, parks, and community facilities safe, clean, and well-maintained; fixing streets and potholes; relieving traffic congestion; repairing aging infrastructure; and supporting fire protection, paramedic, crime prevention, and 911 emergency response; shall City of San Carlos’ ordinance establishing a one-half cent sales tax be adopted, providing $6,000,000 annually for general government use for 14 years, with independent audits and all funds locally-controlled?",
+      "explanation": "Establish a half-cent sales tax in San Carlos for 14 years, estimated to provide $6 million annually for general city services. Listed uses include streets, drainage, parks, infrastructure and emergency response. Independent audits and local control of funds are required.",
+      "reviewed_at": "2026-10-08",
+      "question_source": 0,
+      "explanation_sources": [
+        0
+      ],
+      "sources": [
+        {
+          "url": "https://smcacre.gov/system/files/2026-07/52-ENG-M104-Contest%20Code-Reso-City%20of%20San%20Carlos%20Use%20Tax_Redacted.pdf",
+          "sha256": "b4f9ac9d5c302bd9a6f386fbb128c979c20c02a9b0e28bb4142790f38b62052a",
+          "snapshot": "20260928T192608Z",
+          "pages": [
+            3
+          ],
+          "role": "text",
+          "verified_role": "ballot_question",
+          "label": "Official ballot wording and filing",
+          "snapshot_id": "20261008T225908Z"
+        }
+      ],
+      "extraction_method": "Manual transcription checked against rendered PDF",
+      "notes": [],
+      "vote_threshold": "50%",
+      "source_checked_at": "2026-10-08"
+    },
+    {
+      "id": 12465,
+      "measure_id": "REG_SMC_20261103_0D1BFB8B4244A3068AEFC6F9206EA0E8D178E78641F214FB7497B156F939CF0E",
+      "county": "San Mateo",
+      "jurisdiction": "City of San Mateo",
+      "election_date": "2026-11-03",
+      "measure_letter": "H",
+      "county_slug": "smc",
+      "question": "To provide funding for San Mateo city services, such as keeping local streets, sidewalks, parks, infrastructure, and community facilities safe, clean, and well-maintained, fixing potholes, providing fire protection, paramedic, crime prevention, and 9-1-1 emergency response, and improvements to traffic safety/traffic management, shall the City of San Mateo’s ordinance establishing a one-quarter cent sales tax be adopted, providing 7 million dollars annually for general government use until ended by voters, with independent audits and all funds locally-controlled?",
+      "explanation": "Add a quarter-cent sales tax in the City of San Mateo, estimated to provide $7 million annually for general city services until ended by voters. The resolution states that this would increase the city’s own transactions and use tax from 0.25% to 0.50%. Independent audits and local control of funds are required.",
+      "reviewed_at": "2026-10-08",
+      "question_source": 0,
+      "explanation_sources": [
+        0
+      ],
+      "sources": [
+        {
+          "url": "https://smcacre.gov/system/files/2026-07/52-ENG-M301-Contest%20Code-Reso-San%20Mateo%20Transactions%20and%20Use%20Tax_Redacted.pdf",
+          "sha256": "ea78342cd4ac0d4a01221735631c39a861ad4c9da65df49e10d21a55b4c1858f",
+          "snapshot": "20260928T192608Z",
+          "pages": [
+            2
+          ],
+          "role": "text",
+          "verified_role": "ballot_question",
+          "label": "Official ballot wording and filing",
+          "snapshot_id": "20261008T225908Z"
+        }
+      ],
+      "extraction_method": "Manual transcription checked against rendered PDF",
+      "notes": [
+        "The 0.50% figure is the city’s own transactions and use tax; it is not the combined sales-tax rate from all jurisdictions."
+      ],
+      "vote_threshold": "50%",
+      "source_checked_at": "2026-10-08"
+    },
+    {
+      "id": 12466,
+      "measure_id": "REG_SMC_20261103_F229FDFB43996374AE45A1831377E5485DE0E38BCC6E5861918005852F4950A9",
+      "county": "San Mateo",
+      "jurisdiction": "City of San Mateo",
+      "election_date": "2026-11-03",
+      "measure_letter": "F",
+      "county_slug": "smc",
+      "question": "Shall the measure amending the City of San Mateo’s Charter to reflect the City’s current district-based election system, update the process for scheduling Council meetings and filling Council vacancies, update or remove obsolete provisions, and make other technical and conforming changes, be adopted?",
+      "explanation": "Update San Mateo’s City Charter to reflect its existing district elections and revise council procedures. Changes include extending the vacancy-filling period from 30 to 60 days, allowing meeting schedules by resolution, changing emergency-ordinance publication and expiration rules, and removing obsolete provisions. The city attorney’s analysis describes additional amendments.",
+      "reviewed_at": "2026-10-08",
+      "question_source": 0,
+      "explanation_sources": [
+        0,
+        1
+      ],
+      "sources": [
+        {
+          "url": "https://smcacre.gov/system/files/2026-07/52-ENG-M209-Contest%20Code-Reso-San%20Mateo%20Charter%20Amendment_Redacted.pdf",
+          "sha256": "edbd9d96bf61015a10f6ec87fbc68d4958cd24b57f7a43a18cbb6675d5f6657d",
+          "snapshot": "20260928T192608Z",
+          "pages": [
+            2
+          ],
+          "role": "text",
+          "verified_role": "ballot_question",
+          "label": "Official ballot wording and filing",
+          "snapshot_id": "20261008T225908Z"
+        },
+        {
+          "url": "https://smcacre.gov/system/files/2026-08/52-ENG-MF-ImpartialAnalysis-San-Mateo-Charter-Amendment-Redacted.pdf",
+          "sha256": "fe0b8e568c7aba1e99e862a86f7d4b01ee83e26f97085fd19287556996e231db",
+          "snapshot": "20260928T192608Z",
+          "pages": [
+            1,
+            2
+          ],
+          "role": "analysis",
+          "verified_role": "impartial_analysis",
+          "label": "City attorney’s impartial analysis",
+          "snapshot_id": "20261008T225908Z"
+        }
+      ],
+      "extraction_method": "Manual transcription checked against rendered PDF",
+      "notes": [
+        "The proposal records the district-election system already in use; it does not introduce district elections for the first time."
+      ],
+      "vote_threshold": "50%",
+      "source_checked_at": "2026-10-08"
+    }
+  ]
+}

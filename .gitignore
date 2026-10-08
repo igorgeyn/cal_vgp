@@ -82,6 +82,7 @@ plans/
 # store to Cloudflare R2.
 scraper/data/registrar_recon/
 scraper/data/statewide_recon/
+scraper/data/county_content/
 
 # Registrar pipeline outputs — LocalArtifactStore snapshots (dev
 # stand-in for R2), run manifests, and normalized JSONL. Data
