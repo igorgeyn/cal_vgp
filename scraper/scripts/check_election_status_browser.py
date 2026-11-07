@@ -1,20 +1,28 @@
 """Check election status and official-results links on every surface, in a browser.
 
     python scraper/scripts/check_election_status_browser.py --site-dir SITE --output-dir OUT
-        [--clock 2026-11-07T12:00:00-08:00]
+        [--clock 2026-11-07T12:00:00-08:00] [--expect-count 63]
+        [--transition-to 2026-11-04T00:01:00-08:00]
 
-Serves SITE from a fake host (no network), optionally fixes the browser clock,
-and checks, at 1440, 390 and 320px, for every measure whose status depends on
-the calendar: statewide card badge, list row, modal badge, official-results link
-and note, plus the statewide and local section notes. The expected status is the
-forward-only rule: the later of the build's status and the reader's clock.
-Writes report.json and screenshots to OUT. Exits non-zero on any failure.
+Serves SITE from a fake host (no network) with the browser clock fixed (to
+--clock, or to the real time now) and checks, at 1440, 390 and 320px, every
+current-cycle measure: rendered statewide card badges, card and list-row
+markup, the modal badge, results link and note, and both section notes.
+Current rows are selected by ``upcoming_scope``, not by the field under test,
+so a row that lost ``election_status`` fails instead of dropping out.
+The expected status is the forward-only rule: the later of the build's status
+and the reader's clock.
+
+With --transition-to, a further same-page check loads at --clock, opens a
+modal, advances the clock to the given time and requires the rendered cards
+and the open modal to show the new status (review finding R1).
+Writes report.json and screenshots to OUT; exits non-zero on any failure.
 """
 import argparse
 import json
 import mimetypes
 import sys
-from datetime import date, datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -28,15 +36,51 @@ from src.website.election_status import (  # noqa: E402
 )
 
 HOST = 'status.test'
+LINKED = ('election_day', 'results_pending')
 
 
 def expected_status(row, reader_date):
     built = row['election_status']
-    if reader_date is None:
-        return built
     by_clock = date_status(parse_election_date(row['election_date']), reader_date)
     order = list(DATE_DRIVEN_STATUSES)
     return by_clock if order.index(by_clock) > order.index(built) else built
+
+
+def badge_label(status):
+    return 'Upcoming election' if status == 'upcoming' else STATUS_LABELS[status]
+
+
+def open_page(browser, root, width, clock, install=False):
+    page = browser.new_page(viewport={'width': width, 'height': 950}, reduced_motion='reduce')
+    errors = []
+    page.on('pageerror', lambda error: errors.append(str(error)))
+    if install:
+        page.clock.install(time=clock)
+    else:
+        page.clock.set_fixed_time(clock)
+
+    def route(request_route):
+        url = urlparse(request_route.request.url)
+        path = (root / (url.path.lstrip('/') or 'index.html')).resolve()
+        if url.netloc == HOST and path.is_relative_to(root) and path.is_file():
+            request_route.fulfill(path=str(path),
+                                  content_type=mimetypes.guess_type(path)[0] or 'application/octet-stream')
+        else:
+            request_route.abort()
+    page.route('**/*', route)
+    page.goto(f'https://{HOST}/', wait_until='domcontentloaded')
+    return page, errors
+
+
+def wait_loaded(page, count):
+    page.wait_for_function(
+        '(n)=>typeof allMeasures!=="undefined" && allMeasures.length===n && document.getElementById("heroSection").dataset.rendered',
+        arg=count)
+
+
+def rendered_hero_badges(page):
+    return dict(page.evaluate(
+        "()=>Array.from(document.querySelectorAll('#heroGrid .measure-card')).map(c=>[allMeasures[c.dataset.midx].id, c.querySelector('.badge').textContent])"))
 
 
 def main():
@@ -45,46 +89,44 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument('--site-dir', type=Path, required=True)
     parser.add_argument('--output-dir', type=Path, required=True)
-    parser.add_argument('--clock', help='Fixed browser time, ISO 8601 with offset')
+    parser.add_argument('--clock', help='Fixed browser time, ISO 8601 with offset (default: now)')
+    parser.add_argument('--expect-count', type=int, help='Required number of current-cycle measures')
+    parser.add_argument('--transition-to', help='Same-page check: advance the clock to this time')
     args = parser.parse_args()
     root = args.site_dir.resolve()
     out = args.output_dir
     out.mkdir(parents=True, exist_ok=True)
     rows = json.loads((root / 'measures-data.json').read_text(encoding='utf-8'))
-    current = [m for m in rows if m.get('election_status')]
-    clock = datetime.fromisoformat(args.clock) if args.clock else None
-    reader_date = pacific_date(clock) if clock else None
-    failures, report = [], {'clock': args.clock, 'reader_date': str(reader_date) if reader_date else None,
-                            'current_measures': len(current), 'widths': {}}
+    current = [m for m in rows if m.get('upcoming_scope') and m.get('ballot_status') != 'withdrawn']
+    clock = datetime.fromisoformat(args.clock) if args.clock else datetime.now(timezone.utc).replace(microsecond=0)
+    reader_date = pacific_date(clock)
+    failures = []
+    report = {'clock': clock.isoformat(), 'reader_date': str(reader_date),
+              'current_measures': len(current), 'widths': {}}
 
     def check(condition, message):
         if not condition:
             failures.append(message)
 
+    if args.expect_count is not None:
+        check(len(current) == args.expect_count,
+              f'{len(current)} current-cycle measures, expected {args.expect_count}')
+    for row in current:
+        check(row.get('election_status') in DATE_DRIVEN_STATUSES,
+              f'{row["id"]}: current row has no calendar status ({row.get("election_status")!r})')
+    current = [m for m in current if m.get('election_status') in DATE_DRIVEN_STATUSES]
+
+    def linked(m, when):
+        return bool(m.get('official_results')) and expected_status(m, when) in LINKED
+
     with sync_playwright() as playwright:
         browser = playwright.chromium.launch(headless=True)
         for width in (1440, 390, 320):
-            page = browser.new_page(viewport={'width': width, 'height': 950}, reduced_motion='reduce')
-            errors = []
-            page.on('pageerror', lambda error: errors.append(str(error)))
-            if clock:
-                page.clock.set_fixed_time(clock)
-
-            def route(request_route):
-                url = urlparse(request_route.request.url)
-                path = (root / (url.path.lstrip('/') or 'index.html')).resolve()
-                if url.netloc == HOST and path.is_relative_to(root) and path.is_file():
-                    request_route.fulfill(path=str(path),
-                                          content_type=mimetypes.guess_type(path)[0] or 'application/octet-stream')
-                else:
-                    request_route.abort()
-            page.route('**/*', route)
-            page.goto(f'https://{HOST}/', wait_until='domcontentloaded')
-            page.wait_for_function(
-                '(n)=>typeof allMeasures!=="undefined" && allMeasures.length===n && document.getElementById("heroSection").dataset.rendered',
-                arg=len(rows))
+            page, errors = open_page(browser, root, width, clock)
+            wait_loaded(page, len(rows))
             tag = f'{width}px'
             statuses = {}
+            hero = rendered_hero_badges(page)
             for row in current:
                 want = expected_status(row, reader_date)
                 statuses[want] = statuses.get(want, 0) + 1
@@ -92,54 +134,56 @@ def main():
                 got = page.evaluate('(id)=>getElectionStatus(allMeasures.find(m=>m.id===id))', row['id'])
                 check(got == want, f'{tag} {row["id"]}: status {got!r}, expected {want!r}')
                 card = page.evaluate('(id)=>createCard(allMeasures.find(m=>m.id===id))', row['id'])
-                check(label in card and 'Upcoming' not in card or want == 'upcoming',
-                      f'{tag} {row["id"]}: card badge lacks {label!r}')
+                check(label in card, f'{tag} {row["id"]}: card markup lacks {label!r}')
+                check(want == 'upcoming' or 'Upcoming' not in card, f'{tag} {row["id"]}: card says Upcoming')
                 item = page.evaluate('(id)=>createListItem(allMeasures.find(m=>m.id===id))', row['id'])
                 check(label in item, f'{tag} {row["id"]}: list row lacks {label!r}')
+                if row['upcoming_scope'] == 'statewide':
+                    check(label in hero.get(row['id'], ''),
+                          f'{tag} {row["id"]}: rendered card badge {hero.get(row["id"])!r}')
                 page.evaluate('(id)=>viewMeasure(allMeasures.find(m=>m.id===id))', row['id'])
                 badges = page.locator('#modalBadges').text_content()  # CSS uppercases it
-                check((label if want != 'upcoming' else 'Upcoming election') in badges,
-                      f'{tag} {row["id"]}: modal badge {badges!r}')
+                check(badge_label(want) in badges, f'{tag} {row["id"]}: modal badge {badges!r}')
                 links = page.locator('#modalLinks')
                 results = links.locator('.official-results-row a')
-                shows_link = bool(row.get('official_results')) and want in ('election_day', 'results_pending')
-                check(results.count() == (1 if shows_link else 0),
+                shows_link = linked(row, reader_date)
+                check(results.count() == int(shows_link),
                       f'{tag} {row["id"]}: {results.count()} results links, expected {int(shows_link)}')
-                if shows_link:
+                if shows_link and results.count() == 1:
                     check(results.get_attribute('href') == row['official_results']['url'],
                           f'{tag} {row["id"]}: results link href differs')
                     check(results.get_attribute('rel') == 'noopener noreferrer', f'{tag} {row["id"]}: link rel')
+                    check('link checked' in links.locator('.official-results-row').inner_text(),
+                          f'{tag} {row["id"]}: results link lacks its check date')
                 note = links.locator('.pending-disclaimer').inner_text()
                 if want == 'results_pending':
                     check('has not recorded a result' in note and 'not yet been voted' not in note,
                           f'{tag} {row["id"]}: note {note!r}')
                 page.evaluate('()=>closeMeasureDetail()')
-            # Section notes and the visible page.
-            statewide_rows = [m for m in current if m.get('upcoming_scope') == 'statewide']
-            linked = lambda m: bool(m.get('official_results')) and expected_status(m, reader_date) in ('election_day', 'results_pending')
-            want_statewide_link = any(linked(m) for m in statewide_rows)
-            check(page.locator('#statewideSourceNote a.section-results-link').count() == int(want_statewide_link),
+            statewide_rows = [m for m in current if m['upcoming_scope'] == 'statewide']
+            want_statewide = any(linked(m, reader_date) for m in statewide_rows)
+            check(page.locator('#statewideSourceNote a.section-results-link').count() == int(want_statewide),
                   f'{tag}: statewide section results link count')
-            for county in sorted({m['county'] for m in current if m.get('upcoming_scope') == 'local'}):
+            for county in sorted({m['county'] for m in current if m['upcoming_scope'] == 'local'}):
                 page.evaluate('(c)=>selectLocalCounty(c)', county)
                 link = page.locator('#localMeasuresScope a.section-results-link')
                 county_row = next(m for m in current if m['county'] == county)
-                want_link = linked(county_row)
+                want_link = linked(county_row, reader_date)
                 check(link.count() == int(want_link), f'{tag} {county}: local section results link count')
-                if want_link:
+                if want_link and link.count() == 1:
                     check(link.get_attribute('href') == county_row['official_results']['url'],
                           f'{tag} {county}: local section link href')
                 page.locator('#local-measures').evaluate(
                     '(el)=>window.scrollTo(0,el.getBoundingClientRect().top+scrollY-100)')
                 page.screenshot(path=str(out / f'{width}-local-{county.replace(" ", "-")}.png'))
-            visible = page.evaluate('()=>document.body.innerText')
-            if reader_date is None or all(expected_status(m, reader_date) != 'upcoming' for m in current):
-                check('Upcoming' not in visible, f'{tag}: visible page text still says Upcoming')
+            visible = page.evaluate('()=>document.body.innerText').casefold()
+            if all(expected_status(m, reader_date) != 'upcoming' for m in current):
+                check('upcoming' not in visible, f'{tag}: visible page text still says Upcoming')
             overflow = page.evaluate('()=>document.documentElement.scrollWidth - window.innerWidth')
             check(overflow <= 0, f'{tag}: horizontal overflow {overflow}px')
             page.locator('#heroSection').evaluate('(el)=>window.scrollTo(0,el.getBoundingClientRect().top+scrollY-20)')
             page.screenshot(path=str(out / f'{width}-statewide.png'))
-            sample = next((m for m in current if m.get('official_results')), current[0])
+            sample = next((m for m in current if linked(m, reader_date)), current[0])
             page.evaluate('(id)=>viewMeasure(allMeasures.find(m=>m.id===id))', sample['id'])
             page.locator('#modalLinksSection').scroll_into_view_if_needed()
             page.screenshot(path=str(out / f'{width}-modal-{sample["id"]}.png'))
@@ -148,6 +192,44 @@ def main():
             check(modal_overflow <= 0, f'{tag}: modal links overflow {modal_overflow}px')
             check(not errors, f'{tag}: page errors {errors}')
             report['widths'][tag] = {'statuses': statuses, 'page_errors': errors}
+            page.close()
+
+        if args.transition_to:
+            later = datetime.fromisoformat(args.transition_to)
+            later_date = pacific_date(later)
+            page, errors = open_page(browser, root, 1440, clock, install=True)
+            wait_loaded(page, len(rows))
+            sample = next((m for m in current if m['upcoming_scope'] == 'statewide' and m.get('official_results')),
+                          next(m for m in current if m['upcoming_scope'] == 'statewide'))
+            page.evaluate('(id)=>viewMeasure(allMeasures.find(m=>m.id===id))', sample['id'])
+            before = rendered_hero_badges(page)
+            # Past the new time plus one refresh interval, so the timer fires.
+            page.clock.fast_forward(int((later - clock).total_seconds() * 1000) + 61_000)
+            after = rendered_hero_badges(page)
+            transition = {'from': clock.isoformat(), 'to': later.isoformat(), 'sample': sample['id'],
+                          'before': {}, 'after': {}}
+            for row in current:
+                if row['upcoming_scope'] != 'statewide':
+                    continue
+                want_before = STATUS_LABELS[expected_status(row, reader_date)]
+                want_after = STATUS_LABELS[expected_status(row, later_date)]
+                transition['before'][want_before] = transition['before'].get(want_before, 0) + 1
+                transition['after'][want_after] = transition['after'].get(want_after, 0) + 1
+                check(want_before in before.get(row['id'], ''), f'transition {row["id"]}: before {before.get(row["id"])!r}')
+                check(want_after in after.get(row['id'], ''), f'transition {row["id"]}: after {after.get(row["id"])!r}')
+            check(page.locator('#measureDetailModal').is_visible(), 'transition: modal closed by the refresh')
+            want_modal = badge_label(expected_status(sample, later_date))
+            badges = page.locator('#modalBadges').text_content()
+            check(want_modal in badges, f'transition: open modal badge {badges!r}, expected {want_modal!r}')
+            results = page.locator('#modalLinks .official-results-row a').count()
+            check(results == int(linked(sample, later_date)),
+                  f'transition: open modal has {results} results links')
+            note = page.locator('#modalLinks .pending-disclaimer').inner_text()
+            if expected_status(sample, later_date) == 'results_pending':
+                check('has not recorded a result' in note, f'transition: open modal note {note!r}')
+            check(not errors, f'transition: page errors {errors}')
+            page.screenshot(path=str(out / 'transition-after.png'))
+            report['transition'] = transition
             page.close()
         browser.close()
     report['failures'] = failures

@@ -6,7 +6,7 @@ manifested inputs must remain unchanged.
 """
 import argparse
 from contextlib import closing
-from datetime import datetime
+from datetime import date, datetime
 import hashlib
 import json
 import os
@@ -15,6 +15,7 @@ import shutil
 import sqlite3
 import subprocess
 import sys
+from zoneinfo import ZoneInfo
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -40,9 +41,12 @@ def clean_environment(model):
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output', type=Path, required=True, help='New build directory, outside the frozen workspace')
-    parser.add_argument('--as-of', default=None,
-                        help='California date (YYYY-MM-DD) for election statuses; recorded in build.json')
+    parser.add_argument('--as-of', type=date.fromisoformat, default=None,
+                        help='California date (YYYY-MM-DD) for election statuses; defaults to today there')
     args = parser.parse_args(argv)
+    # Resolve the status date once, pass it to the generator and record the same
+    # value, so the receipt says exactly which date the build used (review R6).
+    as_of = (args.as_of or datetime.now(ZoneInfo('America/Los_Angeles')).date()).isoformat()
     output = args.output.resolve()
     if output.is_relative_to(ROOT):
         raise ValueError('Build output must be outside the frozen workspace')
@@ -61,8 +65,7 @@ def main(argv=None):
     environment = clean_environment(ROOT / 'model')
     commands = [
         [sys.executable, str(ROOT / 'scraper/scripts/generate_site.py'), '--db', str(database),
-         '--output', str(site / 'index.html'), '--force', '--strict']
-        + (['--as-of', args.as_of] if args.as_of else []),
+         '--output', str(site / 'index.html'), '--force', '--strict', '--as-of', as_of],
         [sys.executable, str(ROOT / 'build_measure_pages.py'), '--site-dir', str(site)],
     ]
     with (output / 'build.log').open('w', encoding='utf-8') as log:
@@ -79,7 +82,7 @@ def main(argv=None):
     if not all(sha(ROOT / name) == value for name,value in inputs['sha256'].items()):
         raise ValueError('The build mutated a frozen dependency')
     report = {'started_at_local': started, 'finished_at_local': datetime.now().isoformat(),
-              'exit_code': 0, 'strict': True, 'as_of': args.as_of, 'input_manifest_sha256': sha(ROOT / 'release-inputs.json'),
+              'exit_code': 0, 'strict': True, 'as_of': as_of, 'input_manifest_sha256': sha(ROOT / 'release-inputs.json'),
               'candidate_db_sha256': sha(database), 'html_sha256': sha(site / 'index.html'),
               'json_sha256': sha(site / 'measures-data.json')}
     (output / 'build.json').write_text(json.dumps(report, indent=2) + '\n', encoding='utf-8')

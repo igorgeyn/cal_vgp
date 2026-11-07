@@ -24,7 +24,8 @@ no claim about whether the county is still counting or has certified.
 from __future__ import annotations
 
 import json
-from datetime import date, datetime
+import re
+from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Iterable, MutableMapping, Optional
 from urllib.parse import urlsplit
@@ -59,21 +60,29 @@ def today_in_pacific() -> date:
     return pacific_date(datetime.now(PACIFIC))
 
 
+CANONICAL_DATE = re.compile(r"\d{4}-\d{2}-\d{2}")
+
+# Every stored field that means "votes for this measure are in our sources".
+VOTE_FIELDS = ("percent_yes", "percent_no", "yes_votes", "no_votes", "total_votes", "pass_fail")
+
+
 def parse_election_date(value: object) -> Optional[date]:
-    """Parse a stored ISO election date; anything else is no date at all."""
-    text = str(value or "").strip()
-    if len(text) != 10:
+    """Parse a stored election date written exactly as YYYY-MM-DD.
+
+    Nothing is trimmed or reinterpreted (no ISO week dates), so the browser
+    rule, which accepts the same form only, always agrees with this one.
+    """
+    if not isinstance(value, str) or not CANONICAL_DATE.fullmatch(value):
         return None
     try:
-        return date.fromisoformat(text)
+        return date.fromisoformat(value)
     except ValueError:
         return None
 
 
 def has_recorded_votes(measure: MutableMapping) -> bool:
-    """True when any vote figure or source outcome code is stored for the row."""
-    return any(measure.get(field) not in (None, "") for field in
-               ("percent_yes", "yes_votes", "no_votes", "total_votes", "pass_fail"))
+    """True when any vote figure or source outcome code is stored (zero counts)."""
+    return any(measure.get(field) not in (None, "") for field in VOTE_FIELDS)
 
 
 def date_status(election_date: date, as_of: date) -> str:
@@ -134,6 +143,36 @@ def status_sentence(status: str, election_date: object) -> str:
     return ""
 
 
+def parse_check_time(value: object) -> Optional[datetime]:
+    """A recorded check time as an aware UTC instant, or None if unusable."""
+    if not isinstance(value, str):
+        return None
+    try:
+        moment = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    if moment.tzinfo is None:
+        return None
+    return moment.astimezone(timezone.utc)
+
+
+def _validate_check(check: object, kind: str, entry: dict) -> None:
+    """Malformed check records stop the build instead of publishing a link."""
+    where = f"official results links: {kind} for {entry.get('url')}"
+    if not isinstance(check, dict):
+        raise ValueError(f"{where} must be an object")
+    if parse_check_time(check.get("checked_at")) is None:
+        raise ValueError(f"{where} needs a timezone-aware checked_at")
+    if not isinstance(check.get("ok"), bool):
+        raise ValueError(f"{where} needs a boolean ok")
+    if kind == "manual_check":
+        if check["ok"] is not True or not check.get("by") or not check.get("observed"):
+            raise ValueError(f"{where} must record ok=true, by and observed")
+    elif check["ok"] and (check.get("http_status") != 200
+                          or check.get("matched_text") != entry.get("expect_text")):
+        raise ValueError(f"{where} claims success without status 200 and the expected text")
+
+
 def load_official_results(path: Path = OFFICIAL_RESULTS_PATH) -> list[dict]:
     """Load reviewed official-results links; malformed entries stop the build."""
     if not Path(path).exists():
@@ -160,12 +199,9 @@ def load_official_results(path: Path = OFFICIAL_RESULTS_PATH) -> list[dict]:
             raise ValueError(f"official results links: publisher missing for {url}")
         if not str(entry.get("expect_text") or "").strip():
             raise ValueError(f"official results links: expect_text missing for {url}")
-        manual = entry.get("manual_check")
-        if manual is not None and not (
-            manual.get("ok") is True and manual.get("checked_at") and manual.get("by")
-            and manual.get("observed")
-        ):
-            raise ValueError(f"official results links: incomplete manual_check for {url}")
+        for kind in ("last_check", "manual_check"):
+            if entry.get(kind) is not None:
+                _validate_check(entry[kind], kind, entry)
         key = (entry["election_date"], scope, entry.get("county") if scope == "local" else None)
         if key in seen:
             raise ValueError(f"official results links: duplicate entry {key}")
@@ -176,20 +212,25 @@ def load_official_results(path: Path = OFFICIAL_RESULTS_PATH) -> list[dict]:
 def _public_results_link(entry: dict) -> Optional[dict]:
     """Expose a link only when its newest recorded check succeeded.
 
-    The newest of the automated ``last_check`` and a person's ``manual_check``
-    decides, so a later automated failure hides an older manual success.
+    Checks are compared as instants, whatever offset they were written in. The
+    newest decides, so a later automated failure hides an older manual success;
+    a failure at the same instant as a success wins. The exported time is
+    canonical UTC (``YYYY-MM-DDTHH:MM:SSZ``).
     """
-    checks = [check for check in (entry.get("last_check"), entry.get("manual_check"))
-              if check and check.get("checked_at")]
+    checks = []
+    for check in (entry.get("last_check"), entry.get("manual_check")):
+        moment = parse_check_time((check or {}).get("checked_at"))
+        if check and moment is not None:
+            checks.append((moment, check.get("ok") is True))
     if not checks:
         return None
-    newest = max(checks, key=lambda check: check["checked_at"])
-    if newest.get("ok") is not True:
+    newest_moment = max(moment for moment, _ in checks)
+    if not all(ok for moment, ok in checks if moment == newest_moment):
         return None
     return {
         "url": entry["url"],
         "publisher": entry["publisher"],
-        "checked_at": newest["checked_at"],
+        "checked_at": newest_moment.strftime("%Y-%m-%dT%H:%M:%SZ"),
     }
 
 
@@ -218,27 +259,33 @@ def attach_election_status(
 
     Only rows whose status depends on the calendar gain fields, so historical
     records and their static pages are unchanged. Returns the count attached.
-    In strict mode a current-cycle row without a usable election date stops
-    the build rather than silently becoming "unknown".
+    Strict builds stop for two data problems, checked separately: a
+    current-cycle row (not withdrawn) whose election date is missing or not
+    YYYY-MM-DD; and a row outside the current cycle that would read "Results
+    pending", meaning a past election with neither votes nor an outcome. A
+    future election outside the cycle may read "Upcoming", and stored votes
+    without an outcome are "unknown"; neither stops the build.
     """
     links = list(links or [])
     attached = 0
     for measure in measures:
         measure.pop("election_status", None)
         measure.pop("official_results", None)
-        status = election_status(measure, as_of)
-        if status == "unknown" and strict and measure.get("upcoming_scope"):
+        current_cycle = bool(measure.get("upcoming_scope")) and measure.get("ballot_status") != "withdrawn"
+        if strict and current_cycle and parse_election_date(measure.get("election_date")) is None:
             raise ValueError(
-                f"current-cycle measure {measure.get('id')!r} has no usable election_date"
+                f"current-cycle measure {measure.get('id')!r} has no usable election_date "
+                f"({measure.get('election_date')!r}; expected YYYY-MM-DD)"
             )
+        status = election_status(measure, as_of)
         if status not in DATE_DRIVEN_STATUSES:
             continue
-        if strict and not measure.get("upcoming_scope"):
-            # An older row with a date but no votes is a data gap; "Results
-            # pending" would misdescribe it. Make a person look.
+        if strict and status == "results_pending" and not current_cycle:
+            # A past election with no votes and no outcome is a data gap;
+            # "Results pending" would misdescribe it. Make a person look.
             raise ValueError(
-                f"measure {measure.get('id')!r} would show {status!r} but is not in the "
-                "current election cycle; check its election_date and vote data"
+                f"measure {measure.get('id')!r} would show 'results_pending' but is not in "
+                "the current election cycle; check its election_date and vote data"
             )
         measure["election_status"] = status
         link = results_link_for(measure, links)

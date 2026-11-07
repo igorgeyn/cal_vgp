@@ -11214,6 +11214,51 @@ class WebsiteGenerator:
             displayResults();
         }}
 
+        // Calendar refresh: statuses are rendered once, so an open page must
+        // re-render them when the California date changes (review R1).
+        let measureDetailCurrent = null;
+        let renderedPacificDate = pacificToday();
+
+        function refreshOpenMeasureStatus() {{
+            const modal = document.getElementById('measureDetailModal');
+            const measure = measureDetailCurrent;
+            if (!modal || modal.style.display === 'none' || !measure || !isPendingMeasure(measure)) return;
+            const badge = document.querySelector('#modalBadges .badge-pending');
+            if (badge) badge.textContent = pendingBadgeText(measure);
+            const links = document.getElementById('modalLinks');
+            if (!links) return;
+            const resultsLink = officialResultsLinkHtml(measure, 'official-results-link');
+            const row = links.querySelector('.official-results-row');
+            if (resultsLink && !row) {{
+                links.insertAdjacentHTML('afterbegin', `<div class="official-results-row">${{resultsLink}}</div>`);
+            }} else if (!resultsLink && row) {{
+                row.remove();
+            }}
+            const note = links.querySelector('.pending-disclaimer');
+            if (note) note.innerHTML = `<strong>Note:</strong> ${{escapeHtml(pendingStatusNote(measure))}}`;
+        }}
+
+        function refreshCalendarStatuses() {{
+            const today = pacificToday();
+            if (!today || today === renderedPacificDate) return;
+            renderedPacificDate = today;
+            if (!allMeasures.some(isPendingMeasure)) return;
+            const hero = document.getElementById('heroSection');
+            if (hero && hero.dataset.rendered) {{
+                const savedIndex = heroCarouselIndex;
+                displayHero();  // also re-renders the local section and both section notes
+                heroCarouselIndex = Math.min(savedIndex, getHeroCarouselMaxIndex());
+            }}
+            if (currentView === 'grid' || currentView === 'list') displayResults();
+            refreshOpenMeasureStatus();
+        }}
+
+        setInterval(refreshCalendarStatuses, 60 * 1000);
+        document.addEventListener('visibilitychange', () => {{
+            if (document.visibilityState === 'visible') refreshCalendarStatuses();
+        }});
+        window.addEventListener('focus', refreshCalendarStatuses);
+
         // Hero Carousel state
         let heroCarouselIndex = 0;
         let heroCarouselItemsPerView = 3;
@@ -14612,14 +14657,20 @@ class WebsiteGenerator:
             const url = sanitizeUrl(result.url);
             if (!url || url === '#') return '';
             const checked = formatCheckedDate(result.checked_at);
-            return `<a class="${{escapeAttr(className)}}" href="${{escapeAttr(url)}}" target="_blank" rel="noopener noreferrer">Official results: ${{escapeHtml(result.publisher)}}</a>${{checked ? ` <span class="results-link-checked">(link checked ${{escapeHtml(checked)}})</span>` : ''}}`;
+            if (!checked) return '';
+            return `<a class="${{escapeAttr(className)}}" href="${{escapeAttr(url)}}" target="_blank" rel="noopener noreferrer">Official results: ${{escapeHtml(result.publisher)}}</a> <span class="results-link-checked">(link checked ${{escapeHtml(checked)}})</span>`;
+        }}
+
+        function pendingBadgeText(measure) {{
+            const status = getElectionStatus(measure);
+            return `⏳ ${{status === 'upcoming' ? 'Upcoming election' : getElectionStatusLabel(status)}}`;
         }}
 
         function pendingStatusNote(measure) {{
             const status = getElectionStatus(measure);
             const when = formatElectionDate(measure.election_date);
             if (status === 'election_day') {{
-                return `Election day${{when ? ': ' + when : ''}}. CalBallot does not report live counts; see the official results.`;
+                return `Election day${{when ? ': ' + when : ''}}. CalBallot does not report live counts; official results are linked when available.`;
             }}
             if (status === 'results_pending') {{
                 return `Voting ended${{when ? ' ' + when : ''}}. CalBallot has not recorded a result for this measure yet; official results are linked when available.`;
@@ -14858,6 +14909,7 @@ class WebsiteGenerator:
         
         // View measure details in modal
         function viewMeasure(measure) {{
+            measureDetailCurrent = measure;
             // Shareable permalink for this measure
             if (measure && measure.id != null) {{
                 if (!window.location.hash.startsWith('#m=')) measureReturnURL = window.location.href;
@@ -14891,8 +14943,7 @@ class WebsiteGenerator:
             if (measure.ballot_status === 'withdrawn') {{
                 badgesHtml.push('<span class="badge badge-neutral">Withdrawn</span>');
             }} else if (isPending) {{
-                const pendingStatus = getElectionStatus(measure);
-                badgesHtml.push(`<span class="badge badge-pending">⏳ ${{pendingStatus === 'upcoming' ? 'Upcoming election' : getElectionStatusLabel(pendingStatus)}}</span>`);
+                badgesHtml.push(`<span class="badge badge-pending">${{escapeHtml(pendingBadgeText(measure))}}</span>`);
             }} else {{
                 const passedClass = passed === 1 ? 'passed' : passed === 0 ? 'failed' : 'pending';
                 const passedText = passed === 1 ? '✓ Passed' : passed === 0 ? '✗ Failed' : '• Unknown';
@@ -15308,6 +15359,7 @@ class WebsiteGenerator:
                 history.replaceState(null, '', measureReturnURL || window.location.pathname + window.location.search);
             }}
             measureReturnURL = null;
+            measureDetailCurrent = null;
         }}
 
         // Toggle summary truncation

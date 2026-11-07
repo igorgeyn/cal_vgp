@@ -3,9 +3,9 @@
 **Updated:** November 7, 2026.
 **Companion:** [plan](local_measures_completion_plan_20261105.md) (rationale, phases, decisions) and
 [data assessment](election_data_granularity_assessment_20261105.md).
-**Status:** chunk **P0.1** (status rule and official results links) is built and tested on branch
-`phase0-election-status`, awaiting Codex review. Nothing is published; `main` and the live site
-are unchanged.
+**Status:** chunk **P0.1** (status rule and official results links) is built on branch
+`phase0-election-status`. Codex reviewed it ("ready with changes"); all six findings are fixed
+and await Codex's re-review. Nothing is published; `main` and the live site are unchanged.
 
 ## How this works
 
@@ -21,7 +21,7 @@ are unchanged.
 
 | Chunk | Scope | State | Review | Evidence |
 |---|---|---|---|---|
-| **P0.1** | One status rule on every surface; official results links | Built on branch, tests and browser checks pass | Codex: [ready with changes](../codex/p0_1_status_review_response.md) | [P0.1 handoff](#p01-handoff) |
+| **P0.1** | One status rule on every surface; official results links | R1-R6 fixed; tests and browser checks pass | Codex: [ready with changes](../codex/p0_1_status_review_response.md); re-review pending | [P0.1 handoff](#p01-handoff), [dispositions](#p01-review-dispositions) |
 | P0.2 | History list: stop naming the county as every record's jurisdiction | Not started | | |
 | P0.3 | Release candidate: strict build, page diff, browser checks, recovery bundle | Not started | | |
 | P0.4 | **Igor** go; publish; served-byte and live checks; receipt | Not started | | |
@@ -82,7 +82,7 @@ Maps to the October plan's R3.01-R3.04 and R4.02.
   the real check date.
 - [x] **P0.1.09** Links render from election day on: modal Links section, statewide and local
   section notes, static pages.
-- [x] **P0.1.10** Tests: `scraper/tests/test_election_status.py`, 41 pass (boundaries, Pacific
+- [x] **P0.1.10** Tests: `scraper/tests/test_election_status.py`, 41 pass at first review, 81 after the review fixes (boundaries, Pacific
   midnight, year rollover, precedence, unusable dates, strict guards, link validation and
   newest-check rule, Node parity, static pages, no year rule left in the explorer).
 - [x] **P0.1.11** Full suite: 654 pass, 1 skipped. The 1 failure and 17 errors also occur on an untouched
@@ -110,6 +110,34 @@ Maps to the October plan's R3.01-R3.04 and R4.02.
   the builder: open-tab refresh, strict date guard, check-record validation,
   `percent_no` precedence, date-format parity and effective release-date recording.
   Re-review the fixes before closing P0.1; P0.1.15 remains Igor's manual check.
+- [x] **P0.1.17** Fix R1-R6 and take up the checker suggestions; see
+  [dispositions](#p01-review-dispositions).
+- [ ] **P0.1.18 — Codex** Re-review the fixes; prompt in
+  [`docs/codex/p0_1_fixes_rereview_prompt.md`](../codex/p0_1_fixes_rereview_prompt.md).
+
+#### P0.1 review dispositions
+
+| Finding | Disposition | Evidence |
+|---|---|---|
+| **R1** Open tab keeps yesterday's status | **Fixed.** `refreshCalendarStatuses()` runs every minute, when the tab becomes visible and on focus. When the California date changes it re-renders the hero, both section notes, the local section and grid/list results, keeping carousel and page positions. It updates an open modal's badge, results link and note in place, so the tab and scroll stay where they were. | Checker `--transition-to`: Nov 2 build loaded at Nov 2 23:59 with a modal open, then Nov 3 00:01: 14 cards go Upcoming to Election day and the open modal updates. Same for Nov 3 23:59 to Nov 4 00:01 (Results pending). The identical check fails 16 ways on the pre-fix build. |
+| **R2** Strict guard rejects a valid stored-vote row | **Fixed.** Date validity is checked directly, for current-cycle rows that are not withdrawn. Stored votes stay "unknown" and do not stop a build. The second guard now fires only for `results_pending` outside the cycle, so a future election (e.g. 2028) may read Upcoming. | Tests: every vote field (zero included) on a current row passes strict; a 2028 row attaches as upcoming; noncanonical dates raise "expected YYYY-MM-DD". |
+| **R3** Malformed check records can publish an undated link | **Fixed.** Checks are validated at load: timezone-aware `checked_at`, boolean `ok`, automated success needs status 200 and the expected `matched_text`, manual checks need ok, by and observed. Times compare as instants; a failure at the same instant wins; the exported time is canonical UTC. The explorer also refuses a link whose date it cannot format. | 13 new tests (7 malformed automated, 3 malformed manual, offsets, ties, valid failure). |
+| **R4** `percent_no` missing from stored votes | **Fixed.** `VOTE_FIELDS` lists all six; tests are parameterized over it, and Python and Node agree. | Tests. |
+| **R5** Python accepts dates the browser cannot advance | **Fixed.** Both halves accept exactly `YYYY-MM-DD`; nothing is trimmed or reinterpreted, and historical JSON is not normalized. | Node parity test over ` 2026-11-03 `, `2026-W45-2`, `20261103`. |
+| **R6** Default release date not recorded | **Fixed.** `build_release_bundle.py` resolves the date once (California today if omitted), always passes `--as-of` and records the same value. | Test runs the real wrapper with stubbed subprocesses, with and without `--as-of`. |
+| Q3 wording on election day | **Changed** to "official results are linked when available". | Browser checks. |
+| Checker suggestions | **Adopted:** current rows chosen by `upcoming_scope` with `--expect-count`; rendered hero badges checked; card label required for every status; case-insensitive visible-text scan; clock frozen to now when `--clock` is absent; same-page transition check. A no-`Intl` case is in the Node tests. | Six runs, all 0 failures, `--expect-count 63`. |
+| Legacy "• Pending" on historical unknown cards (Q1) | **Deferred** to P0.2b, per the review: a scope decision, not part of this fix. | |
+| Separate release-election membership from display sections (Q5) | **Deferred** to Phase 3, where `election_date` replaces the year selector. | |
+| Record link-check freshness in release evidence | **Planned** for P0.3: recheck county links and list the omitted scopes. | |
+
+Post-fix evidence: 81 election-status tests pass; full suite **694 passed**, 1 skipped,
+with the same 1 failure and 17 errors as `main`. A fresh strict build at November 7 again
+changes exactly 63 pages (12,309 identical to live). All 12,372 static pages are
+byte-identical to the first candidate's, so the fixes changed only the explorer script and
+the data checks. JSON differs from live only in `election_status` (63), `official_results` (49)
+and `last_seen_at` (129). Protected hashes are unchanged: database `ef1359e4…`, root
+`index.html` `b0257999…`, `measures-data.json` `1921e5d4…`.
 
 #### P0.1 handoff
 
@@ -129,6 +157,12 @@ for the whole interval.
 - The statewide link waits on P0.1.15.
 - `UPCOMING_ELECTION_YEAR` still chooses which measures appear in the current-election
   section. Replacing it with `election_date` is Phase 3 work.
+
+### P0.2b Legacy "• Pending" wording (from review Q1)
+
+- [ ] Historical rows with no normalized outcome show "• Pending" on explorer cards, e.g. the
+  48 CEDA 2011 rows. "Result unknown" would match the static pages. Explorer-only change;
+  needs a scope call because it alters historical presentation. Can ride with P0.2.
 
 ### P0.2 History list label
 
