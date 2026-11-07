@@ -40,6 +40,8 @@ def clean_environment(model):
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output', type=Path, required=True, help='New build directory, outside the frozen workspace')
+    parser.add_argument('--as-of', default=None,
+                        help='California date (YYYY-MM-DD) for election statuses; recorded in build.json')
     args = parser.parse_args(argv)
     output = args.output.resolve()
     if output.is_relative_to(ROOT):
@@ -59,7 +61,8 @@ def main(argv=None):
     environment = clean_environment(ROOT / 'model')
     commands = [
         [sys.executable, str(ROOT / 'scraper/scripts/generate_site.py'), '--db', str(database),
-         '--output', str(site / 'index.html'), '--force', '--strict'],
+         '--output', str(site / 'index.html'), '--force', '--strict']
+        + (['--as-of', args.as_of] if args.as_of else []),
         [sys.executable, str(ROOT / 'build_measure_pages.py'), '--site-dir', str(site)],
     ]
     with (output / 'build.log').open('w', encoding='utf-8') as log:
@@ -76,7 +79,7 @@ def main(argv=None):
     if not all(sha(ROOT / name) == value for name,value in inputs['sha256'].items()):
         raise ValueError('The build mutated a frozen dependency')
     report = {'started_at_local': started, 'finished_at_local': datetime.now().isoformat(),
-              'exit_code': 0, 'strict': True, 'input_manifest_sha256': sha(ROOT / 'release-inputs.json'),
+              'exit_code': 0, 'strict': True, 'as_of': args.as_of, 'input_manifest_sha256': sha(ROOT / 'release-inputs.json'),
               'candidate_db_sha256': sha(database), 'html_sha256': sha(site / 'index.html'),
               'json_sha256': sha(site / 'measures-data.json')}
     (output / 'build.json').write_text(json.dumps(report, indent=2) + '\n', encoding='utf-8')

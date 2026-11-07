@@ -6,7 +6,7 @@ import sys
 import logging
 import argparse
 from pathlib import Path
-from datetime import datetime
+from datetime import date, datetime
 from collections import Counter
 
 # Fix Windows console encoding for emojis
@@ -62,6 +62,12 @@ def main(argv=None):
         '--force',
         action='store_true',
         help='Force regeneration even if no changes detected'
+    )
+    parser.add_argument(
+        '--as-of',
+        type=date.fromisoformat,
+        default=None,
+        help='California date (YYYY-MM-DD) for election statuses; defaults to today in Pacific time'
     )
     parser.add_argument('--strict', action='store_true',
                         help='Release build: fail if required enrichment inputs or computations fail')
@@ -175,7 +181,9 @@ def main(argv=None):
             prepare_upcoming_display_fields,
         )
         from src.website.local_measure_context import attach_local_historical_context
-        generator = WebsiteGenerator(database=Database(db_path), output_path=output_path, strict=args.strict)
+        generator = WebsiteGenerator(database=Database(db_path), output_path=output_path,
+                                     strict=args.strict, as_of=args.as_of)
+        logger.info(f"Election statuses evaluated for {generator.as_of.isoformat()} (Pacific)")
         
         # Prepare data for website
         # Convert measures to format needed by generator

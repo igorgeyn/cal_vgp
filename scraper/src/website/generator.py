@@ -7,7 +7,7 @@ import hashlib
 import logging
 from pathlib import Path
 from typing import Dict, List, Optional
-from datetime import datetime
+from datetime import date, datetime
 from collections import Counter
 
 from ..database.operations import Database
@@ -17,6 +17,12 @@ from ..database.statewide_ballot import attach_statewide_ballot_fields
 from .browse_navigation import NAV_HTML, CATALOG_HTML, STYLE as BROWSE_STYLE, SCRIPT as BROWSE_SCRIPT
 from .statewide_content import attach_statewide_content, load_package, render_future_ballots, STYLE as STATEWIDE_STYLE
 from .county_content import attach_county_content, STYLE as COUNTY_STYLE
+from .election_status import (
+    ELECTION_STATUS_SCRIPT,
+    attach_election_status,
+    load_official_results,
+    today_in_pacific,
+)
 from ..config import WEBSITE_CONFIG, BASE_DIR
 from ..utils import TitleGenerator
 from ..utils.topic_mapping import get_display_topic, get_all_display_categories
@@ -102,8 +108,12 @@ def prepare_upcoming_display_fields(data: Dict) -> Dict:
 class WebsiteGenerator:
     """Generates static website from ballot measures data"""
     
-    def __init__(self, database: Database = None, output_path: Path = None, style: str = 'modern', strict: bool = False):
+    def __init__(self, database: Database = None, output_path: Path = None, style: str = 'modern',
+                 strict: bool = False, as_of: Optional[date] = None):
         self.db = database or Database()
+        # Election statuses are evaluated for this California date; release
+        # builds pass it explicitly so a rebuild is reproducible.
+        self.as_of = as_of or today_in_pacific()
         self.output_path = output_path or BASE_DIR.parent / WEBSITE_CONFIG.get('output_filename', 'index.html')
         self.template = style
         self.strict = strict
@@ -168,6 +178,9 @@ class WebsiteGenerator:
             for measure in measures
         ]
         measures = attach_county_content(measures)
+        attach_election_status(
+            measures, as_of=self.as_of, links=load_official_results(), strict=self.strict
+        )
         html = self._generate_html(measures, stats, topics, recommendations)
         auxiliary_pages = {
             USE_CALBALLOT_PAGE: self._generate_use_calballot_html(
@@ -6256,6 +6269,35 @@ class WebsiteGenerator:
             grid-column: 1 / -1;
         }
 
+        /* Official results link (election day onward) */
+        .measure-detail-links .official-results-row {
+            grid-column: 1 / -1;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 0.25rem 0.6rem;
+        }
+
+        .measure-detail-links .official-results-row a {
+            font-weight: 600;
+        }
+
+        .results-link-checked {
+            color: var(--text-tertiary);
+            font-size: 0.75rem;
+        }
+
+        .section-results-link {
+            color: var(--primary);
+            font-weight: 600;
+            overflow-wrap: anywhere;
+        }
+
+        .local-results-note {
+            display: block;
+            margin-top: 0.35rem;
+        }
+
         @media (max-width: 480px) {
             .measure-detail-links {
                 grid-template-columns: 1fr;
@@ -9204,6 +9246,7 @@ class WebsiteGenerator:
         """Get JavaScript code for the website"""
         return f"""
         {BROWSE_SCRIPT}
+        {ELECTION_STATUS_SCRIPT}
 
         // Data
         let allMeasures = [];  // populated at startup from measures-data.json
@@ -11196,6 +11239,10 @@ class WebsiteGenerator:
             if (statewideSourceNote) {{
                 const guide = heroMeasures.find(m => m.statewide_guide)?.statewide_guide;
                 statewideSourceNote.textContent = guide ? `November 3, 2026 · Official guide, fiscal analysis, arguments and campaign finance · Sources captured ${{guide.sources.overview.captured_at.slice(0, 10)}}` : '';
+                const resultsMeasure = heroMeasures.find(m => officialResultsLinkHtml(m));
+                if (resultsMeasure) {{
+                    statewideSourceNote.insertAdjacentHTML('beforeend', `${{guide ? ' · ' : ''}}${{officialResultsLinkHtml(resultsMeasure, 'section-results-link')}}`);
+                }}
             }}
             renderLocalMeasures();
 
@@ -11386,10 +11433,11 @@ class WebsiteGenerator:
             }}
 
             const countyLabels = groups.map(group => `${{group.county}} County`);
-            scopeTarget.innerHTML = `<strong>Currently captured:</strong> ${{escapeHtml(countyLabels.join(', '))}}.
-                These are county-scoped official records, not a complete address-specific ballot.`;
-
             const selectedGroup = groups.find(group => group.county === selectedLocalCounty) || groups[0];
+            const countyResults = officialResultsLinkHtml(selectedGroup.measures.find(m => m.official_results), 'section-results-link');
+            scopeTarget.innerHTML = `<strong>Currently captured:</strong> ${{escapeHtml(countyLabels.join(', '))}}.
+                These are county-scoped official records, not a complete address-specific ballot.${{countyResults ? ` <span class="local-results-note">${{countyResults}}</span>` : ''}}`;
+
             localCarouselMeasures = selectedGroup.measures;
             countTarget.textContent = `${{localCarouselMeasures.length.toLocaleString()}} measure${{localCarouselMeasures.length === 1 ? '' : 's'}}`;
             updateLocalCarouselItemsPerView();
@@ -14539,11 +14587,44 @@ class WebsiteGenerator:
             return documents;
         }}
 
-        // Check if measure is pending (2026 or later, no vote data)
+        // Check if measure is pending: its status depends on the calendar
+        // (upcoming, election day, or voted with no result recorded yet).
         function isPendingMeasure(measure) {{
-            if (measure.ballot_status === 'withdrawn') return false;
-            const year = parseInt(measure.year);
-            return year >= 2026 || (measure.passed !== 1 && measure.passed !== 0 && !measure.percent_yes);
+            return DATE_DRIVEN_STATUSES.includes(getElectionStatus(measure));
+        }}
+
+        function formatCheckedDate(value) {{
+            const moment = new Date(value || '');
+            if (Number.isNaN(moment.getTime())) return '';
+            try {{
+                return moment.toLocaleDateString('en-US', {{ timeZone: 'America/Los_Angeles', month: 'long', day: 'numeric', year: 'numeric' }});
+            }} catch (error) {{
+                return '';
+            }}
+        }}
+
+        // Official results link, shown from election day on, only when the
+        // link's newest recorded check succeeded (attached at build time).
+        function officialResultsLinkHtml(measure, className = '') {{
+            const result = measure && measure.official_results;
+            const status = getElectionStatus(measure);
+            if (!result || !['election_day', 'results_pending'].includes(status)) return '';
+            const url = sanitizeUrl(result.url);
+            if (!url || url === '#') return '';
+            const checked = formatCheckedDate(result.checked_at);
+            return `<a class="${{escapeAttr(className)}}" href="${{escapeAttr(url)}}" target="_blank" rel="noopener noreferrer">Official results: ${{escapeHtml(result.publisher)}}</a>${{checked ? ` <span class="results-link-checked">(link checked ${{escapeHtml(checked)}})</span>` : ''}}`;
+        }}
+
+        function pendingStatusNote(measure) {{
+            const status = getElectionStatus(measure);
+            const when = formatElectionDate(measure.election_date);
+            if (status === 'election_day') {{
+                return `Election day${{when ? ': ' + when : ''}}. CalBallot does not report live counts; see the official results.`;
+            }}
+            if (status === 'results_pending') {{
+                return `Voting ended${{when ? ' ' + when : ''}}. CalBallot has not recorded a result for this measure yet; official results are linked when available.`;
+            }}
+            return 'This measure is pending and has not yet been voted on. Information may be updated as official details become available.';
         }}
 
         // Timeline stages for ballot measures
@@ -14666,7 +14747,7 @@ class WebsiteGenerator:
 
             // Pending measures get special status display
             const passedClass = measure.ballot_status === 'withdrawn' ? 'neutral' : isPending ? 'pending' : (passed === 1 ? 'passed' : passed === 0 ? 'failed' : 'pending');
-            const passedText = measure.ballot_status === 'withdrawn' ? 'Withdrawn' : isPending ? '⏳ Upcoming' : (passed === 1 ? '✓ Passed' : passed === 0 ? '✗ Failed' : '• Pending');
+            const passedText = measure.ballot_status === 'withdrawn' ? 'Withdrawn' : isPending ? `⏳ ${{getElectionStatusLabel(getElectionStatus(measure))}}` : (passed === 1 ? '✓ Passed' : passed === 0 ? '✗ Failed' : '• Pending');
 
             // Description / summary preview — kept for all card variants
             // per Igor's pushback on v1's "cut descriptions entirely"
@@ -14726,7 +14807,7 @@ class WebsiteGenerator:
             if (percentYes != null && !isPending) metaItems.push(`${{Math.round(percentYes)}}% Yes`);
             if (topic) metaItems.push(escapeHtml(topic));
             if (source) metaItems.push(escapeHtml(source));
-            if (isPending && !metaItems.length) metaItems.push('Election pending');
+            if (isPending && !metaItems.length) metaItems.push(getElectionStatusLabel(getElectionStatus(measure)));
 
             // Use data attribute + index lookup instead of serializing entire object into onclick
             const mIdx = allMeasures.indexOf(measure);
@@ -14753,7 +14834,7 @@ class WebsiteGenerator:
             const year = measure.year || 'Unknown';
             const passed = measure.passed;
             const passedClass = passed === 1 ? 'passed' : passed === 0 ? 'failed' : 'pending';
-            const passedText = measure.ballot_status === 'withdrawn' ? 'Withdrawn' : passed === 1 ? '✓' : passed === 0 ? '✗' : isPendingMeasure(measure) ? 'Upcoming' : '?';
+            const passedText = measure.ballot_status === 'withdrawn' ? 'Withdrawn' : passed === 1 ? '✓' : passed === 0 ? '✗' : isPendingMeasure(measure) ? getElectionStatusLabel(getElectionStatus(measure)) : '?';
             
             const mIdx = allMeasures.indexOf(measure);
             return `
@@ -14810,7 +14891,8 @@ class WebsiteGenerator:
             if (measure.ballot_status === 'withdrawn') {{
                 badgesHtml.push('<span class="badge badge-neutral">Withdrawn</span>');
             }} else if (isPending) {{
-                badgesHtml.push(`<span class="badge badge-pending">⏳ Upcoming Election</span>`);
+                const pendingStatus = getElectionStatus(measure);
+                badgesHtml.push(`<span class="badge badge-pending">⏳ ${{pendingStatus === 'upcoming' ? 'Upcoming election' : getElectionStatusLabel(pendingStatus)}}</span>`);
             }} else {{
                 const passedClass = passed === 1 ? 'passed' : passed === 0 ? 'failed' : 'pending';
                 const passedText = passed === 1 ? '✓ Passed' : passed === 0 ? '✗ Failed' : '• Unknown';
@@ -15024,6 +15106,8 @@ class WebsiteGenerator:
             // Links section
             const linksContainer = document.getElementById('modalLinks');
             const links = [];
+            const resultsLink = officialResultsLinkHtml(measure, 'official-results-link');
+            if (resultsLink) links.push(`<div class="official-results-row">${{resultsLink}}</div>`);
 
             // Add generated external links first (higher quality)
             // Descriptive labels for link sources
@@ -15087,7 +15171,7 @@ class WebsiteGenerator:
             }}
 
             // For pending measures, add helpful official source links
-            if (isPending && links.length === 0) {{
+            if (isPending && links.length === (resultsLink ? 1 : 0)) {{
                 links.push(`<a href="https://www.sos.ca.gov/elections/ballot-measures" target="_blank" rel="noopener noreferrer">🏛️ <span class="link-label">Official Status</span> <span class="link-source">(CA SOS)</span></a>`);
                 links.push(`<a href="https://lao.ca.gov/BallotAnalysis" target="_blank" rel="noopener noreferrer">📊 <span class="link-label">Fiscal Analysis</span> <span class="link-source">(CA LAO)</span></a>`);
                 links.push(`<a href="https://leginfo.legislature.ca.gov/" target="_blank" rel="noopener noreferrer">📜 <span class="link-label">Bill Details</span> <span class="link-source">(Legislature)</span></a>`);
@@ -15164,7 +15248,7 @@ class WebsiteGenerator:
 
             // Add pending disclaimer
             if (isPending) {{
-                links.push(`<div class="pending-disclaimer"><strong>Note:</strong> This measure is pending and has not yet been voted on. Information may be updated as official details become available.</div>`);
+                links.push(`<div class="pending-disclaimer"><strong>Note:</strong> ${{escapeHtml(pendingStatusNote(measure))}}</div>`);
             }}
 
             linksContainer.innerHTML = links.join('');
