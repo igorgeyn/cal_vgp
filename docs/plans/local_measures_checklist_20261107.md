@@ -1,0 +1,175 @@
+# Local measures checklist
+
+**Updated:** November 7, 2026.
+**Companion:** [plan](local_measures_completion_plan_20261105.md) (rationale, phases, decisions) and
+[data assessment](election_data_granularity_assessment_20261105.md).
+**Status:** chunk **P0.1** (status rule and official results links) is built and tested on branch
+`phase0-election-status`, awaiting Codex review. Nothing is published; `main` and the live site
+are unchanged.
+
+## How this works
+
+- Work goes in **chunks**: small, reviewable units, each ending in a handoff with what changed,
+  evidence and open questions. Codex reviews each chunk before the next starts.
+- Check a box only with evidence recorded here or in the linked handoff. A blocked, deferred or
+  inapplicable item stays unchecked, with the reason, owner and next step appended.
+- Igor approves every push, merge and release. Items marked **Igor** need him.
+- Later phases are outlined, not detailed. Each gets its full item list when its first chunk
+  starts, after the previous chunk's review.
+
+## Chunk tracker
+
+| Chunk | Scope | State | Review | Evidence |
+|---|---|---|---|---|
+| **P0.1** | One status rule on every surface; official results links | Built on branch, tests and browser checks pass | Codex: pending | [P0.1 handoff](#p01-handoff) |
+| P0.2 | History list: stop naming the county as every record's jurisdiction | Not started | | |
+| P0.3 | Release candidate: strict build, page diff, browser checks, recovery bundle | Not started | | |
+| P0.4 | **Igor** go; publish; served-byte and live checks; receipt | Not started | | |
+| P1.1 | County source census: schema and the 10 largest counties | Not started | | |
+| P1.2 | Generic capture tool (URL list into immutable R2 snapshots) | Not started | | |
+| P1.3 | Census and capture for the remaining counties | Not started | | |
+| P1.4 | Watch the November 9 registrar cron (SMC rollover risk) | Not started | | |
+| P1b.1 | Download the 22 missing CEDA years; column check | Not started | | |
+| P1b.2 | Backfill on a database copy (combined results, names, questions, thresholds) | Not started | | |
+| P1b.3 | Verification layers; changed-outcome list for **Igor** | Not started | | |
+| P1b.4 | Release of the repaired history | Not started | | |
+| P2.x | Results for the 63 (importers, observations, multi-county rule) | Outline below | | |
+| P3.x | Layout (Direction A, result state, tab design) | Outline below | | |
+| P3b.x | Results and comparisons tab | Outline below | | |
+| P4-P6 | Harvest waves, certification sweep | Outline below | | |
+
+## Open decisions (plan §8)
+
+None is answered yet. Igor's November 7 "proceed to building" starts the work; these block
+only the chunks named.
+
+| # | Decision | Recommendation | Blocks |
+|---|---|---|---|
+| 1 | Coverage: all 53 counties or the largest ten | All 53 | P1.3 scope |
+| 2 | Explanations for the ~413 new measures | Questions and results first; decide later | P4 content |
+| 3 | Approve Direction A with a result state and the results tab | Yes, after Codex review | P3 |
+| 4 | Email the Santa Clara Registrar for access | Yes | Santa Clara in P1.3 |
+| 5 | Statewide same-year comparisons before every county loads | Wait | P3b same-year section |
+
+## Phase 0: make the site true
+
+### P0.1 Status rule and official results links
+
+Maps to the October plan's R3.01-R3.04 and R4.02.
+
+- [x] **P0.1.01** Inventory every status consumer. Explorer: statewide cards, list rows,
+  modal badge, modal note, modal links, card meta, section notes. Static pages:
+  `build_measure_pages.py` `outcome()`. Data: `measures-data.json`. Local cards show no status
+  (unchanged). The "Pending/Unknown" filter chip counts outcomes, not dates (unchanged).
+- [x] **P0.1.02** One rule in `scraper/src/website/election_status.py`: Upcoming before election
+  day, Election day on it, **Results pending** after it, all by California date. Recorded
+  outcomes and withdrawal take precedence. No date means unknown, never inferred from the year.
+- [x] **P0.1.03** Stored votes without a normalized outcome read as unknown, not pending. Found
+  in the first build: 48 CEDA 2011 rows have `percent_yes` and `pass_fail` but `passed` NULL,
+  plus one 2018 Monterey row. Logged for Phase 1b.
+- [x] **P0.1.04** Release builds stop if a current-cycle row lacks a usable date, or if an older
+  row would show a pending status.
+- [x] **P0.1.05** Build date is explicit: `generate_site.py --as-of`, passed through and recorded
+  by `build_release_bundle.py`; default is today in California.
+- [x] **P0.1.06** The explorer re-applies the date rule with the reader's clock, forward only,
+  so an un-rebuilt site still stops saying "Upcoming". Python and browser rules are tested
+  against each other in Node.
+- [x] **P0.1.07** Results link data in `scraper/src/website/data/official_results_links.json`,
+  validated at build: https only, one per election and county, `expect_text` required.
+- [x] **P0.1.08** `check_official_results_links.py` records each check in place. A check passes
+  only on 200 with the expected text; bot-challenge pages count as failures and are not
+  worked around. A link shows only if its newest check (automated or a person's) passed, with
+  the real check date.
+- [x] **P0.1.09** Links render from election day on: modal Links section, statewide and local
+  section notes, static pages.
+- [x] **P0.1.10** Tests: `scraper/tests/test_election_status.py`, 41 pass (boundaries, Pacific
+  midnight, year rollover, precedence, unusable dates, strict guards, link validation and
+  newest-check rule, Node parity, static pages, no year rule left in the explorer).
+- [x] **P0.1.11** Full suite: 654 pass, 1 skipped. The 1 failure and 17 errors also occur on an untouched
+  `main` worktree (`test_models` county default; `test_database`/`test_deduplication` pass a
+  `str` path). Not caused by this chunk; not fixed here.
+- [x] **P0.1.12** Scratch strict build (`--as-of 2026-11-07`, database copy): exactly **63**
+  measure pages change, all current measures; **12,309** are byte-identical. JSON gains
+  `election_status` on 63 rows and `official_results` on 49. 129 `last_seen_at` values
+  regenerate (known since October). Sitemap dates move. No static page says "Upcoming".
+- [x] **P0.1.13** Browser checks (`check_election_status_browser.py`, 1440/390/320px, all 63
+  measures on every surface, no page errors, no horizontal overflow): pass for a November 7
+  build at a November 7 clock; a November 2 build at November 2 noon (Upcoming), November 3
+  noon and 11:59 p.m. (Election day) and November 4 12:01 a.m. (Results pending); and a
+  November 7 build at a November 2 clock (stays Results pending).
+- [x] **P0.1.14** Production database hash unchanged; root `index.html` and
+  `measures-data.json` untouched.
+- [ ] **P0.1.15 — Igor** Open the Secretary of State link
+  (https://electionresults.sos.ca.gov/returns/ballot-measures) in a normal browser. If it shows
+  November 3, 2026 results, it gets a `manual_check` entry and the statewide link appears.
+  Scripts get a bot challenge there (HTTP 200 with an Incapsula page).
+- [ ] **P0.1.16 — Codex** Review the chunk; prompt in
+  [`docs/codex/p0_1_status_review_prompt.md`](../codex/p0_1_status_review_prompt.md).
+  Record the verdict and dispositions here.
+
+#### P0.1 handoff
+
+**What changed:** the status rule, the results links and their checker, every explorer
+consumer, the static page builder, the build scripts' `--as-of`, a browser checker and tests.
+Branch `phase0-election-status`; no generated site files are committed.
+
+**Wording choice to review:** the plan said "Counting votes"; the build says **Results
+pending**. Counting finishes at certification (December 3), but the label stays until
+CalBallot imports results, so "Counting votes" would become false. "Results pending" is true
+for the whole interval.
+
+**Known limits:**
+- Static pages only change when rebuilt. The explorer corrects itself; static pages do not.
+- The results link sits in the modal's Links section, below the documents. A more prominent spot
+  belongs to the Phase 3 result state.
+- The statewide link waits on P0.1.15.
+- `UPCOMING_ELECTION_YEAR` still chooses which measures appear in the current-election
+  section. Replacing it with `election_date` is Phase 3 work.
+
+### P0.2 History list label
+
+- [ ] **P0.2.01** County history records show the county as jurisdiction for every CEDA row
+  (`local_measure_context.py`, modal and `county_content.py` renderers). 43 of the 48 checkable
+  shown records are city or school measures.
+- [ ] **P0.2.02** Neutral label until Phase 1b restores names; tests; page diff limited to the
+  40 cards with history.
+
+### P0.3 Release candidate
+
+- [ ] Fresh frozen workspace and strict build via `build_release_bundle.py --as-of`.
+- [ ] Preservation gate: only the expected pages, JSON fields and sitemap dates change.
+- [ ] Browser checks for status, the history label and existing county-content checks.
+- [ ] Private recovery bundle update and R2 read-back.
+
+### P0.4 Publish
+
+- [ ] **Igor** go-ahead.
+- [ ] Merge and publish the root pair and pages as one revision.
+- [ ] Served-byte hashes match the tested build; live desktop and mobile checks; receipt.
+
+## Phase 1: freeze the sources (outline)
+
+- [ ] P1.1 Census schema (county, listing/results/document URLs, access state, format, count,
+  checked time) and the 10 largest counties.
+- [ ] P1.2 Generic capture tool reusing `base.py` politeness and immutable R2 snapshots.
+  Decide the User-Agent with Igor: the registrar default includes his email.
+- [ ] P1.3 Remaining counties, by decision 1; blocked and list-less counties named.
+- [ ] P1.4 November 9 cron result recorded; SMC "past elections" rollover handled if red.
+
+## Phase 1b: repair the CEDA history (outline)
+
+- [ ] P1b.1 Download the missing years; column check per year.
+- [ ] P1b.2 Backfill on a copy: combined multi-county results, `place_name`,
+  `jurisdiction_kind`, `required_vote`, `multi_measure_id`, `ballot_question`.
+  Also normalize `passed` for the 48 CEDA 2011 rows found in P0.1.03.
+- [ ] P1b.3 Layers 1-3 and the San Joaquin Delta K sentinel; Igor reviews changed outcomes.
+- [ ] P1b.4 KNOWN_ISSUES entry, #5 corrected, release.
+
+## Later phases (outline)
+
+- **P2** Results for the 63: observation store, SOS JSON, SB xlsx and SMC CSV importers,
+  precinct masking (10 voters or fewer), multi-county rule, unofficial display.
+- **P3** Codex review of the layout proposal; result state; tab design; `election_date`
+  replaces the year in section selection.
+- **P3b** Results and comparisons tab per plan §6.
+- **P4-P6** Harvest adapter and waves; certification sweep from December 3.
