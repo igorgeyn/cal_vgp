@@ -21,7 +21,7 @@ are unchanged.
 
 | Chunk | Scope | State | Review | Evidence |
 |---|---|---|---|---|
-| **P0.1** | One status rule on every surface; official results links | Built on branch, tests and browser checks pass | Codex: pending | [P0.1 handoff](#p01-handoff) |
+| **P0.1** | One status rule on every surface; official results links | Built on branch, tests and browser checks pass | Codex: [ready with changes](../codex/p0_1_status_review_response.md) | [P0.1 handoff](#p01-handoff) |
 | P0.2 | History list: stop naming the county as every record's jurisdiction | Not started | | |
 | P0.3 | Release candidate: strict build, page diff, browser checks, recovery bundle | Not started | | |
 | P0.4 | **Igor** go; publish; served-byte and live checks; receipt | Not started | | |
@@ -103,9 +103,13 @@ Maps to the October plan's R3.01-R3.04 and R4.02.
   (https://electionresults.sos.ca.gov/returns/ballot-measures) in a normal browser. If it shows
   November 3, 2026 results, it gets a `manual_check` entry and the statewide link appears.
   Scripts get a bot challenge there (HTTP 200 with an Incapsula page).
-- [ ] **P0.1.16 — Codex** Review the chunk; prompt in
-  [`docs/codex/p0_1_status_review_prompt.md`](../codex/p0_1_status_review_prompt.md).
-  Record the verdict and dispositions here.
+- [x] **P0.1.16 — Codex** Review complete: **ready with changes**; see the
+  [response](../codex/p0_1_status_review_response.md) to the
+  [review prompt](../codex/p0_1_status_review_prompt.md). Independent tests, build,
+  preservation counts and six browser scenarios reproduce. R1–R6 remain open for
+  the builder: open-tab refresh, strict date guard, check-record validation,
+  `percent_no` precedence, date-format parity and effective release-date recording.
+  Re-review the fixes before closing P0.1; P0.1.15 remains Igor's manual check.
 
 #### P0.1 handoff
 
