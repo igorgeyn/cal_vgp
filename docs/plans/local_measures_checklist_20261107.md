@@ -23,7 +23,7 @@ and the live site are unchanged.
 | Chunk | Scope | State | Review | Evidence |
 |---|---|---|---|---|
 | **P0.1** | One status rule on every surface; official results links | **Complete** | Codex: [R1–R6 closed; ready for current scope](../codex/p0_1_status_review_response.md#re-review); Igor P0.1.15 done Nov 11; R7 deferred to P2.0 | [P0.1 handoff](#p01-handoff), [dispositions](#p01-review-dispositions) |
-| P0.2 | History list: stop naming the county as every record's jurisdiction; with P0.2b (Igor approved Nov 11) and P2.0 (R7) | **In progress** (agent A, worktree) | | |
+| P0.2 | History list: stop naming the county as every record's jurisdiction; with P0.2b (Igor approved Nov 11) and P2.0 (R7) | **Built** (agent A; merged as `6fe4f565`..`e0db6d60`): only the 40 history pages change, and only in their 200 history labels; card and modal read "Result unknown"; checker fixed for R7. 155 targeted tests pass; browser checks 0 failures | Codex: [prompt](../codex/p0_2_review_prompt.md) pending | prompt has the full evidence and 6 open questions |
 | P0.3 | Release candidate: strict build, page diff, browser checks, recovery bundle | Not started | | |
 | P0.4 | **Igor** go; publish; served-byte and live checks; receipt | Not started | | |
 | P1.1 | County source census: schema and the 10 largest counties | **Built** (agent B): 159 distinct measures confirmed from official pages in 7 counties; Riverside, Santa Clara and Contra Costa still blocked; **SF newly 403** on its results hosts | Codex: [prompt](../codex/p1_1_census_review_prompt.md) pending | [census note](county_census_20261111.md), `scraper/data/census/county_sources_2026.json` |

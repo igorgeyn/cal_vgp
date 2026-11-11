@@ -14,6 +14,9 @@ item to "Done" when its response is committed.
 4. **CEDA column check review (P1b.1)**
    `Read docs/codex/p1b_1_ceda_review_prompt.md on branch phase0-election-status and follow it. Review only; commit only the response file it names.`
 
+5. **Site fixes review (P0.2, P0.2b, R7)**
+   `Read docs/codex/p0_2_review_prompt.md on branch phase0-election-status and follow it. Review only; commit only the files it names.`
+
 ## Done
 
 - P0.1 review: `b2ab1fba`

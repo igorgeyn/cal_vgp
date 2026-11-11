@@ -1,8 +1,10 @@
 # Codex review request: P0.2, P0.2b and P2.0 (R7)
 
-**Branch:** agent A's worktree branch `worktree-agent-ac17714a49e647a32` (local, not pushed),
-based on `phase0-election-status` at `f122cf05`. Three code commits, one per item, then this
-prompt. Diff: `git diff f122cf05..HEAD`.
+**Branch:** `phase0-election-status` (local, not pushed). The coordinator cherry-picked
+agent A's commits onto it. Hashes on this branch: P0.2 `6fe4f565`, P0.2b `d2fc694d`,
+P2.0 `49896ca5`, this prompt `e0db6d60`. The hashes in the headings below are the
+original worktree hashes. Review the code with
+`git diff 734c47d8 49896ca5 -- scraper/` (the commits in between change docs only).
 **Context:** checklist sections P0.2b, P0.2 and the P2.0 outline row;
 [P0.1 re-review, finding R7](p0_1_status_review_response.md#new-defect-r7--p3-checker-rejects-a-supported-unknown-state).
 
