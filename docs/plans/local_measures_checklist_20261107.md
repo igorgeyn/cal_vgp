@@ -30,7 +30,7 @@ and the live site are unchanged.
 | P1.2 | Generic capture tool (URL list into immutable R2 snapshots) | Not started | | |
 | P1.3 | Census and capture for the remaining counties | Not started | | |
 | P1.4 | Watch the November 9 registrar cron (SMC rollover risk) | **Done**: run succeeded | | P1.4 below |
-| P1b.1 | Download the 22 missing CEDA years; column check | **In progress** (agent C) | | |
+| P1b.1 | Download the 22 missing CEDA years; column check | **Built** (agent C): 16 of 22 years downloaded (1998-2014, via Internet Archive copies of csus.edu/isr); every backfill field exists in all 21 files held. **2016-2021: Igor to download by hand** from the CSUS Esploro page. New defects: 2014 keyed on the wrong ID; 28 rows with another measure's votes; one foreign 2002 row | Codex: [prompt](../codex/p1b_1_ceda_review_prompt.md) pending | [column check](ceda_column_check_20261111.md) |
 | P1b.2 | Backfill on a database copy (combined results, names, questions, thresholds) | Not started | | |
 | P1b.3 | Verification layers; changed-outcome list for **Igor** | Not started | | |
 | P1b.4 | Release of the repaired history | Not started | | |
