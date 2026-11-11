@@ -315,6 +315,16 @@ Later, optionally: match on bond size or tax rate parsed from the ballot questio
 
 ## 8. Decisions for Igor
 
+**Answered November 11, 2026:**
+1. All 53 counties.
+2. Questions and results first. The full alternative is written up and deferred in
+   [`local_explanations_parity_plan_20261111.md`](local_explanations_parity_plan_20261111.md).
+3. Direction A is approved, subject to a Codex review of the layout proposal.
+4. Igor is checking Santa Clara access himself.
+5. Wait.
+
+The checklist tracks these. The original questions follow.
+
 1. **Coverage target.** All 53 counties (recommended; one-shot capture makes it affordable),
    or stop at the largest ten?
 2. **Explanations for the 413.** Recommended: ship official questions and results first,

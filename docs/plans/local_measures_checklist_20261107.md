@@ -1,11 +1,12 @@
 # Local measures checklist
 
-**Updated:** November 7, 2026.
+**Updated:** November 11, 2026.
 **Companion:** [plan](local_measures_completion_plan_20261105.md) (rationale, phases, decisions) and
 [data assessment](election_data_granularity_assessment_20261105.md).
-**Status:** chunk **P0.1** (status rule and official results links) is built on branch
-`phase0-election-status`. Codex reviewed it ("ready with changes"); all six findings are fixed
-and await Codex's re-review. Nothing is published; `main` and the live site are unchanged.
+**Status:** chunk **P0.1** (status rule and official results links) is **complete** on branch
+`phase0-election-status`. Codex closed R1-R6 on re-review, and Igor confirmed the Secretary of
+State link, so it now shows on the 14 propositions. Next: P0.2. Nothing is published; `main`
+and the live site are unchanged.
 
 ## How this works
 
@@ -21,14 +22,14 @@ and await Codex's re-review. Nothing is published; `main` and the live site are 
 
 | Chunk | Scope | State | Review | Evidence |
 |---|---|---|---|---|
-| **P0.1** | One status rule on every surface; official results links | R1-R6 fixed; tests and browser checks pass | Codex: [R1–R6 closed; ready for current scope](../codex/p0_1_status_review_response.md#re-review); Igor P0.1.15 pending | [P0.1 handoff](#p01-handoff), [dispositions](#p01-review-dispositions) |
+| **P0.1** | One status rule on every surface; official results links | **Complete** | Codex: [R1–R6 closed; ready for current scope](../codex/p0_1_status_review_response.md#re-review); Igor P0.1.15 done Nov 11; R7 deferred to P2.0 | [P0.1 handoff](#p01-handoff), [dispositions](#p01-review-dispositions) |
 | P0.2 | History list: stop naming the county as every record's jurisdiction | Not started | | |
 | P0.3 | Release candidate: strict build, page diff, browser checks, recovery bundle | Not started | | |
 | P0.4 | **Igor** go; publish; served-byte and live checks; receipt | Not started | | |
 | P1.1 | County source census: schema and the 10 largest counties | Not started | | |
 | P1.2 | Generic capture tool (URL list into immutable R2 snapshots) | Not started | | |
 | P1.3 | Census and capture for the remaining counties | Not started | | |
-| P1.4 | Watch the November 9 registrar cron (SMC rollover risk) | Not started | | |
+| P1.4 | Watch the November 9 registrar cron (SMC rollover risk) | **Done**: run succeeded | | P1.4 below |
 | P1b.1 | Download the 22 missing CEDA years; column check | Not started | | |
 | P1b.2 | Backfill on a database copy (combined results, names, questions, thresholds) | Not started | | |
 | P1b.3 | Verification layers; changed-outcome list for **Igor** | Not started | | |
@@ -38,18 +39,17 @@ and await Codex's re-review. Nothing is published; `main` and the live site are 
 | P3b.x | Results and comparisons tab | Outline below | | |
 | P4-P6 | Harvest waves, certification sweep | Outline below | | |
 
-## Open decisions (plan §8)
+## Decisions (plan §8)
 
-None is answered yet. Igor's November 7 "proceed to building" starts the work; these block
-only the chunks named.
+Igor answered on November 11, 2026.
 
-| # | Decision | Recommendation | Blocks |
+| # | Decision | Answer | Blocks |
 |---|---|---|---|
-| 1 | Coverage: all 53 counties or the largest ten | All 53 | P1.3 scope |
-| 2 | Explanations for the ~413 new measures | Questions and results first; decide later | P4 content |
-| 3 | Approve Direction A with a result state and the results tab | Yes, after Codex review | P3 |
-| 4 | Email the Santa Clara Registrar for access | Yes | Santa Clara in P1.3 |
-| 5 | Statewide same-year comparisons before every county loads | Wait | P3b same-year section |
+| 1 | Coverage: all 53 counties or the largest ten | **All 53** | P1.3 scope |
+| 2 | Explanations for the ~413 new measures | **Questions and results first.** The full alternative is written up, deferred, in [`local_explanations_parity_plan_20261111.md`](local_explanations_parity_plan_20261111.md) | P4 content |
+| 3 | Approve Direction A with a result state and the results tab | **Approved**, subject to Codex reviewing the layout proposal first | P3 |
+| 4 | Email the Santa Clara Registrar for access | **Igor is checking Santa Clara's access himself**; outcome pending | Santa Clara in P1.3 |
+| 5 | Statewide same-year comparisons before every county loads | **Wait** for full coverage; meanwhile compare within the same county and against November 2024 | P3b same-year section |
 
 ## Phase 0: make the site true
 
@@ -99,10 +99,21 @@ Maps to the October plan's R3.01-R3.04 and R4.02.
   November 7 build at a November 2 clock (stays Results pending).
 - [x] **P0.1.14** Production database hash unchanged; root `index.html` and
   `measures-data.json` untouched.
-- [ ] **P0.1.15 — Igor** Open the Secretary of State link
+- [x] **P0.1.15 — Igor** Open the Secretary of State link
   (https://electionresults.sos.ca.gov/returns/ballot-measures) in a normal browser. If it shows
   November 3, 2026 results, it gets a `manual_check` entry and the statewide link appears.
   Scripts get a bot challenge there (HTTP 200 with an Incapsula page).
+  **Done November 11:** Igor opened the page in a browser. It shows the returns table for
+  Props 1-5 and 37-45, the same 14 measures we have. The `manual_check` is recorded at
+  2026-11-11T15:38:00Z. Strict scratch build `--as-of 2026-11-11` compared with the
+  November 7 candidate:
+  - `official_results` changes on exactly 14 rows, so 63 rows now carry a link.
+  - Withdrawn ACA 13 correctly gets none.
+  - Exactly those 14 measure pages change; no pages are added or removed.
+  - The browser checker, with `--expect-count 63` at the real clock, reports 0 failures.
+  - 81 election-status tests pass.
+
+  The rule for how a later bot challenge counts is a P0.3 question.
 - [x] **P0.1.16 — Codex** Review complete: **ready with changes**; see the
   [response](../codex/p0_1_status_review_response.md) to the
   [review prompt](../codex/p0_1_status_review_prompt.md). Independent tests, build,
@@ -135,6 +146,7 @@ Maps to the October plan's R3.01-R3.04 and R4.02.
 | Legacy "• Pending" on historical unknown cards (Q1) | **Deferred** to P0.2b, per the review: a scope decision, not part of this fix. | |
 | Separate release-election membership from display sections (Q5) | **Deferred** to Phase 3, where `election_date` replaces the year selector. | |
 | Record link-check freshness in release evidence | **Planned** for P0.3: recheck county links and list the omitted scopes. | |
+| **R7** (re-review, P3) Browser checker requires a calendar status on every current row, so it rejects the supported stored-votes "unknown" state | **Deferred**, nonblocking: all 63 current rows depend on the date. Fix before P2 imports results; see P2.0. | Codex's reproduction on row 12420 with `yes_votes=123`. |
 
 Post-fix evidence: 81 election-status tests pass; full suite **694 passed**, 1 skipped,
 with the same 1 failure and 17 errors as `main`. A fresh strict build at November 7 again
@@ -183,6 +195,14 @@ for the whole interval.
 - [ ] Preservation gate: only the expected pages, JSON fields and sitemap dates change.
 - [ ] Browser checks for status, the history label and existing county-content checks.
 - [ ] Private recovery bundle update and R2 read-back.
+- [ ] Recheck the county results links; record each link's check date and any scope left
+  without a link.
+- [ ] **Codex question** on how a bot challenge counts. The SOS link gets a bot challenge
+  from scripts every time. Under the current rule, the newest check decides whether the link
+  shows, so rerunning the checker hides the link Igor confirmed by hand. Proposal: treat a
+  `bot_challenge` result as inconclusive, not as a failure, so it cannot override a newer
+  or older manual success. Real failures (bad status, missing text) still hide the link.
+  This changes the R3 rule, so it needs Codex's agreement before code changes.
 
 ### P0.4 Publish
 
@@ -197,7 +217,8 @@ for the whole interval.
 - [ ] P1.2 Generic capture tool reusing `base.py` politeness and immutable R2 snapshots.
   Decide the User-Agent with Igor: the registrar default includes his email.
 - [ ] P1.3 Remaining counties, by decision 1; blocked and list-less counties named.
-- [ ] P1.4 November 9 cron result recorded; SMC "past elections" rollover handled if red.
+- [x] P1.4 November 9 cron result recorded: scheduled `registrar-pipeline` run on `main`,
+  2026-11-09 21:59Z, **success**. No rollover action needed.
 
 ## Phase 1b: repair the CEDA history (outline)
 
@@ -210,6 +231,10 @@ for the whole interval.
 
 ## Later phases (outline)
 
+- **P2.0** Fix review finding R7 in `check_election_status_browser.py` before any results
+  import: require a calendar status only for rows that depend on the date, check the
+  displayed unknown, passed or failed state for the rest, and add a regression with mixed
+  states.
 - **P2** Results for the 63: observation store, SOS JSON, SB xlsx and SMC CSV importers,
   precinct masking (10 voters or fewer), multi-county rule, unofficial display.
 - **P3** Codex review of the layout proposal; result state; tab design; `election_date`
