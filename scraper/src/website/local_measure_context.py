@@ -52,6 +52,17 @@ COUNTY_CONTEXT_LABELS = {
     "san diego": "SD",
 }
 
+# CEDA rows keep only the source's numeric ``JUR`` code, not the place name
+# (Phase 1b restores ``PLACE``). The labels say only what the code says. In the
+# raw 2015 CEDA measures file, code 1 also covers community services districts
+# and county service areas, so "County measure" would be false for those.
+CEDA_JURISDICTION_KIND_LABELS = {
+    "1": "County or special district measure",
+    "2": "City measure",
+    "3": "School or college district measure",
+}
+UNKNOWN_JURISDICTION_LABEL = "Local measure"
+
 _NORMALIZED_CROSSWALK = {
     " ".join(description.split()).casefold(): category
     for description, category in LOCAL_MEASURE_CATEGORY_CROSSWALK.items()
@@ -62,6 +73,21 @@ def get_reviewed_historical_category(description: object) -> Optional[str]:
     """Return the reviewed CEDA category for a registrar description."""
     key = " ".join(str(description or "").split()).casefold()
     return _NORMALIZED_CROSSWALK.get(key)
+
+
+def history_jurisdiction_label(row: MutableMapping) -> str:
+    """Label for a historical record's jurisdiction that is never false.
+
+    A real place name is shown as stored. A CEDA code becomes its broad kind;
+    no code, or an unrecognized one, becomes "Local measure". The county is
+    never used: most CEDA records are city, school or district measures.
+    """
+    value = " ".join(str(row.get("jurisdiction") or "").split())
+    if not value:
+        return UNKNOWN_JURISDICTION_LABEL
+    if value.isdigit():
+        return CEDA_JURISDICTION_KIND_LABELS.get(value, UNKNOWN_JURISDICTION_LABEL)
+    return value
 
 
 def _county_key(county: object) -> str:
@@ -149,7 +175,7 @@ def attach_local_historical_context(
             measure['local_historical_context'].update(
                 through=max(year for year, _ in cohort),
                 record_ids=[row['id'] for _, row in linkable],
-                records=[dict(id=row['id'], year=year, jurisdiction=(str(row['jurisdiction']) if row.get('jurisdiction') and not str(row['jurisdiction']).strip().isdigit() else str(row.get('county') or '') + ' County'),
+                records=[dict(id=row['id'], year=year, jurisdiction=history_jurisdiction_label(row),
                               title=row.get('title') or '',
                               designation=('Measure ' + str(row['measure_letter'])) if row.get('measure_letter') else (row.get('title') or 'Ballot measure'),
                               passed=row['passed']) for year, row in linkable[:5]],

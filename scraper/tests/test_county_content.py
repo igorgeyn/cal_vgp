@@ -7,6 +7,7 @@ from bs4 import BeautifulSoup
 import pytest
 
 from src.website.county_content import attach_county_content, load_package, render_sections
+from src.website.local_measure_context import attach_local_historical_context
 
 
 def sample():
@@ -89,3 +90,22 @@ def test_unreviewed_county_and_historical_records_remain_unchanged():
     other = dict(id=12466, measure_id='REG_SMC_20261103_UNREVIEWED', summary_text=None)
     old = dict(id=99, year=2024, summary_text='Historical content')
     assert attach_county_content([m, other, old], p)[1:] == [other, old]
+
+
+def test_history_list_shows_the_record_kind_not_the_county():
+    """P0.2: the history list must not call city or school measures "X County"."""
+    e = load_package()['entries'][0]
+    current = dict(id=e['id'], year=2026, county=e['county'], description='Bond Measure',
+                   data_source='SB_County_Registrar', upcoming_scope='local')
+    history = [dict(id=300 + i, year=2010 + i, county=e['county'], category_type='GO Bond', passed=i % 2,
+                    data_source='CEDA', jurisdiction=code, measure_letter='Q', title='School bonds')
+               for i, code in enumerate(['1', '2', '3', None, '2', '3'])]
+    assert attach_local_historical_context(history + [current]) == 1
+    soup = BeautifulSoup(render_sections(e, current['local_historical_context']), 'html.parser')
+    labels = [a.get_text() for a in soup.select('.county-history li a')]
+    assert labels == ['2015 · School or college district measure · Measure Q',
+                      '2014 · City measure · Measure Q',
+                      '2013 · Local measure · Measure Q',
+                      '2012 · School or college district measure · Measure Q',
+                      '2011 · City measure · Measure Q']
+    assert f"{e['county']} County" not in ' '.join(labels)
