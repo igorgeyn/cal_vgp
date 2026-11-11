@@ -1,0 +1,1281 @@
+{
+  "schema_version": 1,
+  "election_date": "2026-11-03",
+  "generated_by": "P1.1 county source census (agent B), 2026-11-11",
+  "user_agent": "cal-vgp-research/0.1 (+https://github.com/igorgeyn/cal_vgp)",
+  "method": "Direct requests with the project UA (a few per county, no crawling; robots not consulted for single fetches), WebSearch for discovery, WebFetch for aggregator pages. Downloads were kept in the session scratchpad only. No challenge or block was bypassed.",
+  "schema": {
+    "county": "County name without 'County'.",
+    "county_slug": "Short stable slug. Reuses the repo's existing slugs ('sb', 'smc'); new ones are short lowercase tokens.",
+    "covered": "true when CalBallot already loads this county's November 3, 2026 measures.",
+    "registrar_name": "Office that runs the county's elections.",
+    "registrar_home_url": "Registrar landing page.",
+    "measure_list": "Object. urls: [{url, format, role, access, checked_at, http_status, final_url, last_modified, notes}]; includes_question_text, includes_thresholds, includes_jurisdiction: true/false/'partial'/'unknown'; measure_count: integer or null; count_method: how the number was counted; letters: measure letters as listed (when read).",
+    "documents": "Object. hosts: [{host, role, example_url, access, pdf_text, notes}]; pdf_text is 'text', 'scanned', 'mixed' or 'unknown', from sampling the example. county_hosts_all_documents: true/false/'unknown'.",
+    "results": "Object. urls: [{url, format, access, ...}]; formats: list (html, pdf, csv, xlsx, json, precinct_pdf, precinct_csv, spa); precinct_level: true/false/'unknown'; status_label: label shown on the page, verbatim; last_updated_shown: timestamp text verbatim as shown; multi_county_marking: how the page marks a measure shared with other counties.",
+    "access": "Summary: 'ok' when every needed URL answered 200 to the project UA; otherwise 'blocked_403', 'bot_challenge', 'empty_202' or 'partial', with blocked_urls. Never bypassed.",
+    "checked_at": "UTC ISO timestamp of the last request made for this county.",
+    "notes": "Free-text observations (list).",
+    "cross_checks": "Object of aggregator counts: ballotpedia_oct21 (statewide article; gives only LA and San Mateo by county), coleman_nov4_tax_rows (heuristic per-county count of rows in Coleman's tax-measure tables: tax measures only, approximate lower bound), and others (KQED/NBC) labelled as aggregator. Checks only, never sources of record.",
+    "unverified": "Claims in this entry that rest on aggregators, search snippets or inference rather than an official page read by us."
+  },
+  "counties": [
+    {
+      "county": "Los Angeles",
+      "county_slug": "la",
+      "covered": false,
+      "registrar_name": "Los Angeles County Registrar-Recorder/County Clerk",
+      "registrar_home_url": "https://www.lavote.gov/",
+      "measure_list": {
+        "urls": [
+          {
+            "url": "https://content.lavote.gov/docs/rrcc/documents/measures-appearing-on-the-ballot---november-3-2026-rev-8-14-2026-v-4.pdf",
+            "format": "pdf",
+            "role": "measure_list",
+            "access": "ok",
+            "http_status": 200,
+            "checked_at": "2026-11-11T16:05:38Z",
+            "last_modified": "Fri, 14 Aug 2026 20:46:14 GMT",
+            "notes": "14 pages, text PDF (Word export). Sections 'COUNTY MEASURES - (2)' and 'LOCAL JURISDICTION MEASURES - (66)'; a 'VOTE PASSAGE' line per jurisdiction; full ballot question per letter; Supporters/Opponents lines. Found via web search; no index page on lavote.gov located."
+          },
+          {
+            "url": "https://results.lavote.gov/text-results/4348",
+            "format": "html",
+            "role": "measure_list_and_results",
+            "access": "ok",
+            "http_status": 200,
+            "checked_at": "2026-11-11T16:04:38Z",
+            "notes": "Results page doubles as a list: 68 local measure contests plus 14 state measures, each with full question, supporters/opponents and threshold line."
+          }
+        ],
+        "includes_question_text": true,
+        "includes_thresholds": true,
+        "includes_jurisdiction": true,
+        "measure_count": 68,
+        "count_method": "PDF section headers: 2 county + 66 local = 68. Independently, 68 'MEASURE x' local contest headings in text-results/4348 (82 minus 14 state). Both agree.",
+        "letters": [
+          "A",
+          "E",
+          "HT",
+          "DB",
+          "SM",
+          "CR",
+          "W",
+          "C",
+          "CC",
+          "CD",
+          "CU",
+          "S",
+          "CS",
+          "OK",
+          "H",
+          "AA",
+          "T",
+          "YV",
+          "Q",
+          "ED",
+          "CT",
+          "G",
+          "B",
+          "BL",
+          "HH",
+          "O",
+          "HB",
+          "HP",
+          "MM",
+          "AT",
+          "BB",
+          "K",
+          "LV",
+          "TE",
+          "LA",
+          "PL",
+          "EE",
+          "PRK",
+          "PRT",
+          "FD",
+          "SC",
+          "L",
+          "HOM",
+          "AAA",
+          "DE",
+          "PVE",
+          "P",
+          "PFD",
+          "UP",
+          "RS",
+          "ART",
+          "RC",
+          "PS",
+          "U",
+          "ES",
+          "GG",
+          "RR",
+          "VV",
+          "TT",
+          "CL",
+          "RM",
+          "SG",
+          "SOS",
+          "TCS",
+          "R",
+          "SMS",
+          "EL",
+          "EV"
+        ]
+      },
+      "documents": {
+        "county_hosts_all_documents": "unknown",
+        "hosts": [
+          {
+            "host": "content.lavote.gov",
+            "role": "measure list PDF, results PDFs",
+            "access": "ok",
+            "pdf_text": "text",
+            "example_url": "https://content.lavote.gov/docs/rrcc/documents/measures-appearing-on-the-ballot---november-3-2026-rev-8-14-2026-v-4.pdf"
+          },
+          {
+            "host": "city clerks / district sites (e.g. www.santamonica.gov)",
+            "role": "impartial analyses, full text, arguments (expected)",
+            "access": "not_checked",
+            "pdf_text": "unknown",
+            "example_url": "https://www.santamonica.gov/elections/2026-11-02/measures/initiative-parcel-tax-smmusd",
+            "notes": "Seen in search results only. No per-measure analysis/full-text index on a county host was found."
+          }
+        ]
+      },
+      "results": {
+        "urls": [
+          {
+            "url": "https://results.lavote.gov/text-results/4348",
+            "format": "html",
+            "access": "ok",
+            "http_status": 200,
+            "checked_at": "2026-11-11T16:04:38Z"
+          },
+          {
+            "url": "https://content.lavote.gov/docs/rrcc/svc/4348_svc_precinct_public.pdf",
+            "format": "precinct_pdf",
+            "access": "ok (HEAD only)",
+            "http_status": 200,
+            "checked_at": "2026-11-11T16:06:03Z",
+            "last_modified": "Thu, 05 Nov 2026 00:03:40 GMT",
+            "content_length": 97250712,
+            "notes": "97 MB; per the Nov 5 data assessment it is 'Semifinal Official Canvass V2', 9,805 pages, text-extractable. Not downloaded."
+          },
+          {
+            "url": "https://results.lavote.gov/election-list/text",
+            "format": "html",
+            "access": "ok",
+            "http_status": 200,
+            "role": "election id index"
+          }
+        ],
+        "formats": [
+          "html",
+          "precinct_pdf"
+        ],
+        "precinct_level": true,
+        "status_label": "none shown on text-results page",
+        "last_updated_shown": "Results as of 11/10/2026 17:01:24",
+        "multi_county_marking": "'Los Angeles County Results Only (Shared with ... County)' note after the contest; for measures seen only on LV (Las Virgenes USD, shared with Ventura)."
+      },
+      "access": {
+        "state": "ok",
+        "blocked_urls": []
+      },
+      "checked_at": "2026-11-11T16:06:03Z",
+      "notes": [
+        "Letters run to 3 characters (HOM, PRK, PRT, PVE, PFD, AAA, SOS, TCS, SMS, ART): display must not assume a single 'Measure X' letter (Trap 7).",
+        "LA City measure SC (campaign finance for Board of Education elections) is printed under a 'LOS ANGELES UNIFIED SCHOOL DISTRICT' header in the PDF but labelled 'LOS ANGELES CITY GENERAL MUNICIPAL ELECTION - MEASURE SC' on the results page; jurisdiction needs a review rule.",
+        "Thresholds in the PDF: Majority 50%+1, 55% of the Votes Cast, 2/3 Votes. On the results page: 'Majority of votes cast' 51, '55% of votes cast' 11, 6 not parsed by my quick regex (likely the 2/3 measures; unverified).",
+        "Earlier partial PDFs (6-10, 6-17, 6-26, 7-8, 7-24, 7-31, 8-20 'final' state list) exist on content.lavote.gov; use the rev 8-14 v4 local list."
+      ],
+      "cross_checks": {
+        "ballotpedia_oct21": {
+          "count": 68,
+          "quote": "Los Angeles County has the most measures on the ballot, with 68",
+          "source": "https://news.ballotpedia.org/2026/10/21/california-voters-will-decide-on-462-local-ballot-measures-in-november-the-second-lowest-number-since-2018/",
+          "read_via": "WebFetch"
+        },
+        "coleman_nov4_tax_rows": {
+          "count": 35,
+          "method": "Heuristic count of rows in Coleman's Nov 4 preliminary tax tables whose county cell names this county. Tax and bond measures only. Approximate lower bound: on the covered counties it finds SB 15 + SMC 16 = 31, while the plan verified 35 tax-type measures among our 49.",
+          "source": "https://californiacityfinance.com/Votes2611prelim.pdf"
+        },
+        "plan_verified": 68
+      },
+      "unverified": [
+        "Where per-measure documents (analyses, full text, arguments) live.",
+        "Whether text-results has a CSV/XLSX export."
+      ]
+    },
+    {
+      "county": "San Diego",
+      "county_slug": "sd",
+      "covered": false,
+      "registrar_name": "San Diego County Registrar of Voters",
+      "registrar_home_url": "https://www.sdvote.com/",
+      "measure_list": {
+        "urls": [
+          {
+            "url": "https://www.sdvote.com/content/dam/rov/en/election/nov-3-2026-gubernatorial-general-election/measures-general-2026.pdf",
+            "format": "pdf",
+            "role": "measure_calendar_not_list",
+            "access": "ok",
+            "http_status": 200,
+            "checked_at": "2026-11-11T16:06:31Z",
+            "last_modified": "Tue, 16 Jun 2026 15:49:56 GMT",
+            "notes": "1-page calendar of events for 'LOCAL MEASURES: COUNTY, SCHOOL AND SPECIAL DISTRICTS (CITIES: PLEASE CONTACT EACH CITY CLERK FOR DETAILS.)'. Not a measure list."
+          },
+          {
+            "url": "https://www.livevoterturnout.com/ENR/sandiegocaenr/25/en/Index_25.html",
+            "format": "html",
+            "role": "results_used_as_list",
+            "access": "ok",
+            "http_status": 200,
+            "checked_at": "2026-11-11T16:06:57Z",
+            "notes": "Reached via https://sdvote.com/results redirect. Contest names carry jurisdiction, letter and threshold, e.g. 'SANTEE SCHOOL DISTRICT - MEASURE BB - 55% Required To Pass'. Includes city measures."
+          }
+        ],
+        "includes_question_text": false,
+        "includes_thresholds": true,
+        "includes_jurisdiction": true,
+        "measure_count": 20,
+        "count_method": "Unique 'Contest: ... - MEASURE x - ...' headings on the county results page: 2 county, 6 city, 12 school/special district.",
+        "letters": [
+          "A",
+          "B",
+          "C",
+          "D",
+          "E",
+          "G",
+          "H",
+          "J",
+          "K",
+          "L",
+          "M",
+          "N",
+          "P",
+          "Q",
+          "R",
+          "S",
+          "T",
+          "Y",
+          "AA",
+          "BB"
+        ]
+      },
+      "documents": {
+        "county_hosts_all_documents": "unknown",
+        "hosts": [
+          {
+            "host": "www.sdvote.com",
+            "role": "per-jurisdiction measure packets (resolution, tax rate statement, text)",
+            "example_url": "https://www.sdvote.com/content/dam/rov/en/election/nov-3-2026-gubernatorial-general-election/santee-school-district.pdf",
+            "access": "ok",
+            "pdf_text": "mixed",
+            "notes": "14 pages; first 4 pages text (cover letter, resolution), rest image-only. Filename is a jurisdiction slug; another seen: san-diego-county-measure-a-a-transpansparent-accountable-modern-county-government.pdf. No index page found."
+          },
+          {
+            "host": "city clerk sites",
+            "role": "city measure documents",
+            "access": "not_checked",
+            "pdf_text": "unknown",
+            "notes": "County calendar tells cities to contact each city clerk."
+          }
+        ]
+      },
+      "results": {
+        "urls": [
+          {
+            "url": "https://www.livevoterturnout.com/ENR/sandiegocaenr/25/en/Index_25.html",
+            "format": "html",
+            "access": "ok",
+            "http_status": 200,
+            "checked_at": "2026-11-11T16:06:57Z",
+            "last_modified": "Wed, 11 Nov 2026 01:56:04 GMT"
+          }
+        ],
+        "formats": [
+          "html",
+          "csv"
+        ],
+        "precinct_level": true,
+        "status_label": "UNOFFICIAL ELECTION RESULTS; PROJECTED OUTSTANDING BALLOTS: 120,000; NEXT POST 11/12/26 BY 6PM",
+        "last_updated_shown": "Website Updated: 11/10/2026 5:56:02 PM",
+        "multi_county_marking": "'(SAN DIEGO PORTION ONLY)' appears on state/federal district contests; no measure carried it.",
+        "notes": "Reports tab offers Summary CSV, By Contest CSV and By Precinct downloads via JavaScript DownloadReport(); the download URLs were not resolved or fetched. Vendor: livevoterturnout.com (same platform as Orange)."
+      },
+      "access": {
+        "state": "ok",
+        "blocked_urls": []
+      },
+      "checked_at": "2026-11-11T16:07:57Z",
+      "notes": [
+        "Confirms the plan's warning: the county's 'measures' PDF is a calendar, and no county-published measure list page was found. The results page is the best list available.",
+        "Polite UA answered 200 on every sdvote.com URL tried.",
+        "City of San Diego had city council contests but no measure contest on the county results page."
+      ],
+      "cross_checks": {
+        "coleman_nov4_tax_rows": {
+          "count": 15,
+          "method": "Heuristic count of rows in Coleman's Nov 4 preliminary tax tables whose county cell names this county. Tax and bond measures only. Approximate lower bound: on the covered counties it finds SB 15 + SMC 16 = 31, while the plan verified 35 tax-type measures among our 49.",
+          "source": "https://californiacityfinance.com/Votes2611prelim.pdf"
+        }
+      },
+      "unverified": [
+        "That the results page lists every measure (no independent county list). Coleman tax rows (15) all appear among the 20.",
+        "Ballot question text source for city measures."
+      ]
+    },
+    {
+      "county": "Orange",
+      "county_slug": "orange",
+      "covered": false,
+      "registrar_name": "Orange County Registrar of Voters",
+      "registrar_home_url": "https://www.ocvote.gov/",
+      "measure_list": {
+        "urls": [
+          {
+            "url": "https://ocvote.gov/elections/2026-general-election-measures-on-the-ballot",
+            "format": "html",
+            "role": "measure_list",
+            "access": "ok (redirect)",
+            "http_status": 200,
+            "final_url": "https://ocvote.gov/elections/assigned-measure-letters-november-3-2026",
+            "checked_at": "2026-11-11T16:08:31Z",
+            "notes": "Letter, jurisdiction and short title, one PDF per measure. Linked from https://ocvote.gov/elections/2026-general-election."
+          }
+        ],
+        "includes_question_text": false,
+        "includes_thresholds": false,
+        "includes_jurisdiction": true,
+        "measure_count": 15,
+        "count_method": "Letters A-O on the assigned-letters page; all 15 also appear as results contests.",
+        "letters": [
+          "A",
+          "B",
+          "C",
+          "D",
+          "E",
+          "F",
+          "G",
+          "H",
+          "I",
+          "J",
+          "K",
+          "L",
+          "M",
+          "N",
+          "O"
+        ]
+      },
+      "documents": {
+        "county_hosts_all_documents": true,
+        "hosts": [
+          {
+            "host": "ocvote.gov",
+            "role": "per-measure layout PDF (question, impartial analysis, tax rate statement, arguments, full text)",
+            "example_url": "https://ocvote.gov/sites/default/files/2026-09/A-LBUSD%20-%20LAYOUT%20(1).pdf",
+            "access": "ok",
+            "pdf_text": "text",
+            "notes": "Measure A sample: 6 pages, InDesign, all pages text; contains 'Impartial Analysis', 'Tax Rate Statement', 'Argument in Favor', 'Full Text', '55%'. Measure K is under /2026-10/ ('Orange Charter - Layout.pdf'); filenames include spaces and '(1)'/'(2)' suffixes."
+          }
+        ]
+      },
+      "results": {
+        "urls": [
+          {
+            "url": "https://ocvote.gov/results/current-election-results",
+            "format": "html",
+            "access": "ok",
+            "http_status": 200,
+            "role": "wrapper page"
+          },
+          {
+            "url": "https://www.livevoterturnout.com/ENR/orangecaenr/24/en/phkv4sV_Index_24.html",
+            "format": "html",
+            "access": "ok",
+            "http_status": 200,
+            "checked_at": "2026-11-11T16:08:57Z",
+            "last_modified": "Wed, 11 Nov 2026 01:00:07 GMT"
+          },
+          {
+            "url": "https://experience.arcgis.com/experience/cd9f3c5183514912af58b66dc9b37744/page/Map-Central-Main?views=Current-Election---Results",
+            "format": "spa",
+            "access": "not_checked",
+            "role": "precinct map"
+          }
+        ],
+        "formats": [
+          "html",
+          "csv",
+          "pdf"
+        ],
+        "precinct_level": "unknown",
+        "status_label": "Unofficial Election Results",
+        "last_updated_shown": "Website Updated: 11/10/2026 5:00:05 PM",
+        "multi_county_marking": "none seen on measure contests",
+        "notes": "Reports tab: Summary CSV/PDF and By Contest CSV/PDF via JavaScript; not fetched. Contest names do not carry thresholds. Each contest splits Vote-by-Mail / Vote Center ballots. ENR path contains an opaque token (phkv4sV) that may change."
+      },
+      "access": {
+        "state": "ok",
+        "blocked_urls": []
+      },
+      "checked_at": "2026-11-11T16:08:57Z",
+      "notes": [
+        "Thresholds and question text are only in the per-measure PDFs.",
+        "Cloudflare fronts ocvote.gov but served 200 to the project UA."
+      ],
+      "cross_checks": {
+        "coleman_nov4_tax_rows": {
+          "count": 10,
+          "method": "Heuristic count of rows in Coleman's Nov 4 preliminary tax tables whose county cell names this county. Tax and bond measures only. Approximate lower bound: on the covered counties it finds SB 15 + SMC 16 = 31, while the plan verified 35 tax-type measures among our 49.",
+          "source": "https://californiacityfinance.com/Votes2611prelim.pdf"
+        },
+        "plan_verified": 15
+      },
+      "unverified": [
+        "Whether the ENR offers precinct-level files for this election."
+      ]
+    },
+    {
+      "county": "Riverside",
+      "county_slug": "riverside",
+      "covered": false,
+      "registrar_name": "Riverside County Registrar of Voters",
+      "registrar_home_url": "https://www.voteinfo.net/",
+      "measure_list": {
+        "urls": [
+          {
+            "url": "https://www.voteinfo.net/",
+            "format": "html",
+            "role": "home",
+            "access": "bot_challenge",
+            "http_status": 403,
+            "checked_at": "2026-11-11T16:09:26Z",
+            "notes": "Cloudflare 'Just a moment...' challenge page (challenge-platform). Not bypassed. WebFetch got 403 too."
+          }
+        ],
+        "includes_question_text": "unknown",
+        "includes_thresholds": "unknown",
+        "includes_jurisdiction": "unknown",
+        "measure_count": null,
+        "count_method": "Not countable from an official page: registrar site challenged."
+      },
+      "documents": {
+        "county_hosts_all_documents": "unknown",
+        "hosts": [
+          {
+            "host": "voteinfo.net",
+            "role": "static result PDFs (earlier 2026 elections)",
+            "access": "ok for a search-indexed file URL (HEAD)",
+            "example_url": "https://voteinfo.net/sites/g/files/aldnop371/files/ElectionResults/2026/Jun03/ElectionSummaryReportRPT10.pdf",
+            "pdf_text": "unknown",
+            "notes": "HEAD 200 (application/pdf). Static files under /sites/g/files/aldnop371/files/ do not appear to be challenged. The November path was not guessed."
+          }
+        ]
+      },
+      "results": {
+        "urls": [],
+        "formats": [],
+        "precinct_level": "unknown",
+        "status_label": null,
+        "last_updated_shown": null,
+        "notes": "Earlier 2026 results were published as ElectionSummaryReportRPT*.pdf under /ElectionResults/2026/{Mon}{DD}/ (May05, Jun03, Jun24). A November 3 URL was not found by search; guessing it was deliberately not done (open question for the bot-challenge decision)."
+      },
+      "access": {
+        "state": "bot_challenge",
+        "blocked_urls": [
+          "https://www.voteinfo.net/"
+        ]
+      },
+      "checked_at": "2026-11-11T16:09:44Z",
+      "notes": [
+        "Unchanged since August: Cloudflare JS challenge on HTML pages.",
+        "Multi-county: Beaumont USD B and San Bernardino CCD Y also involve San Bernardino County (Y is in our SB data per the plan)."
+      ],
+      "cross_checks": {
+        "coleman_nov4_tax_rows": {
+          "count": 11,
+          "method": "Heuristic count of rows in Coleman's Nov 4 preliminary tax tables whose county cell names this county. Tax and bond measures only. Approximate lower bound: on the covered counties it finds SB 15 + SMC 16 = 31, while the plan verified 35 tax-type measures among our 49.",
+          "source": "https://californiacityfinance.com/Votes2611prelim.pdf"
+        },
+        "nbc_los_angeles_results_page": {
+          "count": 17,
+          "letters": [
+            "A",
+            "B",
+            "C",
+            "E",
+            "H",
+            "I",
+            "M",
+            "P",
+            "Q",
+            "R",
+            "S",
+            "T",
+            "U",
+            "V",
+            "W",
+            "Y",
+            "AA"
+          ],
+          "source": "https://www.nbclosangeles.com/elections/riverside-county-november-2026-election-results/3962668/",
+          "note": "Aggregator, read via WebFetch, page 'Updated on November 3, 2026 at 8:14 pm'. Includes Y (San Bernardino CCD)."
+        }
+      },
+      "unverified": [
+        "Measure count (17 is aggregator-only).",
+        "Every format and URL for results and documents."
+      ]
+    },
+    {
+      "county": "Santa Clara",
+      "county_slug": "scl",
+      "covered": false,
+      "registrar_name": "Santa Clara County Registrar of Voters",
+      "registrar_home_url": "https://vote.santaclaracounty.gov/",
+      "measure_list": {
+        "urls": [
+          {
+            "url": "https://vote.santaclaracounty.gov/",
+            "format": "html",
+            "role": "home",
+            "access": "blocked_403",
+            "http_status": 403,
+            "checked_at": "2026-11-11T16:10:09Z",
+            "notes": "Cloudflare 'Attention Required!' block page (WAF block, not a JS challenge). Not bypassed."
+          }
+        ],
+        "includes_question_text": "unknown",
+        "includes_thresholds": "unknown",
+        "includes_jurisdiction": "unknown",
+        "measure_count": null,
+        "count_method": "Not countable from an official page: registrar site blocked."
+      },
+      "documents": {
+        "county_hosts_all_documents": "unknown",
+        "hosts": []
+      },
+      "results": {
+        "urls": [],
+        "formats": [],
+        "precinct_level": "unknown",
+        "status_label": null,
+        "last_updated_shown": null,
+        "notes": "No alternate official results host found by search (Trap 5: check, don't assume)."
+      },
+      "access": {
+        "state": "blocked_403",
+        "blocked_urls": [
+          "https://vote.santaclaracounty.gov/"
+        ]
+      },
+      "checked_at": "2026-11-11T16:10:09Z",
+      "notes": [
+        "Unchanged since August: hard 403 on the county host. Igor is checking access himself (Decision 4).",
+        "RTM (five-county regional transit measure) is on this ballot."
+      ],
+      "cross_checks": {
+        "coleman_nov4_tax_rows": {
+          "count": 9,
+          "method": "Heuristic count of rows in Coleman's Nov 4 preliminary tax tables whose county cell names this county. Tax and bond measures only. Approximate lower bound: on the covered counties it finds SB 15 + SMC 16 = 31, while the plan verified 35 tax-type measures among our 49.",
+          "source": "https://californiacityfinance.com/Votes2611prelim.pdf"
+        },
+        "kqed_results_page": {
+          "count": 20,
+          "local": 19,
+          "regional": 1,
+          "letters": [
+            "A",
+            "B",
+            "C",
+            "D",
+            "E",
+            "F",
+            "G",
+            "H",
+            "I",
+            "J",
+            "K",
+            "L",
+            "M",
+            "N",
+            "O",
+            "P",
+            "Q",
+            "R",
+            "S",
+            "RTM"
+          ],
+          "source": "https://www.kqed.org/elections/results/santaclara",
+          "note": "Aggregator, read via WebFetch; 'updated at 9:59 PM PT on November 9, 2026'."
+        },
+        "ballotpedia_oct21": {
+          "note": "Says San Jose has one measure; KQED's A-S list shows no San Jose measure. Unresolved."
+        }
+      },
+      "unverified": [
+        "Measure count (20 is aggregator-only).",
+        "Every official URL and format."
+      ]
+    },
+    {
+      "county": "Alameda",
+      "county_slug": "alameda",
+      "covered": false,
+      "registrar_name": "Alameda County Registrar of Voters",
+      "registrar_home_url": "https://acvote.alamedacountyca.gov/",
+      "measure_list": {
+        "urls": [
+          {
+            "url": "https://alamedacountyca.gov/rov_app/measures/election/260",
+            "format": "html",
+            "role": "measure_list",
+            "access": "ok",
+            "http_status": 200,
+            "checked_at": "2026-11-11T16:10:32Z",
+            "notes": "Server-rendered fragment: letter, jurisdiction, title, 'Percentage Passing', full question. Thresholds now all filled (August had N/A on four)."
+          },
+          {
+            "url": "https://acvote.alamedacountyca.gov/election-information/elections?id=260",
+            "format": "html",
+            "role": "election page with per-measure PDF links",
+            "access": "ok",
+            "http_status": 200,
+            "checked_at": "2026-11-11T16:11:14Z"
+          }
+        ],
+        "includes_question_text": true,
+        "includes_thresholds": true,
+        "includes_jurisdiction": true,
+        "measure_count": 28,
+        "count_method": "28 unique measureDesc headings (I-Z, AA-II, RTM); 28 PDF links on the election page; 28 measure names on the results page.",
+        "letters": [
+          "I",
+          "J",
+          "K",
+          "L",
+          "M",
+          "N",
+          "O",
+          "P",
+          "Q",
+          "R",
+          "S",
+          "T",
+          "U",
+          "V",
+          "W",
+          "X",
+          "Y",
+          "Z",
+          "AA",
+          "BB",
+          "CC",
+          "DD",
+          "EE",
+          "FF",
+          "GG",
+          "HH",
+          "II",
+          "RTM"
+        ],
+        "threshold_counts": {
+          "50% + 1": 19,
+          "2/3": 7,
+          "55%": 1,
+          "Majority": 1
+        }
+      },
+      "documents": {
+        "county_hosts_all_documents": true,
+        "hosts": [
+          {
+            "host": "acvote.alamedacountyca.gov",
+            "role": "one packet PDF per measure under /acvote-assets/02_election_information/PDFs/20261103/Measures/",
+            "example_url": "https://acvote.alamedacountyca.gov/acvote-assets/02_election_information/PDFs/20261103/Measures/sunol_glen_usd_bond_measure.pdf",
+            "access": "ok",
+            "pdf_text": "scanned",
+            "notes": "Sample: 21 pages, scanner-produced, 0 text pages. One filename has a literal space ('city_of_berkeley sales tax measure.pdf')."
+          }
+        ]
+      },
+      "results": {
+        "urls": [
+          {
+            "url": "https://alamedacountyca.gov/rovresults/260/",
+            "format": "html",
+            "access": "ok",
+            "http_status": 200,
+            "checked_at": "2026-11-11T16:11:22Z"
+          }
+        ],
+        "formats": [
+          "html"
+        ],
+        "precinct_level": "unknown",
+        "status_label": "Preliminary/Unofficial - Post Election Update #2",
+        "last_updated_shown": "Last Updated: Monday, November 09, 2026; 4:59 PM",
+        "notes": "No CSV/XLSX/PDF links on the page. Cast Vote Record is by request. Prior elections' Statements of Vote are PDFs under /acvote-assets/02_election_information/SOV/{yyyymmdd}/."
+      },
+      "access": {
+        "state": "ok",
+        "blocked_urls": []
+      },
+      "checked_at": "2026-11-11T16:11:29Z",
+      "notes": [
+        "Two hosts: list on alamedacountyca.gov, packets on acvote.alamedacountyca.gov.",
+        "RTM is listed here and in SF, Santa Clara, Contra Costa and San Mateo (Trap 2)."
+      ],
+      "cross_checks": {
+        "coleman_nov4_tax_rows": {
+          "count": 20,
+          "method": "Heuristic count of rows in Coleman's Nov 4 preliminary tax tables whose county cell names this county. Tax and bond measures only. Approximate lower bound: on the covered counties it finds SB 15 + SMC 16 = 31, while the plan verified 35 tax-type measures among our 49.",
+          "source": "https://californiacityfinance.com/Votes2611prelim.pdf"
+        },
+        "plan_verified": 28,
+        "ballotpedia_oct21": {
+          "note": "Gives no Alameda count; says the other 51 counties have 'between one and 28', consistent with Alameda 28."
+        }
+      },
+      "unverified": []
+    },
+    {
+      "county": "Sacramento",
+      "county_slug": "sac",
+      "covered": false,
+      "registrar_name": "Sacramento County Voter Registration and Elections",
+      "registrar_home_url": "https://elections.saccounty.gov/",
+      "measure_list": {
+        "urls": [
+          {
+            "url": "https://elections.saccounty.gov/content/vre/us/en/election-information/current-measure-information.html",
+            "format": "html",
+            "role": "measure_list",
+            "access": "ok (redirect)",
+            "http_status": 200,
+            "final_url": "https://elections.saccounty.gov/us/en/election-information/current-measure-information.html",
+            "checked_at": "2026-11-11T16:11:37Z",
+            "last_modified": "Wed, 11 Nov 2026 00:08:30 GMT",
+            "notes": "Accordion per measure: letter, district, question, impartial analysis, arguments and rebuttals inline as HTML. Thresholds shown for the 5 school measures; none shown for the 4 city measures."
+          }
+        ],
+        "includes_question_text": true,
+        "includes_thresholds": "partial",
+        "includes_jurisdiction": true,
+        "measure_count": 9,
+        "count_method": "Accordion headings D, E, G, H, I, J, K, L, M; plus 'WITHDRAWN -- Measure F: City of Sacramento' (not counted). Results page shows the same 9.",
+        "letters": [
+          "D",
+          "E",
+          "G",
+          "H",
+          "I",
+          "J",
+          "K",
+          "L",
+          "M"
+        ],
+        "withdrawn": [
+          "F"
+        ]
+      },
+      "documents": {
+        "county_hosts_all_documents": "partial",
+        "hosts": [
+          {
+            "host": "elections.saccounty.gov",
+            "role": "question, impartial analysis, arguments and rebuttals as inline HTML text",
+            "access": "ok",
+            "pdf_text": "n/a (HTML)",
+            "notes": "No per-measure PDF links found on the page; page header mentions 'Full Text, Audio' but no PDF hrefs were present in the HTML."
+          }
+        ]
+      },
+      "results": {
+        "urls": [
+          {
+            "url": "https://eresults.saccounty.gov/",
+            "format": "html",
+            "access": "ok",
+            "http_status": 200,
+            "checked_at": "2026-11-11T16:13:12Z",
+            "notes": "Static summary report rendered as HTML (times cast, undervotes, overvotes, YES/NO)."
+          },
+          {
+            "url": "https://results.saccounty.gov/results/public/sacramento-county-ca/elections/69",
+            "format": "spa",
+            "access": "ok (shell only)",
+            "http_status": 200,
+            "checked_at": "2026-11-11T16:13:04Z",
+            "notes": "Enhanced Voting JS app; content not read."
+          }
+        ],
+        "formats": [
+          "html",
+          "spa"
+        ],
+        "precinct_level": "unknown",
+        "status_label": "SEMI-FINAL",
+        "last_updated_shown": "11/10/2026 3:35:30 PM",
+        "notes": "Updates every Tuesday and Friday until certification (not before Dec 1)."
+      },
+      "access": {
+        "state": "ok",
+        "blocked_urls": []
+      },
+      "checked_at": "2026-11-11T16:13:12Z",
+      "notes": [
+        "Multi-county: Coleman lists Center Joint USD E as 'Placer Sacramento' and Los Rios CCD SFID No. 1 H with Yolo.",
+        "City of Sacramento Measure F was withdrawn; letters A-C unused for this election (unverified why)."
+      ],
+      "cross_checks": {
+        "coleman_nov4_tax_rows": {
+          "count": 4,
+          "method": "Heuristic count of rows in Coleman's Nov 4 preliminary tax tables whose county cell names this county. Tax and bond measures only. Approximate lower bound: on the covered counties it finds SB 15 + SMC 16 = 31, while the plan verified 35 tax-type measures among our 49.",
+          "source": "https://californiacityfinance.com/Votes2611prelim.pdf",
+          "note": "Heuristic misses Galt G."
+        }
+      },
+      "unverified": [
+        "Thresholds for the 4 city measures (majority expected, not listed)."
+      ]
+    },
+    {
+      "county": "Contra Costa",
+      "county_slug": "cc",
+      "covered": false,
+      "registrar_name": "Contra Costa County Clerk-Recorder-Elections Department",
+      "registrar_home_url": "https://www.contracostavote.gov/",
+      "measure_list": {
+        "urls": [
+          {
+            "url": "https://www.contracostavote.gov/",
+            "format": "html",
+            "role": "home",
+            "access": "empty_202",
+            "http_status": 202,
+            "checked_at": "2026-11-11T16:13:36Z",
+            "notes": "HTTP 202, empty body, server awselb/2.0 (AWS WAF challenge, as in August). Not bypassed."
+          }
+        ],
+        "includes_question_text": "unknown",
+        "includes_thresholds": "unknown",
+        "includes_jurisdiction": "unknown",
+        "measure_count": null,
+        "count_method": "Not countable from an official page: registrar site challenged."
+      },
+      "documents": {
+        "county_hosts_all_documents": "unknown",
+        "hosts": [
+          {
+            "host": "todb.ca.gov",
+            "role": "Contra Costa elections PDF found by search (city/district handbook)",
+            "access": "ok",
+            "pdf_text": "text",
+            "example_url": "https://todb.ca.gov/files/5c45420eb/26Nov03_CityandDistrictGuide_FINAL.pdf",
+            "notes": "56-page handbook, May 2026, 51 text pages. Suggests contracostavote.gov assets are served from todb.ca.gov; whether measure documents are there is unverified."
+          }
+        ]
+      },
+      "results": {
+        "urls": [],
+        "formats": [],
+        "precinct_level": "unknown",
+        "status_label": null,
+        "last_updated_shown": null,
+        "notes": "No official results URL found. Archive host pastresults.contracostavote.gov (ElectionStats, 1997-2025, CSV export) was not rechecked."
+      },
+      "access": {
+        "state": "empty_202",
+        "blocked_urls": [
+          "https://www.contracostavote.gov/"
+        ]
+      },
+      "checked_at": "2026-11-11T16:17:59Z",
+      "notes": [
+        "RTM is on this ballot."
+      ],
+      "cross_checks": {
+        "coleman_nov4_tax_rows": {
+          "count": 9,
+          "method": "Heuristic count of rows in Coleman's Nov 4 preliminary tax tables whose county cell names this county. Tax and bond measures only. Approximate lower bound: on the covered counties it finds SB 15 + SMC 16 = 31, while the plan verified 35 tax-type measures among our 49.",
+          "source": "https://californiacityfinance.com/Votes2611prelim.pdf"
+        },
+        "kqed_results_page": {
+          "count": 13,
+          "local": 12,
+          "regional": 1,
+          "letters": [
+            "M",
+            "N",
+            "O",
+            "P",
+            "Q",
+            "R",
+            "S",
+            "T",
+            "U",
+            "V",
+            "W",
+            "X",
+            "RTM"
+          ],
+          "source": "https://www.kqed.org/elections/results/contracosta",
+          "note": "Aggregator via WebFetch; timestamp malformed ('1100:00 PM PT on November 10, 2026')."
+        },
+        "cocotax_newsletter": {
+          "count": 12,
+          "note": "Third-party newsletter search snippet: 'the twelve local measures that will appear on Contra Costa ballots this November'."
+        }
+      },
+      "unverified": [
+        "Measure count (12 local + RTM from aggregators).",
+        "Every official URL and format."
+      ]
+    },
+    {
+      "county": "Fresno",
+      "county_slug": "fresno",
+      "covered": false,
+      "registrar_name": "Fresno County Clerk/Registrar of Voters",
+      "registrar_home_url": "https://www.fresnocountyca.gov/Departments/County-ClerkRegistrar-of-Voters",
+      "measure_list": {
+        "urls": [
+          {
+            "url": "https://www.fresnocountyca.gov/Departments/County-ClerkRegistrar-of-Voters/Elections/Election-Information/2026/November-3-2026-Consolidated-Statewide-General-Election",
+            "format": "html",
+            "role": "election page with per-measure document links",
+            "access": "ok",
+            "http_status": 200,
+            "checked_at": "2026-11-11T16:16:54Z"
+          },
+          {
+            "url": "https://www.fresnocountyca.gov/files/sharedassets/county/v/3/county-clerk-registrar-of-voters/1_election-pages/2026_3_nov_statewide-general/press/26-08-12-fresno-county-measure-letter-assignments-for-november-2026-amended.pdf",
+            "format": "pdf",
+            "role": "measure_list (letters)",
+            "access": "ok",
+            "http_status": 200,
+            "notes": "1 page, text. 'There are a total of nine (9) local measures. The letter C will not be utilized.' Amended 8/14/26."
+          }
+        ],
+        "includes_question_text": false,
+        "includes_thresholds": false,
+        "includes_jurisdiction": true,
+        "measure_count": 9,
+        "count_method": "Letter-assignment PDF states nine; results page shows the same nine letters.",
+        "letters": [
+          "A",
+          "B",
+          "D",
+          "F",
+          "H",
+          "J",
+          "O",
+          "S",
+          "T"
+        ]
+      },
+      "documents": {
+        "county_hosts_all_documents": true,
+        "hosts": [
+          {
+            "host": "www.fresnocountyca.gov",
+            "role": "per-measure resolution, ordinance/exhibit, impartial analysis, arguments, rebuttals, proof of publication, fiscal impact",
+            "example_url": "https://www.fresnocountyca.gov/files/sharedassets/county/v/1/county-clerk-registrar-of-voters/1_election-pages/2026_3_nov_statewide-general/measures/impartial-analysis.pdf",
+            "access": "ok",
+            "pdf_text": "scanned",
+            "notes": "Sample (County TOT impartial analysis) is 1 image page with no text. Many files are '_redacted'. Roles are given by link text."
+          }
+        ]
+      },
+      "results": {
+        "urls": [
+          {
+            "url": "https://www.fresnocountyca.gov/Departments/County-ClerkRegistrar-of-Voters/Elections/Election-Results/2026/RESULTS-FOR-NOVEMBER-3-2026-CONSOLIDATED-STATEWIDE-GENERAL-ELECTION",
+            "format": "html",
+            "access": "ok",
+            "http_status": 200,
+            "checked_at": "2026-11-11T16:17:15Z"
+          },
+          {
+            "url": "https://www.fresnocountyca.gov/files/sharedassets/county/v/7/county-clerk-registrar-of-voters/1_election-results-page-sov-ssov/2026/november-2026/electionsummaryreportrpt-11.10.26.pdf",
+            "format": "pdf",
+            "access": "not_fetched",
+            "notes": "Printable summary (524 KB). File name is dated per update."
+          }
+        ],
+        "formats": [
+          "html",
+          "pdf"
+        ],
+        "precinct_level": "unknown",
+        "status_label": "PRELIMINARY ELECTION RESULTS ('Election night results are semifinal official canvass results and should not be considered final official results')",
+        "last_updated_shown": "11/10/2026 3:35:52 PM"
+      },
+      "access": {
+        "state": "ok",
+        "blocked_urls": []
+      },
+      "checked_at": "2026-11-11T16:17:15Z",
+      "notes": [
+        "Measure J title differs: letter PDF says 'City of Coalinga Transactions and Use Tax Measure'; results say 'Transient Occupancy Tax Measure'; document folder is 'coalinga-sales-tax'. Needs review.",
+        "Some election-page hrefs use backslashes and '////' (www2.fresnocountyca.gov/2850/post/2026Nov\\...); URL normalisation needed."
+      ],
+      "cross_checks": {
+        "coleman_nov4_tax_rows": {
+          "count": 8,
+          "method": "Heuristic count of rows in Coleman's Nov 4 preliminary tax tables whose county cell names this county. Tax and bond measures only. Approximate lower bound: on the covered counties it finds SB 15 + SMC 16 = 31, while the plan verified 35 tax-type measures among our 49.",
+          "source": "https://californiacityfinance.com/Votes2611prelim.pdf"
+        },
+        "ballotpedia_oct21": {
+          "note": "Says one measure in the city of Fresno (D), consistent."
+        }
+      },
+      "unverified": []
+    },
+    {
+      "county": "San Francisco",
+      "county_slug": "sf",
+      "covered": false,
+      "registrar_name": "San Francisco Department of Elections",
+      "registrar_home_url": "https://www.sf.gov/departments--department-elections",
+      "measure_list": {
+        "urls": [
+          {
+            "url": "https://www.sf.gov/qualified-ballot-measures",
+            "format": "html",
+            "role": "measure_list",
+            "access": "ok",
+            "http_status": 200,
+            "checked_at": "2026-11-11T16:15:42Z",
+            "notes": "Letter and title per measure with links to legal text, legislative digest, Controller's statement, arguments, rebuttals, paid arguments. No ballot question or threshold text."
+          }
+        ],
+        "includes_question_text": false,
+        "includes_thresholds": false,
+        "includes_jurisdiction": true,
+        "measure_count": 11,
+        "count_method": "Headings A-J plus RTM on the qualified-measures page.",
+        "letters": [
+          "A",
+          "B",
+          "C",
+          "D",
+          "E",
+          "F",
+          "G",
+          "H",
+          "I",
+          "J",
+          "RTM"
+        ]
+      },
+      "documents": {
+        "county_hosts_all_documents": true,
+        "hosts": [
+          {
+            "host": "api.sf.gov / media.api.sf.gov",
+            "role": "legal text, digest, Controller's statement, arguments (119 PDF links)",
+            "example_url": "https://api.sf.gov/documents/60913/Nov2026_CA_DepartmentBoardCommissionandAdvisoryBodyUpdates_LegalText.pdf",
+            "access": "ok (redirects to media.api.sf.gov)",
+            "pdf_text": "scanned",
+            "notes": "Legal text (145 pages) and legislative digest (6 pages) for A are RICOH scans with no text layer."
+          }
+        ]
+      },
+      "results": {
+        "urls": [
+          {
+            "url": "https://www.sfelections.org/results/20261103w/index.html",
+            "format": "html",
+            "access": "blocked_403",
+            "http_status": 403,
+            "checked_at": "2026-11-11T16:15:19Z",
+            "notes": "CloudFront 'Request blocked' 403 to the project UA. Linked from sf.gov/past-election-results."
+          },
+          {
+            "url": "https://sfelections.gov/results",
+            "format": "html",
+            "access": "blocked_403",
+            "http_status": 403,
+            "checked_at": "2026-11-11T16:16:27Z",
+            "notes": "Same CloudFront 403. Named as the results location in the Department's press releases."
+          }
+        ],
+        "formats": [],
+        "precinct_level": "unknown",
+        "status_label": "Preliminary (per sf.gov press release: 'Preliminary Results Report #11', Nov 10)",
+        "last_updated_shown": "Report #11 released Tuesday, November 10, 2026; next report Tuesday, November 17, 4 p.m. (press release on sf.gov)"
+      },
+      "access": {
+        "state": "partial",
+        "blocked_urls": [
+          "https://www.sfelections.org/",
+          "https://www.sfelections.org/results/20261103w/index.html",
+          "https://sfelections.gov/results"
+        ]
+      },
+      "checked_at": "2026-11-11T16:16:27Z",
+      "notes": [
+        "New finding: sfelections.org (and sfelections.gov) now return a CloudFront 403 to the project UA; the earlier manifest recorded 200 for sfelections.org calendar pages. Measures and documents moved to sf.gov, which is open.",
+        "SF names measures 'Proposition' on the ballot; Coleman and the list page use letters only (Trap 7).",
+        "RTM is on this ballot (1% in SF vs 0.5% elsewhere)."
+      ],
+      "cross_checks": {
+        "ballotpedia_oct21": {
+          "count": 10,
+          "quote": "Ten local measures are on the ballot in the city of San Francisco.",
+          "source": "https://news.ballotpedia.org/2026/10/21/california-voters-will-decide-on-462-local-ballot-measures-in-november-the-second-lowest-number-since-2018/",
+          "note": "Likely excludes RTM; the plan's 'SF 11 is Ballotpedia's figure' does not match this article's text."
+        },
+        "coleman_nov4_tax_rows": {
+          "count": 3,
+          "method": "Heuristic count of rows in Coleman's Nov 4 preliminary tax tables whose county cell names this county. Tax and bond measures only. Approximate lower bound: on the covered counties it finds SB 15 + SMC 16 = 31, while the plan verified 35 tax-type measures among our 49.",
+          "source": "https://californiacityfinance.com/Votes2611prelim.pdf"
+        },
+        "plan_verified": 11
+      },
+      "unverified": [
+        "Results formats (host blocked).",
+        "Ballot question text source (expected in the voter guide, not checked)."
+      ]
+    },
+    {
+      "county": "San Bernardino",
+      "county_slug": "sb",
+      "covered": true,
+      "registrar_name": "San Bernardino County Registrar of Voters",
+      "registrar_home_url": "https://elections.sbcounty.gov/",
+      "measure_list": {
+        "urls": [
+          {
+            "url": "https://elections.sbcounty.gov/elections/2026/1103/measures/",
+            "format": "html",
+            "role": "measure_list",
+            "notes": "From scraper/src/website/county_content.py LISTING_URLS['sb']. Not re-probed."
+          }
+        ],
+        "includes_question_text": true,
+        "includes_thresholds": true,
+        "includes_jurisdiction": true,
+        "measure_count": 20,
+        "count_method": "Measures CalBallot holds (plan section 2)."
+      },
+      "documents": {
+        "county_hosts_all_documents": true,
+        "hosts": [
+          {
+            "host": "uploads.rov.sbcounty.gov",
+            "role": "per-measure documents",
+            "notes": "SOURCE_HOSTS['sb']."
+          }
+        ]
+      },
+      "results": {
+        "urls": [
+          {
+            "url": "https://results.rov.sbcounty.gov/Results/20261103/",
+            "format": "html",
+            "access": "ok",
+            "notes": "From official_results_links.json (last_check 2026-11-07, ok). Offers ElectionSummaryReportRPT.xlsx."
+          }
+        ],
+        "formats": [
+          "html",
+          "xlsx"
+        ],
+        "precinct_level": "after canvass (SOV PDFs per contest)"
+      },
+      "access": {
+        "state": "ok",
+        "blocked_urls": []
+      },
+      "checked_at": null,
+      "notes": [
+        "Stub: covered by the registrar pipeline (sb.py). Not re-probed in P1.1."
+      ],
+      "cross_checks": {
+        "coleman_nov4_tax_rows": {
+          "count": 15,
+          "method": "Heuristic count of rows in Coleman's Nov 4 preliminary tax tables whose county cell names this county. Tax and bond measures only. Approximate lower bound: on the covered counties it finds SB 15 + SMC 16 = 31, while the plan verified 35 tax-type measures among our 49.",
+          "source": "https://californiacityfinance.com/Votes2611prelim.pdf"
+        }
+      },
+      "unverified": []
+    },
+    {
+      "county": "San Mateo",
+      "county_slug": "smc",
+      "covered": true,
+      "registrar_name": "San Mateo County Assessor-County Clerk-Recorder & Elections",
+      "registrar_home_url": "https://smcacre.gov/elections",
+      "measure_list": {
+        "urls": [
+          {
+            "url": "https://smcacre.gov/elections/november-3-2026-statewide-general-election",
+            "format": "html",
+            "role": "measure_list",
+            "notes": "From LISTING_URLS['smc']. Not re-probed."
+          }
+        ],
+        "includes_question_text": true,
+        "includes_thresholds": true,
+        "includes_jurisdiction": true,
+        "measure_count": 29,
+        "count_method": "Measures CalBallot holds (plan section 2); matches Ballotpedia's 29."
+      },
+      "documents": {
+        "county_hosts_all_documents": true,
+        "hosts": [
+          {
+            "host": "smcacre.gov",
+            "role": "per-measure documents",
+            "notes": "SOURCE_HOSTS['smc']."
+          }
+        ]
+      },
+      "results": {
+        "urls": [
+          {
+            "url": "https://smcacre.gov/elections/november-3-2026-election-results",
+            "format": "html",
+            "access": "ok",
+            "notes": "From official_results_links.json (last_check 2026-11-07, ok). Precinct CSV with vote-method split at /media/{id} (id changes per report)."
+          }
+        ],
+        "formats": [
+          "html",
+          "precinct_csv",
+          "pdf"
+        ],
+        "precinct_level": true
+      },
+      "access": {
+        "state": "ok",
+        "blocked_urls": []
+      },
+      "checked_at": null,
+      "notes": [
+        "Stub: covered by the registrar pipeline (smc.py). Not re-probed in P1.1."
+      ],
+      "cross_checks": {
+        "ballotpedia_oct21": {
+          "count": 29,
+          "quote": "followed by San Mateo County with 29",
+          "source": "https://news.ballotpedia.org/2026/10/21/california-voters-will-decide-on-462-local-ballot-measures-in-november-the-second-lowest-number-since-2018/"
+        },
+        "coleman_nov4_tax_rows": {
+          "count": 16,
+          "method": "Heuristic count of rows in Coleman's Nov 4 preliminary tax tables whose county cell names this county. Tax and bond measures only. Approximate lower bound: on the covered counties it finds SB 15 + SMC 16 = 31, while the plan verified 35 tax-type measures among our 49.",
+          "source": "https://californiacityfinance.com/Votes2611prelim.pdf"
+        }
+      },
+      "unverified": []
+    }
+  ]
+}

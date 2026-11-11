@@ -26,7 +26,7 @@ and the live site are unchanged.
 | P0.2 | History list: stop naming the county as every record's jurisdiction; with P0.2b (Igor approved Nov 11) and P2.0 (R7) | **In progress** (agent A, worktree) | | |
 | P0.3 | Release candidate: strict build, page diff, browser checks, recovery bundle | Not started | | |
 | P0.4 | **Igor** go; publish; served-byte and live checks; receipt | Not started | | |
-| P1.1 | County source census: schema and the 10 largest counties | **In progress** (agent B) | | |
+| P1.1 | County source census: schema and the 10 largest counties | **Built** (agent B): 159 distinct measures confirmed from official pages in 7 counties; Riverside, Santa Clara and Contra Costa still blocked; **SF newly 403** on its results hosts | Codex: [prompt](../codex/p1_1_census_review_prompt.md) pending | [census note](county_census_20261111.md), `scraper/data/census/county_sources_2026.json` |
 | P1.2 | Generic capture tool (URL list into immutable R2 snapshots) | Not started | | |
 | P1.3 | Census and capture for the remaining counties | Not started | | |
 | P1.4 | Watch the November 9 registrar cron (SMC rollover risk) | **Done**: run succeeded | | P1.4 below |
