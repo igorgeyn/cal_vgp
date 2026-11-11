@@ -14796,9 +14796,11 @@ class WebsiteGenerator:
             const passed = measure.passed;
             const isPending = isPendingMeasure(measure);
 
-            // Pending measures get special status display
+            // Pending measures get special status display. A row with no
+            // outcome that does not depend on the date (e.g. stored votes but no
+            // normalized result) is "Result unknown", never "Pending".
             const passedClass = measure.ballot_status === 'withdrawn' ? 'neutral' : isPending ? 'pending' : (passed === 1 ? 'passed' : passed === 0 ? 'failed' : 'pending');
-            const passedText = measure.ballot_status === 'withdrawn' ? 'Withdrawn' : isPending ? `⏳ ${{getElectionStatusLabel(getElectionStatus(measure))}}` : (passed === 1 ? '✓ Passed' : passed === 0 ? '✗ Failed' : '• Pending');
+            const passedText = measure.ballot_status === 'withdrawn' ? 'Withdrawn' : isPending ? `⏳ ${{getElectionStatusLabel(getElectionStatus(measure))}}` : (passed === 1 ? '✓ Passed' : passed === 0 ? '✗ Failed' : `• ${{getElectionStatusLabel('unknown')}}`);
 
             // Description / summary preview — kept for all card variants
             // per Igor's pushback on v1's "cut descriptions entirely"
@@ -14946,7 +14948,7 @@ class WebsiteGenerator:
                 badgesHtml.push(`<span class="badge badge-pending">${{escapeHtml(pendingBadgeText(measure))}}</span>`);
             }} else {{
                 const passedClass = passed === 1 ? 'passed' : passed === 0 ? 'failed' : 'pending';
-                const passedText = passed === 1 ? '✓ Passed' : passed === 0 ? '✗ Failed' : '• Unknown';
+                const passedText = passed === 1 ? '✓ Passed' : passed === 0 ? '✗ Failed' : `• ${{getElectionStatusLabel('unknown')}}`;
                 badgesHtml.push(`<span class="badge badge-${{passedClass}}">${{passedText}}</span>`);
             }}
 

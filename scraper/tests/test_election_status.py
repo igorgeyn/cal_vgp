@@ -436,3 +436,72 @@ def test_generated_explorer_has_no_year_based_status_rule():
     assert "Upcoming Election" not in script
     assert set(DATE_DRIVEN_STATUSES) <= set(json.loads(
         script.split("const DATE_DRIVEN_STATUSES = ", 1)[1].split(";", 1)[0].replace("'", '"')))
+
+
+# --- P0.2b: no "Pending" for historical rows without an outcome --------------
+
+def explorer_script():
+    from src.website.generator import WebsiteGenerator
+    return WebsiteGenerator.__new__(WebsiteGenerator)._get_javascript("[]", "[]", "{}", {"total_measures": 0})
+
+
+def between(script, start, end):
+    head = script.index(start)
+    return script[head:script.index(end, head)]
+
+
+def render_explorer_badges(rows):
+    """Run the generated card and list-row builders in Node with stub helpers."""
+    script = explorer_script()
+    source = "\n".join([
+        ELECTION_STATUS_SCRIPT,
+        between(script, "function isPendingMeasure(", "function formatCheckedDate("),
+        between(script, "function createCard(", "// Create list item HTML"),
+        between(script, "function createListItem(", "// View measure details in modal"),
+        "const allMeasures = [];",
+        "const getDisplayMeasureId = m => m.measure_letter ? 'Measure ' + m.measure_letter : '';",
+        "const getCleanTitle = m => m.title || '';",
+        "const buildDisplayTitle = t => t;",
+        "const isAiRefusal = () => false;",
+        "const isMetadataSummary = () => false;",
+        "const escapeHtml = s => String(s);",
+        "const badge = html => /class=\"badge badge-([a-z]+)\">([^<]*)</.exec(html).slice(1);",
+        "const rows = " + json.dumps(rows) + ";",
+        "console.log(JSON.stringify(rows.map(m => ({card: badge(createCard(m)), list: badge(createListItem(m)),"
+        " html: createCard(m) + createListItem(m)}))));",
+    ])
+    result = subprocess.run([NODE, "-e", source], capture_output=True, encoding="utf-8",
+                            timeout=30, check=True)
+    return json.loads(result.stdout)
+
+
+@pytest.mark.skipif(NODE is None, reason="node is not installed")
+def test_historical_rows_without_an_outcome_read_result_unknown_not_pending():
+    # The 48 CEDA 2011 rows: stored votes, no normalized outcome, no calendar status.
+    unknown_votes = {"id": 7, "year": 2011, "title": "School parcel tax", "passed": None,
+                     "percent_yes": 61.2, "pass_fail": "PassT"}
+    unknown_bare = {"id": 8, "year": 1999, "title": "City measure", "passed": None}
+    date_driven = current(title="Belmont special tax")
+    attach_election_status([date_driven], as_of=date(2026, 11, 7))
+    rows = [unknown_votes, unknown_bare, date_driven,
+            {"id": 9, "year": 2010, "title": "Bond", "passed": 1, "percent_yes": 70.0},
+            {"id": 10, "year": 2010, "title": "Bond", "passed": 0},
+            {"id": 11, "year": 2026, "title": "ACA 13", "passed": None, "ballot_status": "withdrawn"}]
+    rendered = render_explorer_badges(rows)
+    assert [r["card"] for r in rendered] == [
+        ["pending", "• Result unknown"], ["pending", "• Result unknown"],
+        ["pending", "⏳ Results pending"], ["passed", "✓ Passed"], ["failed", "✗ Failed"],
+        ["neutral", "Withdrawn"]]
+    # List rows keep their compact glyphs; an unknown row shows "?", never "Pending".
+    assert [r["list"][1] for r in rendered] == ["?", "?", "Results pending", "✓", "✗", "Withdrawn"]
+    for r in rendered[:2]:
+        assert "pending" not in r["html"].replace("badge-pending", "").lower()
+
+
+def test_explorer_has_no_legacy_pending_or_bare_unknown_badge():
+    script = explorer_script()
+    assert "• Pending" not in script
+    assert "• Unknown" not in script
+    # Card and modal badge both use the shared "Result unknown" label.
+    assert script.count("`• ${getElectionStatusLabel('unknown')}`") == 2
+    assert "unknown: 'Result unknown'" in script
