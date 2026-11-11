@@ -243,3 +243,116 @@ received the copy. Before/after SHA-256 checks match:
 No code, checked-link manifest, production database, published site artifact,
 branch base or remote was changed. Only this response and the two authorized
 checklist locations are part of the review commit.
+
+## Re-review
+
+**November 11, 2026 — reviewed `b2ab1fba..f30c2307` on
+`phase0-election-status`. Technical verdict: ready for the current P0.1 scope;
+R1–R6 are closed.** The requested transition, independent reproductions, tests
+and preservation checks pass. One new low-priority checker defect, R7 below,
+does not affect the current 63 unresolved measures. Fix it before using this
+checker to gate a dataset containing stored votes or recorded outcomes.
+
+**P0.1 closure:** the implementation review is complete. The whole checklist
+chunk cannot yet be marked complete because **P0.1.15 remains unchecked**.
+Igor must perform that manual check or explicitly defer it with its disposition
+recorded. This review does not waive that item or authorize publication.
+
+### Finding dispositions and rerun evidence
+
+| Finding | Verdict | Independent reproduction and result |
+|---|---|---|
+| **R1** Open-tab refresh | **Closed** | The requested November 2 build, November 3 23:59 to November 4 00:01 transition passed with `--expect-count 63`. All 14 rendered statewide cards changed from Election day to Results pending and the already-open modal updated. The original November 2 23:59 to November 4 00:01 reproduction also passed in UTC and Asia/Tokyo browser zones, using timer, focus and visibility triggers. See the navigation checks below. Fix: `scraper/src/website/generator.py:11222`, `:11241`, `:11256`. |
+| **R2** Strict guard conflates unknown with missing date | **Closed** | The original valid-date current row with `passed=None, yes_votes=123` now passes strict attachment, gains no calendar status and evaluates to `unknown` in Python and Node. Repeated with zero votes: same result. The new tests also cover all six vote fields, invalid dates, withdrawal and the valid 2028 future row. Fix: `scraper/src/website/election_status.py:275`, `:283`. |
+| **R3** Malformed checks and timestamp ordering | **Closed** | The original `last_check={"ok":true,"checked_at":"not a time"}` manifest now raises a timezone-aware timestamp validation error. A valid timestamp without HTTP/text evidence is also rejected. The manual success at `11:00-08:00` correctly beats the `18:30Z` failure and exports `19:00Z`; the equal-instant `Z`/`+00:00` failure suppresses the link. Injecting the original invalid-date public link into the actual explorer helper now returns an empty string; static rendering likewise omits the link. Fix: `scraper/src/website/election_status.py:146`, `:159`, `:212`; `scraper/src/website/generator.py:14660`. No live links were checked. |
+| **R4** Missing `percent_no` | **Closed** | The original `percent_no=40.0`-only row, and a zero-valued variant, both pass strict attachment without a calendar field and return `unknown` in Python and Node. The explicit vote-field coverage and parameterized tests pass. Fix: `scraper/src/website/election_status.py:66`. |
+| **R5** Noncanonical date parity | **Closed** | Strict attachment rejects the original whitespace-padded and ISO week dates, plus `20261103`, with `expected YYYY-MM-DD`. Nonstrict attachment leaves them without a calendar status; both Python and Node return `unknown`. Canonical `2026-11-03` still advances from a November 2 build to `results_pending` on November 7. Historical page/JSON preservation is unchanged. Fix: `scraper/src/website/election_status.py:69`. |
+| **R6** Unrecorded default release date | **Closed** | Reran the real wrapper against a scratch SQLite fixture with child builds stubbed, as in the original reproduction. At a frozen UTC clock of `2026-11-08T07:30:00Z`, omission passes and records **2026-11-07**, the California date. Explicit `--as-of 2026-11-02` passes and records **2026-11-02**. The repository's wrapper test also passes. Fix: `scraper/scripts/build_release_bundle.py:49`, `:85`. This checks wrapper behavior, not a full recovery-workspace release. |
+
+The independent R1 probe used a real generated explorer with requests routed to
+scratch files and all external requests aborted. It selected San Mateo, moved
+the statewide carousel to index 4 and the local carousel to index 5, selected
+catalog page 2, and opened a local measure before advancing the clock. The
+carousel indices and CSS transforms, county, page, view, modal tab, permalink
+and open state all remained identical. The Main tab retained its nonzero
+`scrollTop=150`; Research and Finance stayed selected in their respective cases.
+With the 2026 catalog filter applied, all 12 visible grid badges and all 10
+visible list badges advanced from Upcoming to Results pending. The open local
+modal gained its checked results link, its note updated, and the local section
+link appeared. All 14 hero badges advanced; there were no page errors. Focus
+and visibility were dispatched as browser events; the timer case used
+Playwright's installed clock and advanced beyond the refresh interval.
+
+### New defect: R7 — P3, checker rejects a supported unknown state
+
+**Location:** `scraper/scripts/check_election_status_browser.py:114`.
+
+The revised checker correctly discovers rows independently of `election_status`,
+but then requires every non-withdrawn current-cycle row to have one of the three
+calendar statuses. That is incompatible with the stored-vote/unknown contract
+verified in R2 and R4, and with recorded outcomes, which intentionally gain no
+calendar field.
+
+**Reproduction:** In a separate scratch copy of the November 7 site JSON, set
+current local measure **12420** to `yes_votes=123, passed=None`, removing its
+calendar status and results link as attachment would. The real strict
+`attach_election_status()` accepts that complete row and returns zero attached;
+`election_status()` returns `unknown`. Running the checker with
+`--clock 2026-11-07T12:00:00-08:00 --expect-count 63` nevertheless exits **1**:
+
+```text
+12420: current row has no calendar status (None)
+```
+
+That is its only failure. It reports 63 current rows but tests 62 calendar rows
+at each width, with no page errors. This is a checker false positive on a
+synthetic supported row, not a failure of the real 63-row candidate or a reason
+to reopen R2.
+
+**Fix:** Determine which rows require calendar fields from their withdrawal,
+outcome and stored-vote evidence. Require the field only for date-dependent
+rows; verify the appropriate unknown/passed/failed display for the others.
+Retain independent ID/count coverage and the failure for an accidentally missing
+calendar field. Add a mixed-state checker regression before the result-import
+phase. This is nonblocking for P0.1's current dataset, where all 63 rows are
+date-dependent; it remains an open follow-up.
+
+### Checker suggestions and validation receipt
+
+The requested improvements otherwise landed: independent scope selection,
+`--expect-count`, rendered hero checks, unconditional label assertions,
+case-insensitive visible-text scanning, a frozen default clock, and same-page
+transition coverage. The no-Intl Node test passes. The supplied transition check
+is desktop-only and does not itself assert preserved navigation state or exercise
+the appearance of a local results link; the independent probes above cover
+those gaps. No new production-rendering defect was demonstrated.
+
+Scratch root for this re-review:
+`C:\Users\igorg\AppData\Local\Temp\calballot-p0-1-rereview-dv3tyhhe`.
+Both strict builds used the SQLite backup copy, offline model loading and
+`--force --strict`, with `--as-of 2026-11-02` and `2026-11-07` respectively.
+The requested browser invocation was:
+
+```text
+python scraper/scripts/check_election_status_browser.py --site-dir <scratch>/site-before --output-dir <scratch>/browser-transition --clock 2026-11-03T23:59:00-08:00 --transition-to 2026-11-04T00:01:00-08:00 --expect-count 63
+```
+
+| Rerun | Observed |
+|---|---|
+| Four targeted files from the original review, `--basetemp=.pytest-tmp/codex-p0-1-rereview`, cache provider disabled | **111 passed**, including **81** election-status tests; 50.74 seconds |
+| Full suite, `--basetemp=.pytest-tmp/codex-p0-1-rereview-full`, cache provider disabled | **694 passed, 1 skipped, 1 failed, 17 errors**; 133.12 seconds. Same model county-default failure and string-path database/deduplication errors independently confirmed on the base during the first review. The baseline was not rerun again. |
+| Requested browser transition | Exit **0**, zero failures; all **63** Election day at 1440/390/320px; desktop transition updates **14** hero cards and the open modal to Results pending |
+| November 7 build, checker with `--expect-count 63` and no `--clock` | Exit **0**, zero failures; default frozen reader date **2026-11-11**, all **63** Results pending at all three widths |
+| Static build and comparison with published pages | **12,372** pages; **63 changed**, **12,309 identical**, no added/deleted files, no `Upcoming` in candidate pages |
+| Comparison with the first review's retained scratch candidate | All **12,372 static pages byte-identical** |
+| JSON comparison with published data | Same **12,372 IDs**; only `election_status` (**63**), `official_results` (**49**) and `last_seen_at` (**129**) differ |
+| Protected inputs | Production DB, root `index.html` and root `measures-data.json` hashes unchanged and equal to the full hashes recorded above |
+
+Logs, browser reports/screenshots and independent reproduction outputs remain
+under that scratch root, including `original-reproductions.json`,
+`browser-independent-filtered-probes.json`, `preservation-counts.json` and
+`protected-hashes.json`. This pass reran the requested transition, the original
+finding reproductions and the default-clock case; it did not repeat all six
+fresh-load scenarios from the first review. The production database was opened
+read-only solely for SQLite backup. No live checks, code edits, generated-file
+commits, pushes, merges or publication occurred.

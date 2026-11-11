@@ -21,7 +21,7 @@ and await Codex's re-review. Nothing is published; `main` and the live site are 
 
 | Chunk | Scope | State | Review | Evidence |
 |---|---|---|---|---|
-| **P0.1** | One status rule on every surface; official results links | R1-R6 fixed; tests and browser checks pass | Codex: [ready with changes](../codex/p0_1_status_review_response.md); re-review pending | [P0.1 handoff](#p01-handoff), [dispositions](#p01-review-dispositions) |
+| **P0.1** | One status rule on every surface; official results links | R1-R6 fixed; tests and browser checks pass | Codex: [R1–R6 closed; ready for current scope](../codex/p0_1_status_review_response.md#re-review); Igor P0.1.15 pending | [P0.1 handoff](#p01-handoff), [dispositions](#p01-review-dispositions) |
 | P0.2 | History list: stop naming the county as every record's jurisdiction | Not started | | |
 | P0.3 | Release candidate: strict build, page diff, browser checks, recovery bundle | Not started | | |
 | P0.4 | **Igor** go; publish; served-byte and live checks; receipt | Not started | | |
@@ -112,8 +112,13 @@ Maps to the October plan's R3.01-R3.04 and R4.02.
   Re-review the fixes before closing P0.1; P0.1.15 remains Igor's manual check.
 - [x] **P0.1.17** Fix R1-R6 and take up the checker suggestions; see
   [dispositions](#p01-review-dispositions).
-- [ ] **P0.1.18 — Codex** Re-review the fixes; prompt in
-  [`docs/codex/p0_1_fixes_rereview_prompt.md`](../codex/p0_1_fixes_rereview_prompt.md).
+- [x] **P0.1.18 — Codex** Re-review complete November 11: **R1–R6 closed; ready for
+  the current P0.1 scope**. See the [re-review](../codex/p0_1_status_review_response.md#re-review)
+  and [prompt](../codex/p0_1_fixes_rereview_prompt.md). Original reproductions,
+  requested midnight transition, 111 targeted tests and preservation checks pass;
+  full suite matches the claimed 694 passes and baseline failures. New P3 finding
+  R7 is a nonblocking checker follow-up before result imports. P0.1 is not fully
+  complete until Igor performs P0.1.15 or explicitly records its deferral.
 
 #### P0.1 review dispositions
 
