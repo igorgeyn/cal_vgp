@@ -23,14 +23,14 @@ and the live site are unchanged.
 | Chunk | Scope | State | Review | Evidence |
 |---|---|---|---|---|
 | **P0.1** | One status rule on every surface; official results links | **Complete** | Codex: [R1–R6 closed; ready for current scope](../codex/p0_1_status_review_response.md#re-review); Igor P0.1.15 done Nov 11; R7 deferred to P2.0 | [P0.1 handoff](#p01-handoff), [dispositions](#p01-review-dispositions) |
-| P0.2 | History list: stop naming the county as every record's jurisdiction | Not started | | |
+| P0.2 | History list: stop naming the county as every record's jurisdiction; with P0.2b (Igor approved Nov 11) and P2.0 (R7) | **In progress** (agent A, worktree) | | |
 | P0.3 | Release candidate: strict build, page diff, browser checks, recovery bundle | Not started | | |
 | P0.4 | **Igor** go; publish; served-byte and live checks; receipt | Not started | | |
-| P1.1 | County source census: schema and the 10 largest counties | Not started | | |
+| P1.1 | County source census: schema and the 10 largest counties | **In progress** (agent B) | | |
 | P1.2 | Generic capture tool (URL list into immutable R2 snapshots) | Not started | | |
 | P1.3 | Census and capture for the remaining counties | Not started | | |
 | P1.4 | Watch the November 9 registrar cron (SMC rollover risk) | **Done**: run succeeded | | P1.4 below |
-| P1b.1 | Download the 22 missing CEDA years; column check | Not started | | |
+| P1b.1 | Download the 22 missing CEDA years; column check | **In progress** (agent C) | | |
 | P1b.2 | Backfill on a database copy (combined results, names, questions, thresholds) | Not started | | |
 | P1b.3 | Verification layers; changed-outcome list for **Igor** | Not started | | |
 | P1b.4 | Release of the repaired history | Not started | | |
@@ -41,7 +41,7 @@ and the live site are unchanged.
 
 ## Decisions (plan §8)
 
-Igor answered on November 11, 2026.
+Igor answered on November 11, 2026. Parallel execution follows [`agent_execution_plan_20261111.md`](agent_execution_plan_20261111.md). Codex prompts are ready: [layout review](../codex/layout_direction_a_review_prompt.md) (decision 3) and the [bot-challenge rule](../codex/bot_challenge_rule_question.md) (P0.3).
 
 | # | Decision | Answer | Blocks |
 |---|---|---|---|
