@@ -10,8 +10,11 @@ current-cycle measure: rendered statewide card badges, card and list-row
 markup, the modal badge, results link and note, and both section notes.
 Current rows are selected by ``upcoming_scope``, not by the field under test,
 so a row that lost ``election_status`` fails instead of dropping out.
-The expected status is the forward-only rule: the later of the build's status
-and the reader's clock.
+Rows that depend on the date (not withdrawn, no outcome, no stored votes) must
+carry a calendar status; the expected status is the forward-only rule: the
+later of the build's status and the reader's clock. Rows with a recorded
+outcome or stored votes (review R7) must carry no calendar status or results
+link, and must read Passed, Failed or Result unknown on every surface.
 
 With --transition-to, a further same-page check loads at --clock, opens a
 modal, advances the clock to the given time and requires the rendered cards
@@ -21,6 +24,7 @@ Writes report.json and screenshots to OUT; exits non-zero on any failure.
 import argparse
 import json
 import mimetypes
+import re
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -32,11 +36,57 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from src.website.election_status import (  # noqa: E402
-    DATE_DRIVEN_STATUSES, STATUS_LABELS, date_status, parse_election_date, pacific_date,
+    DATE_DRIVEN_STATUSES, STATUS_LABELS, date_status, election_status, has_recorded_votes,
+    parse_election_date, pacific_date,
 )
 
 HOST = 'status.test'
 LINKED = ('election_day', 'results_pending')
+# Exact badge text for current rows whose status does not depend on the date.
+RESOLVED_CARD_BADGES = {'passed': '✓ Passed', 'failed': '✗ Failed', 'unknown': '• Result unknown'}
+RESOLVED_LIST_BADGES = {'passed': '✓', 'failed': '✗', 'unknown': '?'}
+CALENDAR_LABELS = ('Upcoming', 'Election day', 'Results pending', 'Pending')
+
+
+def depends_on_date(row):
+    """True when the row's status must come from the calendar (review R7).
+
+    Decided from withdrawal, outcome and stored-vote evidence, never from the
+    ``election_status`` field under test: not withdrawn, no recorded outcome
+    and no stored vote figure.
+    """
+    return (row.get('ballot_status') != 'withdrawn' and row.get('passed') not in (0, 1)
+            and not has_recorded_votes(row))
+
+
+def classify_current(current, reader_date):
+    """Split current rows into calendar rows and resolved rows, with data failures.
+
+    Calendar rows must carry a calendar status: a missing one is a failure, not
+    a reason to drop the row. Resolved rows (outcome or stored votes) must
+    carry neither a calendar status nor a results link, as attachment leaves
+    them; their expected display is passed, failed or unknown.
+    """
+    failures, calendar, resolved = [], [], []
+    for row in current:
+        if depends_on_date(row):
+            if row.get('election_status') in DATE_DRIVEN_STATUSES:
+                calendar.append(row)
+            else:
+                failures.append(f'{row["id"]}: current row has no calendar status ({row.get("election_status")!r})')
+            continue
+        want = election_status(row, reader_date)
+        resolved.append((row, want))
+        if row.get('election_status') is not None:
+            failures.append(f'{row["id"]}: {want} row carries calendar status {row["election_status"]!r}')
+        if row.get('official_results'):
+            failures.append(f'{row["id"]}: {want} row carries a results link')
+    return calendar, resolved, failures
+
+
+def badge_text(markup):
+    match = re.search(r'class="badge badge-[a-z]+">([^<]*)<', markup or '')
+    return match.group(1) if match else None
 
 
 def expected_status(row, reader_date):
@@ -111,10 +161,13 @@ def main():
     if args.expect_count is not None:
         check(len(current) == args.expect_count,
               f'{len(current)} current-cycle measures, expected {args.expect_count}')
-    for row in current:
-        check(row.get('election_status') in DATE_DRIVEN_STATUSES,
-              f'{row["id"]}: current row has no calendar status ({row.get("election_status")!r})')
-    current = [m for m in current if m.get('election_status') in DATE_DRIVEN_STATUSES]
+    local_counties = sorted({m['county'] for m in current if m['upcoming_scope'] == 'local'})
+    current, resolved, data_failures = classify_current(current, reader_date)
+    failures.extend(data_failures)
+    report['calendar_measures'] = len(current)
+    report['resolved_measures'] = {}
+    for _, want in resolved:
+        report['resolved_measures'][want] = report['resolved_measures'].get(want, 0) + 1
 
     def linked(m, when):
         return bool(m.get('official_results')) and expected_status(m, when) in LINKED
@@ -160,15 +213,38 @@ def main():
                     check('has not recorded a result' in note and 'not yet been voted' not in note,
                           f'{tag} {row["id"]}: note {note!r}')
                 page.evaluate('()=>closeMeasureDetail()')
+            for row, want in resolved:
+                # Outcome or stored votes: Passed, Failed or Result unknown on every
+                # surface, with no calendar label, results link or pending note.
+                statuses[want] = statuses.get(want, 0) + 1
+                got = page.evaluate('(id)=>getElectionStatus(allMeasures.find(m=>m.id===id))', row['id'])
+                check(got == want, f'{tag} {row["id"]}: status {got!r}, expected {want!r}')
+                card = badge_text(page.evaluate('(id)=>createCard(allMeasures.find(m=>m.id===id))', row['id']))
+                check(card == RESOLVED_CARD_BADGES[want], f'{tag} {row["id"]}: card badge {card!r}')
+                item = badge_text(page.evaluate('(id)=>createListItem(allMeasures.find(m=>m.id===id))', row['id']))
+                check(item == RESOLVED_LIST_BADGES[want], f'{tag} {row["id"]}: list badge {item!r}')
+                if row['upcoming_scope'] == 'statewide':
+                    check(hero.get(row['id']) == RESOLVED_CARD_BADGES[want],
+                          f'{tag} {row["id"]}: rendered card badge {hero.get(row["id"])!r}')
+                page.evaluate('(id)=>viewMeasure(allMeasures.find(m=>m.id===id))', row['id'])
+                badges = page.locator('#modalBadges').text_content()
+                check(RESOLVED_CARD_BADGES[want] in badges and not any(t in badges for t in CALENDAR_LABELS),
+                      f'{tag} {row["id"]}: modal badge {badges!r}')
+                links = page.locator('#modalLinks')
+                check(links.locator('.official-results-row a').count() == 0,
+                      f'{tag} {row["id"]}: {want} row shows a results link')
+                check(links.locator('.pending-disclaimer').count() == 0,
+                      f'{tag} {row["id"]}: {want} row shows a pending note')
+                page.evaluate('()=>closeMeasureDetail()')
             statewide_rows = [m for m in current if m['upcoming_scope'] == 'statewide']
             want_statewide = any(linked(m, reader_date) for m in statewide_rows)
             check(page.locator('#statewideSourceNote a.section-results-link').count() == int(want_statewide),
                   f'{tag}: statewide section results link count')
-            for county in sorted({m['county'] for m in current if m['upcoming_scope'] == 'local'}):
+            for county in local_counties:
                 page.evaluate('(c)=>selectLocalCounty(c)', county)
                 link = page.locator('#localMeasuresScope a.section-results-link')
-                county_row = next(m for m in current if m['county'] == county)
-                want_link = linked(county_row, reader_date)
+                county_row = next((m for m in current if m['county'] == county and linked(m, reader_date)), None)
+                want_link = county_row is not None
                 check(link.count() == int(want_link), f'{tag} {county}: local section results link count')
                 if want_link and link.count() == 1:
                     check(link.get_attribute('href') == county_row['official_results']['url'],
@@ -183,13 +259,14 @@ def main():
             check(overflow <= 0, f'{tag}: horizontal overflow {overflow}px')
             page.locator('#heroSection').evaluate('(el)=>window.scrollTo(0,el.getBoundingClientRect().top+scrollY-20)')
             page.screenshot(path=str(out / f'{width}-statewide.png'))
-            sample = next((m for m in current if linked(m, reader_date)), current[0])
-            page.evaluate('(id)=>viewMeasure(allMeasures.find(m=>m.id===id))', sample['id'])
-            page.locator('#modalLinksSection').scroll_into_view_if_needed()
-            page.screenshot(path=str(out / f'{width}-modal-{sample["id"]}.png'))
-            modal_overflow = page.evaluate(
-                "()=>{const el=document.querySelector('#modalLinks'); return el.scrollWidth-el.clientWidth;}")
-            check(modal_overflow <= 0, f'{tag}: modal links overflow {modal_overflow}px')
+            sample = next((m for m in current if linked(m, reader_date)), current[0] if current else None)
+            if sample is not None:
+                page.evaluate('(id)=>viewMeasure(allMeasures.find(m=>m.id===id))', sample['id'])
+                page.locator('#modalLinksSection').scroll_into_view_if_needed()
+                page.screenshot(path=str(out / f'{width}-modal-{sample["id"]}.png'))
+                modal_overflow = page.evaluate(
+                    "()=>{const el=document.querySelector('#modalLinks'); return el.scrollWidth-el.clientWidth;}")
+                check(modal_overflow <= 0, f'{tag}: modal links overflow {modal_overflow}px')
             check(not errors, f'{tag}: page errors {errors}')
             report['widths'][tag] = {'statuses': statuses, 'page_errors': errors}
             page.close()
@@ -217,6 +294,10 @@ def main():
                 transition['after'][want_after] = transition['after'].get(want_after, 0) + 1
                 check(want_before in before.get(row['id'], ''), f'transition {row["id"]}: before {before.get(row["id"])!r}')
                 check(want_after in after.get(row['id'], ''), f'transition {row["id"]}: after {after.get(row["id"])!r}')
+            for row, want in resolved:
+                if row['upcoming_scope'] == 'statewide':
+                    check(after.get(row['id']) == RESOLVED_CARD_BADGES[want],
+                          f'transition {row["id"]}: {want} row after {after.get(row["id"])!r}')
             check(page.locator('#measureDetailModal').is_visible(), 'transition: modal closed by the refresh')
             want_modal = badge_label(expected_status(sample, later_date))
             badges = page.locator('#modalBadges').text_content()

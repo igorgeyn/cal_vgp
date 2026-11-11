@@ -505,3 +505,55 @@ def test_explorer_has_no_legacy_pending_or_bare_unknown_badge():
     # Card and modal badge both use the shared "Result unknown" label.
     assert script.count("`• ${getElectionStatusLabel('unknown')}`") == 2
     assert "unknown: 'Result unknown'" in script
+
+
+# --- P2.0 / review R7: the browser checker's row classification ---------------
+
+def load_checker():
+    pytest.importorskip("playwright.sync_api")
+    spec_checker = importlib.util.spec_from_file_location(
+        "check_election_status_browser", REPO / "scraper" / "scripts" / "check_election_status_browser.py")
+    checker = importlib.util.module_from_spec(spec_checker)
+    spec_checker.loader.exec_module(checker)
+    return checker
+
+
+def test_checker_requires_a_calendar_status_only_for_date_dependent_rows():
+    checker = load_checker()
+    as_of = date(2026, 11, 11)
+    calendar_row = current(id=1)
+    stored_votes = current(id=2, yes_votes=123)             # Codex's row 12420 reproduction
+    zero_votes = current(id=3, percent_no=0)
+    decided = current(id=4, passed=1)
+    failed = current(id=5, passed=0, percent_yes=40.0)
+    rows = [calendar_row, stored_votes, zero_votes, decided, failed]
+    assert attach_election_status(rows, as_of=as_of, strict=True) == 1
+    calendar, resolved, failures = checker.classify_current(rows, as_of)
+    assert failures == []
+    assert calendar == [calendar_row]
+    assert [(row["id"], want) for row, want in resolved] == [
+        (2, "unknown"), (3, "unknown"), (4, "passed"), (5, "failed")]
+    assert set(checker.RESOLVED_CARD_BADGES) == {want for _, want in resolved}
+
+
+def test_checker_still_fails_a_missing_or_stale_calendar_status():
+    checker = load_checker()
+    as_of = date(2026, 11, 11)
+    lost = current(id=1)                                    # date-dependent, field missing
+    stale = current(id=2, passed=1, election_status="results_pending")
+    linked = current(id=3, yes_votes=123, official_results={"url": "https://example.test/"})
+    calendar, resolved, failures = checker.classify_current([lost, stale, linked], as_of)
+    assert calendar == []
+    assert failures == [
+        "1: current row has no calendar status (None)",
+        "2: passed row carries calendar status 'results_pending'",
+        "3: unknown row carries a results link",
+    ]
+    assert [row["id"] for row, _ in resolved] == [2, 3]
+
+
+def test_checker_reads_badge_text_from_generated_markup():
+    checker = load_checker()
+    assert checker.badge_text('<span class="badge badge-pending">• Result unknown</span>') == "• Result unknown"
+    assert checker.badge_text('<div class="badge badge-passed">✓</div>') == "✓"
+    assert checker.badge_text("<div>no badge</div>") is None
