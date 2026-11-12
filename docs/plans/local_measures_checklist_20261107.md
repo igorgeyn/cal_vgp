@@ -30,7 +30,7 @@ and the live site are unchanged.
 | P1.2 | Generic capture tool (URL list into immutable R2 snapshots) | Not started | | |
 | P1.3 | Census and capture for the remaining counties | Not started | | |
 | P1.4 | Watch the November 9 registrar cron (SMC rollover risk) | **Done**: run succeeded | | P1.4 below |
-| P1b.1 | Download the 22 missing CEDA years; column check | **Built** (agent C): 16 of 22 years downloaded (1998-2014, via Internet Archive copies of csus.edu/isr); every backfill field exists in all 21 files held. **2016-2021: Igor to download by hand** from the CSUS Esploro page. New defects: 2014 keyed on the wrong ID; 28 rows with another measure's votes; one foreign 2002 row | Codex: [prompt](../codex/p1b_1_ceda_review_prompt.md) pending | [column check](ceda_column_check_20261111.md) |
+| P1b.1 | Download the 22 missing CEDA years; column check | **Built** (agent C): 16 of 22 years downloaded (1998-2014, via Internet Archive copies of csus.edu/isr); every backfill field exists in all 21 files held. **2016-2021: Igor to download by hand** from the CSUS Esploro page. New defects: 2014 keyed on the wrong ID; 28 rows with another measure's votes; one foreign 2002 row | Reviewed by a Claude agent (Codex at usage limit), [response](../codex/p1b_1_ceda_review_response.md): diagnosis accurate, but **P1b.2 must not start as specified**. 157 rows were overwritten last-write-wins on (year, county, letter) in one 2026-04-12 batch; KNOWN_ISSUES #1's evidence points the other way (`REQ=T` miscoded, per-row `PASSFAIL` likely right); the 2014 remap needs a two-phase transaction plus embeddings/research keyed on the same IDs. Archived files OK for development, not as source of record | [column check](ceda_column_check_20261111.md) |
 | P1b.2 | Backfill on a database copy (combined results, names, questions, thresholds) | Not started | | |
 | P1b.3 | Verification layers; changed-outcome list for **Igor** | Not started | | |
 | P1b.4 | Release of the repaired history | Not started | | |
@@ -50,6 +50,16 @@ Igor answered on November 11, 2026. Parallel execution follows [`agent_execution
 | 3 | Approve Direction A with a result state and the results tab | **Approved**; Codex review `0b6e78f2` says proceed with its revisions | P3 |
 | 4 | Email the Santa Clara Registrar for access | **Igor is checking Santa Clara's access himself**; outcome pending | Santa Clara in P1.3 |
 | 5 | Statewide same-year comparisons before every county loads | **Wait** for full coverage; meanwhile compare within the same county and against November 2024 | P3b same-year section |
+
+**November 12, 2026** (after Fable's assessment and the P0.2 review):
+
+| # | Decision | Answer |
+|---|---|---|
+| a | Release P0.1 + P0.2 without the results-link recheck | **Yes.** Recheck and P0.3a move after the release; stored checks ship with their dates |
+| b | Fable runs the read-only CEDA reconciliation report after the P1b.1 review, with `pip install xlrd` | **Yes** |
+| c | Worktree/test-baseline cleanup (`.gitattributes` `-text` for registrar fixtures, baseline failures) | **Hold** for later |
+| d | Fable's assessment (`docs/plans/fable_assessment_20261112.md`) | **Keep local**, uncommitted |
+| e | Fix review N1 (placeholder history titles) and N2 (checker transition crash) before P0.3 | **Yes**: `c1683de5` |
 
 ## Phase 0: make the site true
 
@@ -195,13 +205,13 @@ for the whole interval.
 - [ ] Preservation gate: only the expected pages, JSON fields and sitemap dates change.
 - [ ] Browser checks for status, the history label and existing county-content checks.
 - [ ] Private recovery bundle update and R2 read-back.
-- [ ] Recheck the county results links; record each link's check date and any scope left
-  without a link.
+- [ ] ~~Recheck the county results links~~ **Moved after the release** (decision a). The
+  stored checks ship with their dates. Do the recheck only after P0.3a lands.
 - [x] **Codex ruling** on how a bot challenge counts (`da4e2f37`): approve with conditions.
   A recognized challenge is inconclusive; it never counts as success or refreshes the
   success date. No N-day expiry; get a fresh human check for the certification release.
   Timeouts, 429s, other non-200s and unapproved redirects stay failures.
-- [ ] **P0.3a checker/renderer change** (must land before the P0.3 recheck):
+- [ ] **P0.3a checker/renderer change** (after the release; must land before any recheck):
   - [ ] Keep check history, or the latest conclusive observation separately from the latest
     attempt (the checker overwrites `last_check` today). Newest *conclusive* check decides;
     a conclusive failure still wins a tie (timezone-aware).
@@ -258,6 +268,11 @@ for the whole interval.
 ## Phase 1b: repair the CEDA history (outline)
 
 - [ ] P1b.1 Download the missing years; column check per year.
+- [ ] P1b.1b **Fable**: read-only CEDA reconciliation report (decision b). Every field of
+  every held-year row against raw; find the cause of the April 12, 2026 batch that put other
+  measures' votes on 28+ rows. The P1b.1 review traced it to 157 rows written last-write-wins
+  on (year, county, letter) at 2026-04-12 17:50:43; Fable confirms the script and commit, and
+  whether it can recur. Builds on that review's scripts in `scratchpadeview-ceda\`. Then a P1b.2 design (rebuild vs patch, 2014 rekey) for Igor.
 - [ ] P1b.2 Backfill on a copy: combined multi-county results, `place_name`,
   `jurisdiction_kind`, `required_vote`, `multi_measure_id`, `ballot_question`.
   Also normalize `passed` for the 48 CEDA 2011 rows found in P0.1.03.
