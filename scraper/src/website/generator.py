@@ -31,6 +31,40 @@ from ..utils.category_type_mapping import get_display_category_type
 logger = logging.getLogger(__name__)
 
 UPCOMING_ELECTION_YEAR = 2026
+
+# Insights is hidden while it is being renovated (Igor, 2026-11-12). False removes
+# every entry point (header button, view card, local "Rules insight" link) and makes
+# setView('insights') fall back to Grid. The section markup and data stay in the page,
+# unreachable, so re-enabling is this one flag.
+SHOW_INSIGHTS = False
+INSIGHTS_ENABLED_JS = 'true' if SHOW_INSIGHTS else 'false'
+
+INSIGHTS_VIEW_BUTTON = '''                <button class="view-btn" id="insightsView" onclick="setView('insights')" title="Insights: reported analysis from the data">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                        <rect x="4" y="12" width="3" height="8" rx="1"></rect>
+                        <rect x="10.5" y="7" width="3" height="13" rx="1"></rect>
+                        <rect x="17" y="3" width="3" height="17" rx="1"></rect>
+                    </svg>
+                    Insights
+                </button>
+'''
+INSIGHTS_VIEW_CARD = '''                <button class="view-card" id="insightsViewCard" onclick="setView('insights')">
+                    <div class="view-card-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                            <rect x="4" y="12" width="3.5" height="8" rx="1"></rect>
+                            <rect x="10.25" y="7" width="3.5" height="13" rx="1"></rect>
+                            <rect x="16.5" y="3" width="3.5" height="17" rx="1"></rect>
+                        </svg>
+                    </div>
+                    <div class="view-card-text">
+                        <span class="view-card-title">Insights</span>
+                        <span class="view-card-desc">Reported analysis from the full dataset</span>
+                    </div>
+                </button>
+'''
+LOCAL_RULES_INSIGHT_SENTENCE = '''
+                    The historical <a class="local-rules-link" href="#insightsRulesPanel" onclick="openRulesFromLocalMeasures(event)">Rules insight</a>
+                    also includes derived threshold fields with known cases still under review.'''
 CALIFORNIA_COUNTY_COUNT = 58
 USE_CALBALLOT_PAGE = Path("use-calballot/index.html")
 
@@ -778,15 +812,7 @@ class WebsiteGenerator:
                     </svg>
                     List
                 </button>
-                <button class="view-btn" id="insightsView" onclick="setView('insights')" title="Insights: reported analysis from the data">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                        <rect x="4" y="12" width="3" height="8" rx="1"></rect>
-                        <rect x="10.5" y="7" width="3" height="13" rx="1"></rect>
-                        <rect x="17" y="3" width="3" height="17" rx="1"></rect>
-                    </svg>
-                    Insights
-                </button>
-                <button class="view-btn" id="exploreView" onclick="setView('explore')" title="Explore: topic × jurisdiction matrix">
+{INSIGHTS_VIEW_BUTTON if SHOW_INSIGHTS else ""}                <button class="view-btn" id="exploreView" onclick="setView('explore')" title="Explore: topic × jurisdiction matrix">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
                         <rect x="3" y="3" width="4" height="4" rx="1"></rect>
                         <rect x="10" y="3" width="4" height="4" rx="1"></rect>
@@ -905,20 +931,7 @@ class WebsiteGenerator:
                         <span class="view-card-desc">Compact list for quick scanning</span>
                     </div>
                 </button>
-                <button class="view-card" id="insightsViewCard" onclick="setView('insights')">
-                    <div class="view-card-icon">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                            <rect x="4" y="12" width="3.5" height="8" rx="1"></rect>
-                            <rect x="10.25" y="7" width="3.5" height="13" rx="1"></rect>
-                            <rect x="16.5" y="3" width="3.5" height="17" rx="1"></rect>
-                        </svg>
-                    </div>
-                    <div class="view-card-text">
-                        <span class="view-card-title">Insights</span>
-                        <span class="view-card-desc">Reported analysis from the full dataset</span>
-                    </div>
-                </button>
-                <button class="view-card" id="exploreViewCard" onclick="setView('explore')">
+{INSIGHTS_VIEW_CARD if SHOW_INSIGHTS else ""}                <button class="view-card" id="exploreViewCard" onclick="setView('explore')">
                     <div class="view-card-icon">
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
                             <rect x="3" y="3" width="5" height="5" rx="1"></rect>
@@ -11512,9 +11525,7 @@ class WebsiteGenerator:
                 <p class="local-rules-note">
                     Historical rates use recorded pass/fail outcomes for the same county and measure type.
                     Comparisons are not matched by voting rules or purpose and do not predict this election.
-                    Vote thresholds in these cards come from the named county election office.
-                    The historical <a class="local-rules-link" href="#insightsRulesPanel" onclick="openRulesFromLocalMeasures(event)">Rules insight</a>
-                    also includes derived threshold fields with known cases still under review.
+                    Vote thresholds in these cards come from the named county election office.{LOCAL_RULES_INSIGHT_SENTENCE if SHOW_INSIGHTS else ""}
                 </p>
             `;
             requestAnimationFrame(updateLocalCarouselPosition);
@@ -15379,6 +15390,7 @@ class WebsiteGenerator:
 
         // Set view mode
         function setView(view) {{
+            if (view === 'insights' && !{INSIGHTS_ENABLED_JS}) view = 'grid';
             currentView = view;
             // Set default items per page based on view
             if (view === 'grid') {{
