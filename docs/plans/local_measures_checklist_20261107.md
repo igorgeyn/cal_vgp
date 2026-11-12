@@ -35,7 +35,7 @@ and the live site are unchanged.
 | P1b.3 | Verification layers; changed-outcome list for **Igor** | Not started | | |
 | P1b.4 | Release of the repaired history | Not started | | |
 | P2.x | Results for the 63 (importers, observations, multi-county rule) | Outline below | | |
-| P3.x | Layout (Direction A, result state, tab design) | Outline below | | |
+| P3.x | Layout (Direction A, result state, tab design) | Codex reviewed `0b6e78f2`: ready with changes (F1–F7; 6-chunk order, first = date-aware local directory). See [response](../codex/layout_direction_a_review_response.md) | | |
 | P3b.x | Results and comparisons tab | Outline below | | |
 | P4-P6 | Harvest waves, certification sweep | Outline below | | |
 
@@ -47,7 +47,7 @@ Igor answered on November 11, 2026. Parallel execution follows [`agent_execution
 |---|---|---|---|
 | 1 | Coverage: all 53 counties or the largest ten | **All 53** | P1.3 scope |
 | 2 | Explanations for the ~413 new measures | **Questions and results first.** The full alternative is written up, deferred, in [`local_explanations_parity_plan_20261111.md`](local_explanations_parity_plan_20261111.md) | P4 content |
-| 3 | Approve Direction A with a result state and the results tab | **Approved**, subject to Codex reviewing the layout proposal first | P3 |
+| 3 | Approve Direction A with a result state and the results tab | **Approved**; Codex review `0b6e78f2` says proceed with its revisions | P3 |
 | 4 | Email the Santa Clara Registrar for access | **Igor is checking Santa Clara's access himself**; outcome pending | Santa Clara in P1.3 |
 | 5 | Statewide same-year comparisons before every county loads | **Wait** for full coverage; meanwhile compare within the same county and against November 2024 | P3b same-year section |
 
