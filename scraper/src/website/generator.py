@@ -33,7 +33,7 @@ logger = logging.getLogger(__name__)
 UPCOMING_ELECTION_YEAR = 2026
 
 # Insights is hidden while it is being renovated (Igor, 2026-11-12). False removes
-# every entry point (header button, view card, local "Rules insight" link) and makes
+# every entry point (header button, view card, local "Rules insight" link, welcome line) and makes
 # setView('insights') fall back to Grid. The section markup and data stay in the page,
 # unreachable, so re-enabling is this one flag.
 SHOW_INSIGHTS = False
@@ -61,6 +61,8 @@ INSIGHTS_VIEW_CARD = '''                <button class="view-card" id="insightsVi
                         <span class="view-card-desc">Reported analysis from the full dataset</span>
                     </div>
                 </button>
+'''
+WELCOME_INSIGHTS_LINE = '''                    <span><strong style="color: var(--primary);">Insights</strong> &mdash; trends and analysis from the data</span>
 '''
 LOCAL_RULES_INSIGHT_SENTENCE = '''
                     The historical <a class="local-rules-link" href="#insightsRulesPanel" onclick="openRulesFromLocalMeasures(event)">Rules insight</a>
@@ -1449,8 +1451,7 @@ class WebsiteGenerator:
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(19rem, 100%), 1fr)); gap: 0.55rem 2.5rem; font-size: 0.88rem; color: var(--text-secondary); max-width: 48rem;">
                     <span><strong style="color: var(--primary);">Search</strong> &mdash; look up any measure by title, topic, or year</span>
                     <span><strong style="color: var(--primary);">Grid / List</strong> &mdash; browse and filter the full catalog</span>
-                    <span><strong style="color: var(--primary);">Insights</strong> &mdash; trends and analysis from the data</span>
-                    <span><strong style="color: var(--primary);">Explore</strong> &mdash; pass rates by topic and jurisdiction</span>
+{WELCOME_INSIGHTS_LINE if SHOW_INSIGHTS else ""}                    <span><strong style="color: var(--primary);">Explore</strong> &mdash; pass rates by topic and jurisdiction</span>
                     <span><strong style="color: var(--primary);">Ask AI</strong> &mdash; query the data in plain English (bring your own key)</span>
                 </div>
                 <p style="margin: 0.9rem 0 0 0; font-size: 0.85rem;"><a href="#" onclick="openAboutModal(); return false;" style="color: var(--primary); font-weight: 600; text-decoration: none;">How this works &mdash; data sources &amp; methodology &rarr;</a></p>

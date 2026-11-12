@@ -7,7 +7,8 @@ from src.scrapers.registrar.loader import load_jsonl
 from src.website.generator import WebsiteGenerator
 from tests.test_registrar_loader import _record, _write, _database
 
-ENTRY_POINTS = ('id="insightsView"', 'id="insightsViewCard"', 'class="local-rules-link"')
+ENTRY_POINTS = ('id="insightsView"', 'id="insightsViewCard"', 'class="local-rules-link"',
+                '&mdash; trends and analysis from the data')
 
 
 def _html(tmp_path, monkeypatch):
