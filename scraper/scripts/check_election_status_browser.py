@@ -276,14 +276,20 @@ def main():
             later_date = pacific_date(later)
             page, errors = open_page(browser, root, 1440, clock, install=True)
             wait_loaded(page, len(rows))
-            sample = next((m for m in current if m['upcoming_scope'] == 'statewide' and m.get('official_results')),
-                          next(m for m in current if m['upcoming_scope'] == 'statewide'))
-            page.evaluate('(id)=>viewMeasure(allMeasures.find(m=>m.id===id))', sample['id'])
+            # Prefer a linked statewide calendar row, then any calendar row. With none
+            # left (every current row resolved), the badge checks below still run but
+            # there is no date-driven modal to sample.
+            statewide = [m for m in current if m['upcoming_scope'] == 'statewide']
+            sample = next((m for m in statewide if m.get('official_results')),
+                          statewide[0] if statewide else (current[0] if current else None))
+            if sample is not None:
+                page.evaluate('(id)=>viewMeasure(allMeasures.find(m=>m.id===id))', sample['id'])
             before = rendered_hero_badges(page)
             # Past the new time plus one refresh interval, so the timer fires.
             page.clock.fast_forward(int((later - clock).total_seconds() * 1000) + 61_000)
             after = rendered_hero_badges(page)
-            transition = {'from': clock.isoformat(), 'to': later.isoformat(), 'sample': sample['id'],
+            transition = {'from': clock.isoformat(), 'to': later.isoformat(),
+                          'sample': sample['id'] if sample is not None else None,
                           'before': {}, 'after': {}}
             for row in current:
                 if row['upcoming_scope'] != 'statewide':
@@ -298,16 +304,17 @@ def main():
                 if row['upcoming_scope'] == 'statewide':
                     check(after.get(row['id']) == RESOLVED_CARD_BADGES[want],
                           f'transition {row["id"]}: {want} row after {after.get(row["id"])!r}')
-            check(page.locator('#measureDetailModal').is_visible(), 'transition: modal closed by the refresh')
-            want_modal = badge_label(expected_status(sample, later_date))
-            badges = page.locator('#modalBadges').text_content()
-            check(want_modal in badges, f'transition: open modal badge {badges!r}, expected {want_modal!r}')
-            results = page.locator('#modalLinks .official-results-row a').count()
-            check(results == int(linked(sample, later_date)),
-                  f'transition: open modal has {results} results links')
-            note = page.locator('#modalLinks .pending-disclaimer').inner_text()
-            if expected_status(sample, later_date) == 'results_pending':
-                check('has not recorded a result' in note, f'transition: open modal note {note!r}')
+            if sample is not None:
+                check(page.locator('#measureDetailModal').is_visible(), 'transition: modal closed by the refresh')
+                want_modal = badge_label(expected_status(sample, later_date))
+                badges = page.locator('#modalBadges').text_content()
+                check(want_modal in badges, f'transition: open modal badge {badges!r}, expected {want_modal!r}')
+                results = page.locator('#modalLinks .official-results-row a').count()
+                check(results == int(linked(sample, later_date)),
+                      f'transition: open modal has {results} results links')
+                note = page.locator('#modalLinks .pending-disclaimer').inner_text()
+                if expected_status(sample, later_date) == 'results_pending':
+                    check('has not recorded a result' in note, f'transition: open modal note {note!r}')
             check(not errors, f'transition: page errors {errors}')
             page.screenshot(path=str(out / 'transition-after.png'))
             report['transition'] = transition

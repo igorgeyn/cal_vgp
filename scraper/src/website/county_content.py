@@ -112,7 +112,7 @@ def render_sections(entry, history=None):
         'Links open the county’s current files, which may change after review.</p></details>'
     )
     if history and history.get('records'):
-        question += render_history(history)
+        question += render_history(history, entry['county'])
     return question + '</section>'
 
 
@@ -128,7 +128,23 @@ def render_finance(entry):
     )
 
 
-def render_history(history):
+def _norm(text):
+    return ' '.join(str(text or '').split()).casefold()
+
+
+def is_placeholder_title(title, county, designation):
+    """True when a stored title is only the loader's "<COUNTY> Measure <X>" fallback.
+
+    The CEDA loader writes that title when the source has no ballot question
+    (`parsers/ceda.py`). Shown under a history link, it names the county as if it
+    were the measure's jurisdiction, so it adds nothing true beyond the designation.
+    """
+    title = _norm(title)
+    return bool(title) and title in {_norm(designation), _norm(f'{county} {designation}'),
+                                     _norm(f'{county} County {designation}')}
+
+
+def render_history(history, county=''):
     records = history['records']
     items = []
     for row in records:
@@ -137,9 +153,11 @@ def render_history(history):
         label = f"{row['year']} · {row['jurisdiction']} · {row['designation']}"
         outcome = 'Passed' if row['passed'] == 1 else 'Failed'
         title = row.get('title') or ''
+        if is_placeholder_title(title, county, row['designation']):
+            title = ''
         preview = title[:150].rsplit(' ', 1)[0] + '…' if len(title) > 150 else title
-        items.append(f'<li><a href="/measures/{row["id"]}.html">{escape(label)}</a> — {outcome}'
-                     f'<p class="cg-note">{escape(preview)}</p></li>')
+        note = f'<p class="cg-note">{escape(preview)}</p>' if preview else ''
+        items.append(f'<li><a href="/measures/{row["id"]}.html">{escape(label)}</a> — {outcome}{note}</li>')
     return (
         '<details class="county-history"><summary>Explore the historical comparison</summary>'
         f'<p>{history["passed"]} of {history["total"]} recorded {escape(history["category_type"])} '
