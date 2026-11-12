@@ -62,6 +62,17 @@ Igor answered on November 11, 2026. Parallel execution follows [`agent_execution
 | d | Fable's assessment (`docs/plans/fable_assessment_20261112.md`) | **Keep local**, uncommitted |
 | e | Fix review N1 (placeholder history titles) and N2 (checker transition crash) before P0.3 | **Yes**: `c1683de5`. Scratch build vs agent A's: 40 pages changed, only the 171 placeholder notes removed (29 real questions kept); JSON changes only `county_sections` (40) + `last_seen_at`; status checker 0 failures (now and across midnight), N2 mixed-site transition 0 failures, county content 49 × 3 widths clean |
 
+**CEDA repair (P1b.2) decisions, November 12, 2026** (Fable's design §6; Igor accepted all
+five recommendations):
+
+| # | Decision | Answer |
+|---|---|---|
+| 1 | Rebuild-and-diff vs patching known rows | **Rebuild-and-diff** |
+| 2 | Wrong records live now (23 wrong summaries; 29 wrong records incl. id 4870) | **Small follow-up release** right after P0.4: hide the summary and add an "under review" note on the 29 pages. Not in the current release |
+| 3 | Id 9189 (2002 Mendocino H, foreign) | **Decide after Igor downloads the current CEDA release**; meanwhile leave as is, marked unverified |
+| 4 | Multi-county representation | **One row per measure plus a shared group key**; the `UNIQUE(year, measure_id, data_source)` rule must change |
+| 5 | Changed rates (e.g. SB GO bond 69% to 65%) | **A full list in P1b.3 is enough** |
+
 ## Phase 0: make the site true
 
 ### P0.1 Status rule and official results links
