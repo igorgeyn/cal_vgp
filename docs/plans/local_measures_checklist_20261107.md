@@ -59,7 +59,7 @@ Igor answered on November 11, 2026. Parallel execution follows [`agent_execution
 | b | Fable runs the read-only CEDA reconciliation report after the P1b.1 review, with `pip install xlrd` | **Yes** |
 | c | Worktree/test-baseline cleanup (`.gitattributes` `-text` for registrar fixtures, baseline failures) | **Hold** for later |
 | d | Fable's assessment (`docs/plans/fable_assessment_20261112.md`) | **Keep local**, uncommitted |
-| e | Fix review N1 (placeholder history titles) and N2 (checker transition crash) before P0.3 | **Yes**: `c1683de5` |
+| e | Fix review N1 (placeholder history titles) and N2 (checker transition crash) before P0.3 | **Yes**: `c1683de5`. Scratch build vs agent A's: 40 pages changed, only the 171 placeholder notes removed (29 real questions kept); JSON changes only `county_sections` (40) + `last_seen_at`; status checker 0 failures (now and across midnight), N2 mixed-site transition 0 failures, county content 49 × 3 widths clean |
 
 ## Phase 0: make the site true
 
@@ -272,7 +272,8 @@ for the whole interval.
   every held-year row against raw; find the cause of the April 12, 2026 batch that put other
   measures' votes on 28+ rows. The P1b.1 review traced it to 157 rows written last-write-wins
   on (year, county, letter) at 2026-04-12 17:50:43; Fable confirms the script and commit, and
-  whether it can recur. Builds on that review's scripts in `scratchpadeview-ceda\`. Then a P1b.2 design (rebuild vs patch, 2014 rekey) for Igor.
+  whether it can recur. Builds on that review's scripts in `scratchpad
+eview-ceda\`. Then a P1b.2 design (rebuild vs patch, 2014 rekey) for Igor.
 - [ ] P1b.2 Backfill on a copy: combined multi-county results, `place_name`,
   `jurisdiction_kind`, `required_vote`, `multi_measure_id`, `ballot_question`.
   Also normalize `passed` for the 48 CEDA 2011 rows found in P0.1.03.
