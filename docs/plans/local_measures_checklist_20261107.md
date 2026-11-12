@@ -26,7 +26,7 @@ and the live site are unchanged.
 | P0.2 | History list: stop naming the county as every record's jurisdiction; with P0.2b (Igor approved Nov 11) and P2.0 (R7) | **Built** (agent A; merged as `6fe4f565`..`e0db6d60`): only the 40 history pages change, and only in their 200 history labels; card and modal read "Result unknown"; checker fixed for R7. 155 targeted tests pass; browser checks 0 failures | Codex: [prompt](../codex/p0_2_review_prompt.md) pending | prompt has the full evidence and 6 open questions |
 | P0.3 | Release candidate: strict build, page diff, browser checks, recovery bundle | Not started | | |
 | P0.4 | **Igor** go; publish; served-byte and live checks; receipt | Not started | | |
-| P1.1 | County source census: schema and the 10 largest counties | **Built** (agent B): 159 distinct measures confirmed from official pages in 7 counties; Riverside, Santa Clara and Contra Costa still blocked; **SF newly 403** on its results hosts | Codex: [prompt](../codex/p1_1_census_review_prompt.md) pending | [census note](county_census_20261111.md), `scraper/data/census/county_sources_2026.json` |
+| P1.1 | County source census: schema and the 10 largest counties | **Built** (agent B): 159 distinct measures confirmed from official pages in 7 counties; Riverside, Santa Clara and Contra Costa still blocked; **SF newly 403** on its results hosts | Codex `e008d60f`: ready with changes as a research census; not yet a capture input. Fixes in P1.1a | [census note](county_census_20261111.md), `scraper/data/census/county_sources_2026.json` |
 | P1.2 | Generic capture tool (URL list into immutable R2 snapshots) | Not started | | |
 | P1.3 | Census and capture for the remaining counties | Not started | | |
 | P1.4 | Watch the November 9 registrar cron (SMC rollover risk) | **Done**: run succeeded | | P1.4 below |
@@ -224,11 +224,34 @@ for the whole interval.
 
 ## Phase 1: freeze the sources (outline)
 
-- [ ] P1.1 Census schema (county, listing/results/document URLs, access state, format, count,
-  checked time) and the 10 largest counties.
+- [x] P1.1 Census of the 10 largest counties (agent B, `3e09d41c`); Codex review `e008d60f`.
+- [ ] **P1.1a Census fixes** from the review (before P1.2 dispatch):
+  - [ ] Schema v2: typed records validated by a script. Separate source identity, access
+    observation (method, client, time, status, final URL, body inspected or not) and capture
+    result. Unknown stays unknown; one record per URL, with multiple roles.
+  - [ ] A separate approved-capture list. Riverside static URLs are discovery-only.
+  - [ ] Counts split into `official_list_count`, `held_count` (SB/SMC) and
+    `cross_check_count`. "159" is provisionally distinct; "~207" is mixed evidence.
+  - [ ] Slug registry: `oc` for Orange (existing convention), `orange` as an alias.
+  - [ ] Exact hosts per county, each with role and delegation evidence. No free-text hosts.
+  - [ ] Structured issues: LA SC jurisdiction, Fresno J tax title, SF 10 vs 11 (keep 11),
+    and multi-county records (RTM, LA LV/Ventura, Sac E/Placer, Sac H/Yolo,
+    Riverside B/Y/SB) as provisional. Aggregator memberships labeled as such.
+  - [ ] Record Riverside's post-challenge attempts as stop-rule exceptions, not a technique.
+  - [ ] Doc cleanup later: LESSONS_LEARNED, `registrar_manifest.md` and `base.py` comments
+    still suggest a browser for Riverside's challenge. Supersede them.
 - [ ] P1.2 Generic capture tool reusing `base.py` politeness and immutable R2 snapshots.
   Decide the User-Agent with Igor: the registrar default includes his email.
+  - Block rule (Codex Q7, adopted): after a challenge, 403 or empty 202, stop all automated
+    requests to that host, including HEAD and known static URLs, unless the county approves.
+    A person's browser download can be ingested as a manual artifact.
+  - Must reject 200 challenge bodies and empty 202s (`base.py` accepts them today), check
+    every redirect, honor robots, stream large files (LA PDF is 97 MB), and never fall back to
+    challenge solving.
 - [ ] P1.3 Remaining counties, by decision 1; blocked and list-less counties named.
+  Before dispatch: a disjoint roster of all 58 counties with one owner each, one output file
+  per agent, shared examples, and a shared multi-county ledger. Never infer zero measures
+  from a missing list.
 - [x] P1.4 November 9 cron result recorded: scheduled `registrar-pipeline` run on `main`,
   2026-11-09 21:59Z, **success**. No rollover action needed.
 
