@@ -24,7 +24,7 @@ and the live site are unchanged.
 |---|---|---|---|---|
 | **P0.1** | One status rule on every surface; official results links | **Complete** | Codex: [R1–R6 closed; ready for current scope](../codex/p0_1_status_review_response.md#re-review); Igor P0.1.15 done Nov 11; R7 deferred to P2.0 | [P0.1 handoff](#p01-handoff), [dispositions](#p01-review-dispositions) |
 | P0.2 | History list: stop naming the county as every record's jurisdiction; with P0.2b (Igor approved Nov 11) and P2.0 (R7) | **Built** (agent A; merged as `6fe4f565`..`e0db6d60`): only the 40 history pages change, and only in their 200 history labels; card and modal read "Result unknown"; checker fixed for R7. 155 targeted tests pass; browser checks 0 failures | Reviewed by a Claude agent (Codex at usage limit), [response](../codex/p0_2_review_response.md): P0.2 ready with changes (N1: placeholder preview line still names the county on 171 of 200 links); P0.2b ready; P2.0 ready with changes (N2: `--transition-to` crashes when no statewide row is date-driven). N1 must land before release | prompt has the full evidence |
-| P0.3 | Release candidate: strict build, page diff, browser checks, recovery bundle | Not started | | |
+| P0.3 | Release candidate: strict build, page diff, browser checks, recovery bundle | **Candidate built and verified** at `abdf4a3b`+, as of 2026-11-12. Recovery bundle/R2 waits for Igor's go | | Evidence: `scraper/data/county_content/20261112_p0/` (gitignored) |
 | P0.4 | **Igor** go; publish; served-byte and live checks; receipt | Not started | | |
 | P1.1 | County source census: schema and the 10 largest counties | **Built** (agent B): 159 distinct measures confirmed from official pages in 7 counties; Riverside, Santa Clara and Contra Costa still blocked; **SF newly 403** on its results hosts | Codex `e008d60f`: ready with changes as a research census; not yet a capture input. Fixes in P1.1a | [census note](county_census_20261111.md), `scraper/data/census/county_sources_2026.json` |
 | P1.2 | Generic capture tool (URL list into immutable R2 snapshots) | Not started | | |
@@ -201,9 +201,20 @@ for the whole interval.
 
 ### P0.3 Release candidate
 
-- [ ] Fresh frozen workspace and strict build via `build_release_bundle.py --as-of`.
-- [ ] Preservation gate: only the expected pages, JSON fields and sitemap dates change.
-- [ ] Browser checks for status, the history label and existing county-content checks.
+- [x] Fresh frozen workspace and strict build via `build_release_bundle.py --as-of 2026-11-12`.
+  Workspace = Oct 8 recovery workspace (277 inputs) with current code overlaid (9 files) and 5
+  new files added: 282 inputs. Production DB and finance v2/v3 differ in bytes from the frozen
+  copies but not in content (same row counts in every table; main DB logical dump identical;
+  production mtimes predate the freeze). Build left its DB copy unchanged.
+- [x] Preservation gate vs the published root files: 12,372 IDs unchanged; **63 pages change**
+  (the 63 current-election measures), 12,309 byte-identical; no historical row changes. JSON
+  changes only `election_status` (63), `official_results` (63), `county_sections` (40),
+  `local_historical_context` (40), plus `last_seen_at` (129, known). Finance, insights, topics,
+  recommendations and quiz payloads unchanged. Sitemap: 2 build dates only.
+- [x] Browser checks, 0 failures: status at the real clock (63 rows, 3 widths); status across
+  Pacific midnight Nov 12→13; county content (49 × 3 widths); Grid/List navigation.
+  Full suite: 728 passed, 1 skipped; baseline only (`test_models` 1, database/dedup 17).
+  Protected hashes (production DB, root `index.html`, root `measures-data.json`) unchanged.
 - [ ] Private recovery bundle update and R2 read-back.
 - [ ] ~~Recheck the county results links~~ **Moved after the release** (decision a). The
   stored checks ship with their dates. Do the recheck only after P0.3a lands.
