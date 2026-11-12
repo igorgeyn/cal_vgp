@@ -197,12 +197,24 @@ for the whole interval.
 - [ ] Private recovery bundle update and R2 read-back.
 - [ ] Recheck the county results links; record each link's check date and any scope left
   without a link.
-- [ ] **Codex question** on how a bot challenge counts. The SOS link gets a bot challenge
-  from scripts every time. Under the current rule, the newest check decides whether the link
-  shows, so rerunning the checker hides the link Igor confirmed by hand. Proposal: treat a
-  `bot_challenge` result as inconclusive, not as a failure, so it cannot override a newer
-  or older manual success. Real failures (bad status, missing text) still hide the link.
-  This changes the R3 rule, so it needs Codex's agreement before code changes.
+- [x] **Codex ruling** on how a bot challenge counts (`da4e2f37`): approve with conditions.
+  A recognized challenge is inconclusive; it never counts as success or refreshes the
+  success date. No N-day expiry; get a fresh human check for the certification release.
+  Timeouts, 429s, other non-200s and unapproved redirects stay failures.
+- [ ] **P0.3a checker/renderer change** (must land before the P0.3 recheck):
+  - [ ] Keep check history, or the latest conclusive observation separately from the latest
+    attempt (the checker overwrites `last_check` today). Newest *conclusive* check decides;
+    a conclusive failure still wins a tie (timezone-aware).
+  - [ ] Bug: challenge detection runs before the status test, so a 403 with a challenge body
+    is labeled `bot_challenge`. Status first; the exception applies only to HTTP 200.
+  - [ ] Bug: redirects are followed without checking the final URL. Require the exact
+    reviewed destination (or an explicitly reviewed redirect).
+  - [ ] Evidence is bound to URL, election and expected text; a change needs a fresh check.
+  - [ ] Export the real success timestamp, never the challenge's. Checker and release output
+    report "inconclusive" separately from "passed".
+  - [ ] Offline tests from the ruling's list, covering both public renderers and release
+    reporting.
+  - [ ] Codex review.
 
 ### P0.4 Publish
 
