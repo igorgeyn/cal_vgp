@@ -5,7 +5,8 @@ item to "Done" when its response is committed.
 
 ## Pending
 
-None.
+1. **CEDA reconciliation report and P1b.2 design (P1b.1b)**
+   `Read docs/codex/p1b_1b_reconciliation_review_prompt.md on branch phase0-election-status and follow it. Review only; commit only the response file it names.`
 
 ## Done
 

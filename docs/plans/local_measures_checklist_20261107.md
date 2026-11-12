@@ -31,7 +31,8 @@ and the live site are unchanged.
 | P1.3 | Census and capture for the remaining counties | Not started | | |
 | P1.4 | Watch the November 9 registrar cron (SMC rollover risk) | **Done**: run succeeded | | P1.4 below |
 | P1b.1 | Download the 22 missing CEDA years; column check | **Built** (agent C): 16 of 22 years downloaded (1998-2014, via Internet Archive copies of csus.edu/isr); every backfill field exists in all 21 files held. **2016-2021: Igor to download by hand** from the CSUS Esploro page. New defects: 2014 keyed on the wrong ID; 28 rows with another measure's votes; one foreign 2002 row | Reviewed by a Claude agent (Codex at usage limit), [response](../codex/p1b_1_ceda_review_response.md): diagnosis accurate, but **P1b.2 must not start as specified**. 157 rows were overwritten last-write-wins on (year, county, letter) in one 2026-04-12 batch; KNOWN_ISSUES #1's evidence points the other way (`REQ=T` miscoded, per-row `PASSFAIL` likely right); the 2014 remap needs a two-phase transaction plus embeddings/research keyed on the same IDs. Archived files OK for development, not as source of record | [column check](ceda_column_check_20261111.md) |
-| P1b.2 | Backfill on a database copy (combined results, names, questions, thresholds) | Not started | | |
+| P1b.1b | Read-only reconciliation of every held-year CEDA row against raw; cause of the wrong rows; P1b.2 design | **Built** (Fable, uncommitted): 8,477 rows compared. 6,169 match, 1,702 differ only in form, 28 wrong rows, 55 incomplete, 521 wrong key, 29 missing, 1 foreign. **The wrong rows date from the first load on July 31, 2025, not April 12, 2026**; April 12 repaired 1,049 of 1,077 overwritten rows and missed 157. San Bernardino GO bond rate is 65% on raw, not 69%. Production DB hash unchanged (`ef1359e4…`) | Review [prompt](../codex/p1b_1b_reconciliation_review_prompt.md) pending | [report](ceda_reconciliation_20261112.md), [design](ceda_backfill_design_20261112.md) |
+| P1b.2 | Backfill on a database copy (combined results, names, questions, thresholds) | Not started; **waits on Igor's five decisions** in the [design](ceda_backfill_design_20261112.md#6-decisions-for-igor) | | |
 | P1b.3 | Verification layers; changed-outcome list for **Igor** | Not started | | |
 | P1b.4 | Release of the repaired history | Not started | | |
 | P2.x | Results for the 63 (importers, observations, multi-county rule) | Outline below | | |
@@ -279,12 +280,18 @@ for the whole interval.
 ## Phase 1b: repair the CEDA history (outline)
 
 - [ ] P1b.1 Download the missing years; column check per year.
-- [ ] P1b.1b **Fable**: read-only CEDA reconciliation report (decision b). Every field of
-  every held-year row against raw; find the cause of the April 12, 2026 batch that put other
-  measures' votes on 28+ rows. The P1b.1 review traced it to 157 rows written last-write-wins
-  on (year, county, letter) at 2026-04-12 17:50:43; Fable confirms the script and commit, and
-  whether it can recur. Builds on that review's scripts in `scratchpad
-eview-ceda\`. Then a P1b.2 design (rebuild vs patch, 2014 rekey) for Igor.
+- [ ] P1b.1b **Fable**: read-only CEDA reconciliation report (decision b). **Built
+  November 12, uncommitted; review pending.** See the
+  [report](ceda_reconciliation_20261112.md) and the [P1b.2 design](ceda_backfill_design_20261112.md).
+  - Reproduces the column check and its review: 28 wrong rows, 2014's 27/521/29, the 2002
+    foreign row, 112 outcome flips.
+  - Cause: the first CEDA load (July 31, 2025) keyed rows on county and designation. The
+    17:50:43 stamp is `migrate_canonicalize.py`'s (`f075843b`); it changed no votes. The
+    April 12 CSV refresh repaired most rows and skipped the 157 whose county spelling had
+    just changed. It can recur if a file's ID column is not recognized.
+  - Tool: `scraper/scripts/reconcile_ceda_raw.py`, 17 tests; full suite 728 passed with the
+    known 1 failure and 17 errors. Production DB hash `ef1359e4…` before and after.
+  - Builds on the review's scripts in `C:\Users\igorg\AppData\Local\Temp\claude\3706ee781272b6b6\d90ea535-f05d-4a6f-929d-dbc27318d103\scratchpad\review-ceda\`.
 - [ ] P1b.2 Backfill on a copy: combined multi-county results, `place_name`,
   `jurisdiction_kind`, `required_vote`, `multi_measure_id`, `ballot_question`.
   Also normalize `passed` for the 48 CEDA 2011 rows found in P0.1.03.
