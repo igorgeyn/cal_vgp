@@ -24,8 +24,8 @@ and the live site are unchanged.
 |---|---|---|---|---|
 | **P0.1** | One status rule on every surface; official results links | **Complete** | Codex: [R1–R6 closed; ready for current scope](../codex/p0_1_status_review_response.md#re-review); Igor P0.1.15 done Nov 11; R7 deferred to P2.0 | [P0.1 handoff](#p01-handoff), [dispositions](#p01-review-dispositions) |
 | P0.2 | History list: stop naming the county as every record's jurisdiction; with P0.2b (Igor approved Nov 11) and P2.0 (R7) | **Built** (agent A; merged as `6fe4f565`..`e0db6d60`): only the 40 history pages change, and only in their 200 history labels; card and modal read "Result unknown"; checker fixed for R7. 155 targeted tests pass; browser checks 0 failures | Reviewed by a Claude agent (Codex at usage limit), [response](../codex/p0_2_review_response.md): P0.2 ready with changes (N1: placeholder preview line still names the county on 171 of 200 links); P0.2b ready; P2.0 ready with changes (N2: `--transition-to` crashes when no statewide row is date-driven). N1 must land before release | prompt has the full evidence |
-| P0.3 | Release candidate: strict build, page diff, browser checks, recovery bundle | **Candidate `candidate-b` built and verified** at `41502ab6` (Insights hidden, Igor 2026-11-12), as of 2026-11-12: 63 current pages change, 12,309 identical; all browser checks 0 failures. Recovery bundle/R2 and publish wait for Igor's go | | Evidence: `scraper/data/county_content/20261112_p0/` (gitignored) |
-| P0.4 | **Igor** go; publish; served-byte and live checks; receipt | Not started | | |
+| P0.3 | Release candidate: strict build, page diff, browser checks, recovery bundle | **Done.** Final candidate `candidate-d` at `f2cc8a1d` (Insights and Explore hidden). Recovery update `2728598b…` restore-verified and stored in private R2 with read-back | | Evidence: `scraper/data/county_content/20261112_p0/` (gitignored) |
+| P0.4 | **Igor** go; publish; served-byte and live checks; receipt | **Published November 12, 2026**: [PR #9](https://github.com/igorgeyn/cal_vgp/pull/9), merge `4d1a0b3f`, [Pages run](https://github.com/igorgeyn/cal_vgp/actions/runs/43350957693). 71 served files match the tested bytes; live checks pass at 1440/390 | | `docs/plans/release_p0_status_20261112.md` (on `main`); `deployment-verification.json` |
 | P1.1 | County source census: schema and the 10 largest counties | **Built** (agent B): 159 distinct measures confirmed from official pages in 7 counties; Riverside, Santa Clara and Contra Costa still blocked; **SF newly 403** on its results hosts | Codex `e008d60f`: ready with changes as a research census; not yet a capture input. Fixes in P1.1a | [census note](county_census_20261111.md), `scraper/data/census/county_sources_2026.json` |
 | P1.2 | Generic capture tool (URL list into immutable R2 snapshots) | Not started | | |
 | P1.3 | Census and capture for the remaining counties | Not started | | |
@@ -259,9 +259,16 @@ for the whole interval.
 
 ### P0.4 Publish
 
-- [ ] **Igor** go-ahead.
-- [ ] Merge and publish the root pair and pages as one revision.
-- [ ] Served-byte hashes match the tested build; live desktop and mobile checks; receipt.
+- [x] **Igor** go-ahead (November 12, 2026: "go ahead and ship the release").
+- [x] Published from `release/p0-status-20261112` (code `f2cc8a1d` plus the promoted public files,
+  `537c9e50`) via [PR #9](https://github.com/igorgeyn/cal_vgp/pull/9); merge `4d1a0b3f`. The
+  release branch was cut at `f2cc8a1d` so Codex's in-progress "Honest Explore" edits stayed out.
+- [x] Served bytes: 71 files (index, JSON, sitemap, use-calballot, all 63 changed pages and 4
+  unchanged pages) match the tested build. Live at 1440/390: 63 current rows read Results
+  pending, Insights/Explore absent and `setView('explore')` falls back to Grid, history labels
+  fixed on 12437, "Result unknown" on 6103, no overflow, no page errors.
+- [ ] Merge `main` back into `phase0-election-status` once Codex's E1 work is committed, so the
+  branch's root files match production.
 
 ## Phase 1: freeze the sources (outline)
 
