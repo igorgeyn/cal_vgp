@@ -5,7 +5,9 @@ item to "Done" when its response is committed.
 
 ## Pending
 
-1. **Explore renovation (execute, not review): E1 "Honest Explore" is unblocked** (D1-D3 approved; E0 done). Start after the P0.4 release merges
+1. **Explore E1 review**
+   `Read docs/codex/explore_e1_review_prompt.md on branch phase0-election-status and follow it. Review only; commit only the response file it names.`
+2. **Explore renovation, next chunk (E2a). Execute, not review. Start only after E1 is reviewed and released**
    `Read docs/plans/explore_renovation_plan_20261112.md on branch phase0-election-status and follow it. Do the next chunk whose blocking decisions in §2 are marked answered, and only that chunk. If none is unblocked, stop and say which decisions are pending. Never push, publish or write to R2.`
 
 ## Done

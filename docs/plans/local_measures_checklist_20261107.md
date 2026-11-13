@@ -270,6 +270,18 @@ for the whole interval.
 - [ ] Merge `main` back into `phase0-election-status` once Codex's E1 work is committed, so the
   branch's root files match production.
 
+## Explore renovation (plan: [explore_renovation_plan_20261112.md](explore_renovation_plan_20261112.md))
+
+| Chunk | Scope | Status | Review | Evidence |
+|---|---|---|---|---|
+| E0 | Hide Explore (flag) | **Done** `f2cc8a1d`; published in PR #9 | (part of the P0 release) | |
+| E1 | Honest Explore | **Built** by Codex, verified and committed by the coordinator `8029d2e9`: all measure pages identical, Grid/List DOM identical, Explore check passes at 4 widths, 755 tests | [prompt](../codex/explore_e1_review_prompt.md) pending | [handoff](explore_e1_handoff_20261113.md); `scraper/data/exports/explore_e1_20261113/` |
+| E2a | URL state + keyboard | Not started | | |
+| E2b | Table semantics | Not started | | |
+| E2c | Phones + trend | Not started | | |
+| E3 | After P1b: multi-county, required vote, county rows, cohort list | Not started | | |
+| E4 | Concept design (D4/D5) | Not started | | |
+
 ## Phase 1: freeze the sources (outline)
 
 - [x] P1.1 Census of the 10 largest counties (agent B, `3e09d41c`); Codex review `e008d60f`.
