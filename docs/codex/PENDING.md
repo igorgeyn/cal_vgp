@@ -5,7 +5,7 @@ item to "Done" when its response is committed.
 
 ## Pending
 
-1. **Explore renovation (execute, not review). Blocked until Igor answers D1-D3** in the plan's §2
+1. **Explore renovation (execute, not review): E1 "Honest Explore" is unblocked** (D1-D3 approved; E0 done). Start after the P0.4 release merges
    `Read docs/plans/explore_renovation_plan_20261112.md on branch phase0-election-status and follow it. Do the next chunk whose blocking decisions in §2 are marked answered, and only that chunk. If none is unblocked, stop and say which decisions are pending. Never push, publish or write to R2.`
 
 ## Done

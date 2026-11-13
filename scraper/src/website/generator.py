@@ -64,6 +64,48 @@ INSIGHTS_VIEW_CARD = '''                <button class="view-card" id="insightsVi
 '''
 WELCOME_INSIGHTS_LINE = '''                    <span><strong style="color: var(--primary);">Insights</strong> &mdash; trends and analysis from the data</span>
 '''
+# Explore is hidden until "Honest Explore" ships (Igor, 2026-11-12): it shows pass rates
+# the data can't support (e.g. Threshold mode files 12,323 measures as simple majority).
+# See docs/plans/explore_renovation_plan_20261112.md. Same pattern as SHOW_INSIGHTS.
+SHOW_EXPLORE = False
+EXPLORE_ENABLED_JS = 'true' if SHOW_EXPLORE else 'false'
+EXPLORE_VIEW_BUTTON = '''                <button class="view-btn" id="exploreView" onclick="setView('explore')" title="Explore: topic × jurisdiction matrix">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                        <rect x="3" y="3" width="4" height="4" rx="1"></rect>
+                        <rect x="10" y="3" width="4" height="4" rx="1"></rect>
+                        <rect x="17" y="3" width="4" height="4" rx="1"></rect>
+                        <rect x="3" y="10" width="4" height="4" rx="1"></rect>
+                        <rect x="10" y="10" width="4" height="4" rx="1"></rect>
+                        <rect x="17" y="10" width="4" height="4" rx="1"></rect>
+                        <rect x="3" y="17" width="4" height="4" rx="1"></rect>
+                        <rect x="10" y="17" width="4" height="4" rx="1"></rect>
+                        <rect x="17" y="17" width="4" height="4" rx="1"></rect>
+                    </svg>
+                    Explore
+                </button>
+'''
+EXPLORE_VIEW_CARD = '''                <button class="view-card" id="exploreViewCard" onclick="setView('explore')">
+                    <div class="view-card-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                            <rect x="3" y="3" width="5" height="5" rx="1"></rect>
+                            <rect x="10" y="3" width="5" height="5" rx="1"></rect>
+                            <rect x="17" y="3" width="5" height="5" rx="1"></rect>
+                            <rect x="3" y="10" width="5" height="5" rx="1"></rect>
+                            <rect x="10" y="10" width="5" height="5" rx="1"></rect>
+                            <rect x="17" y="10" width="5" height="5" rx="1"></rect>
+                            <rect x="3" y="17" width="5" height="5" rx="1"></rect>
+                            <rect x="10" y="17" width="5" height="5" rx="1"></rect>
+                            <rect x="17" y="17" width="5" height="5" rx="1"></rect>
+                        </svg>
+                    </div>
+                    <div class="view-card-text">
+                        <span class="view-card-title">Explore</span>
+                        <span class="view-card-desc">Pass-rate matrix by topic or measure type</span>
+                    </div>
+                </button>
+'''
+WELCOME_EXPLORE_LINE = '''                    <span><strong style="color: var(--primary);">Explore</strong> &mdash; pass rates by topic and jurisdiction</span>
+'''
 LOCAL_RULES_INSIGHT_SENTENCE = '''
                     The historical <a class="local-rules-link" href="#insightsRulesPanel" onclick="openRulesFromLocalMeasures(event)">Rules insight</a>
                     also includes derived threshold fields with known cases still under review.'''
@@ -814,21 +856,7 @@ class WebsiteGenerator:
                     </svg>
                     List
                 </button>
-{INSIGHTS_VIEW_BUTTON if SHOW_INSIGHTS else ""}                <button class="view-btn" id="exploreView" onclick="setView('explore')" title="Explore: topic × jurisdiction matrix">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                        <rect x="3" y="3" width="4" height="4" rx="1"></rect>
-                        <rect x="10" y="3" width="4" height="4" rx="1"></rect>
-                        <rect x="17" y="3" width="4" height="4" rx="1"></rect>
-                        <rect x="3" y="10" width="4" height="4" rx="1"></rect>
-                        <rect x="10" y="10" width="4" height="4" rx="1"></rect>
-                        <rect x="17" y="10" width="4" height="4" rx="1"></rect>
-                        <rect x="3" y="17" width="4" height="4" rx="1"></rect>
-                        <rect x="10" y="17" width="4" height="4" rx="1"></rect>
-                        <rect x="17" y="17" width="4" height="4" rx="1"></rect>
-                    </svg>
-                    Explore
-                </button>
-                <button class="view-btn" onclick="openAboutModal()" title="About CalBallot: data sources and methodology">
+{INSIGHTS_VIEW_BUTTON if SHOW_INSIGHTS else ""}{EXPLORE_VIEW_BUTTON if SHOW_EXPLORE else ""}                <button class="view-btn" onclick="openAboutModal()" title="About CalBallot: data sources and methodology">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <circle cx="12" cy="12" r="9"></circle>
                         <line x1="12" y1="11" x2="12" y2="16"></line>
@@ -933,26 +961,7 @@ class WebsiteGenerator:
                         <span class="view-card-desc">Compact list for quick scanning</span>
                     </div>
                 </button>
-{INSIGHTS_VIEW_CARD if SHOW_INSIGHTS else ""}                <button class="view-card" id="exploreViewCard" onclick="setView('explore')">
-                    <div class="view-card-icon">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                            <rect x="3" y="3" width="5" height="5" rx="1"></rect>
-                            <rect x="10" y="3" width="5" height="5" rx="1"></rect>
-                            <rect x="17" y="3" width="5" height="5" rx="1"></rect>
-                            <rect x="3" y="10" width="5" height="5" rx="1"></rect>
-                            <rect x="10" y="10" width="5" height="5" rx="1"></rect>
-                            <rect x="17" y="10" width="5" height="5" rx="1"></rect>
-                            <rect x="3" y="17" width="5" height="5" rx="1"></rect>
-                            <rect x="10" y="17" width="5" height="5" rx="1"></rect>
-                            <rect x="17" y="17" width="5" height="5" rx="1"></rect>
-                        </svg>
-                    </div>
-                    <div class="view-card-text">
-                        <span class="view-card-title">Explore</span>
-                        <span class="view-card-desc">Pass-rate matrix by topic or measure type</span>
-                    </div>
-                </button>
-            </div>
+{INSIGHTS_VIEW_CARD if SHOW_INSIGHTS else ""}{EXPLORE_VIEW_CARD if SHOW_EXPLORE else ""}            </div>
 
             <!-- Stats Ribbon -->
             <div class="stats-ribbon" id="statsRibbon">
@@ -1451,8 +1460,7 @@ class WebsiteGenerator:
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(19rem, 100%), 1fr)); gap: 0.55rem 2.5rem; font-size: 0.88rem; color: var(--text-secondary); max-width: 48rem;">
                     <span><strong style="color: var(--primary);">Search</strong> &mdash; look up any measure by title, topic, or year</span>
                     <span><strong style="color: var(--primary);">Grid / List</strong> &mdash; browse and filter the full catalog</span>
-{WELCOME_INSIGHTS_LINE if SHOW_INSIGHTS else ""}                    <span><strong style="color: var(--primary);">Explore</strong> &mdash; pass rates by topic and jurisdiction</span>
-                    <span><strong style="color: var(--primary);">Ask AI</strong> &mdash; query the data in plain English (bring your own key)</span>
+{WELCOME_INSIGHTS_LINE if SHOW_INSIGHTS else ""}{WELCOME_EXPLORE_LINE if SHOW_EXPLORE else ""}                    <span><strong style="color: var(--primary);">Ask AI</strong> &mdash; query the data in plain English (bring your own key)</span>
                 </div>
                 <p style="margin: 0.9rem 0 0 0; font-size: 0.85rem;"><a href="#" onclick="openAboutModal(); return false;" style="color: var(--primary); font-weight: 600; text-decoration: none;">How this works &mdash; data sources &amp; methodology &rarr;</a></p>
                 <p style="margin: 0.45rem 0 0 0; font-size: 0.85rem;"><a href="/use-calballot/" style="color: var(--primary); font-weight: 600; text-decoration: none;">Using CalBallot for reporting, research, or civic work? See how CalBallot can help &rarr;</a></p>
@@ -15392,6 +15400,7 @@ class WebsiteGenerator:
         // Set view mode
         function setView(view) {{
             if (view === 'insights' && !{INSIGHTS_ENABLED_JS}) view = 'grid';
+            if (view === 'explore' && !{EXPLORE_ENABLED_JS}) view = 'grid';
             currentView = view;
             // Set default items per page based on view
             if (view === 'grid') {{

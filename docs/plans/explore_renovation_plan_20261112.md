@@ -57,9 +57,9 @@ One view holds up: **Measure Type by Decade** (51 of 52 cells with n ≥ 10).
 
 | # | Decision | Recommendation | Status | Blocks |
 |---|---|---|---|---|
-| D1 | Hide Explore in the release now being prepared (P0.4)? | **Yes**, by a flag, as with Insights | **Pending Igor** | E0 |
-| D2 | Palette | **One neutral hue**, dark text on light tints. Red-to-green reads as good/bad on a neutral site and fails for color-blind readers | **Pending Igor** | E1 |
-| D3 | County-level rates before the CEDA repair (P1b) lands | **Hide the county row grouping until P1b**; keep Region, Decade and Year | **Pending Igor** | E1 |
+| D1 | Hide Explore in the release now being prepared (P0.4)? | **Yes**, by a flag, as with Insights | **Approved by Igor, 2026-11-12. Done by the coordinator** (`SHOW_EXPLORE = False`); skip E0 | E0 |
+| D2 | Palette | **One neutral hue**, dark text on light tints. Red-to-green reads as good/bad on a neutral site and fails for color-blind readers | **Approved by Igor, 2026-11-12** | E1 |
+| D3 | County-level rates before the CEDA repair (P1b) lands | **Hide the county row grouping until P1b**; keep Region, Decade and Year | **Approved by Igor, 2026-11-12** | E1 |
 | D4 | Who Explore is for | Journalists and researchers (Concept A); voters through the county page in the layout work | Pending Igor | E4 only |
 | D5 | The name | Keep "Explore" for now; revisit at E4 | Pending Igor | E4 only |
 
