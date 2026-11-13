@@ -6,6 +6,7 @@ from src.website.local_measure_context import (
     LOCAL_MEASURE_CATEGORY_CROSSWALK,
     attach_local_historical_context,
     get_reviewed_historical_category,
+    history_jurisdiction_label,
 )
 
 
@@ -64,8 +65,40 @@ def test_new_county_types_link_auditable_prior_records_without_numeric_jurisdict
     assert context['record_ids'] == [105, 104, 103, 102, 101, 100]
     assert context['total'] == 6 and context['passed'] == 4
     assert len(context['records']) == 5
-    assert all(r['jurisdiction'] == 'San Mateo County' for r in context['records'])
+    # Code 1 also covers special districts in CEDA, so the county is not named.
+    assert all(r['jurisdiction'] == 'County or special district measure' for r in context['records'])
     assert context['through'] == 2003
+
+
+@pytest.mark.parametrize("stored, label", [
+    ("1", "County or special district measure"),
+    ("2", "City measure"),
+    (" 3 ", "School or college district measure"),
+    (3, "School or college district measure"),
+    (None, "Local measure"),
+    ("", "Local measure"),
+    ("   ", "Local measure"),
+    ("9", "Local measure"),
+    ("Fontana Unified School District", "Fontana Unified School District"),
+])
+def test_history_jurisdiction_label_says_only_what_the_record_supports(stored, label):
+    assert history_jurisdiction_label({"jurisdiction": stored, "county": "San Bernardino"}) == label
+
+
+def test_history_records_never_name_the_county_as_jurisdiction():
+    """P0.2: most CEDA history rows are city, school or district measures."""
+    current = _current()
+    history = _history(6, passed=3)
+    for index, (row, code) in enumerate(zip(history, ["2", "3", None, "1", "", "2"])):
+        row.update(id=200 + index, jurisdiction=code, measure_letter="A", title="Bond")
+    assert attach_local_historical_context(history + [current]) == 1
+    labels = [r["jurisdiction"] for r in current["local_historical_context"]["records"]]
+    assert labels == ["City measure", "Local measure", "County or special district measure",
+                      "Local measure", "School or college district measure"]
+    assert not any("County" in label and "special district" not in label for label in labels)
+    assert not any("San Bernardino" in label for label in labels)
+    # The display layer never repairs raw data.
+    assert [row["jurisdiction"] for row in history] == ["2", "3", None, "1", "", "2"]
 
 
 def test_county_label_refresh_preserves_existing_context_and_adds_confirmed_sales_tax():

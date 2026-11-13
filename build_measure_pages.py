@@ -33,6 +33,7 @@ ROOT = Path(__file__).parent
 sys.path.insert(0, str(ROOT / 'scraper'))
 from src.website.statewide_content import render_sections as render_statewide_sections, STYLE as STATEWIDE_STYLE
 from src.website.county_content import render_sections as render_county_sections, render_finance as render_county_finance, STYLE as COUNTY_STYLE
+from src.website.election_status import DATE_DRIVEN_STATUSES, STATUS_LABELS, format_checked_date, status_sentence
 
 
 def esc(s):
@@ -120,9 +121,29 @@ def outcome(m):
         return ("Passed", "#3A8C28", f"Passed{' with ' + pct_txt if pct_txt else ''}.")
     if passed == 0:
         return ("Failed", "#C0392B", f"Failed{' with ' + pct_txt if pct_txt else ''}.")
-    if m.get("year") and int(m["year"]) >= date.today().year:
-        return ("Upcoming", "#C9A23C", "Upcoming — not yet voted on.")
+    status = m.get("election_status")
+    if status in DATE_DRIVEN_STATUSES:
+        return (STATUS_LABELS[status], "#C9A23C", status_sentence(status, m.get("election_date")))
     return ("Result unknown", "#999080", "Result not recorded in our sources.")
+
+
+def election_status_html(m):
+    """Status line and checked official-results link for current measures.
+
+    Historical pages get an empty string, so their bytes do not change.
+    """
+    status = m.get("election_status")
+    if status not in DATE_DRIVEN_STATUSES:
+        return ""
+    html_out = f'<p class="votes"><strong>Status:</strong> {esc(status_sentence(status, m.get("election_date")))}</p>'
+    link = m.get("official_results")
+    checked = format_checked_date((link or {}).get("checked_at"))
+    if link and status in ("election_day", "results_pending") and safe_http_url(link.get("url")) and checked:
+        html_out += (
+            f'<p class="src">Official results: <a href="{esc(link["url"])}" rel="noopener">'
+            f'{esc(link["publisher"])}</a> (link checked {esc(checked)}).</p>'
+        )
+    return html_out
 
 
 def meta_description(m, outcome_sentence):
@@ -227,6 +248,7 @@ def build_page(m):
         tv_txt = f" ({tv:,.0f} votes cast)" if isinstance(tv, (int, float)) and tv > 0 else ""
         no_txt = f", {pn:.1f}% no" if isinstance(pn, (int, float)) else ""
         votes_html = f'<p class="votes"><strong>Result:</strong> {py:.1f}% yes{no_txt}{tv_txt}</p>'
+    votes_html += election_status_html(m)
 
     summary_html = ""
     if m.get('county_guide'):

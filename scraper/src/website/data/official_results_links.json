@@ -1,0 +1,56 @@
+{
+  "schema_version": 1,
+  "note": "Reviewed official-results pages. The site shows a link only when its newest check (last_check from scraper/scripts/check_official_results_links.py, or a person's manual_check) succeeded. A manual_check is {checked_at (UTC ISO), ok: true, by, observed}: record it only after opening the page in a normal browser and seeing this election's results.",
+  "links": [
+    {
+      "election_date": "2026-11-03",
+      "scope": "statewide",
+      "publisher": "California Secretary of State",
+      "url": "https://electionresults.sos.ca.gov/returns/ballot-measures",
+      "expect_text": "November 3, 2026",
+      "last_check": {
+        "checked_at": "2026-11-07T16:10:18Z",
+        "http_status": 200,
+        "final_url": "https://electionresults.sos.ca.gov/returns/ballot-measures",
+        "ok": false,
+        "reason": "bot_challenge"
+      },
+      "manual_check": {
+        "checked_at": "2026-11-11T15:38:00Z",
+        "ok": true,
+        "by": "Igor",
+        "observed": "Ballot-measure returns table listing Props 1-5 and 37-45, the 14 statewide measures on the November 3, 2026 ballot, with yes and no votes and percentages. Opened in a normal browser."
+      }
+    },
+    {
+      "election_date": "2026-11-03",
+      "scope": "local",
+      "county": "San Bernardino",
+      "publisher": "San Bernardino County Registrar of Voters",
+      "url": "https://results.rov.sbcounty.gov/Results/20261103/",
+      "expect_text": "11/03/2026 - Statewide General Election",
+      "last_check": {
+        "checked_at": "2026-11-07T16:10:18Z",
+        "http_status": 200,
+        "final_url": "https://results.rov.sbcounty.gov/Results/20261103/",
+        "ok": true,
+        "matched_text": "11/03/2026 - Statewide General Election"
+      }
+    },
+    {
+      "election_date": "2026-11-03",
+      "scope": "local",
+      "county": "San Mateo",
+      "publisher": "San Mateo County Elections",
+      "url": "https://smcacre.gov/elections/november-3-2026-election-results",
+      "expect_text": "November 3, 2026 Election Results",
+      "last_check": {
+        "checked_at": "2026-11-07T16:10:18Z",
+        "http_status": 200,
+        "final_url": "https://smcacre.gov/elections/november-3-2026-election-results",
+        "ok": true,
+        "matched_text": "November 3, 2026 Election Results"
+      }
+    }
+  ]
+}

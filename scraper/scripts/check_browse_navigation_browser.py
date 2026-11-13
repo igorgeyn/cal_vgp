@@ -143,13 +143,30 @@ def main():
             page.locator('#measureDetailModal .modal-close').click()
             assert page.url == before_modal
 
-            page.locator('#insightsView').click()
-            assert not page.locator('#browse-navigation').is_visible()
-            assert not page.locator('#catalogHeader').is_visible()
-            page.locator('#exploreView').click()
-            assert not page.locator('#heroSection').is_visible()
-            assert not page.locator('#browse-navigation').is_visible()
-            assert not page.locator('#catalogHeader').is_visible()
+            if page.locator('#insightsView').count():
+                page.locator('#insightsView').click()
+                assert not page.locator('#browse-navigation').is_visible()
+                assert not page.locator('#catalogHeader').is_visible()
+            else:
+                # Insights hidden (SHOW_INSIGHTS = False): no entry point, and a direct
+                # setView('insights') falls back to Grid instead of opening it.
+                assert page.locator('#insightsViewCard, .local-rules-link').count() == 0
+                page.evaluate("setView('insights')")
+                assert page.evaluate('currentView') == 'grid'
+                assert not page.locator('#insightsSection').is_visible()
+                assert page.locator('#browse-navigation').is_visible()
+            if page.locator('#exploreView').count():
+                page.locator('#exploreView').click()
+                assert not page.locator('#heroSection').is_visible()
+                assert not page.locator('#browse-navigation').is_visible()
+                assert not page.locator('#catalogHeader').is_visible()
+            else:
+                # Explore hidden (SHOW_EXPLORE = False): no entry point, and a direct
+                # setView('explore') falls back to Grid.
+                assert page.locator('#exploreViewCard').count() == 0
+                page.evaluate("setView('explore')")
+                assert page.evaluate('currentView') == 'grid'
+                assert page.locator('#heroSection').is_visible()
             page.locator('#gridView').click()
             assert page.locator('#browse-navigation').is_visible()
             assert page.locator('#heroSection').is_visible()

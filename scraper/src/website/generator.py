@@ -7,7 +7,7 @@ import hashlib
 import logging
 from pathlib import Path
 from typing import Dict, List, Optional
-from datetime import datetime
+from datetime import date, datetime
 from collections import Counter
 
 from ..database.operations import Database
@@ -17,6 +17,12 @@ from ..database.statewide_ballot import attach_statewide_ballot_fields
 from .browse_navigation import NAV_HTML, CATALOG_HTML, STYLE as BROWSE_STYLE, SCRIPT as BROWSE_SCRIPT
 from .statewide_content import attach_statewide_content, load_package, render_future_ballots, STYLE as STATEWIDE_STYLE
 from .county_content import attach_county_content, STYLE as COUNTY_STYLE
+from .election_status import (
+    ELECTION_STATUS_SCRIPT,
+    attach_election_status,
+    load_official_results,
+    today_in_pacific,
+)
 from ..config import WEBSITE_CONFIG, BASE_DIR
 from ..utils import TitleGenerator
 from ..utils.topic_mapping import get_display_topic, get_all_display_categories
@@ -25,6 +31,84 @@ from ..utils.category_type_mapping import get_display_category_type
 logger = logging.getLogger(__name__)
 
 UPCOMING_ELECTION_YEAR = 2026
+
+# Insights is hidden while it is being renovated (Igor, 2026-11-12). False removes
+# every entry point (header button, view card, local "Rules insight" link, welcome line) and makes
+# setView('insights') fall back to Grid. The section markup and data stay in the page,
+# unreachable, so re-enabling is this one flag.
+SHOW_INSIGHTS = False
+INSIGHTS_ENABLED_JS = 'true' if SHOW_INSIGHTS else 'false'
+
+INSIGHTS_VIEW_BUTTON = '''                <button class="view-btn" id="insightsView" onclick="setView('insights')" title="Insights: reported analysis from the data">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                        <rect x="4" y="12" width="3" height="8" rx="1"></rect>
+                        <rect x="10.5" y="7" width="3" height="13" rx="1"></rect>
+                        <rect x="17" y="3" width="3" height="17" rx="1"></rect>
+                    </svg>
+                    Insights
+                </button>
+'''
+INSIGHTS_VIEW_CARD = '''                <button class="view-card" id="insightsViewCard" onclick="setView('insights')">
+                    <div class="view-card-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                            <rect x="4" y="12" width="3.5" height="8" rx="1"></rect>
+                            <rect x="10.25" y="7" width="3.5" height="13" rx="1"></rect>
+                            <rect x="16.5" y="3" width="3.5" height="17" rx="1"></rect>
+                        </svg>
+                    </div>
+                    <div class="view-card-text">
+                        <span class="view-card-title">Insights</span>
+                        <span class="view-card-desc">Reported analysis from the full dataset</span>
+                    </div>
+                </button>
+'''
+WELCOME_INSIGHTS_LINE = '''                    <span><strong style="color: var(--primary);">Insights</strong> &mdash; trends and analysis from the data</span>
+'''
+# Explore is hidden until "Honest Explore" ships (Igor, 2026-11-12): it shows pass rates
+# the data can't support (e.g. Threshold mode files 12,323 measures as simple majority).
+# See docs/plans/explore_renovation_plan_20261112.md. Same pattern as SHOW_INSIGHTS.
+SHOW_EXPLORE = False
+EXPLORE_ENABLED_JS = 'true' if SHOW_EXPLORE else 'false'
+EXPLORE_VIEW_BUTTON = '''                <button class="view-btn" id="exploreView" onclick="setView('explore')" title="Explore: topic × jurisdiction matrix">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                        <rect x="3" y="3" width="4" height="4" rx="1"></rect>
+                        <rect x="10" y="3" width="4" height="4" rx="1"></rect>
+                        <rect x="17" y="3" width="4" height="4" rx="1"></rect>
+                        <rect x="3" y="10" width="4" height="4" rx="1"></rect>
+                        <rect x="10" y="10" width="4" height="4" rx="1"></rect>
+                        <rect x="17" y="10" width="4" height="4" rx="1"></rect>
+                        <rect x="3" y="17" width="4" height="4" rx="1"></rect>
+                        <rect x="10" y="17" width="4" height="4" rx="1"></rect>
+                        <rect x="17" y="17" width="4" height="4" rx="1"></rect>
+                    </svg>
+                    Explore
+                </button>
+'''
+EXPLORE_VIEW_CARD = '''                <button class="view-card" id="exploreViewCard" onclick="setView('explore')">
+                    <div class="view-card-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                            <rect x="3" y="3" width="5" height="5" rx="1"></rect>
+                            <rect x="10" y="3" width="5" height="5" rx="1"></rect>
+                            <rect x="17" y="3" width="5" height="5" rx="1"></rect>
+                            <rect x="3" y="10" width="5" height="5" rx="1"></rect>
+                            <rect x="10" y="10" width="5" height="5" rx="1"></rect>
+                            <rect x="17" y="10" width="5" height="5" rx="1"></rect>
+                            <rect x="3" y="17" width="5" height="5" rx="1"></rect>
+                            <rect x="10" y="17" width="5" height="5" rx="1"></rect>
+                            <rect x="17" y="17" width="5" height="5" rx="1"></rect>
+                        </svg>
+                    </div>
+                    <div class="view-card-text">
+                        <span class="view-card-title">Explore</span>
+                        <span class="view-card-desc">Pass-rate matrix by topic or measure type</span>
+                    </div>
+                </button>
+'''
+WELCOME_EXPLORE_LINE = '''                    <span><strong style="color: var(--primary);">Explore</strong> &mdash; pass rates by topic and jurisdiction</span>
+'''
+LOCAL_RULES_INSIGHT_SENTENCE = '''
+                    The historical <a class="local-rules-link" href="#insightsRulesPanel" onclick="openRulesFromLocalMeasures(event)">Rules insight</a>
+                    also includes derived threshold fields with known cases still under review.'''
 CALIFORNIA_COUNTY_COUNT = 58
 USE_CALBALLOT_PAGE = Path("use-calballot/index.html")
 
@@ -102,8 +186,12 @@ def prepare_upcoming_display_fields(data: Dict) -> Dict:
 class WebsiteGenerator:
     """Generates static website from ballot measures data"""
     
-    def __init__(self, database: Database = None, output_path: Path = None, style: str = 'modern', strict: bool = False):
+    def __init__(self, database: Database = None, output_path: Path = None, style: str = 'modern',
+                 strict: bool = False, as_of: Optional[date] = None):
         self.db = database or Database()
+        # Election statuses are evaluated for this California date; release
+        # builds pass it explicitly so a rebuild is reproducible.
+        self.as_of = as_of or today_in_pacific()
         self.output_path = output_path or BASE_DIR.parent / WEBSITE_CONFIG.get('output_filename', 'index.html')
         self.template = style
         self.strict = strict
@@ -168,6 +256,9 @@ class WebsiteGenerator:
             for measure in measures
         ]
         measures = attach_county_content(measures)
+        attach_election_status(
+            measures, as_of=self.as_of, links=load_official_results(), strict=self.strict
+        )
         html = self._generate_html(measures, stats, topics, recommendations)
         auxiliary_pages = {
             USE_CALBALLOT_PAGE: self._generate_use_calballot_html(
@@ -765,29 +856,7 @@ class WebsiteGenerator:
                     </svg>
                     List
                 </button>
-                <button class="view-btn" id="insightsView" onclick="setView('insights')" title="Insights: reported analysis from the data">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                        <rect x="4" y="12" width="3" height="8" rx="1"></rect>
-                        <rect x="10.5" y="7" width="3" height="13" rx="1"></rect>
-                        <rect x="17" y="3" width="3" height="17" rx="1"></rect>
-                    </svg>
-                    Insights
-                </button>
-                <button class="view-btn" id="exploreView" onclick="setView('explore')" title="Explore: topic × jurisdiction matrix">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                        <rect x="3" y="3" width="4" height="4" rx="1"></rect>
-                        <rect x="10" y="3" width="4" height="4" rx="1"></rect>
-                        <rect x="17" y="3" width="4" height="4" rx="1"></rect>
-                        <rect x="3" y="10" width="4" height="4" rx="1"></rect>
-                        <rect x="10" y="10" width="4" height="4" rx="1"></rect>
-                        <rect x="17" y="10" width="4" height="4" rx="1"></rect>
-                        <rect x="3" y="17" width="4" height="4" rx="1"></rect>
-                        <rect x="10" y="17" width="4" height="4" rx="1"></rect>
-                        <rect x="17" y="17" width="4" height="4" rx="1"></rect>
-                    </svg>
-                    Explore
-                </button>
-                <button class="view-btn" onclick="openAboutModal()" title="About CalBallot: data sources and methodology">
+{INSIGHTS_VIEW_BUTTON if SHOW_INSIGHTS else ""}{EXPLORE_VIEW_BUTTON if SHOW_EXPLORE else ""}                <button class="view-btn" onclick="openAboutModal()" title="About CalBallot: data sources and methodology">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <circle cx="12" cy="12" r="9"></circle>
                         <line x1="12" y1="11" x2="12" y2="16"></line>
@@ -892,39 +961,7 @@ class WebsiteGenerator:
                         <span class="view-card-desc">Compact list for quick scanning</span>
                     </div>
                 </button>
-                <button class="view-card" id="insightsViewCard" onclick="setView('insights')">
-                    <div class="view-card-icon">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                            <rect x="4" y="12" width="3.5" height="8" rx="1"></rect>
-                            <rect x="10.25" y="7" width="3.5" height="13" rx="1"></rect>
-                            <rect x="16.5" y="3" width="3.5" height="17" rx="1"></rect>
-                        </svg>
-                    </div>
-                    <div class="view-card-text">
-                        <span class="view-card-title">Insights</span>
-                        <span class="view-card-desc">Reported analysis from the full dataset</span>
-                    </div>
-                </button>
-                <button class="view-card" id="exploreViewCard" onclick="setView('explore')">
-                    <div class="view-card-icon">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                            <rect x="3" y="3" width="5" height="5" rx="1"></rect>
-                            <rect x="10" y="3" width="5" height="5" rx="1"></rect>
-                            <rect x="17" y="3" width="5" height="5" rx="1"></rect>
-                            <rect x="3" y="10" width="5" height="5" rx="1"></rect>
-                            <rect x="10" y="10" width="5" height="5" rx="1"></rect>
-                            <rect x="17" y="10" width="5" height="5" rx="1"></rect>
-                            <rect x="3" y="17" width="5" height="5" rx="1"></rect>
-                            <rect x="10" y="17" width="5" height="5" rx="1"></rect>
-                            <rect x="17" y="17" width="5" height="5" rx="1"></rect>
-                        </svg>
-                    </div>
-                    <div class="view-card-text">
-                        <span class="view-card-title">Explore</span>
-                        <span class="view-card-desc">Pass-rate matrix by topic or measure type</span>
-                    </div>
-                </button>
-            </div>
+{INSIGHTS_VIEW_CARD if SHOW_INSIGHTS else ""}{EXPLORE_VIEW_CARD if SHOW_EXPLORE else ""}            </div>
 
             <!-- Stats Ribbon -->
             <div class="stats-ribbon" id="statsRibbon">
@@ -1423,9 +1460,7 @@ class WebsiteGenerator:
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(19rem, 100%), 1fr)); gap: 0.55rem 2.5rem; font-size: 0.88rem; color: var(--text-secondary); max-width: 48rem;">
                     <span><strong style="color: var(--primary);">Search</strong> &mdash; look up any measure by title, topic, or year</span>
                     <span><strong style="color: var(--primary);">Grid / List</strong> &mdash; browse and filter the full catalog</span>
-                    <span><strong style="color: var(--primary);">Insights</strong> &mdash; trends and analysis from the data</span>
-                    <span><strong style="color: var(--primary);">Explore</strong> &mdash; pass rates by topic and jurisdiction</span>
-                    <span><strong style="color: var(--primary);">Ask AI</strong> &mdash; query the data in plain English (bring your own key)</span>
+{WELCOME_INSIGHTS_LINE if SHOW_INSIGHTS else ""}{WELCOME_EXPLORE_LINE if SHOW_EXPLORE else ""}                    <span><strong style="color: var(--primary);">Ask AI</strong> &mdash; query the data in plain English (bring your own key)</span>
                 </div>
                 <p style="margin: 0.9rem 0 0 0; font-size: 0.85rem;"><a href="#" onclick="openAboutModal(); return false;" style="color: var(--primary); font-weight: 600; text-decoration: none;">How this works &mdash; data sources &amp; methodology &rarr;</a></p>
                 <p style="margin: 0.45rem 0 0 0; font-size: 0.85rem;"><a href="/use-calballot/" style="color: var(--primary); font-weight: 600; text-decoration: none;">Using CalBallot for reporting, research, or civic work? See how CalBallot can help &rarr;</a></p>
@@ -6256,6 +6291,35 @@ class WebsiteGenerator:
             grid-column: 1 / -1;
         }
 
+        /* Official results link (election day onward) */
+        .measure-detail-links .official-results-row {
+            grid-column: 1 / -1;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 0.25rem 0.6rem;
+        }
+
+        .measure-detail-links .official-results-row a {
+            font-weight: 600;
+        }
+
+        .results-link-checked {
+            color: var(--text-tertiary);
+            font-size: 0.75rem;
+        }
+
+        .section-results-link {
+            color: var(--primary);
+            font-weight: 600;
+            overflow-wrap: anywhere;
+        }
+
+        .local-results-note {
+            display: block;
+            margin-top: 0.35rem;
+        }
+
         @media (max-width: 480px) {
             .measure-detail-links {
                 grid-template-columns: 1fr;
@@ -9204,6 +9268,7 @@ class WebsiteGenerator:
         """Get JavaScript code for the website"""
         return f"""
         {BROWSE_SCRIPT}
+        {ELECTION_STATUS_SCRIPT}
 
         // Data
         let allMeasures = [];  // populated at startup from measures-data.json
@@ -11171,6 +11236,51 @@ class WebsiteGenerator:
             displayResults();
         }}
 
+        // Calendar refresh: statuses are rendered once, so an open page must
+        // re-render them when the California date changes (review R1).
+        let measureDetailCurrent = null;
+        let renderedPacificDate = pacificToday();
+
+        function refreshOpenMeasureStatus() {{
+            const modal = document.getElementById('measureDetailModal');
+            const measure = measureDetailCurrent;
+            if (!modal || modal.style.display === 'none' || !measure || !isPendingMeasure(measure)) return;
+            const badge = document.querySelector('#modalBadges .badge-pending');
+            if (badge) badge.textContent = pendingBadgeText(measure);
+            const links = document.getElementById('modalLinks');
+            if (!links) return;
+            const resultsLink = officialResultsLinkHtml(measure, 'official-results-link');
+            const row = links.querySelector('.official-results-row');
+            if (resultsLink && !row) {{
+                links.insertAdjacentHTML('afterbegin', `<div class="official-results-row">${{resultsLink}}</div>`);
+            }} else if (!resultsLink && row) {{
+                row.remove();
+            }}
+            const note = links.querySelector('.pending-disclaimer');
+            if (note) note.innerHTML = `<strong>Note:</strong> ${{escapeHtml(pendingStatusNote(measure))}}`;
+        }}
+
+        function refreshCalendarStatuses() {{
+            const today = pacificToday();
+            if (!today || today === renderedPacificDate) return;
+            renderedPacificDate = today;
+            if (!allMeasures.some(isPendingMeasure)) return;
+            const hero = document.getElementById('heroSection');
+            if (hero && hero.dataset.rendered) {{
+                const savedIndex = heroCarouselIndex;
+                displayHero();  // also re-renders the local section and both section notes
+                heroCarouselIndex = Math.min(savedIndex, getHeroCarouselMaxIndex());
+            }}
+            if (currentView === 'grid' || currentView === 'list') displayResults();
+            refreshOpenMeasureStatus();
+        }}
+
+        setInterval(refreshCalendarStatuses, 60 * 1000);
+        document.addEventListener('visibilitychange', () => {{
+            if (document.visibilityState === 'visible') refreshCalendarStatuses();
+        }});
+        window.addEventListener('focus', refreshCalendarStatuses);
+
         // Hero Carousel state
         let heroCarouselIndex = 0;
         let heroCarouselItemsPerView = 3;
@@ -11196,6 +11306,10 @@ class WebsiteGenerator:
             if (statewideSourceNote) {{
                 const guide = heroMeasures.find(m => m.statewide_guide)?.statewide_guide;
                 statewideSourceNote.textContent = guide ? `November 3, 2026 · Official guide, fiscal analysis, arguments and campaign finance · Sources captured ${{guide.sources.overview.captured_at.slice(0, 10)}}` : '';
+                const resultsMeasure = heroMeasures.find(m => officialResultsLinkHtml(m));
+                if (resultsMeasure) {{
+                    statewideSourceNote.insertAdjacentHTML('beforeend', `${{guide ? ' · ' : ''}}${{officialResultsLinkHtml(resultsMeasure, 'section-results-link')}}`);
+                }}
             }}
             renderLocalMeasures();
 
@@ -11386,10 +11500,11 @@ class WebsiteGenerator:
             }}
 
             const countyLabels = groups.map(group => `${{group.county}} County`);
-            scopeTarget.innerHTML = `<strong>Currently captured:</strong> ${{escapeHtml(countyLabels.join(', '))}}.
-                These are county-scoped official records, not a complete address-specific ballot.`;
-
             const selectedGroup = groups.find(group => group.county === selectedLocalCounty) || groups[0];
+            const countyResults = officialResultsLinkHtml(selectedGroup.measures.find(m => m.official_results), 'section-results-link');
+            scopeTarget.innerHTML = `<strong>Currently captured:</strong> ${{escapeHtml(countyLabels.join(', '))}}.
+                These are county-scoped official records, not a complete address-specific ballot.${{countyResults ? ` <span class="local-results-note">${{countyResults}}</span>` : ''}}`;
+
             localCarouselMeasures = selectedGroup.measures;
             countTarget.textContent = `${{localCarouselMeasures.length.toLocaleString()}} measure${{localCarouselMeasures.length === 1 ? '' : 's'}}`;
             updateLocalCarouselItemsPerView();
@@ -11419,9 +11534,7 @@ class WebsiteGenerator:
                 <p class="local-rules-note">
                     Historical rates use recorded pass/fail outcomes for the same county and measure type.
                     Comparisons are not matched by voting rules or purpose and do not predict this election.
-                    Vote thresholds in these cards come from the named county election office.
-                    The historical <a class="local-rules-link" href="#insightsRulesPanel" onclick="openRulesFromLocalMeasures(event)">Rules insight</a>
-                    also includes derived threshold fields with known cases still under review.
+                    Vote thresholds in these cards come from the named county election office.{LOCAL_RULES_INSIGHT_SENTENCE if SHOW_INSIGHTS else ""}
                 </p>
             `;
             requestAnimationFrame(updateLocalCarouselPosition);
@@ -14539,11 +14652,50 @@ class WebsiteGenerator:
             return documents;
         }}
 
-        // Check if measure is pending (2026 or later, no vote data)
+        // Check if measure is pending: its status depends on the calendar
+        // (upcoming, election day, or voted with no result recorded yet).
         function isPendingMeasure(measure) {{
-            if (measure.ballot_status === 'withdrawn') return false;
-            const year = parseInt(measure.year);
-            return year >= 2026 || (measure.passed !== 1 && measure.passed !== 0 && !measure.percent_yes);
+            return DATE_DRIVEN_STATUSES.includes(getElectionStatus(measure));
+        }}
+
+        function formatCheckedDate(value) {{
+            const moment = new Date(value || '');
+            if (Number.isNaN(moment.getTime())) return '';
+            try {{
+                return moment.toLocaleDateString('en-US', {{ timeZone: 'America/Los_Angeles', month: 'long', day: 'numeric', year: 'numeric' }});
+            }} catch (error) {{
+                return '';
+            }}
+        }}
+
+        // Official results link, shown from election day on, only when the
+        // link's newest recorded check succeeded (attached at build time).
+        function officialResultsLinkHtml(measure, className = '') {{
+            const result = measure && measure.official_results;
+            const status = getElectionStatus(measure);
+            if (!result || !['election_day', 'results_pending'].includes(status)) return '';
+            const url = sanitizeUrl(result.url);
+            if (!url || url === '#') return '';
+            const checked = formatCheckedDate(result.checked_at);
+            if (!checked) return '';
+            return `<a class="${{escapeAttr(className)}}" href="${{escapeAttr(url)}}" target="_blank" rel="noopener noreferrer">Official results: ${{escapeHtml(result.publisher)}}</a> <span class="results-link-checked">(link checked ${{escapeHtml(checked)}})</span>`;
+        }}
+
+        function pendingBadgeText(measure) {{
+            const status = getElectionStatus(measure);
+            return `⏳ ${{status === 'upcoming' ? 'Upcoming election' : getElectionStatusLabel(status)}}`;
+        }}
+
+        function pendingStatusNote(measure) {{
+            const status = getElectionStatus(measure);
+            const when = formatElectionDate(measure.election_date);
+            if (status === 'election_day') {{
+                return `Election day${{when ? ': ' + when : ''}}. CalBallot does not report live counts; official results are linked when available.`;
+            }}
+            if (status === 'results_pending') {{
+                return `Voting ended${{when ? ' ' + when : ''}}. CalBallot has not recorded a result for this measure yet; official results are linked when available.`;
+            }}
+            return 'This measure is pending and has not yet been voted on. Information may be updated as official details become available.';
         }}
 
         // Timeline stages for ballot measures
@@ -14664,9 +14816,11 @@ class WebsiteGenerator:
             const passed = measure.passed;
             const isPending = isPendingMeasure(measure);
 
-            // Pending measures get special status display
+            // Pending measures get special status display. A row with no
+            // outcome that does not depend on the date (e.g. stored votes but no
+            // normalized result) is "Result unknown", never "Pending".
             const passedClass = measure.ballot_status === 'withdrawn' ? 'neutral' : isPending ? 'pending' : (passed === 1 ? 'passed' : passed === 0 ? 'failed' : 'pending');
-            const passedText = measure.ballot_status === 'withdrawn' ? 'Withdrawn' : isPending ? '⏳ Upcoming' : (passed === 1 ? '✓ Passed' : passed === 0 ? '✗ Failed' : '• Pending');
+            const passedText = measure.ballot_status === 'withdrawn' ? 'Withdrawn' : isPending ? `⏳ ${{getElectionStatusLabel(getElectionStatus(measure))}}` : (passed === 1 ? '✓ Passed' : passed === 0 ? '✗ Failed' : `• ${{getElectionStatusLabel('unknown')}}`);
 
             // Description / summary preview — kept for all card variants
             // per Igor's pushback on v1's "cut descriptions entirely"
@@ -14726,7 +14880,7 @@ class WebsiteGenerator:
             if (percentYes != null && !isPending) metaItems.push(`${{Math.round(percentYes)}}% Yes`);
             if (topic) metaItems.push(escapeHtml(topic));
             if (source) metaItems.push(escapeHtml(source));
-            if (isPending && !metaItems.length) metaItems.push('Election pending');
+            if (isPending && !metaItems.length) metaItems.push(getElectionStatusLabel(getElectionStatus(measure)));
 
             // Use data attribute + index lookup instead of serializing entire object into onclick
             const mIdx = allMeasures.indexOf(measure);
@@ -14753,7 +14907,7 @@ class WebsiteGenerator:
             const year = measure.year || 'Unknown';
             const passed = measure.passed;
             const passedClass = passed === 1 ? 'passed' : passed === 0 ? 'failed' : 'pending';
-            const passedText = measure.ballot_status === 'withdrawn' ? 'Withdrawn' : passed === 1 ? '✓' : passed === 0 ? '✗' : isPendingMeasure(measure) ? 'Upcoming' : '?';
+            const passedText = measure.ballot_status === 'withdrawn' ? 'Withdrawn' : passed === 1 ? '✓' : passed === 0 ? '✗' : isPendingMeasure(measure) ? getElectionStatusLabel(getElectionStatus(measure)) : '?';
             
             const mIdx = allMeasures.indexOf(measure);
             return `
@@ -14777,6 +14931,7 @@ class WebsiteGenerator:
         
         // View measure details in modal
         function viewMeasure(measure) {{
+            measureDetailCurrent = measure;
             // Shareable permalink for this measure
             if (measure && measure.id != null) {{
                 if (!window.location.hash.startsWith('#m=')) measureReturnURL = window.location.href;
@@ -14810,10 +14965,10 @@ class WebsiteGenerator:
             if (measure.ballot_status === 'withdrawn') {{
                 badgesHtml.push('<span class="badge badge-neutral">Withdrawn</span>');
             }} else if (isPending) {{
-                badgesHtml.push(`<span class="badge badge-pending">⏳ Upcoming Election</span>`);
+                badgesHtml.push(`<span class="badge badge-pending">${{escapeHtml(pendingBadgeText(measure))}}</span>`);
             }} else {{
                 const passedClass = passed === 1 ? 'passed' : passed === 0 ? 'failed' : 'pending';
-                const passedText = passed === 1 ? '✓ Passed' : passed === 0 ? '✗ Failed' : '• Unknown';
+                const passedText = passed === 1 ? '✓ Passed' : passed === 0 ? '✗ Failed' : `• ${{getElectionStatusLabel('unknown')}}`;
                 badgesHtml.push(`<span class="badge badge-${{passedClass}}">${{passedText}}</span>`);
             }}
 
@@ -15024,6 +15179,8 @@ class WebsiteGenerator:
             // Links section
             const linksContainer = document.getElementById('modalLinks');
             const links = [];
+            const resultsLink = officialResultsLinkHtml(measure, 'official-results-link');
+            if (resultsLink) links.push(`<div class="official-results-row">${{resultsLink}}</div>`);
 
             // Add generated external links first (higher quality)
             // Descriptive labels for link sources
@@ -15087,7 +15244,7 @@ class WebsiteGenerator:
             }}
 
             // For pending measures, add helpful official source links
-            if (isPending && links.length === 0) {{
+            if (isPending && links.length === (resultsLink ? 1 : 0)) {{
                 links.push(`<a href="https://www.sos.ca.gov/elections/ballot-measures" target="_blank" rel="noopener noreferrer">🏛️ <span class="link-label">Official Status</span> <span class="link-source">(CA SOS)</span></a>`);
                 links.push(`<a href="https://lao.ca.gov/BallotAnalysis" target="_blank" rel="noopener noreferrer">📊 <span class="link-label">Fiscal Analysis</span> <span class="link-source">(CA LAO)</span></a>`);
                 links.push(`<a href="https://leginfo.legislature.ca.gov/" target="_blank" rel="noopener noreferrer">📜 <span class="link-label">Bill Details</span> <span class="link-source">(Legislature)</span></a>`);
@@ -15164,7 +15321,7 @@ class WebsiteGenerator:
 
             // Add pending disclaimer
             if (isPending) {{
-                links.push(`<div class="pending-disclaimer"><strong>Note:</strong> This measure is pending and has not yet been voted on. Information may be updated as official details become available.</div>`);
+                links.push(`<div class="pending-disclaimer"><strong>Note:</strong> ${{escapeHtml(pendingStatusNote(measure))}}</div>`);
             }}
 
             linksContainer.innerHTML = links.join('');
@@ -15224,6 +15381,7 @@ class WebsiteGenerator:
                 history.replaceState(null, '', measureReturnURL || window.location.pathname + window.location.search);
             }}
             measureReturnURL = null;
+            measureDetailCurrent = null;
         }}
 
         // Toggle summary truncation
@@ -15241,6 +15399,8 @@ class WebsiteGenerator:
 
         // Set view mode
         function setView(view) {{
+            if (view === 'insights' && !{INSIGHTS_ENABLED_JS}) view = 'grid';
+            if (view === 'explore' && !{EXPLORE_ENABLED_JS}) view = 'grid';
             currentView = view;
             // Set default items per page based on view
             if (view === 'grid') {{
