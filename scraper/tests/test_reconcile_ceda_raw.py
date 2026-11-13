@@ -254,3 +254,229 @@ def test_main_writes_reports_and_leaves_the_database_unchanged(tmp_path, capsys)
     assert summary["ceda_rows_without_raw_by_year"] == {"2018": 1}
     ledger = json.loads((out / "ledger.json").read_text(encoding="utf-8"))
     assert [e["class"] for e in ledger] == ["wrong_row"]
+    # Evidence a gate result can be tied to: every raw file's hash, and the tool's.
+    assert summary["raw_files"]["2011"]["sha256"] == rc.sha256_of(raw_dir / "ceda_data_2011.xlsx")
+    assert summary["raw_files"]["2011"]["rows"] == 2
+    assert summary["tool_sha256"] == rc.sha256_of(SCRIPT)
+    assert summary["gate"]["clean"] is False and summary["gate"]["blocking"] == {"wrong_row": 1}
+
+
+# ---- the tool as the P1b.2 gate ------------------------------------------
+
+MEASUREID_HEADERS = ["MeasureID" if h == "MeasID" else h for h in HEADERS]
+
+
+def raws_2014():
+    return parse([raw_row(551, county="ALAMEDA", letter="K", yes=10, no=20, multi_co=1, multi_id=550,
+                          yes_sum=40, no_sum=30, passfail="Fail", passfail_sum="Pass", year=2014),
+                  raw_row(552, county="SAN JOAQUIN", letter="K", yes=30, no=10, multi_co=1, multi_id=550,
+                          yes_sum=40, no_sum=30, passfail="Pass", passfail_sum="Pass", year=2014),
+                  raw_row(600, county="KERN", letter="B", multi_id=600, year=2014),
+                  raw_row(601, county="KERN", letter="C", multi_id=602, year=2014),
+                  raw_row(602, county="KERN", letter="D", multi_id=601, year=2014)], MEASUREID_HEADERS)
+
+
+def stored_2014(keys):
+    """Stored rows for the five raw rows, under the given measure IDs."""
+    alameda = dict(year=2014, county="ALAMEDA", measure_letter="K", yes_votes=10, no_votes=20,
+                   total_votes=30, percent_yes=33.333, pass_fail="Fail", passed=0)
+    joaquin = dict(year=2014, county="SAN JOAQUIN", measure_letter="K", yes_votes=30, no_votes=10,
+                   total_votes=40, percent_yes=75.0)
+    rows = [db_row(1, keys[0], **alameda), db_row(3, keys[2], year=2014, county="KERN", measure_letter="B"),
+            db_row(4, keys[3], year=2014, county="KERN", measure_letter="C"),
+            db_row(5, keys[4], year=2014, county="KERN", measure_letter="D")]
+    if keys[1] is not None:
+        rows.insert(1, db_row(2, keys[1], **joaquin))
+    return rows
+
+
+def test_key_mode_comes_from_the_data_not_the_header():
+    # Today: stored under Multi_MeasID, and the group collapsed one member.
+    before = rc.reconcile_year(2014, stored_2014([550, None, 600, 602, 601]), raws_2014())
+    assert before["key_mode"] == "group"
+    assert before["classes"] == {"wrong_key": 3, "match": 1, "missing_from_db": 1}
+
+
+def test_a_correct_2014_rekey_reconciles_cleanly():
+    # After the rekey every row is under its own MeasureID. The header is
+    # still "MeasureID"; the tool must not fall back to group resolution.
+    after = rc.reconcile_year(2014, stored_2014([551, 552, 600, 601, 602]), raws_2014())
+    assert after["key_mode"] == "own"
+    assert after["classes"] == {"match": 5}
+    assert after["missing_from_db"] == [] and after["own_vote_mismatch"] == 0
+
+
+def test_a_rekey_that_leaves_a_member_out_is_still_caught():
+    after = rc.reconcile_year(2014, stored_2014([551, None, 600, 601, 602]), raws_2014())
+    assert after["key_mode"] == "own"
+    assert after["classes"] == {"match": 4, "missing_from_db": 1}
+    assert after["missing_from_db"][0]["measure_id"] == "552"
+
+
+def test_the_same_id_on_two_raw_rows_is_a_reported_collision():
+    # Two releases give 201600120 to two measures. Loading both must not let
+    # the later row stand in for the earlier one.
+    older = rc.parse_rows(HEADERS, [raw_row(201600120, county="SANTA CRUZ", place="Santa Cruz County",
+                                            letter="D", question="Sales tax?", yes=83816, no=39839,
+                                            year=2016)], source="2016.xlsx")
+    newer = rc.parse_rows(HEADERS, [raw_row(201600120, county="SANTA CRUZ", place="Santa Cruz City Elementary",
+                                            letter="P", question="Parcel tax?", yes=8499, no=2596,
+                                            year=2016)], source="2015.xlsx")
+    stored = [db_row(4870, 201600120, year=2016, county="SANTA CRUZ", measure_letter="P", title="Parcel tax?",
+                     yes_votes=8499, no_votes=2596, total_votes=11095, percent_yes=76.602)]
+    result = rc.reconcile_year(2016, stored, older + newer)
+    assert [r["measure_id"] for r in result["repeated_ids"]] == ["201600120"]
+    assert {r["file"] for r in result["repeated_ids"][0]["rows"]} == {"2016.xlsx", "2015.xlsx"}
+    entry = result["entries"][0]
+    assert entry["class"] == "id_collision" and entry["stored_candidate"]["letter"] == "P"
+    assert [(m["letter"], m["id_collision"]) for m in result["missing_from_db"]] == [("D", True)]
+
+
+def test_a_shared_id_is_clean_once_both_measures_are_stored():
+    # The repaired state: both measures kept under the one CEDA ID, told apart
+    # by designation. Each stored row is matched to its own raw row.
+    older = rc.parse_rows(HEADERS, [raw_row(201600120, county="SANTA CRUZ", letter="D", question="Sales tax?",
+                                            yes=83816, no=39839, year=2016,
+                                            date=datetime.datetime(2016, 11, 8))], source="2016.xlsx")
+    newer = rc.parse_rows(HEADERS, [raw_row(201600120, county="SANTA CRUZ", letter="P", question="Parcel tax?",
+                                            yes=8499, no=2596, year=2016,
+                                            date=datetime.datetime(2016, 11, 17))], source="2015.xlsx")
+    measure_p = db_row(4870, 201600120, year=2016, county="SANTA CRUZ", measure_letter="P", title="Parcel tax?",
+                       election_date="2016-11-17", yes_votes=8499, no_votes=2596, total_votes=11095,
+                       percent_yes=76.602)
+    measure_d = db_row(12500, 201600120, year=2016, county="SANTA CRUZ", measure_letter="D", title="Sales tax?",
+                       election_date="2016-11-08", yes_votes=83816, no_votes=39839, total_votes=123655,
+                       percent_yes=67.782)
+    result = rc.reconcile_year(2016, [measure_p, measure_d], older + newer)
+    assert result["classes"] == {"match": 2} and result["missing_from_db"] == []
+    assert result["repeated_ids"][0]["resolved"] is True
+    # Before the older release's file is in hand, the restored measure has no
+    # raw row: it is reported as such, not matched to its sibling.
+    result = rc.reconcile_year(2016, [measure_p, measure_d], newer)
+    assert {e["id"]: e["class"] for e in result["entries"]} == {4870: "match", 12500: "missing_from_raw"}
+
+
+def write_csv(path, rows):
+    import csv
+    columns = ["year", "measure_id", "county", "measure_letter", "yes_votes", "no_votes", "pass_fail",
+               "election_date", "passed", "title"]
+    with path.open("w", encoding="utf-8", newline="") as stream:
+        writer = csv.DictWriter(stream, fieldnames=columns)
+        writer.writeheader()
+        for row in rows:
+            writer.writerow({column: row.get(column, "") for column in columns})
+
+
+def reused_id_fixture(tmp_path):
+    """The id 4870 case: the 2015 file carries a 2016 row whose ID an older
+    release gave to another measure, and the ingest overwrote that measure."""
+    raw_dir, downloads = tmp_path / "raw", tmp_path / "raw" / "dl"
+    downloads.mkdir(parents=True)
+    write_workbook(raw_dir / "ceda_data_2015.xlsx",
+                   [raw_row(201500001, year=2015, date=datetime.datetime(2015, 11, 3)),
+                    raw_row(201600120, county="SANTA CRUZ", place="Santa Cruz City Elementary", letter="P",
+                            question="Parcel tax?", yes=8499, no=2596, year=2016,
+                            date=datetime.datetime(2016, 11, 17))], sheet="measures2015")
+    measure_p = dict(year=2016, county="SANTA CRUZ", measure_letter="P", title="Parcel tax?",
+                     election_date="2016-11-17", yes_votes=8499, no_votes=2596, total_votes=11095,
+                     percent_yes=76.602)
+    measure_d = dict(year=2016, county="SANTA CRUZ", measure_letter="D", title="Sales tax?",
+                     election_date="2016-11-08", yes_votes=83816, no_votes=39839, total_votes=123655,
+                     percent_yes=67.782)
+    first = db_row(1, 201500001, year=2015, election_date="2015-11-03")
+    make_db(tmp_path / "baseline.db", [first, db_row(4870, 201600120, **measure_d)])
+    make_db(tmp_path / "now.db", [first, db_row(4870, 201600120, **measure_p)])
+    write_csv(tmp_path / "ceda_parsed.csv",
+              [{"year": 2016, "measure_id": 201600120, "county": "SANTA CRUZ", "measure_letter": "D",
+                "yes_votes": 83816, "no_votes": 39839, "pass_fail": "Pass", "election_date": "2016-11-08",
+                "title": "Sales tax?"}])
+    return ["--db", str(tmp_path / "now.db"), "--out", str(tmp_path / "out"), "--raw-dir", str(raw_dir),
+            "--downloads", str(downloads), "--baseline-db", str(tmp_path / "baseline.db"),
+            "--csv", str(tmp_path / "ceda_parsed.csv")]
+
+
+def test_an_id_reused_between_releases_is_its_own_class(tmp_path):
+    arguments = reused_id_fixture(tmp_path)
+    assert rc.main(arguments) == 0
+    summary = json.loads((tmp_path / "out" / "summary.json").read_text(encoding="utf-8"))
+    assert summary["release_conflicts"] == [{
+        "year": 2016, "measure_id": "201600120", "raw": ["SANTA CRUZ P"], "csv": ["SANTA CRUZ D"],
+        "stored": [{"id": 4870, "identity": "SANTA CRUZ P"}],
+        "stored_in_baseline": [{"id": 4870, "identity": "SANTA CRUZ D"}],
+        "identities_not_stored": ["SANTA CRUZ D"]}]
+    assert summary["totals"] == {"match": 1, "id_reused": 1}
+    ledger = json.loads((tmp_path / "out" / "ledger.json").read_text(encoding="utf-8"))
+    reused = [e for e in ledger if e["class"] == "id_reused"]
+    assert [(e["id"], e["baseline_identity"]) for e in reused] == [(4870, "SANTA CRUZ D")]
+    # The row is not dropped from the comparison with the CSV: it is counted,
+    # and it is the row that does not agree.
+    assert summary["csv"]["db_vs_csv_in_unheld_years"]["2016"] == {
+        "db_rows": 1, "also_checked_against_raw": 1, "not_in_csv": 1, "csv_rows": 1, "csv_distinct_ids": 1}
+
+
+def test_gate_exit_code_and_waivers(tmp_path):
+    arguments = reused_id_fixture(tmp_path)
+    assert rc.main(arguments + ["--gate"]) == 1
+    summary = json.loads((tmp_path / "out" / "summary.json").read_text(encoding="utf-8"))
+    assert summary["gate"]["blocking"] == {"id_reused": 1}
+    assert summary["gate"]["release_conflicts_with_an_identity_not_stored"] == 1
+    # A recorded decision can defer one named ID; the waiver is echoed.
+    assert rc.main(arguments + ["--gate", "--waive", "2016:201600120"]) == 0
+    summary = json.loads((tmp_path / "out" / "summary.json").read_text(encoding="utf-8"))
+    assert summary["gate"]["clean"] is True and summary["gate"]["waived"] == ["2016:201600120"]
+
+
+def test_a_csv_year_keyed_on_the_group_id_is_not_read_as_id_reuse():
+    csv_rows = [{"year": 2014, "measure_id": 550, "county": "ALAMEDA", "measure_letter": "K",
+                 "yes_votes": 10, "no_votes": 20},
+                {"year": 2014, "measure_id": 550, "county": "SAN JOAQUIN", "measure_letter": "K",
+                 "yes_votes": 30, "no_votes": 10},
+                {"year": 2014, "measure_id": 600, "county": "KERN", "measure_letter": "B",
+                 "yes_votes": 60, "no_votes": 40},
+                {"year": 2014, "measure_id": 602, "county": "KERN", "measure_letter": "C",
+                 "yes_votes": 60, "no_votes": 40},
+                {"year": 2014, "measure_id": 601, "county": "KERN", "measure_letter": "D",
+                 "yes_votes": 60, "no_votes": 40}]
+    assert rc.release_conflicts(csv_rows, raws_2014(), stored_2014([551, 552, 600, 601, 602])) == []
+
+
+# ---- cohorts ---------------------------------------------------------------
+
+def test_cohorts_report_stored_per_row_and_combined_results():
+    def stored(row_id, year, county, passed, category="GO Bond", source="CEDA"):
+        return {"id": row_id, "year": year, "county": county, "category_type": category, "passed": passed,
+                "data_source": source, "is_duplicate": 0, "is_active": 1}
+
+    rows = [stored(1, 2000, "SAN BERNARDINO", 1), stored(2, 2000, "SAN BERNARDINO", None),
+            stored(3, 2000, "SAN BERNADINO", 0), stored(4, 2002, "SAN BERNARDINO", 0),
+            stored(5, 2014, "SAN BERNARDINO", 1), stored(6, 2018, "SAN BERNARDINO", 1),
+            stored(7, 1990, "San Bernardino", 0, source="ICPSR"),
+            stored(8, 2000, "SAN BERNARDINO", 1, category="Recall"),
+            stored(9, 2000, "KERN", 1),
+            stored(10, 2026, "San Bernardino", None, source="San_Bernardino_County_Registrar")]
+    raw = {2000: parse([raw_row(1, county="SAN BERNARDINO", year=2000),
+                        raw_row(2, county="SAN BERNARDINO", letter="B", passfail="FailT", year=2000),
+                        raw_row(3, county="SAN BERNADINO", letter="C", passfail="FailT", year=2000)]),
+           2002: parse([raw_row(4, county="SAN BERNARDINO", place="KERN COMMUNITY COLLEGE", letter="G",
+                                passfail="FailF", passfail_sum="PassF", multi_co=1, year=2002)]),
+           2014: parse([raw_row(5, county="SAN BERNARDINO", year=2014),
+                        raw_row(50, county="SAN BERNARDINO", letter="Z", passfail="FailF", year=2014)],
+                       MEASUREID_HEADERS)}
+    for year, parsed in raw.items():
+        for row in parsed:
+            row["type_name"] = "GO Bond"
+    report = rc.cohort_report(rows, raw, {"go bond"}, constant_years={2014})
+    assert report["counties"] == ["san bernardino"]
+    # Stored: rows 1, 4, 5, 6, 7. Row 2 has no outcome; row 3 is misspelled.
+    # Raw replaces 2000 and 2002: all three 2000 rows now count. 2014 keeps
+    # its stored row, so the extra raw 2014 row is not added.
+    assert report["cohorts"] == {"san bernardino | go bond": {
+        "stored": [3, 5], "raw_per_row": [3, 7], "raw_combined": [4, 7]}}
+    assert [(d["measure_id"], d["own"], d["combined"], d["multi_co"])
+            for d in report["own_and_combined_outcomes_differ"]] == [("4", 0, 1, 1)]
+
+
+def test_reviewed_categories_come_from_the_site_module():
+    module = SCRIPT.parents[1] / "src" / "website" / "local_measure_context.py"
+    categories = rc.load_reviewed_categories(module)
+    assert "go bond" in categories and "sales tax" in categories and None not in categories

@@ -4,7 +4,14 @@
 Every CEDA row in a year we hold a raw file for is compared field by field
 with the raw row that carries the same ``MeasID``. Nothing is written to any
 database: every connection is opened ``mode=ro``. Raw files are untrusted, so
-run this with ``python -I`` (the module imports nothing from the project).
+run this with ``python -I``. The module imports no project code, except that
+the cohort table loads the reviewed categories from
+``src/website/local_measure_context.py`` by path.
+
+It is also the gate for the P1b.2 repair. With ``--gate`` it exits 1 unless
+it finds no wrong row, wrong key, reused or repeated ID, incomplete row or
+missing row. ``summary.json`` records each raw file's SHA-256 and this
+script's own, so a gate result can be tied to its inputs.
 
     python -I scraper/scripts/reconcile_ceda_raw.py \
         --db <copy-or-production.db> --out <folder>
@@ -12,19 +19,29 @@ run this with ``python -I`` (the module imports nothing from the project).
 Optional inputs widen the report:
 
 ``--baseline-db``  a July 2025 backup, to date the wrong-row defect;
-``--csv``          ``ceda_parsed.csv``, a stand-in for years with no raw file.
+``--csv``          ``ceda_parsed.csv``, a stand-in for years with no raw file
+                   and the evidence for IDs reused between CEDA releases.
 
 Row classes
 -----------
-``match``            every compared field agrees (unloaded fields aside)
+``match``            no compared field conflicts with raw. Fields the row does
+                     not hold (question, jurisdiction, topic) are counted
+                     separately, under ``unloaded_fields``
 ``format_only``      differences vanish after normalizing case, spacing,
-                     invisible characters, county spelling or vote rounding
-``incomplete``       no conflict, but a core field (date, votes, outcome) is
-                     empty in the database although raw has it
+                     invisible characters, county spelling or vote rounding,
+                     or the title is the "<COUNTY> Measure <LTR>" placeholder
+``incomplete``       no conflict, but the outcome or the date was never
+                     derived although raw has it; such rows drop out of the
+                     site's statistics
 ``differs``          a real difference, but the content is this measure's
 ``wrong_row``        the stored content is another raw row's
 ``foreign``          the stored content appears in no raw row of that year
-``wrong_key``        2014 only: stored under ``Multi_MeasID``, not ``MeasureID``
+``wrong_key``        stored under ``Multi_MeasID``, not the row's own ID (2014
+                     today). Detected from the data, not from the header
+``id_collision``     the stored ID belongs to two or more loaded raw rows
+``id_reused``        the ID names different measures in two CEDA releases and
+                     the stored row was overwritten by one of them (needs
+                     ``--csv`` and ``--baseline-db``)
 ``missing_from_db``  a raw row with no stored row
 ``missing_from_raw`` a stored row with no raw row
 """
@@ -375,9 +392,9 @@ def find_content_owner(db: dict, raws: list[dict]) -> dict | None:
     return hits[0] if len(hits) == 1 else None
 
 
-def resolve_2014(db_rows: list[dict], raws: list[dict]) -> dict[int, dict]:
-    """2014 rows are stored under ``Multi_MeasID``. Map each stored row ``id``
-    to its one raw row by (group key, county, letter, yes, no)."""
+def resolve_by_group_key(db_rows: list[dict], raws: list[dict]) -> dict[int, dict]:
+    """Rows stored under ``Multi_MeasID``: map each stored row ``id`` to its
+    one raw row by (group key, county, letter, yes, no)."""
     groups = collections.defaultdict(list)
     for raw in raws:
         groups[raw["multi_id"]].append(raw)
@@ -392,41 +409,99 @@ def resolve_2014(db_rows: list[dict], raws: list[dict]) -> dict[int, dict]:
     return resolved
 
 
+def _same_identity(db: dict, raw: dict) -> bool:
+    return (raw["county"] == canonical_county(db.get("county"))
+            and raw["letter"] == norm_letter(db.get("measure_letter")))
+
+
+def detect_key_mode(db_rows: list[dict], raws: list[dict]) -> str:
+    """``"group"`` when the stored IDs are the file's ``Multi_MeasID`` values,
+    ``"own"`` when they are the rows' own IDs. Decided from the data: a year
+    is group-keyed only if more stored rows resolve through the group key
+    than agree with the raw row under their own ID. The header name is not
+    evidence; a correctly rekeyed 2014 still has a ``MeasureID`` header."""
+    by_id = collections.defaultdict(list)
+    for raw in raws:
+        by_id[raw["id"]].append(raw)
+    own = sum(1 for db in db_rows
+              if any(_same_identity(db, raw) for raw in by_id.get(str(db["measure_id"]), [])))
+    grouped = len(resolve_by_group_key(db_rows, raws))
+    return "group" if grouped > own else "own"
+
+
+def _source(raw: dict) -> dict:
+    return {**raw["src"], "county": raw["county"], "letter": raw["letter"], "place": raw["place"]}
+
+
+def _describe(entry: dict, db: dict, raw: dict) -> str:
+    """Attach the field comparison to a ledger entry; return its class."""
+    entry["fields"] = compare_row(db, raw)
+    entry["own"] = {"county": raw["county"], "place": raw["place"], "letter": raw["letter"],
+                    "type": raw["type_name"], "outcome": outcome_of(raw["passfail"]),
+                    "combined_outcome": outcome_of(raw["passfail_sum"]), "multi_co": raw["multi_co"]}
+    entry["stored"] = {"passed": db.get("passed"), "pass_fail": db.get("pass_fail"),
+                       "category_type": db.get("category_type"),
+                       "has_summary": bool(clean_text(db.get("summary_text")))}
+    entry["unloaded"] = sorted(f for f, v in entry["fields"].items() if v == DB_EMPTY and f not in CORE_FIELDS)
+    entry["placeholder_title"] = entry["fields"]["title"] == FORMAT and not (
+        clean_text(db.get("title")) and raw["question"].startswith(clean_text(db.get("title"))))
+    return classify(entry["fields"])
+
+
 def reconcile_year(year: int, db_rows: list[dict], raws: list[dict]) -> dict:
     """Classify every stored and raw row of one year."""
-    by_id = {raw["id"]: raw for raw in raws}
-    wrong_key = raws and raws[0]["id_header"].lower() == "measureid"
-    resolved = resolve_2014(db_rows, raws) if wrong_key else {}
+    candidates = collections.defaultdict(list)
+    for raw in raws:
+        candidates[raw["id"]].append(raw)
+    # The same ID on two raw rows (two files, or two releases) is reported,
+    # never resolved by letting the later row replace the earlier one.
+    collisions = {key: rows for key, rows in candidates.items() if len(rows) > 1}
+    by_id = {key: rows[0] for key, rows in candidates.items() if len(rows) == 1}
+    key_mode = detect_key_mode(db_rows, raws)
+    resolved = resolve_by_group_key(db_rows, raws) if key_mode == "group" else {}
+    # An ID is "shared" when two raw rows carry it, or two stored rows do (the
+    # repaired state: both measures kept, told apart by county and
+    # designation). Shared IDs are matched on identity, never on the ID alone.
+    stored_by_id = collections.defaultdict(list)
+    for db in db_rows:
+        stored_by_id[str(db["measure_id"])].append(db)
+    shared = set(collisions) | {key for key, rows in stored_by_id.items() if len(rows) > 1 and key_mode == "own"}
+    unresolved = {key for key in collisions
+                  if any(sum(_same_identity(db, raw) for db in stored_by_id.get(key, [])) != 1
+                         for raw in collisions[key])}
     entries, represented = [], set()
     own_vote_mismatch = 0
     for db in db_rows:
-        own = by_id.get(str(db["measure_id"]))
+        measure_id = str(db["measure_id"])
+        own = by_id.get(measure_id)
         if own is not None and (own["yes"], own["no"]) != (db.get("yes_votes"), db.get("no_votes")):
             own_vote_mismatch += 1
-        entry = {"id": db["id"], "measure_id": str(db["measure_id"]), "year": year,
-                 "updated_at": db.get("updated_at")}
-        if wrong_key:
+        entry = {"id": db["id"], "measure_id": measure_id, "year": year, "updated_at": db.get("updated_at")}
+        if measure_id in shared:
+            entry["raw_candidates"] = [_source(raw) for raw in candidates.get(measure_id, [])]
+            held = [raw for raw in candidates.get(measure_id, []) if _same_identity(db, raw)]
+            if len(held) == 1:
+                represented.add(id(held[0]))
+                entry["content_class"] = _describe(entry, db, held[0])
+                entry["stored_candidate"] = _source(held[0])
+                entry["class"] = "id_collision" if measure_id in unresolved else entry["content_class"]
+            else:
+                # A stored measure that no loaded file carries under this ID.
+                entry["class"] = "missing_from_raw"
+        elif key_mode == "group":
             target = resolved.get(db["id"])
             if target is None:
                 entry["class"] = "missing_from_raw"
             else:
-                represented.add(target["id"])
-                entry["fields"] = compare_row(db, target)
-                entry["content_class"] = classify(entry["fields"])
+                represented.add(id(target))
+                entry["content_class"] = _describe(entry, db, target)
                 entry["raw_id"] = target["id"]
-                entry["class"] = "wrong_key" if target["id"] != entry["measure_id"] else entry["content_class"]
+                entry["class"] = "wrong_key" if target["id"] != measure_id else entry["content_class"]
         elif own is None:
             entry["class"] = "missing_from_raw"
         else:
-            represented.add(own["id"])
-            entry["fields"] = compare_row(db, own)
-            entry["class"] = classify(entry["fields"])
-            entry["own"] = {"county": own["county"], "place": own["place"], "letter": own["letter"],
-                            "type": own["type_name"], "outcome": outcome_of(own["passfail"]),
-                            "combined_outcome": outcome_of(own["passfail_sum"]), "multi_co": own["multi_co"]}
-            entry["stored"] = {"passed": db.get("passed"), "pass_fail": db.get("pass_fail"),
-                               "category_type": db.get("category_type"),
-                               "has_summary": bool(clean_text(db.get("summary_text")))}
+            represented.add(id(own))
+            entry["class"] = _describe(entry, db, own)
             if any(entry["fields"][f] == DIFF for f in IDENTITY_FIELDS):
                 owner = find_content_owner(db, raws)
                 if owner is not None and owner["id"] != own["id"]:
@@ -436,16 +511,19 @@ def reconcile_year(year: int, db_rows: list[dict], raws: list[dict]) -> dict:
         entries.append(entry)
     missing = [{"class": "missing_from_db", "year": year, "measure_id": raw["id"],
                 "county": raw["county"], "letter": raw["letter"], "place": raw["place"],
-                "multi_co": raw["multi_co"]}
-               for raw in raws if raw["id"] not in represented]
+                "multi_co": raw["multi_co"], "id_collision": raw["id"] in collisions, "src": raw["src"]}
+               for raw in raws if id(raw) not in represented]
     flips = sum(1 for raw in raws
                 if None not in (outcome_of(raw["passfail"]), outcome_of(raw["passfail_sum"]))
                 and outcome_of(raw["passfail"]) != outcome_of(raw["passfail_sum"]))
     return {
-        "year": year, "file_rows": len(raws), "db_rows": len(db_rows),
-        "id_matched": sum(1 for db in db_rows if str(db["measure_id"]) in by_id),
+        "year": year, "file_rows": len(raws), "db_rows": len(db_rows), "key_mode": key_mode,
+        "id_matched": sum(1 for db in db_rows if str(db["measure_id"]) in candidates),
         "own_vote_mismatch": own_vote_mismatch,
         "outcome_flips": flips,
+        "repeated_ids": [{"year": year, "measure_id": key, "resolved": key not in unresolved,
+                          "rows": [_source(raw) for raw in rows]}
+                         for key, rows in sorted(collisions.items())],
         "classes": dict(collections.Counter(e["class"] for e in entries + missing)),
         "entries": entries, "missing_from_db": missing,
     }
@@ -521,10 +599,70 @@ def load_csv(path: Path) -> list[dict]:
         return list(csv.DictReader(stream))
 
 
+def release_conflicts(csv_rows: list[dict], raws: list[dict], current: list[dict],
+                      baseline: list[dict] | None = None) -> list[dict]:
+    """IDs that name different measures in two CEDA releases.
+
+    ``ceda_parsed.csv`` was parsed from a different release than some raw
+    files we hold. Where the two give one (year, ID) a different county or
+    designation, an ingest that matches on the ID overwrites one measure with
+    the other. Each conflict lists both identities, which one the database
+    holds now, and which it held in the baseline."""
+    def identity(county, letter):
+        return (canonical_county(county), norm_letter(letter))
+
+    def votes(value):
+        return None if value in (None, "") else int(float(value))
+
+    raws_by_year = collections.defaultdict(list)
+    for raw in raws:
+        raws_by_year[raw["year"]].append(raw)
+    csv_by_year = collections.defaultdict(list)
+    for row in csv_rows:
+        csv_by_year[int(row["year"])].append(row)
+    # A CSV year keyed on the group ID (2014) says nothing about ID reuse:
+    # every member row "conflicts". Such years are skipped here.
+    skipped = {year for year, rows in csv_by_year.items() if year in raws_by_year and detect_key_mode(
+        [{"measure_id": r["measure_id"], "county": r["county"], "measure_letter": r["measure_letter"],
+          "yes_votes": votes(r["yes_votes"]), "no_votes": votes(r["no_votes"]), "id": n}
+         for n, r in enumerate(rows)], raws_by_year[year]) == "group"}
+    from_csv = collections.defaultdict(set)
+    for row in csv_rows:
+        if int(row["year"]) not in skipped:
+            from_csv[(int(row["year"]), str(row["measure_id"]))].add(identity(row["county"], row["measure_letter"]))
+    from_raw = collections.defaultdict(set)
+    for raw in raws:
+        from_raw[(raw["year"], raw["id"])].add((raw["county"], raw["letter"]))
+    stored = collections.defaultdict(list)
+    for row in current:
+        stored[(row["year"], str(row["measure_id"]))].append(row)
+    before = {row["id"]: row for row in baseline or []}
+    conflicts = []
+    for key in sorted(set(from_csv) & set(from_raw)):
+        identities = from_csv[key] | from_raw[key]
+        if len(identities) < 2:
+            continue
+        rows = stored.get(key, [])
+        conflicts.append({
+            "year": key[0], "measure_id": key[1],
+            "raw": sorted(" ".join(i) for i in from_raw[key]), "csv": sorted(" ".join(i) for i in from_csv[key]),
+            "stored": [{"id": r["id"], "identity": " ".join(identity(r["county"], r["measure_letter"]))} for r in rows],
+            "stored_in_baseline": [{"id": r["id"], "identity": " ".join(identity(before[r["id"]]["county"], before[r["id"]]["measure_letter"]))}
+                                   for r in rows if r["id"] in before],
+            "identities_not_stored": sorted(" ".join(i) for i in identities
+                                            - {identity(r["county"], r["measure_letter"]) for r in rows}),
+        })
+    return conflicts
+
+
 def csv_report(csv_rows: list[dict], current: list[dict], raw_by_year: dict[int, list[dict]],
                reconciled: set[int] = frozenset()) -> dict:
     """How well ``ceda_parsed.csv`` tracks raw where we hold raw, and how the
-    database tracks the CSV in the years with no raw file."""
+    database tracks the CSV in the years with no raw file.
+
+    ``reconciled`` rows have a raw row from another year's file. They are
+    still compared here, and counted, so a row that disagrees with the CSV
+    cannot drop out of the total."""
     def key(year, measure_id, county, letter):
         return (int(year), str(measure_id), canonical_county(county), norm_letter(letter))
 
@@ -547,11 +685,13 @@ def csv_report(csv_rows: list[dict], current: list[dict], raw_by_year: dict[int,
     proxy = collections.defaultdict(collections.Counter)
     detail = []
     for row in current:
-        if row["year"] in held or row["id"] in reconciled:
+        if row["year"] in held:
             continue
         match = csv_index.get(key(row["year"], row["measure_id"], row["county"], row["measure_letter"]))
         counter = proxy[row["year"]]
         counter["db_rows"] += 1
+        if row["id"] in reconciled:
+            counter["also_checked_against_raw"] += 1
         if match is None:
             counter["not_in_csv"] += 1
             detail.append({"id": row["id"], "measure_id": row["measure_id"], "year": row["year"], "issue": "not_in_csv"})
@@ -584,6 +724,77 @@ def csv_report(csv_rows: list[dict], current: list[dict], raw_by_year: dict[int,
             "unheld_detail": detail}
 
 
+def load_reviewed_categories(path: Path) -> set[str]:
+    """The reviewed history categories, from ``local_measure_context.py``
+    (trusted project code, loaded by path so ``python -I`` still works)."""
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location("local_measure_context", str(path))
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return {" ".join(value.split()).casefold()
+            for value in module.LOCAL_MEASURE_CATEGORY_CROSSWALK.values() if value}
+
+
+def cohort_report(all_rows: list[dict], raw_by_year: dict[int, list[dict]], categories: set[str],
+                  constant_years: set[int], before_year: int = 2026) -> dict:
+    """County history cohorts as the site computes them, and as raw gives them.
+
+    ``stored`` follows ``attach_local_historical_context``: active rows that
+    are not registrar rows, with ``passed`` 0 or 1, grouped by the stored
+    county (compared case-insensitively, so ``SAN BERNADINO`` is its own
+    county) and reviewed category. The two raw columns replace the CEDA rows
+    of every held year with the raw rows of that year: ``raw_per_row`` uses
+    each county's own ``PASSFAIL``, ``raw_combined`` uses ``passfail_sum``.
+    ``constant_years`` (years stored under the wrong key) keep their stored
+    rows in all three columns. Counties are those with registrar rows."""
+    def squeeze(value):
+        return " ".join(str(value or "").split()).casefold()
+
+    def registrar(row):
+        return str(row.get("data_source") or "").casefold().endswith("_county_registrar")
+
+    counties = sorted({squeeze(row["county"]) for row in all_rows if registrar(row)})
+    replaced = {year for year in raw_by_year if year not in constant_years}
+    table = collections.defaultdict(lambda: {"stored": [0, 0], "raw_per_row": [0, 0], "raw_combined": [0, 0]})
+    for row in all_rows:
+        if registrar(row) or row.get("passed") not in (0, 1) or row.get("is_duplicate") or row.get("is_active") == 0:
+            continue
+        county, category = squeeze(row["county"]), squeeze(row["category_type"])
+        try:
+            year = int(row["year"])
+        except (TypeError, ValueError):
+            continue
+        if county not in counties or category not in categories or year >= before_year:
+            continue
+        columns = ["stored"]
+        if not (row.get("data_source") == "CEDA" and year in replaced):
+            columns += ["raw_per_row", "raw_combined"]
+        for column in columns:
+            table[(county, category)][column][0] += row["passed"]
+            table[(county, category)][column][1] += 1
+    differing = []
+    for year in sorted(replaced):
+        for raw in raw_by_year[year]:
+            county, category = raw["county"].casefold(), raw["type_name"].casefold()
+            if county not in counties or category not in categories or year >= before_year:
+                continue
+            own, combined = outcome_of(raw["passfail"]), outcome_of(raw["passfail_sum"])
+            for column, outcome in (("raw_per_row", own), ("raw_combined", combined)):
+                if outcome in (0, 1):
+                    table[(county, category)][column][0] += outcome
+                    table[(county, category)][column][1] += 1
+            if own != combined:
+                differing.append({"year": year, "measure_id": raw["id"], "county": raw["county"],
+                                  "category": raw["type_name"], "place": raw["place"], "letter": raw["letter"],
+                                  "own": own, "combined": combined, "multi_co": raw["multi_co"], "req": raw["req"]})
+    return {
+        "counties": counties, "raw_years": sorted(replaced), "stored_years_kept": sorted(constant_years),
+        "cohorts": {f"{county} | {category}": values for (county, category), values in sorted(table.items())},
+        "own_and_combined_outcomes_differ": differing,
+    }
+
+
 _WORD = re.compile(r"[a-z]{5,}|\d[\d,.]*\d|\d")
 
 
@@ -614,6 +825,7 @@ def run(args) -> dict:
     current = ceda_rows(connection)
     stamp_by_source = dict(connection.execute(
         "SELECT data_source, COUNT(*) FROM measures WHERE updated_at LIKE ? GROUP BY 1", (args.stamp + "%",)).fetchall())
+    all_rows = [dict(row) for row in connection.execute("SELECT * FROM measures")]
     connection.close()
     db_by_year = collections.defaultdict(list)
     for row in current:
@@ -643,8 +855,19 @@ def run(args) -> dict:
         years[f"{year} (row held in another year's file)"] = result
 
     stamped = [row for row in current if str(row.get("updated_at") or "").startswith(args.stamp)]
+    compared = [e for e in entries.values() if "fields" in e]
     summary = {
         "db": str(args.db), "held_years": sorted(files), "years": years,
+        "tool_sha256": sha256_of(Path(__file__)),
+        "raw_files": {year: {"file": path.name, "sha256": sha256_of(path), "bytes": path.stat().st_size,
+                             "rows": len(raw_by_file_year[year])} for year, path in sorted(files.items())},
+        "repeated_ids": [item for data in years.values() for item in data["repeated_ids"]],
+        "unloaded_fields": dict(collections.Counter(f for e in compared for f in e["unloaded"])),
+        "match_rows_with_an_unloaded_field": sum(1 for e in compared if e["class"] == "match" and e["unloaded"]),
+        "placeholder_title_rows": sum(1 for e in compared if e["placeholder_title"]),
+        "format_only_by_placeholder_title_alone": sum(
+            1 for e in compared if e["class"] == "format_only" and e["placeholder_title"]
+            and [f for f, v in e["fields"].items() if v == FORMAT] == ["title"]),
         "totals": dict(collections.Counter(e["class"] for e in ledger) + collections.Counter(
             {"match": sum(1 for e in entries.values() if e["class"] == "match")})),
         "field_status": {field: dict(collections.Counter(
@@ -679,10 +902,57 @@ def run(args) -> dict:
     summary["wrong_rows_with_summary_text"] = sum(
         1 for r in current if entries.get(r["id"], {}).get("class") == "wrong_row" and clean_text(r.get("summary_text")))
 
+    baseline = None
     if args.baseline_db:
         base = open_readonly(Path(args.baseline_db))
         baseline = ceda_rows(base)
         base.close()
+    if args.csv:
+        csv_rows = load_csv(Path(args.csv))
+        conflicts = release_conflicts(csv_rows, [raw for raws in raw_by_year.values() for raw in raws],
+                                      current, baseline)
+        summary["release_conflicts"] = conflicts
+        for conflict in conflicts:
+            held_before = {item["id"]: item["identity"] for item in conflict["stored_in_baseline"]}
+            for item in conflict["stored"]:
+                entry = entries.get(item["id"])
+                if entry is None:
+                    continue
+                entry["release_conflict"] = {k: conflict[k] for k in ("raw", "csv", "identities_not_stored")}
+                if item["id"] in held_before and held_before[item["id"]] != item["identity"]:
+                    # The row held another measure in the baseline: it was
+                    # overwritten through the reused ID after the baseline.
+                    entry["class_before_id_check"] = entry["class"]
+                    entry["class"] = "id_reused"
+                    entry["baseline_identity"] = held_before[item["id"]]
+                    if entry not in ledger:
+                        ledger.append(entry)
+    summary["totals"] = dict(collections.Counter(e["class"] for e in entries.values())
+                             + collections.Counter(e["class"] for e in ledger if e["class"] == "missing_from_db"))
+    if args.context_module and Path(args.context_module).exists():
+        constant = {year for year, data in years.items() if isinstance(year, int) and data["key_mode"] == "group"}
+        summary["cohorts"] = cohort_report(all_rows, {y: r for y, r in raw_by_year.items() if y in files},
+                                           load_reviewed_categories(Path(args.context_module)), constant)
+    blocking = ("wrong_row", "wrong_key", "id_collision", "id_reused", "incomplete", "differs", "foreign",
+                "missing_from_db", "missing_from_raw")
+    # A waiver names one (year, ID) whose known defect is deferred by a
+    # recorded decision. It is echoed in the output, never applied silently.
+    waived = {tuple(item.split(":", 1)) for item in (args.waive or "").split(",") if ":" in item}
+    is_waived = lambda e: (str(e["year"]), str(e["measure_id"])) in waived
+    counts = collections.Counter(e["class"] for e in entries.values() if not is_waived(e))
+    counts["missing_from_db"] = sum(1 for e in ledger if e["class"] == "missing_from_db" and not is_waived(e))
+    summary["gate"] = {
+        "blocking": {name: counts[name] for name in blocking if counts[name]},
+        "repeated_ids": sum(1 for item in summary["repeated_ids"] if not item["resolved"] and not is_waived(item)),
+        "release_conflicts_with_an_identity_not_stored": sum(
+            1 for c in summary.get("release_conflicts", []) if c["identities_not_stored"] and not is_waived(c)),
+        "group_violations": sum(len(data.get("group_violations") or []) for data in years.values()),
+        "waived": sorted(":".join(item) for item in waived),
+    }
+    summary["gate"]["clean"] = not (summary["gate"]["blocking"] or summary["gate"]["repeated_ids"]
+                                    or summary["gate"]["release_conflicts_with_an_identity_not_stored"]
+                                    or summary["gate"]["group_violations"])
+    if baseline is not None:
         summary["baseline"] = baseline_report(current, baseline, entries)
         old = {row["id"]: row for row in baseline}
         # Summaries written from a sibling's question, on rows since repaired.
@@ -712,7 +982,7 @@ def run(args) -> dict:
         }
         ledger.extend({"class": "summary_from_sibling", **s} for s in suspect)
     if args.csv:
-        report = csv_report(load_csv(Path(args.csv)), current,
+        report = csv_report(csv_rows, current,
                             {y: r for y, r in raw_by_year.items() if y in files}, set(entries))
         ledger.extend({"class": "unheld_year_vs_csv", **d} for d in report.pop("unheld_detail"))
         summary["csv"] = report
@@ -729,6 +999,12 @@ def main(argv=None) -> int:
     parser.add_argument("--baseline-db", help="older database, to date the defect (opened mode=ro)")
     parser.add_argument("--csv", help="ceda_parsed.csv, a stand-in for years with no raw file")
     parser.add_argument("--stamp", default="2026-04-12 17:50:43", help="updated_at prefix to profile")
+    parser.add_argument("--context-module", default=str(here / "src" / "website" / "local_measure_context.py"),
+                        help="local_measure_context.py, for the reviewed cohort categories")
+    parser.add_argument("--gate", action="store_true",
+                        help="exit 1 unless the reconciliation is clean (for use after the P1b.2 repair)")
+    parser.add_argument("--waive", default="",
+                        help="comma-separated YEAR:MEASURE_ID keys whose defect a recorded decision defers")
     args = parser.parse_args(argv)
     before = sha256_of(Path(args.db))
     result = run(args)
@@ -742,7 +1018,10 @@ def main(argv=None) -> int:
         print(year, data["file_rows"], data["db_rows"], data["id_matched"], data["own_vote_mismatch"],
               data["outcome_flips"], data["classes"])
     print("totals", result["summary"]["totals"])
-    return 0 if before == result["summary"]["db_sha256_after"] else 2
+    print("gate", result["summary"]["gate"])
+    if before != result["summary"]["db_sha256_after"]:
+        return 2
+    return 1 if args.gate and not result["summary"]["gate"]["clean"] else 0
 
 
 if __name__ == "__main__":
