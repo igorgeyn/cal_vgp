@@ -3755,6 +3755,35 @@
             grid-column: 1 / -1;
         }
 
+        /* Official results link (election day onward) */
+        .measure-detail-links .official-results-row {
+            grid-column: 1 / -1;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 0.25rem 0.6rem;
+        }
+
+        .measure-detail-links .official-results-row a {
+            font-weight: 600;
+        }
+
+        .results-link-checked {
+            color: var(--text-tertiary);
+            font-size: 0.75rem;
+        }
+
+        .section-results-link {
+            color: var(--primary);
+            font-weight: 600;
+            overflow-wrap: anywhere;
+        }
+
+        .local-results-note {
+            display: block;
+            margin-top: 0.35rem;
+        }
+
         @media (max-width: 480px) {
             .measure-detail-links {
                 grid-template-columns: 1fr;
@@ -6786,28 +6815,6 @@
                     </svg>
                     List
                 </button>
-                <button class="view-btn" id="insightsView" onclick="setView('insights')" title="Insights: reported analysis from the data">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                        <rect x="4" y="12" width="3" height="8" rx="1"></rect>
-                        <rect x="10.5" y="7" width="3" height="13" rx="1"></rect>
-                        <rect x="17" y="3" width="3" height="17" rx="1"></rect>
-                    </svg>
-                    Insights
-                </button>
-                <button class="view-btn" id="exploreView" onclick="setView('explore')" title="Explore: topic × jurisdiction matrix">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                        <rect x="3" y="3" width="4" height="4" rx="1"></rect>
-                        <rect x="10" y="3" width="4" height="4" rx="1"></rect>
-                        <rect x="17" y="3" width="4" height="4" rx="1"></rect>
-                        <rect x="3" y="10" width="4" height="4" rx="1"></rect>
-                        <rect x="10" y="10" width="4" height="4" rx="1"></rect>
-                        <rect x="17" y="10" width="4" height="4" rx="1"></rect>
-                        <rect x="3" y="17" width="4" height="4" rx="1"></rect>
-                        <rect x="10" y="17" width="4" height="4" rx="1"></rect>
-                        <rect x="17" y="17" width="4" height="4" rx="1"></rect>
-                    </svg>
-                    Explore
-                </button>
                 <button class="view-btn" onclick="openAboutModal()" title="About CalBallot: data sources and methodology">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <circle cx="12" cy="12" r="9"></circle>
@@ -6928,38 +6935,6 @@
                     <div class="view-card-text">
                         <span class="view-card-title">List</span>
                         <span class="view-card-desc">Compact list for quick scanning</span>
-                    </div>
-                </button>
-                <button class="view-card" id="insightsViewCard" onclick="setView('insights')">
-                    <div class="view-card-icon">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                            <rect x="4" y="12" width="3.5" height="8" rx="1"></rect>
-                            <rect x="10.25" y="7" width="3.5" height="13" rx="1"></rect>
-                            <rect x="16.5" y="3" width="3.5" height="17" rx="1"></rect>
-                        </svg>
-                    </div>
-                    <div class="view-card-text">
-                        <span class="view-card-title">Insights</span>
-                        <span class="view-card-desc">Reported analysis from the full dataset</span>
-                    </div>
-                </button>
-                <button class="view-card" id="exploreViewCard" onclick="setView('explore')">
-                    <div class="view-card-icon">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                            <rect x="3" y="3" width="5" height="5" rx="1"></rect>
-                            <rect x="10" y="3" width="5" height="5" rx="1"></rect>
-                            <rect x="17" y="3" width="5" height="5" rx="1"></rect>
-                            <rect x="3" y="10" width="5" height="5" rx="1"></rect>
-                            <rect x="10" y="10" width="5" height="5" rx="1"></rect>
-                            <rect x="17" y="10" width="5" height="5" rx="1"></rect>
-                            <rect x="3" y="17" width="5" height="5" rx="1"></rect>
-                            <rect x="10" y="17" width="5" height="5" rx="1"></rect>
-                            <rect x="17" y="17" width="5" height="5" rx="1"></rect>
-                        </svg>
-                    </div>
-                    <div class="view-card-text">
-                        <span class="view-card-title">Explore</span>
-                        <span class="view-card-desc">Pass-rate matrix by topic or measure type</span>
                     </div>
                 </button>
             </div>
@@ -7461,8 +7436,6 @@
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(19rem, 100%), 1fr)); gap: 0.55rem 2.5rem; font-size: 0.88rem; color: var(--text-secondary); max-width: 48rem;">
                     <span><strong style="color: var(--primary);">Search</strong> &mdash; look up any measure by title, topic, or year</span>
                     <span><strong style="color: var(--primary);">Grid / List</strong> &mdash; browse and filter the full catalog</span>
-                    <span><strong style="color: var(--primary);">Insights</strong> &mdash; trends and analysis from the data</span>
-                    <span><strong style="color: var(--primary);">Explore</strong> &mdash; pass rates by topic and jurisdiction</span>
                     <span><strong style="color: var(--primary);">Ask AI</strong> &mdash; query the data in plain English (bring your own key)</span>
                 </div>
                 <p style="margin: 0.9rem 0 0 0; font-size: 0.85rem;"><a href="#" onclick="openAboutModal(); return false;" style="color: var(--primary); font-weight: 600; text-decoration: none;">How this works &mdash; data sources &amp; methodology &rarr;</a></p>
@@ -7501,7 +7474,7 @@
 
     <!-- Footer -->
     <footer class="footer">
-        <p>CalBallot • Data last updated October 08, 2026</p>
+        <p>CalBallot • Data last updated November 12, 2026</p>
         <p>Data sources: CA Secretary of State, NCSL, ICPSR, CEDA</p>
         <p class="footer-links">
             <a href="#" onclick="openAboutModal(); return false;">About</a> &bull;
@@ -7875,6 +7848,56 @@
                 });
             });
             syncBrowseNavigation();
+        }
+
+        
+        const DATE_DRIVEN_STATUSES = ['upcoming', 'election_day', 'results_pending'];
+        const ELECTION_STATUS_LABELS = {
+            upcoming: 'Upcoming',
+            election_day: 'Election day',
+            results_pending: 'Results pending',
+            passed: 'Passed',
+            failed: 'Failed',
+            withdrawn: 'Withdrawn',
+            unknown: 'Result unknown'
+        };
+
+        function pacificToday() {
+            try {
+                const parts = new Intl.DateTimeFormat('en-US', {
+                    timeZone: 'America/Los_Angeles', year: 'numeric', month: '2-digit', day: '2-digit'
+                }).formatToParts(new Date());
+                const value = type => parts.find(part => part.type === type).value;
+                return `${value('year')}-${value('month')}-${value('day')}`;
+            } catch (error) {
+                return null;
+            }
+        }
+
+        function getElectionStatus(measure, today = pacificToday()) {
+            if (!measure) return 'unknown';
+            if (measure.ballot_status === 'withdrawn') return 'withdrawn';
+            if (measure.passed === 1) return 'passed';
+            if (measure.passed === 0) return 'failed';
+            const built = measure.election_status;
+            if (!DATE_DRIVEN_STATUSES.includes(built)) return 'unknown';
+            const electionDate = /^\d{4}-\d{2}-\d{2}$/.test(measure.election_date || '') ? measure.election_date : null;
+            if (!electionDate || !/^\d{4}-\d{2}-\d{2}$/.test(today || '')) return built;
+            const byDate = today < electionDate ? 'upcoming' : (today === electionDate ? 'election_day' : 'results_pending');
+            // The reader's clock may only move a status forward from the build.
+            return DATE_DRIVEN_STATUSES.indexOf(byDate) > DATE_DRIVEN_STATUSES.indexOf(built) ? byDate : built;
+        }
+
+        function getElectionStatusLabel(status) {
+            return ELECTION_STATUS_LABELS[status] || ELECTION_STATUS_LABELS.unknown;
+        }
+
+        function formatElectionDate(value) {
+            const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value || '');
+            if (!match) return '';
+            const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July',
+                            'August', 'September', 'October', 'November', 'December'];
+            return `${months[Number(match[2]) - 1]} ${Number(match[3])}, ${match[1]}`;
         }
 
 
@@ -8485,7 +8508,7 @@
             const initialMeasureLink = window.location.hash.match(/^#m=(\d+)/);
             initializeBrowseNavigation();
             try {
-                const resp = await fetch('measures-data.json?v=1921e5d463a450b5d0d0', {cache: 'no-cache'});
+                const resp = await fetch('measures-data.json?v=96424c3cf4082431ae0c', {cache: 'no-cache'});
                 if (!resp.ok) throw new Error('HTTP ' + resp.status);
                 allMeasures = await resp.json();
             } catch (err) {
@@ -9844,6 +9867,51 @@
             displayResults();
         }
 
+        // Calendar refresh: statuses are rendered once, so an open page must
+        // re-render them when the California date changes (review R1).
+        let measureDetailCurrent = null;
+        let renderedPacificDate = pacificToday();
+
+        function refreshOpenMeasureStatus() {
+            const modal = document.getElementById('measureDetailModal');
+            const measure = measureDetailCurrent;
+            if (!modal || modal.style.display === 'none' || !measure || !isPendingMeasure(measure)) return;
+            const badge = document.querySelector('#modalBadges .badge-pending');
+            if (badge) badge.textContent = pendingBadgeText(measure);
+            const links = document.getElementById('modalLinks');
+            if (!links) return;
+            const resultsLink = officialResultsLinkHtml(measure, 'official-results-link');
+            const row = links.querySelector('.official-results-row');
+            if (resultsLink && !row) {
+                links.insertAdjacentHTML('afterbegin', `<div class="official-results-row">${resultsLink}</div>`);
+            } else if (!resultsLink && row) {
+                row.remove();
+            }
+            const note = links.querySelector('.pending-disclaimer');
+            if (note) note.innerHTML = `<strong>Note:</strong> ${escapeHtml(pendingStatusNote(measure))}`;
+        }
+
+        function refreshCalendarStatuses() {
+            const today = pacificToday();
+            if (!today || today === renderedPacificDate) return;
+            renderedPacificDate = today;
+            if (!allMeasures.some(isPendingMeasure)) return;
+            const hero = document.getElementById('heroSection');
+            if (hero && hero.dataset.rendered) {
+                const savedIndex = heroCarouselIndex;
+                displayHero();  // also re-renders the local section and both section notes
+                heroCarouselIndex = Math.min(savedIndex, getHeroCarouselMaxIndex());
+            }
+            if (currentView === 'grid' || currentView === 'list') displayResults();
+            refreshOpenMeasureStatus();
+        }
+
+        setInterval(refreshCalendarStatuses, 60 * 1000);
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') refreshCalendarStatuses();
+        });
+        window.addEventListener('focus', refreshCalendarStatuses);
+
         // Hero Carousel state
         let heroCarouselIndex = 0;
         let heroCarouselItemsPerView = 3;
@@ -9869,6 +9937,10 @@
             if (statewideSourceNote) {
                 const guide = heroMeasures.find(m => m.statewide_guide)?.statewide_guide;
                 statewideSourceNote.textContent = guide ? `November 3, 2026 · Official guide, fiscal analysis, arguments and campaign finance · Sources captured ${guide.sources.overview.captured_at.slice(0, 10)}` : '';
+                const resultsMeasure = heroMeasures.find(m => officialResultsLinkHtml(m));
+                if (resultsMeasure) {
+                    statewideSourceNote.insertAdjacentHTML('beforeend', `${guide ? ' · ' : ''}${officialResultsLinkHtml(resultsMeasure, 'section-results-link')}`);
+                }
             }
             renderLocalMeasures();
 
@@ -10059,10 +10131,11 @@
             }
 
             const countyLabels = groups.map(group => `${group.county} County`);
-            scopeTarget.innerHTML = `<strong>Currently captured:</strong> ${escapeHtml(countyLabels.join(', '))}.
-                These are county-scoped official records, not a complete address-specific ballot.`;
-
             const selectedGroup = groups.find(group => group.county === selectedLocalCounty) || groups[0];
+            const countyResults = officialResultsLinkHtml(selectedGroup.measures.find(m => m.official_results), 'section-results-link');
+            scopeTarget.innerHTML = `<strong>Currently captured:</strong> ${escapeHtml(countyLabels.join(', '))}.
+                These are county-scoped official records, not a complete address-specific ballot.${countyResults ? ` <span class="local-results-note">${countyResults}</span>` : ''}`;
+
             localCarouselMeasures = selectedGroup.measures;
             countTarget.textContent = `${localCarouselMeasures.length.toLocaleString()} measure${localCarouselMeasures.length === 1 ? '' : 's'}`;
             updateLocalCarouselItemsPerView();
@@ -10093,8 +10166,6 @@
                     Historical rates use recorded pass/fail outcomes for the same county and measure type.
                     Comparisons are not matched by voting rules or purpose and do not predict this election.
                     Vote thresholds in these cards come from the named county election office.
-                    The historical <a class="local-rules-link" href="#insightsRulesPanel" onclick="openRulesFromLocalMeasures(event)">Rules insight</a>
-                    also includes derived threshold fields with known cases still under review.
                 </p>
             `;
             requestAnimationFrame(updateLocalCarouselPosition);
@@ -13212,11 +13283,50 @@
             return documents;
         }
 
-        // Check if measure is pending (2026 or later, no vote data)
+        // Check if measure is pending: its status depends on the calendar
+        // (upcoming, election day, or voted with no result recorded yet).
         function isPendingMeasure(measure) {
-            if (measure.ballot_status === 'withdrawn') return false;
-            const year = parseInt(measure.year);
-            return year >= 2026 || (measure.passed !== 1 && measure.passed !== 0 && !measure.percent_yes);
+            return DATE_DRIVEN_STATUSES.includes(getElectionStatus(measure));
+        }
+
+        function formatCheckedDate(value) {
+            const moment = new Date(value || '');
+            if (Number.isNaN(moment.getTime())) return '';
+            try {
+                return moment.toLocaleDateString('en-US', { timeZone: 'America/Los_Angeles', month: 'long', day: 'numeric', year: 'numeric' });
+            } catch (error) {
+                return '';
+            }
+        }
+
+        // Official results link, shown from election day on, only when the
+        // link's newest recorded check succeeded (attached at build time).
+        function officialResultsLinkHtml(measure, className = '') {
+            const result = measure && measure.official_results;
+            const status = getElectionStatus(measure);
+            if (!result || !['election_day', 'results_pending'].includes(status)) return '';
+            const url = sanitizeUrl(result.url);
+            if (!url || url === '#') return '';
+            const checked = formatCheckedDate(result.checked_at);
+            if (!checked) return '';
+            return `<a class="${escapeAttr(className)}" href="${escapeAttr(url)}" target="_blank" rel="noopener noreferrer">Official results: ${escapeHtml(result.publisher)}</a> <span class="results-link-checked">(link checked ${escapeHtml(checked)})</span>`;
+        }
+
+        function pendingBadgeText(measure) {
+            const status = getElectionStatus(measure);
+            return `⏳ ${status === 'upcoming' ? 'Upcoming election' : getElectionStatusLabel(status)}`;
+        }
+
+        function pendingStatusNote(measure) {
+            const status = getElectionStatus(measure);
+            const when = formatElectionDate(measure.election_date);
+            if (status === 'election_day') {
+                return `Election day${when ? ': ' + when : ''}. CalBallot does not report live counts; official results are linked when available.`;
+            }
+            if (status === 'results_pending') {
+                return `Voting ended${when ? ' ' + when : ''}. CalBallot has not recorded a result for this measure yet; official results are linked when available.`;
+            }
+            return 'This measure is pending and has not yet been voted on. Information may be updated as official details become available.';
         }
 
         // Timeline stages for ballot measures
@@ -13337,9 +13447,11 @@
             const passed = measure.passed;
             const isPending = isPendingMeasure(measure);
 
-            // Pending measures get special status display
+            // Pending measures get special status display. A row with no
+            // outcome that does not depend on the date (e.g. stored votes but no
+            // normalized result) is "Result unknown", never "Pending".
             const passedClass = measure.ballot_status === 'withdrawn' ? 'neutral' : isPending ? 'pending' : (passed === 1 ? 'passed' : passed === 0 ? 'failed' : 'pending');
-            const passedText = measure.ballot_status === 'withdrawn' ? 'Withdrawn' : isPending ? '⏳ Upcoming' : (passed === 1 ? '✓ Passed' : passed === 0 ? '✗ Failed' : '• Pending');
+            const passedText = measure.ballot_status === 'withdrawn' ? 'Withdrawn' : isPending ? `⏳ ${getElectionStatusLabel(getElectionStatus(measure))}` : (passed === 1 ? '✓ Passed' : passed === 0 ? '✗ Failed' : `• ${getElectionStatusLabel('unknown')}`);
 
             // Description / summary preview — kept for all card variants
             // per Igor's pushback on v1's "cut descriptions entirely"
@@ -13399,7 +13511,7 @@
             if (percentYes != null && !isPending) metaItems.push(`${Math.round(percentYes)}% Yes`);
             if (topic) metaItems.push(escapeHtml(topic));
             if (source) metaItems.push(escapeHtml(source));
-            if (isPending && !metaItems.length) metaItems.push('Election pending');
+            if (isPending && !metaItems.length) metaItems.push(getElectionStatusLabel(getElectionStatus(measure)));
 
             // Use data attribute + index lookup instead of serializing entire object into onclick
             const mIdx = allMeasures.indexOf(measure);
@@ -13426,7 +13538,7 @@
             const year = measure.year || 'Unknown';
             const passed = measure.passed;
             const passedClass = passed === 1 ? 'passed' : passed === 0 ? 'failed' : 'pending';
-            const passedText = measure.ballot_status === 'withdrawn' ? 'Withdrawn' : passed === 1 ? '✓' : passed === 0 ? '✗' : isPendingMeasure(measure) ? 'Upcoming' : '?';
+            const passedText = measure.ballot_status === 'withdrawn' ? 'Withdrawn' : passed === 1 ? '✓' : passed === 0 ? '✗' : isPendingMeasure(measure) ? getElectionStatusLabel(getElectionStatus(measure)) : '?';
             
             const mIdx = allMeasures.indexOf(measure);
             return `
@@ -13450,6 +13562,7 @@
         
         // View measure details in modal
         function viewMeasure(measure) {
+            measureDetailCurrent = measure;
             // Shareable permalink for this measure
             if (measure && measure.id != null) {
                 if (!window.location.hash.startsWith('#m=')) measureReturnURL = window.location.href;
@@ -13483,10 +13596,10 @@
             if (measure.ballot_status === 'withdrawn') {
                 badgesHtml.push('<span class="badge badge-neutral">Withdrawn</span>');
             } else if (isPending) {
-                badgesHtml.push(`<span class="badge badge-pending">⏳ Upcoming Election</span>`);
+                badgesHtml.push(`<span class="badge badge-pending">${escapeHtml(pendingBadgeText(measure))}</span>`);
             } else {
                 const passedClass = passed === 1 ? 'passed' : passed === 0 ? 'failed' : 'pending';
-                const passedText = passed === 1 ? '✓ Passed' : passed === 0 ? '✗ Failed' : '• Unknown';
+                const passedText = passed === 1 ? '✓ Passed' : passed === 0 ? '✗ Failed' : `• ${getElectionStatusLabel('unknown')}`;
                 badgesHtml.push(`<span class="badge badge-${passedClass}">${passedText}</span>`);
             }
 
@@ -13697,6 +13810,8 @@
             // Links section
             const linksContainer = document.getElementById('modalLinks');
             const links = [];
+            const resultsLink = officialResultsLinkHtml(measure, 'official-results-link');
+            if (resultsLink) links.push(`<div class="official-results-row">${resultsLink}</div>`);
 
             // Add generated external links first (higher quality)
             // Descriptive labels for link sources
@@ -13760,7 +13875,7 @@
             }
 
             // For pending measures, add helpful official source links
-            if (isPending && links.length === 0) {
+            if (isPending && links.length === (resultsLink ? 1 : 0)) {
                 links.push(`<a href="https://www.sos.ca.gov/elections/ballot-measures" target="_blank" rel="noopener noreferrer">🏛️ <span class="link-label">Official Status</span> <span class="link-source">(CA SOS)</span></a>`);
                 links.push(`<a href="https://lao.ca.gov/BallotAnalysis" target="_blank" rel="noopener noreferrer">📊 <span class="link-label">Fiscal Analysis</span> <span class="link-source">(CA LAO)</span></a>`);
                 links.push(`<a href="https://leginfo.legislature.ca.gov/" target="_blank" rel="noopener noreferrer">📜 <span class="link-label">Bill Details</span> <span class="link-source">(Legislature)</span></a>`);
@@ -13837,7 +13952,7 @@
 
             // Add pending disclaimer
             if (isPending) {
-                links.push(`<div class="pending-disclaimer"><strong>Note:</strong> This measure is pending and has not yet been voted on. Information may be updated as official details become available.</div>`);
+                links.push(`<div class="pending-disclaimer"><strong>Note:</strong> ${escapeHtml(pendingStatusNote(measure))}</div>`);
             }
 
             linksContainer.innerHTML = links.join('');
@@ -13897,6 +14012,7 @@
                 history.replaceState(null, '', measureReturnURL || window.location.pathname + window.location.search);
             }
             measureReturnURL = null;
+            measureDetailCurrent = null;
         }
 
         // Toggle summary truncation
@@ -13914,6 +14030,8 @@
 
         // Set view mode
         function setView(view) {
+            if (view === 'insights' && !false) view = 'grid';
+            if (view === 'explore' && !false) view = 'grid';
             currentView = view;
             // Set default items per page based on view
             if (view === 'grid') {
