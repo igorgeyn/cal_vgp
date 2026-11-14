@@ -17,8 +17,11 @@ pointing it at). GitHub: https://github.com/igorgeyn/cal_vgp.
 ## Where to look first
 
 1. **[`docs/WORKING_LIST.md`](docs/WORKING_LIST.md)** — canonical
-   cross-machine resume point. Where we left off + next chunk
-   + per-area backlog. Read this before doing anything new.
+   cross-machine resume point: the single ranked index of pending
+   work (Now / Next / Waiting on Igor / Paused / Later), linking to
+   the trackers that hold detail. Read this before doing anything
+   new, and update it at every chunk boundary. The pre-November log
+   is in [`docs/WORKING_LIST_HISTORY.md`](docs/WORKING_LIST_HISTORY.md).
 2. **[`docs/LESSONS_LEARNED.md`](docs/LESSONS_LEARNED.md)** —
    pitfalls catalog. Past traps that would otherwise re-spring.
    Read this when touching anything substantive.
