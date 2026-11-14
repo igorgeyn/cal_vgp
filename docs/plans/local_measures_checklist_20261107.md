@@ -24,18 +24,24 @@ and the live site are unchanged.
 |---|---|---|---|---|
 | **P0.1** | One status rule on every surface; official results links | **Complete** | Codex: [R1–R6 closed; ready for current scope](../codex/p0_1_status_review_response.md#re-review); Igor P0.1.15 done Nov 11; R7 deferred to P2.0 | [P0.1 handoff](#p01-handoff), [dispositions](#p01-review-dispositions) |
 | P0.2 | History list: stop naming the county as every record's jurisdiction; with P0.2b (Igor approved Nov 11) and P2.0 (R7) | **Built** (agent A; merged as `6fe4f565`..`e0db6d60`): only the 40 history pages change, and only in their 200 history labels; card and modal read "Result unknown"; checker fixed for R7. 155 targeted tests pass; browser checks 0 failures | Reviewed by a Claude agent (Codex at usage limit), [response](../codex/p0_2_review_response.md): P0.2 ready with changes (N1: placeholder preview line still names the county on 171 of 200 links); P0.2b ready; P2.0 ready with changes (N2: `--transition-to` crashes when no statewide row is date-driven). N1 must land before release | prompt has the full evidence |
-| P0.3 | Release candidate: strict build, page diff, browser checks, recovery bundle | **Candidate `candidate-b` built and verified** at `41502ab6` (Insights hidden, Igor 2026-11-12), as of 2026-11-12: 63 current pages change, 12,309 identical; all browser checks 0 failures. Recovery bundle/R2 and publish wait for Igor's go | | Evidence: `scraper/data/county_content/20261112_p0/` (gitignored) |
-| P0.4 | **Igor** go; publish; served-byte and live checks; receipt | Not started | | |
+| P0.3 | Release candidate: strict build, page diff, browser checks, recovery bundle | **Done.** Final candidate `candidate-d` at `f2cc8a1d` (Insights and Explore hidden). Recovery update `2728598b…` restore-verified and stored in private R2 with read-back | | Evidence: `scraper/data/county_content/20261112_p0/` (gitignored) |
+| P0.4 | **Igor** go; publish; served-byte and live checks; receipt | **Published November 12, 2026**: [PR #9](https://github.com/igorgeyn/cal_vgp/pull/9), merge `4d1a0b3f`, [Pages run](https://github.com/igorgeyn/cal_vgp/actions/runs/43350957693). 71 served files match the tested bytes; live checks pass at 1440/390 | | `docs/plans/release_p0_status_20261112.md` (on `main`); `deployment-verification.json` |
 | P1.1 | County source census: schema and the 10 largest counties | **Built** (agent B): 159 distinct measures confirmed from official pages in 7 counties; Riverside, Santa Clara and Contra Costa still blocked; **SF newly 403** on its results hosts | Codex `e008d60f`: ready with changes as a research census; not yet a capture input. Fixes in P1.1a | [census note](county_census_20261111.md), `scraper/data/census/county_sources_2026.json` |
 | P1.2 | Generic capture tool (URL list into immutable R2 snapshots) | Not started | | |
 | P1.3 | Census and capture for the remaining counties | Not started | | |
 | P1.4 | Watch the November 9 registrar cron (SMC rollover risk) | **Done**: run succeeded | | P1.4 below |
 | P1b.1 | Download the 22 missing CEDA years; column check | **Built** (agent C): 16 of 22 years downloaded (1998-2014, via Internet Archive copies of csus.edu/isr); every backfill field exists in all 21 files held. **2016-2021: Igor to download by hand** from the CSUS Esploro page. New defects: 2014 keyed on the wrong ID; 28 rows with another measure's votes; one foreign 2002 row | Reviewed by a Claude agent (Codex at usage limit), [response](../codex/p1b_1_ceda_review_response.md): diagnosis accurate, but **P1b.2 must not start as specified**. 157 rows were overwritten last-write-wins on (year, county, letter) in one 2026-04-12 batch; KNOWN_ISSUES #1's evidence points the other way (`REQ=T` miscoded, per-row `PASSFAIL` likely right); the 2014 remap needs a two-phase transaction plus embeddings/research keyed on the same IDs. Archived files OK for development, not as source of record | [column check](ceda_column_check_20261111.md) |
 | P1b.1b | Read-only reconciliation of every held-year CEDA row against raw; cause of the wrong rows; P1b.2 design | **Built** (Fable, uncommitted): 8,477 rows compared. 6,169 match, 1,702 differ only in form, 28 wrong rows, 55 incomplete, 521 wrong key, 29 missing, 1 foreign. **The wrong rows date from the first load on July 31, 2025, not April 12, 2026**; April 12 repaired 1,049 of 1,077 overwritten rows and missed 157. San Bernardino GO bond rate is 65% on raw, not 69%. Production DB hash unchanged (`ef1359e4…`) | Reviewed by a Claude agent (Codex at usage limit), [response](../codex/p1b_1b_reconciliation_review_response.md): report **ready with changes**, all headline numbers reproduced independently. **New defect: id 4870**, Santa Cruz 2016 Measure D overwritten on 2026-04-28 by Measure P (reused CEDA ID). The 157 rows were dropped by `UNIQUE(year, measure_id, data_source)` (simulation reproduces 9,391 / 1,330 / 188). Design ready with changes: Layer 1 vs step 7 conflict, tool not yet a P1b.2 gate (2014 mode, same-ID overwrite, no raw hashes), stale derived fields, `measure_search` sync | [report](ceda_reconciliation_20261112.md), [design](ceda_backfill_design_20261112.md) |
-| P1b.2 | Backfill on a database copy (combined results, names, questions, thresholds) | Not started; **waits on Igor's five decisions** in the [design](ceda_backfill_design_20261112.md#6-decisions-for-igor) **and on Fable revising the tool and design** for the review's findings 2-6 | | |
+| P1b.2 | Backfill on a database copy (combined results, names, questions, thresholds) | Not started. Igor's five decisions answered; Fable revised the tool (27 tests, `--gate`), report and design. **Paused by Igor until Explore is done.** Revision re-reviewed ([response](../codex/p1b_1b_revision_review_response.md)): report ready; tool and design ready with changes (N1 gate can't pass after step 8, so keep `passed` per county and add `combined_passed`; N2 waivers too broad; N4 schema rebuild must drop views; N5 search-index checks can't fail; N6 no "unverified" mark exists; N7 2014 rekey vs `measure_id`-keyed code and embeddings; N11 Measure P's source is doubtful). Igor's five new questions in the [design](ceda_backfill_design_20261112.md#12-new-questions-for-igor) still open | | |
 | P1b.3 | Verification layers; changed-outcome list for **Igor** | Not started | | |
 | P1b.4 | Release of the repaired history | Not started | | |
-| P2.x | Results for the 63 (importers, observations, multi-county rule) | Outline below | | |
+| P2.design | Results-import design (Fable) | **Written** [design](results_import_design_20261113.md): append-only hash-chained ledger file; certified-only writes to `measures`; reviewed contest mapping; multi-county = CEDA model (ids 12418, 12421, 12442). Unproofread (Fable hit its limit) | Codex ([response](../codex/p2_results_design_review_response.md), `3b76947e`): **ready with changes**. R1 multi-county precedence vs `election_status.py`; R2 no public precinct CSV fixture; R3-R5 correction identity, source-order selection, tamper evidence, evidence-bound mapping; R6-R7 derived totals and executable rules; R8 per-capture folders. New order: a0, then a1/b, then c-core (with certification rehearsals), then an optional unofficial release, then d | Igor answered all 8 on November 13 (#8 per Codex: no public CSV fixture); recorded in `docs/WORKING_LIST.md` |
+| P2.a0 | Rules-and-evidence contract (design revised in place) | **Written** by Fable: one outcome function (multi-county answers only from the whole contest), content-addressed observation identity with supersession, reviewed selection file pinned to the ledger, per-capture folders with a manifest written last, (a1)/(b) interfaces and failure matrix | Codex [re-review](../codex/p2_a0_review_prompt.md) pending | 6 open questions (design §10) |
+| P2.a1 | Ledger and SOS: `contract.py`, capture registration, ledger, validators, SOS parser, 14 statewide entries | Not started (Fable) | | after (a0) is accepted |
+| P2.b | Counties: SB and SMC parsers, 49 entries with evidence, 3 groups, a synthetic CSV fixture | Not started (Claude agent, parallel with a1) | | needs Igor's first xlsx, CSV and summary PDF |
+| P2.c-core | Projection: outcome module, every consumer, field transport, result rendering, certification rehearsals | Not started (Codex + Fable). Before Explore E2c; gate 2026 outcomes out of Explore until certified | | |
+| P2.c-release | Optional unofficial release | Not started; cut-off Nov 26 | | Igor's go |
+| P2.d | Certification: captures, evidence, derived totals, projection on a copy, link recheck, release | Not started; from Dec 4 | | |
 | P3.x | Layout (Direction A, result state, tab design) | Codex reviewed `0b6e78f2`: ready with changes (F1–F7; 6-chunk order, first = date-aware local directory). See [response](../codex/layout_direction_a_review_response.md) | | |
 | P3b.x | Results and comparisons tab | Outline below | | |
 | P4-P6 | Harvest waves, certification sweep | Outline below | | |
@@ -259,9 +265,28 @@ for the whole interval.
 
 ### P0.4 Publish
 
-- [ ] **Igor** go-ahead.
-- [ ] Merge and publish the root pair and pages as one revision.
-- [ ] Served-byte hashes match the tested build; live desktop and mobile checks; receipt.
+- [x] **Igor** go-ahead (November 12, 2026: "go ahead and ship the release").
+- [x] Published from `release/p0-status-20261112` (code `f2cc8a1d` plus the promoted public files,
+  `537c9e50`) via [PR #9](https://github.com/igorgeyn/cal_vgp/pull/9); merge `4d1a0b3f`. The
+  release branch was cut at `f2cc8a1d` so Codex's in-progress "Honest Explore" edits stayed out.
+- [x] Served bytes: 71 files (index, JSON, sitemap, use-calballot, all 63 changed pages and 4
+  unchanged pages) match the tested build. Live at 1440/390: 63 current rows read Results
+  pending, Insights/Explore absent and `setView('explore')` falls back to Grid, history labels
+  fixed on 12437, "Result unknown" on 6103, no overflow, no page errors.
+- [ ] Merge `main` back into `phase0-election-status` once Codex's E1 work is committed, so the
+  branch's root files match production.
+
+## Explore renovation (plan: [explore_renovation_plan_20261112.md](explore_renovation_plan_20261112.md))
+
+| Chunk | Scope | Status | Review | Evidence |
+|---|---|---|---|---|
+| E0 | Hide Explore (flag) | **Done** `f2cc8a1d`; published in PR #9 | (part of the P0 release) | |
+| E1 | Honest Explore | **Built** by Codex (`8029d2e9`); **fix pass** by the coordinator after both reviews (`a496421c`): levels separated, counts only under County/Status filters, difference metric and decade bars removed, real-year labels, coverage names the 63 current measures. All pages identical, Grid/List identical, all browser checks pass, 760 tests | Claude reviewer and Fable: both ready with changes (addressed). Codex fix-pass review `3c426967` (N1 blocker) → fix pass 2 `2eeeca57` → Codex recheck `2a06d4ba`: **ready to release** | [handoff](explore_e1_handoff_20261113.md); `scraper/data/exports/explore_e1_20261113/` |
+| E2c | Layout (transpose), phones, trend: **first** | Not started | | |
+| E2a | URL state + keyboard | Not started | | |
+| E2b | Table semantics | Not started | | |
+| E3 | After P1b: multi-county, required vote, county rows, cohort list | Not started | | |
+| E4 | Concept design (D4/D5) | Not started | | |
 
 ## Phase 1: freeze the sources (outline)
 

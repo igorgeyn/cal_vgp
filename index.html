@@ -297,46 +297,6 @@
             border-color: var(--primary);
             color: #111;
         }
-        .matrix-insight-strip {
-            display: grid;
-            gap: 0.65rem;
-            grid-template-columns: repeat(4, minmax(0, 1fr));
-            padding: 0.75rem;
-            border-bottom: 1px solid #E5E0D8;
-            background: #FFFDF8;
-        }
-        .matrix-insight-card {
-            border: 1px solid #E6DDCC;
-            border-radius: 8px;
-            background: #FFFFFF;
-            padding: 0.7rem 0.8rem;
-            min-width: 0;
-        }
-        .matrix-insight-card span {
-            color: #756B5B;
-            display: block;
-            font-size: 0.68rem;
-            font-weight: 800;
-            letter-spacing: 0.04em;
-            margin-bottom: 0.3rem;
-            text-transform: uppercase;
-        }
-        .matrix-insight-card strong {
-            color: #16120B;
-            display: block;
-            font-size: 0.95rem;
-            line-height: 1.18;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
-        .matrix-insight-card em {
-            color: #6F6656;
-            display: block;
-            font-size: 0.74rem;
-            font-style: normal;
-            margin-top: 0.28rem;
-        }
         .matrix-toolbar-group {
             align-items: center;
             display: inline-flex;
@@ -361,15 +321,6 @@
         .matrix-legend-label {
             color: #666;
         }
-        .matrix-legend-bar {
-            display: flex;
-            height: 10px;
-            width: 78px;
-            border-radius: 6px;
-            overflow: hidden;
-            box-shadow: inset 0 1px 2px rgba(0,0,0,0.1);
-        }
-        .matrix-legend-bar span { flex: 1; }
         .matrix-top-scroll {
             height: 16px;
             overflow-x: auto;
@@ -472,22 +423,6 @@
             z-index: 10;
             position: relative;
         }
-        .matrix-cell.low-conf {
-            opacity: 0.6;
-        }
-        .matrix-cell.limited-conf {
-            opacity: 0.82;
-        }
-        .matrix-cell.low-conf .cell-rate {
-            font-size: 0.7rem;
-        }
-        .matrix-cell .cell-note {
-            display: block;
-            font-size: 0.54rem;
-            font-weight: 700;
-            color: rgba(255,255,255,0.82);
-            margin-top: 1px;
-        }
         .matrix-cell .cell-rate {
             font-weight: 700;
             font-size: 0.82rem;
@@ -501,39 +436,6 @@
             display: block;
             margin-top: 1px;
             font-weight: 500;
-        }
-        .matrix-cell.empty-cell {
-            background: #F0EDE8 !important;
-            color: #BBB;
-            cursor: default;
-        }
-        .matrix-cell.empty-cell .cell-rate {
-            color: #BBB;
-            text-shadow: none;
-            font-weight: 500;
-        }
-        .matrix-cell.empty-cell:hover {
-            transform: none;
-            box-shadow: none;
-        }
-        .matrix-totals td {
-            background: #333 !important;
-            font-weight: 600;
-            border-radius: 8px;
-        }
-        .matrix-totals td .cell-rate {
-            color: var(--primary);
-            display: block;
-        }
-        .matrix-totals td .cell-count {
-            display: block;
-            font-size: 0.65rem;
-            color: rgba(255,255,255,0.75);
-        }
-        .matrix-totals td:first-child {
-            background: transparent !important;
-            color: #666;
-            font-weight: 600;
         }
         .matrix-modal-metrics {
             display: grid;
@@ -4817,9 +4719,6 @@
         }
 
         @media (max-width: 768px) {
-            .matrix-insight-strip {
-                grid-template-columns: 1fr;
-            }
             .matrix-modal-metrics {
                 grid-template-columns: repeat(2, minmax(0, 1fr));
             }
@@ -6775,6 +6674,36 @@
             .results-list .measure-list-item > div:last-child { grid-column: 2; text-align: left !important; }
         }
 
+/* Explore E1: contained scrolling, readable counts and one neutral hue. */
+.matrix-wrapper { min-width: 0; max-width: 100%; color: #172934; }
+.matrix-wrapper .explore-heading { margin: 0; padding: 1rem 1rem .35rem; font-size: 1.3rem; }
+.matrix-wrapper .explore-coverage, .matrix-wrapper .explore-note { margin: 0; padding: .3rem 1rem .6rem; line-height: 1.5; }
+.matrix-wrapper .explore-note { font-size: .85rem; color: #374955; }
+.matrix-wrapper .explore-filters { display: flex; flex-wrap: wrap; gap: .4rem; padding: .5rem 1rem; }
+.matrix-wrapper .explore-filters button { max-width: 100%; overflow-wrap: anywhere; white-space: normal; padding: .4rem .6rem; background: white; color: #172934; border: 1px solid #8996a0; border-radius: .4rem; cursor: pointer; }
+.matrix-wrapper .matrix-toolbar, .matrix-wrapper .matrix-toolbar-group { min-width: 0; max-width: 100%; flex-wrap: wrap; }
+.matrix-wrapper .matrix-toolbar label { max-width: 100%; }
+.matrix-wrapper .matrix-toolbar select { min-width: 0; max-width: 100%; }
+.matrix-wrapper .matrix-legend { flex-wrap: wrap; color: #172934; width: 100%; }
+.matrix-wrapper .explore-legend-scale { display: flex; flex-wrap: wrap; gap: .3rem; }
+.matrix-wrapper .explore-legend-scale span { padding: .25rem .4rem; border-radius: .2rem; }
+.matrix-wrapper .matrix-scroll, .matrix-wrapper .matrix-top-scroll { max-width: 100%; }
+.matrix-wrapper .matrix-cell { color: #172934; border: 1px solid transparent; }
+.matrix-wrapper .matrix-cell .cell-rate, .matrix-wrapper .matrix-cell .cell-count { color: #172934; text-shadow: none; }
+.matrix-wrapper .matrix-cell .cell-count { font-size: .75rem; }
+.matrix-wrapper .matrix-cell.count-only { border-color: #8996a0; }
+.matrix-wrapper .matrix-totals td { font-weight: 700; }
+.matrix-wrapper .matrix-totals td:first-child { background: #fdfcfa; color: #172934; }
+.matrix-cell-modal .matrix-modal-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.matrix-cell-modal .matrix-modal-metric { color: #172934; }
+/* An older narrow-screen rule (.matrix-toolbar span:first-child) would stretch the first swatch. */
+.matrix-wrapper .explore-legend-scale span:first-child { flex-basis: auto; }
+.matrix-wrapper .explore-level { display: inline-flex; gap: .25rem; }
+.matrix-wrapper details.explore-notes { padding: 0 1rem .5rem; }
+.matrix-wrapper details.explore-notes summary { cursor: pointer; font-size: .85rem; color: #374955; }
+.matrix-wrapper details.explore-notes .explore-note { padding-left: 0; padding-right: 0; }
+.matrix-wrapper .explore-caution { margin: 0 1rem .6rem; padding: .5rem .75rem; border-left: 3px solid #8996a0; background: #f4f6f8; color: #172934; font-size: .9rem; }
+
     </style>
 </head>
 <body>
@@ -6814,6 +6743,20 @@
                         <rect x="3" y="18" width="18" height="2"></rect>
                     </svg>
                     List
+                </button>
+                <button class="view-btn" id="exploreView" onclick="setView('explore')" title="Explore: recorded outcomes by measure type and period">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                        <rect x="3" y="3" width="4" height="4" rx="1"></rect>
+                        <rect x="10" y="3" width="4" height="4" rx="1"></rect>
+                        <rect x="17" y="3" width="4" height="4" rx="1"></rect>
+                        <rect x="3" y="10" width="4" height="4" rx="1"></rect>
+                        <rect x="10" y="10" width="4" height="4" rx="1"></rect>
+                        <rect x="17" y="10" width="4" height="4" rx="1"></rect>
+                        <rect x="3" y="17" width="4" height="4" rx="1"></rect>
+                        <rect x="10" y="17" width="4" height="4" rx="1"></rect>
+                        <rect x="17" y="17" width="4" height="4" rx="1"></rect>
+                    </svg>
+                    Explore
                 </button>
                 <button class="view-btn" onclick="openAboutModal()" title="About CalBallot: data sources and methodology">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -6935,6 +6878,25 @@
                     <div class="view-card-text">
                         <span class="view-card-title">List</span>
                         <span class="view-card-desc">Compact list for quick scanning</span>
+                    </div>
+                </button>
+                <button class="view-card" id="exploreViewCard" onclick="setView('explore')">
+                    <div class="view-card-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                            <rect x="3" y="3" width="5" height="5" rx="1"></rect>
+                            <rect x="10" y="3" width="5" height="5" rx="1"></rect>
+                            <rect x="17" y="3" width="5" height="5" rx="1"></rect>
+                            <rect x="3" y="10" width="5" height="5" rx="1"></rect>
+                            <rect x="10" y="10" width="5" height="5" rx="1"></rect>
+                            <rect x="17" y="10" width="5" height="5" rx="1"></rect>
+                            <rect x="3" y="17" width="5" height="5" rx="1"></rect>
+                            <rect x="10" y="17" width="5" height="5" rx="1"></rect>
+                            <rect x="17" y="17" width="5" height="5" rx="1"></rect>
+                        </svg>
+                    </div>
+                    <div class="view-card-text">
+                        <span class="view-card-title">Explore</span>
+                        <span class="view-card-desc">Recorded outcomes by type and period</span>
                     </div>
                 </button>
             </div>
@@ -7436,6 +7398,7 @@
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(19rem, 100%), 1fr)); gap: 0.55rem 2.5rem; font-size: 0.88rem; color: var(--text-secondary); max-width: 48rem;">
                     <span><strong style="color: var(--primary);">Search</strong> &mdash; look up any measure by title, topic, or year</span>
                     <span><strong style="color: var(--primary);">Grid / List</strong> &mdash; browse and filter the full catalog</span>
+                    <span><strong style="color: var(--primary);">Explore</strong> &mdash; recorded outcomes by type and period</span>
                     <span><strong style="color: var(--primary);">Ask AI</strong> &mdash; query the data in plain English (bring your own key)</span>
                 </div>
                 <p style="margin: 0.9rem 0 0 0; font-size: 0.85rem;"><a href="#" onclick="openAboutModal(); return false;" style="color: var(--primary); font-weight: 600; text-decoration: none;">How this works &mdash; data sources &amp; methodology &rarr;</a></p>
@@ -7474,7 +7437,7 @@
 
     <!-- Footer -->
     <footer class="footer">
-        <p>CalBallot • Data last updated November 12, 2026</p>
+        <p>CalBallot • Data last updated November 13, 2026</p>
         <p>Data sources: CA Secretary of State, NCSL, ICPSR, CEDA</p>
         <p class="footer-links">
             <a href="#" onclick="openAboutModal(); return false;">About</a> &bull;
@@ -8508,7 +8471,7 @@
             const initialMeasureLink = window.location.hash.match(/^#m=(\d+)/);
             initializeBrowseNavigation();
             try {
-                const resp = await fetch('measures-data.json?v=96424c3cf4082431ae0c', {cache: 'no-cache'});
+                const resp = await fetch('measures-data.json?v=cab63c0330e97c0159d5', {cache: 'no-cache'});
                 if (!resp.ok) throw new Error('HTTP ' + resp.status);
                 allMeasures = await resp.json();
             } catch (err) {
@@ -10266,71 +10229,81 @@
         
         // Display paginated results
         // ── Explore Matrix ──────────────────────────────
-        // Modern color scale: warm red (low pass) → cool teal (high pass)
-        function matrixCellColor(passed, total) {
-            if (total < 1) return 'transparent';
-            const rate = passed / total;
-            // Colors: #E54D4D (red, 0%) → #F0A030 (amber, 50%) → #2D9D78 (teal, 100%)
-            let r, g, b;
-            if (rate < 0.5) {
-                // Red to amber
-                const t = rate * 2;
-                r = Math.round(229 + (240 - 229) * t);
-                g = Math.round(77 + (160 - 77) * t);
-                b = Math.round(77 + (48 - 77) * t);
-            } else {
-                // Amber to teal
-                const t = (rate - 0.5) * 2;
-                r = Math.round(240 + (45 - 240) * t);
-                g = Math.round(160 + (157 - 160) * t);
-                b = Math.round(48 + (120 - 48) * t);
-            }
-            return `rgb(${r}, ${g}, ${b})`;
+        
+const Explore = (() => {
+    function yearSpan(years) {
+        const valid = years.filter(y => y !== null && y !== '').map(Number).filter(Number.isInteger);
+        if (!valid.length) return 'Years unavailable';
+        const first = Math.min(...valid), last = Math.max(...valid);
+        return first === last ? String(first) : `${first}–${last}`;
+    }
+    function yearRanges(years) {
+        // "2011, 2013, 2015, 2022–24": distinct years, consecutive runs collapsed.
+        const sorted = [...new Set(years.filter(y => y !== null && y !== '').map(Number).filter(Number.isInteger))].sort((a, b) => a - b);
+        if (!sorted.length) return 'Years unavailable';
+        const runs = [];
+        for (const year of sorted) {
+            const last = runs[runs.length - 1];
+            if (last && year === last[1] + 1) last[1] = year; else runs.push([year, year]);
         }
-
-        function matrixVolumeColor(value, maxValue) {
-            if (!maxValue || value < 1) return '#f0eee8';
-            const t = Math.sqrt(value / maxValue);
-            const r = Math.round(244 - 115 * t);
-            const g = Math.round(237 - 105 * t);
-            const b = Math.round(220 - 150 * t);
-            return `rgb(${r}, ${g}, ${b})`;
+        return runs.map(([a, b]) => a === b ? String(a)
+            : String(a).slice(0, 2) === String(b).slice(0, 2) ? `${a}–${String(b).slice(-2)}` : `${a}–${b}`).join(', ');
+    }
+    function decadeLabel(years) {
+        const span = yearSpan(years);
+        const [first, last] = span.split('–');
+        return last && first.slice(0, 2) === last.slice(0, 2) ? `${first}–${last.slice(-2)}` : span;
+    }
+    function coverage(measures, column) {
+        let counted = 0, missingColumn = 0, missingOutcome = 0;
+        for (const measure of measures) {
+            if (measure.passed !== 0 && measure.passed !== 1) missingOutcome++;
+            else if (!String(measure[column] ?? '').trim()) missingColumn++;
+            else counted++;
         }
-
-        function matrixYesColor(avgYes) {
-            if (avgYes == null) return '#f0eee8';
-            return matrixCellColor(avgYes, 100);
+        return {total: measures.length, counted, missingColumn, missingOutcome};
+    }
+    function tint(fraction) {
+        const t = Math.max(0, Math.min(1, Number(fraction) || 0));
+        // One slate hue; even the darkest endpoint supports dark text.
+        return `rgb(${Math.round(241 - 80*t)}, ${Math.round(245 - 64*t)}, ${Math.round(248 - 53*t)})`;
+    }
+    function cell(passed, total, minN = 5, reason = null) {
+        // `reason` forces counts only (e.g. a county or Status filter), whatever the size.
+        const rated = !reason && total >= Math.max(5, minN);
+        return {
+            rated,
+            text: rated ? `${Math.round(100 * passed / total)}%` : `${passed} of ${total}`,
+            subtext: rated ? `${total} measures` : (total ? 'count only' : 'no measures'),
+            bg: rated ? tint(passed / total) : 'transparent',
+            label: `${passed} of ${total} passed${rated ? '' : '; ' + (reason || 'too few to show a rate')}`
+        };
+    }
+    function compareCells(a, b, value, direction = 'desc', minN = 5) {
+        const ar = a.total >= Math.max(5, minN), br = b.total >= Math.max(5, minN);
+        if (ar !== br) return ar ? -1 : 1;
+        if (!ar) return 0;
+        const av = value(a), bv = value(b);
+        if (!Number.isFinite(av) || !Number.isFinite(bv)) {
+            return Number.isFinite(av) ? -1 : Number.isFinite(bv) ? 1 : 0;
         }
-
-        function matrixDeltaColor(delta) {
-            if (delta == null) return '#f0eee8';
-            const capped = Math.max(-35, Math.min(35, delta));
-            const t = Math.abs(capped) / 35;
-            if (capped < 0) {
-                const r = Math.round(248 - 26 * t);
-                const g = Math.round(246 - 115 * t);
-                const b = Math.round(241 - 143 * t);
-                return `rgb(${r}, ${g}, ${b})`;
-            }
-            const r = Math.round(248 - 114 * t);
-            const g = Math.round(246 - 91 * t);
-            const b = Math.round(241 - 125 * t);
-            return `rgb(${r}, ${g}, ${b})`;
-        }
+        return direction === 'desc' ? bv - av : av - bv;
+    }
+    return {yearSpan, yearRanges, decadeLabel, coverage, tint, cell, compareCells};
+})();
 
         // ── Matrix State ──────────────────────────────
         const matrixState = {
-            rowGrouping: 'jurisdiction',  // 'jurisdiction' | 'region' | 'decade' | 'year'
-            rowSort: 'count',             // 'count' | 'alpha' | 'rate'
-            colField: 'topic',            // 'topic' | 'measureType' | 'threshold'
+            rowGrouping: 'decade',
+            rowSort: 'time',
+            colField: 'measureType',
             sortCol: null,
             sortDir: 'desc',
-            minN: 0,                      // minimum measures per cell to display (0 = show all)
-            metric: 'passRate',           // 'passRate' | 'volume' | 'avgYes' | 'baseline' | 'close' | 'trap'
+            minN: 5,
+            metric: 'passRate',
+            level: 'local',               // Topic only: 'local' | 'statewide'; never pooled
         };
-        // Keep legacy aliases for existing code that references them
-        let matrixRowMode = matrixState.rowSort;
-        let matrixColField = matrixState.colField;
+        let exploreRowLabels = {};
 
         // Canonical column orderings (stable across filter changes)
         const CANONICAL_TOPIC_ORDER = ["Education", "Public Safety & Crime", "Taxes & Finance", "Government & Elections", "Healthcare & Welfare", "Environment & Natural Resources", "Transportation", "Housing & Land Use", "Business & Labor", "Utilities & Energy", "Civil Rights", "Other"];
@@ -10348,6 +10321,9 @@
             return String(value ?? '').split('\\').join('\\\\').replace(/'/g, "\\'");
         }
 
+        // Unreachable since E1 (nothing sets currentFilters.thresholds) and wrong for most rows:
+        // vote_threshold is set on 49 rows, so everything else reads as a simple majority.
+        // Do not revive before E3 supplies a repaired required_vote.
         function getMeasureThreshold(measure) {
             const raw = String(measure.vote_threshold || '').toLowerCase();
             if (raw.includes('66') || raw.includes('2/3') || raw.includes('two-thirds') || raw.includes('two thirds')) return 66.67;
@@ -10363,9 +10339,8 @@
         }
 
         function getExploreColValue(measure) {
-            if (matrixState.colField === 'measureType') return measure.display_category_type || null;
-            if (matrixState.colField === 'threshold') return getThresholdLabel(measure);
-            return measure.display_topic || null;
+            const value = matrixState.colField === 'measureType' ? measure.display_category_type : measure.display_topic;
+            return String(value ?? '').trim() || null;
         }
 
         function getExploreRowValue(measure) {
@@ -10381,63 +10356,98 @@
                 const year = parseInt(measure.year);
                 return Number.isFinite(year) ? String(year) : 'Unknown';
             }
-            return measure.county || 'Unknown';
+            return 'Unknown';
+        }
+
+        function isStatewideMeasure(measure) {
+            return String(measure.county || '').toUpperCase() === 'STATEWIDE';
+        }
+
+        // Measure Type is local-only: older propositions have no type, and the 2026 ones carry
+        // instrument types. Topic shows one level at a time, so rows and totals never pool them.
+        function exploreLevel() {
+            return matrixState.colField === 'measureType' ? 'local' : matrixState.level;
+        }
+
+        function exploreLevelMeasures() {
+            const statewide = exploreLevel() === 'statewide';
+            return filteredMeasures.filter(m => isStatewideMeasure(m) === statewide);
+        }
+
+        // Filters under which a rate would mislead: show counts only, and say why.
+        function exploreCountOnlyReason() {
+            if (currentFilters.county || currentFilters.levelCounty) return 'county figures are counts only until the history repair';
+            const status = currentFilters.status || [];
+            if (status.includes('passed') || status.includes('failed')) return 'a Status filter selects the outcome';
+            return null;
+        }
+
+        function exploreEffectiveMinN() {
+            return exploreCountOnlyReason() ? Infinity : matrixState.minN;
+        }
+
+        // Under a count-only filter every metric shows counts; keep the reader's choice for later.
+        function exploreEffectiveMetric() {
+            return exploreCountOnlyReason() ? 'volume' : matrixState.metric;
+        }
+
+        // A drill must keep its row's condition. Rows outside the region map ("Other") have no
+        // catalog filter yet, so they offer no drill rather than a broader list.
+        function exploreRowDrillable(rowKey) {
+            return matrixState.rowGrouping !== 'region' || rowKey === 'Statewide' || !!CA_REGIONS[rowKey];
+        }
+
+        function clearExploreLevelCounty() {
+            currentFilters.levelCounty = null;
+            const select = document.getElementById('levelCountySelect');
+            if (select) select.value = '';
+        }
+
+        // An explicit Explore level or column change wins over a conflicting catalog level (for
+        // example one left by a drill). A county only goes when the level becomes statewide.
+        function reconcileCatalogLevel() {
+            const level = exploreLevel();
+            if (!currentFilters.level || currentFilters.level === level) return false;
+            currentFilters.level = level;
+            if (level !== 'local') clearExploreLevelCounty();
+            updateLevelChipUI();
+            updateFilterCountBadges();
+            pagination.currentPage = 1;
+            applyFilters();
+            return true;
+        }
+
+        function exploreRowLabel(rowKey, measures) {
+            return matrixState.rowGrouping === 'decade' && measures.length ? Explore.decadeLabel(measures.map(m => m.year)) : rowKey;
         }
 
         function createExploreCell() {
-            return {
-                passed: 0,
-                total: 0,
-                trapped: 0,
-                close: 0,
-                yesSum: 0,
-                yesCount: 0,
-                measures: []
-            };
+            return {passed: 0, total: 0, yesSum: 0, yesCount: 0, measures: []};
         }
 
         function addMeasureToExploreCell(cell, measure) {
             cell.total++;
             cell.passed += measure.passed;
             cell.measures.push(measure);
-
             const pct = measure.percent_yes;
             if (pct != null && pct >= 0 && pct <= 100) {
                 cell.yesSum += pct;
                 cell.yesCount++;
-                const threshold = getMeasureThreshold(measure);
-                if (Math.abs(pct - threshold) <= 5) cell.close++;
-                if (measure.passed === 0 && pct > 50) cell.trapped++;
             }
         }
 
-        function finalizeExploreCell(cell, baselineCell = null, maxVolume = 0) {
-            const passRate = cell.total > 0 ? (100 * cell.passed / cell.total) : null;
-            const avgYes = cell.yesCount > 0 ? (cell.yesSum / cell.yesCount) : null;
-            const closeRate = cell.total > 0 ? (100 * cell.close / cell.total) : null;
-            const trapRate = cell.total > 0 ? (100 * cell.trapped / cell.total) : null;
-            const baselineRate = baselineCell && baselineCell.total > 0 ? (100 * baselineCell.passed / baselineCell.total) : null;
-            const baselineDelta = passRate != null && baselineRate != null ? passRate - baselineRate : null;
-            const reliability = cell.total >= 10 ? 'solid' : cell.total >= 3 ? 'limited' : cell.total > 0 ? 'anecdotal' : 'empty';
-            return { ...cell, passRate, avgYes, closeRate, trapRate, baselineRate, baselineDelta, reliability, maxVolume };
+        function finalizeExploreCell(cell, maxVolume = 0) {
+            const passRate = cell.total ? 100 * cell.passed / cell.total : null;
+            const avgYes = cell.yesCount ? cell.yesSum / cell.yesCount : null;
+            return {...cell, passRate, avgYes, maxVolume};
         }
 
         function buildExploreMatrixData() {
-            const colLabel = matrixState.colField === 'measureType' ? 'measure types'
-                : matrixState.colField === 'threshold' ? 'thresholds'
-                : 'topics';
-            const rowLabel = matrixState.rowGrouping === 'region' ? 'regions'
-                : matrixState.rowGrouping === 'decade' ? 'decades'
-                : matrixState.rowGrouping === 'year' ? 'years'
-                : 'jurisdictions';
-
-            const valid = filteredMeasures.filter(m => (m.passed === 1 || m.passed === 0) && getExploreColValue(m));
+            const valid = exploreLevelMeasures().filter(m => (m.passed === 1 || m.passed === 0) && getExploreColValue(m));
             const colSet = new Set();
             valid.forEach(m => colSet.add(getExploreColValue(m)));
 
-            const canonicalOrder = matrixState.colField === 'measureType' ? CANONICAL_TYPE_ORDER
-                : matrixState.colField === 'threshold' ? ['Simple majority', '55%', 'Two-thirds']
-                : CANONICAL_TOPIC_ORDER;
+            const canonicalOrder = matrixState.colField === 'measureType' ? CANONICAL_TYPE_ORDER : CANONICAL_TOPIC_ORDER;
             const columns = canonicalOrder.filter(t => colSet.has(t));
             colSet.forEach(t => { if (!columns.includes(t)) columns.push(t); });
 
@@ -10465,205 +10475,154 @@
             Object.keys(matrix).forEach(rowKey => {
                 columns.forEach(col => {
                     if (!matrix[rowKey][col]) matrix[rowKey][col] = createExploreCell();
-                    matrix[rowKey][col] = finalizeExploreCell(matrix[rowKey][col], colTotals[col], maxVolume);
+                    matrix[rowKey][col] = finalizeExploreCell(matrix[rowKey][col], maxVolume);
                 });
             });
             Object.keys(rowTotals).forEach(rowKey => {
-                rowTotals[rowKey] = finalizeExploreCell(rowTotals[rowKey], grandTotal, maxVolume);
+                rowTotals[rowKey] = finalizeExploreCell(rowTotals[rowKey], maxVolume);
             });
             columns.forEach(col => {
-                colTotals[col] = finalizeExploreCell(colTotals[col], grandTotal, maxVolume);
+                colTotals[col] = finalizeExploreCell(colTotals[col], maxVolume);
             });
-            const finalizedGrandTotal = finalizeExploreCell(grandTotal, grandTotal, maxVolume);
+            const finalizedGrandTotal = finalizeExploreCell(grandTotal, maxVolume);
 
             let rows = Object.keys(rowTotals);
-            if (matrixState.sortCol && colTotals[matrixState.sortCol]) {
+            const byCount = exploreEffectiveMetric() === 'volume';
+            if (matrixState.sortCol && colTotals[matrixState.sortCol] && byCount) {
+                // Counts are not rates: sort by totals at any size.
+                const col = matrixState.sortCol, sign = matrixState.sortDir === 'asc' ? 1 : -1;
+                rows.sort((a, b) => sign * (matrix[a][col].total - matrix[b][col].total) || a.localeCompare(b, undefined, {numeric: true}));
+            } else if (matrixState.sortCol && colTotals[matrixState.sortCol]) {
                 rows.sort((a, b) => {
-                    const av = getExploreMetricSortValue(matrix[a]?.[matrixState.sortCol] || createExploreCell());
-                    const bv = getExploreMetricSortValue(matrix[b]?.[matrixState.sortCol] || createExploreCell());
-                    return matrixState.sortDir === 'desc' ? bv - av : av - bv;
+                    return Explore.compareCells(matrix[a][matrixState.sortCol], matrix[b][matrixState.sortCol], getExploreMetricSortValue, matrixState.sortDir, exploreEffectiveMinN()) || a.localeCompare(b, undefined, {numeric: true});
                 });
+            } else if (matrixState.rowSort === 'time' || matrixState.rowGrouping === 'decade' || matrixState.rowGrouping === 'year') {
+                rows.sort((a, b) => (parseInt(a) || Infinity) - (parseInt(b) || Infinity));
             } else if (matrixState.rowSort === 'alpha') {
                 rows.sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
-            } else if (matrixState.rowSort === 'rate') {
-                rows.sort((a, b) => (rowTotals[b].passRate ?? -1) - (rowTotals[a].passRate ?? -1));
+            } else if (matrixState.rowSort === 'rate' && !exploreCountOnlyReason()) {
+                rows.sort((a, b) => Explore.compareCells(rowTotals[a], rowTotals[b], c => c.passRate, 'desc', exploreEffectiveMinN()) || a.localeCompare(b));
             } else {
                 rows.sort((a, b) => (rowTotals[b]?.total || 0) - (rowTotals[a]?.total || 0));
             }
 
-            return { valid, columns, rows, matrix, rowTotals, colTotals, grandTotal: finalizedGrandTotal, rowLabel, colLabel, maxVolume };
+            const rowLabels = {};
+            rows.forEach(row => rowLabels[row] = exploreRowLabel(row, rowTotals[row].measures));
+            exploreRowLabels = rowLabels;
+            return { valid, columns, rows, matrix, rowTotals, colTotals, grandTotal: finalizedGrandTotal, rowLabels, maxVolume };
         }
 
         function getExploreMetricSortValue(cell) {
-            const finalCell = cell.passRate === undefined ? finalizeExploreCell(cell) : cell;
-            switch (matrixState.metric) {
-                case 'volume': return finalCell.total || 0;
-                case 'avgYes': return finalCell.avgYes ?? -Infinity;
-                case 'baseline': return finalCell.baselineDelta ?? -Infinity;
-                case 'close': return finalCell.close || 0;
-                case 'trap': return finalCell.trapped || 0;
-                default: return finalCell.passRate ?? -Infinity;
+            switch (exploreEffectiveMetric()) {
+                case 'volume': return cell.total;
+                case 'avgYes': return cell.yesCount >= Math.max(5, matrixState.minN) ? cell.avgYes : null;
+                default: return cell.passRate;
             }
         }
 
         function getExploreMetricLabel() {
-            const labels = {
-                passRate: 'Pass Rate',
-                volume: 'Volume',
-                avgYes: 'Avg Yes Vote',
-                baseline: 'Vs. Baseline',
-                close: 'Close Calls',
-                trap: 'Threshold Trap'
-            };
-            return labels[matrixState.metric] || 'Pass Rate';
+            return {passRate: 'Pass rate', volume: 'Number of measures', avgYes: 'Average yes vote'}[exploreEffectiveMetric()];
         }
 
-        function renderExploreSummary(data) {
-            const reliableCells = [];
-            data.rows.forEach(row => {
-                data.columns.forEach(col => {
-                    const cell = data.matrix[row][col];
-                    if (cell.total >= 10) reliableCells.push({ row, col, cell });
-                });
-            });
-            const high = [...reliableCells].sort((a, b) => (b.cell.passRate ?? -1) - (a.cell.passRate ?? -1))[0];
-            const low = [...reliableCells].sort((a, b) => (a.cell.passRate ?? 101) - (b.cell.passRate ?? 101))[0];
-            const volume = [...reliableCells].sort((a, b) => b.cell.total - a.cell.total)[0];
-            const trap = [...reliableCells].sort((a, b) => b.cell.trapped - a.cell.trapped)[0];
-            const sparseCells = data.rows.length * data.columns.length - reliableCells.length;
-            const sparseShare = data.rows.length && data.columns.length ? Math.round(100 * sparseCells / (data.rows.length * data.columns.length)) : 0;
-            const card = (eyebrow, title, detail) => `
-                <div class="matrix-insight-card">
-                    <span>${escapeHtml(eyebrow)}</span>
-                    <strong>${escapeHtml(title)}</strong>
-                    <em>${escapeHtml(detail)}</em>
-                </div>`;
-            return `<div class="matrix-insight-strip">
-                ${high ? card('Highest reliable pass rate', `${high.row} / ${high.col}`, `${Math.round(high.cell.passRate)}% passed across ${high.cell.total} measures`) : card('Highest reliable pass rate', 'Not enough data', 'Need at least 10 measures per cell')}
-                ${low ? card('Lowest reliable pass rate', `${low.row} / ${low.col}`, `${Math.round(low.cell.passRate)}% passed across ${low.cell.total} measures`) : card('Lowest reliable pass rate', 'Not enough data', 'Need at least 10 measures per cell')}
-                ${volume ? card('Largest cluster', `${volume.row} / ${volume.col}`, `${volume.cell.total.toLocaleString()} measures in this cell`) : card('Largest cluster', 'No cluster', 'Adjust filters to include outcomes')}
-                ${trap && trap.cell.trapped > 0 ? card('Most threshold traps', `${trap.row} / ${trap.col}`, `${trap.cell.trapped} majority-supported failures`) : card('Reliability note', `${sparseShare}% sparse`, 'Cells below 10 measures are visually de-emphasized')}
-            </div>`;
+        function renderExploreCoverage(data) {
+            const field = matrixState.colField === 'measureType' ? 'display_category_type' : 'display_topic';
+            const label = matrixState.colField === 'measureType' ? 'measure type' : 'topic';
+            const level = exploreLevel();
+            const levelMeasures = exploreLevelMeasures();
+            const other = filteredMeasures.length - levelMeasures.length;
+            const c = Explore.coverage(levelMeasures, field);
+            const years = Explore.yearRanges(data.valid.map(m => m.year));
+            const levelName = level === 'statewide' ? 'statewide propositions' : 'local measures';
+            const otherName = level === 'statewide' ? 'local measures' : 'statewide propositions';
+            const rowName = {decade: 'decade', year: 'year', region: 'region'}[matrixState.rowGrouping];
+            const heading = `Recorded outcomes of ${levelName} by ${label} and ${rowName}`;
+            // Mirrors applyFilters' default exclusion of current-election measures awaiting results.
+            const defaultExclusion = !currentFilters.search && !(currentFilters.status || []).includes('pending')
+                && !(currentFilters.selectedYears || []).length && !(currentFilters.selectedDecades || []).length;
+            const current = defaultExclusion ? allMeasures.filter(m => m.passed !== 1 && m.passed !== 0
+                && parseInt(m.year) >= 2026 && m.ballot_status !== 'withdrawn').length : 0;
+            const otherWhy = matrixState.colField === 'measureType'
+                ? 'measure types are compared for local measures only'
+                : 'switch Level to see them';
+            const reason = exploreCountOnlyReason();
+            const countyBlocksStatewide = level === 'statewide' && (currentFilters.county || currentFilters.levelCounty);
+            return `<h2 class="explore-heading">${heading}</h2>
+                <p class="explore-coverage" data-total="${c.total}" data-counted="${c.counted}" data-missing-column="${c.missingColumn}" data-missing-outcome="${c.missingOutcome}" data-other-level="${other}" data-current-excluded="${current}">
+                ${c.counted.toLocaleString()} ${levelName} with a recorded outcome are counted. Not counted: ${c.missingColumn.toLocaleString()} with an outcome but without a ${label}; ${c.missingOutcome.toLocaleString()} without a recorded outcome (pending, unknown or withdrawn). ${other ? `${other.toLocaleString()} ${otherName} are not shown (${otherWhy}). ` : ''}${current ? `${current.toLocaleString()} current-election measures awaiting results are outside the catalog view. ` : ''}Counted years: ${years}.</p>
+                ${reason ? `<p class="explore-caution" role="note">Counts only: ${escapeHtml(reason)}. No rates or shading are shown.${countyBlocksStatewide ? ' Statewide propositions have no county: remove the County filter to see them.' : ''}</p>` : ''}
+                <details class="explore-notes"><summary>About these figures</summary>
+                <p class="explore-note">Sources: CEDA local records and the statewide archive. ${level === 'local' && matrixState.colField === 'topic' ? 'Local topics exist only for some years, so the counted years are listed above. ' : ''}County breakdowns return after the history repair. Historical records may include repeated county portions; 2016-2021 source files remain unverified.</p>
+                <p class="explore-note">Below ${matrixState.minN} measures, counts only; no rate or shading. These are recorded outcomes, not forecasts.</p>
+                </details>`;
+        }
+
+        function renderExploreFilters() {
+            const tokens = getActiveFilterTokens();
+            return `<div class="explore-filters" aria-label="Active catalog filters">${tokens.map(token=>`<button data-explore-filter data-kind="${escapeAttr(token.kind)}" data-value="${escapeAttr(String(token.value))}" onclick="removeActiveFilterFromButton(this)" aria-label="Remove ${escapeAttr(token.group+': '+token.label)}">${escapeHtml(token.group+': '+token.label)} &times;</button>`).join('')}${tokens.length ? '<button data-explore-clear onclick="clearAllFilters()">Clear filters</button>' : '<span>No active catalog filters</span>'}</div>`;
         }
 
         function renderExploreToolbar(data) {
-            const metric = matrixState.metric;
+            const metric = exploreEffectiveMetric();
+            const countOnly = !!exploreCountOnlyReason();
+            const groupingOptions = [['decade','Decades'],['year','Years'],['region','Regions']];
+            const metricOptions = [['passRate','Pass rate'],['volume','Number of measures'],['avgYes','Average yes vote']];
+            const options = (items, chosen) => items.map(([value,label]) => `<option value="${value}" ${chosen===value?'selected':''}>${label}</option>`).join('');
+            const steps = [0,.25,.5,.75,1];
+            const legendLabel = t => metric === 'volume' ? String(Math.round(t*data.maxVolume)) : `${Math.round(t*100)}%`;
             return `<div class="matrix-toolbar">
-                <span>${data.valid.length.toLocaleString()} measures with outcomes - ${data.rows.length} ${data.rowLabel} x ${data.columns.length} ${data.colLabel}</span>
-                <div class="matrix-toolbar-group">
-                    <span class="matrix-toolbar-group-label">Columns</span>
-                    <div class="matrix-col-toggle">
-                        <button class="${matrixState.colField === 'topic' ? 'active' : ''}" onclick="setMatrixColField('topic')">Topic</button>
-                        <button class="${matrixState.colField === 'measureType' ? 'active' : ''}" onclick="setMatrixColField('measureType')">Measure Type</button>
-                        <button class="${matrixState.colField === 'threshold' ? 'active' : ''}" onclick="setMatrixColField('threshold')">Threshold</button>
-                    </div>
-                </div>
-                <label>Rows:
-                    <select onchange="setMatrixRowGrouping(this.value)">
-                        <option value="jurisdiction" ${matrixState.rowGrouping==='jurisdiction'?'selected':''}>Jurisdictions</option>
-                        <option value="region" ${matrixState.rowGrouping==='region'?'selected':''}>Regions</option>
-                        <option value="decade" ${matrixState.rowGrouping==='decade'?'selected':''}>Decades</option>
-                        <option value="year" ${matrixState.rowGrouping==='year'?'selected':''}>Years</option>
-                    </select>
-                </label>
-                <label>Metric:
-                    <select onchange="setMatrixMetric(this.value)">
-                        <option value="passRate" ${metric==='passRate'?'selected':''}>Pass Rate</option>
-                        <option value="volume" ${metric==='volume'?'selected':''}>Volume</option>
-                        <option value="avgYes" ${metric==='avgYes'?'selected':''}>Avg Yes Vote</option>
-                        <option value="baseline" ${metric==='baseline'?'selected':''}>Vs. Baseline</option>
-                        <option value="close" ${metric==='close'?'selected':''}>Close Calls</option>
-                        <option value="trap" ${metric==='trap'?'selected':''}>Threshold Trap</option>
-                    </select>
-                </label>
-                <label>Sort:
-                    <select onchange="setMatrixRowSort(this.value)">
-                        <option value="count" ${matrixState.rowSort==='count'?'selected':''}>By count</option>
-                        <option value="alpha" ${matrixState.rowSort==='alpha'?'selected':''}>A-Z</option>
-                        <option value="rate" ${matrixState.rowSort==='rate'?'selected':''}>By pass rate</option>
-                    </select>
-                </label>
-                <label>Min n:
-                    <select onchange="setMatrixMinN(parseInt(this.value))">
-                        <option value="0" ${matrixState.minN===0?'selected':''}>All</option>
-                        <option value="3" ${matrixState.minN===3?'selected':''}>3+</option>
-                        <option value="5" ${matrixState.minN===5?'selected':''}>5+</option>
-                        <option value="10" ${matrixState.minN===10?'selected':''}>10+</option>
-                    </select>
-                </label>
-                <button class="matrix-reset-btn" type="button" onclick="resetMatrixControls()">Reset Explore</button>
-                <div class="matrix-legend">
-                    <span class="matrix-legend-label">${escapeHtml(getExploreMetricLabel())}</span>
-                    <div class="matrix-legend-bar">
-                        <span style="background:#E54D4D"></span>
-                        <span style="background:#EA7A3F"></span>
-                        <span style="background:#F0A030"></span>
-                        <span style="background:#7CB86A"></span>
-                        <span style="background:#2D9D78"></span>
-                    </div>
-                    <span style="opacity:0.5; margin-left:8px; color:#666;">o</span><span style="color:#888;font-size:0.7rem;margin-left:2px;">low n</span>
-                </div>
+                <div class="matrix-toolbar-group"><span>Columns</span><div class="matrix-col-toggle">
+                    <button class="${matrixState.colField==='measureType'?'active':''}" onclick="setMatrixColField('measureType')">Measure Type</button>
+                    <button class="${matrixState.colField==='topic'?'active':''}" onclick="setMatrixColField('topic')">Topic</button>
+                </div></div>
+                ${matrixState.colField==='topic' ? `<div class="matrix-toolbar-group"><span>Level</span><div class="matrix-col-toggle explore-level" role="group" aria-label="Level">
+                    <button class="${matrixState.level==='local'?'active':''}" aria-pressed="${matrixState.level==='local'}" onclick="setExploreLevel('local')">Local</button>
+                    <button class="${matrixState.level==='statewide'?'active':''}" aria-pressed="${matrixState.level==='statewide'}" onclick="setExploreLevel('statewide')">Statewide</button>
+                </div></div>` : ''}
+                <label>Rows: <select aria-label="Rows" onchange="setMatrixRowGrouping(this.value)">${options(groupingOptions,matrixState.rowGrouping)}</select></label>
+                ${countOnly
+                    ? '<label>Metric: <select aria-label="Metric" disabled><option>Counts only</option></select></label>'
+                    : `<label>Metric: <select aria-label="Metric" onchange="setMatrixMetric(this.value)">${options(metricOptions,metric)}</select></label>`}
+                ${matrixState.rowGrouping==='region' ? `<label>Sort: <select aria-label="Sort" onchange="setMatrixRowSort(this.value)">${options(countOnly ? [['count','By count'],['alpha','A-Z']] : [['count','By count'],['alpha','A-Z'],['rate','By pass rate']],countOnly && matrixState.rowSort==='rate' ? 'count' : matrixState.rowSort)}</select></label>` : ''}
+                <label>Min n for rates: <select aria-label="Min n" onchange="setMatrixMinN(Number(this.value))">${options([[5,'5'],[10,'10'],[20,'20']],matrixState.minN)}</select></label>
+                <button class="matrix-reset-btn" onclick="resetMatrixControls()">Reset Explore</button>
+                ${exploreCountOnlyReason() ? '' : `<div class="matrix-legend"><span>${escapeHtml(getExploreMetricLabel())}</span><div class="explore-legend-scale">${steps.map(t=>`<span style="background:${Explore.tint(t)}">${legendLabel(t)}</span>`).join('')}</div></div>`}
             </div>`;
         }
 
         function getExploreCellPresentation(cell) {
-            if (!cell || cell.total === 0) return { text: '-', subtext: '', bg: '#F0EDE8', empty: true };
-            switch (matrixState.metric) {
-                case 'volume':
-                    return { text: cell.total.toLocaleString(), subtext: `${cell.passed} passed`, bg: matrixVolumeColor(cell.total, cell.maxVolume) };
-                case 'avgYes':
-                    return { text: cell.avgYes == null ? 'n/a' : `${cell.avgYes.toFixed(1)}%`, subtext: `${cell.yesCount} with vote %`, bg: matrixYesColor(cell.avgYes) };
-                case 'baseline':
-                    return { text: cell.baselineDelta == null ? 'n/a' : `${cell.baselineDelta >= 0 ? '+' : ''}${cell.baselineDelta.toFixed(0)}pt`, subtext: `${Math.round(cell.passRate ?? 0)}% pass`, bg: matrixDeltaColor(cell.baselineDelta) };
-                case 'close':
-                    return { text: String(cell.close), subtext: `${Math.round(cell.closeRate || 0)}% close`, bg: trapCellColor(cell.close, cell.total) };
-                case 'trap':
-                    return { text: String(cell.trapped), subtext: `${Math.round(cell.trapRate || 0)}% trap`, bg: trapCellColor(cell.trapped, cell.total) };
-                default:
-                    return { text: `${Math.round(cell.passRate ?? 0)}%`, subtext: String(cell.total), bg: matrixCellColor(cell.passed, cell.total) };
+            const base = Explore.cell(cell?.passed || 0, cell?.total || 0, matrixState.minN, exploreCountOnlyReason());
+            if (!base.rated) return base;
+            switch (exploreEffectiveMetric()) {
+                case 'volume': return {...base, text: String(cell.total), subtext: `${cell.passed} passed`, bg: Explore.tint(cell.total/cell.maxVolume)};
+                case 'avgYes': return cell.yesCount >= Math.max(5, matrixState.minN)
+                    ? {...base, text: `${cell.avgYes.toFixed(1)}%`, subtext: `${cell.yesCount} with vote %`, bg: Explore.tint(cell.avgYes/100)}
+                    : {...base, text: `${cell.yesCount} with vote data`, subtext: 'too few for an average', bg: 'transparent', rated: false};
+                default: return base;
             }
         }
 
-        function renderExploreCell(cell, rowKey, colValue, isTotal = false) {
-            if (!cell || cell.total === 0 || (!isTotal && cell.total < matrixState.minN)) {
-                return '<td class="matrix-cell empty-cell"><span class="cell-rate">-</span></td>';
-            }
+        function renderExploreCell(cell, rowKey, colValue, isTotal = false, rowLabel = rowKey) {
             const presentation = getExploreCellPresentation(cell);
-            const lowClass = !isTotal && cell.total < 3 ? 'low-conf' : !isTotal && cell.total < 10 ? 'limited-conf' : '';
-            const rEsc = escapeJsString(rowKey);
-            const cEsc = escapeJsString(colValue);
-            const detail = `${rowKey}, ${colValue}: ${getExploreMetricLabel()} ${presentation.text}; ${cell.passed} of ${cell.total} passed`;
-            const attrs = isTotal ? '' : `role="button" tabindex="0" onclick="matrixCellClick('${rEsc}','${cEsc}')" onkeydown="if(event.key==='Enter')matrixCellClick('${rEsc}','${cEsc}')"`;
-            return `<td class="matrix-cell ${lowClass}" style="background:${presentation.bg}" ${attrs} title="${escapeAttr(detail)}" aria-label="${escapeAttr(detail)}">
-                <span class="cell-rate">${escapeHtml(presentation.text)}</span>
-                <span class="cell-count">${escapeHtml(presentation.subtext)}</span>
-                ${!isTotal && cell.total < 10 ? `<span class="cell-note">${cell.reliability}</span>` : ''}
-            </td>`;
+            const rEsc = escapeJsString(rowKey), cEsc = escapeJsString(colValue);
+            const detail = `${rowLabel}, ${colValue}: ${presentation.label}${presentation.rated ? '; '+getExploreMetricLabel()+' '+presentation.text : ''}`;
+            const attrs = isTotal || !cell.total ? '' : `role="button" tabindex="0" onclick="matrixCellClick('${rEsc}','${cEsc}')" onkeydown="if(event.key==='Enter')matrixCellClick('${rEsc}','${cEsc}')"`;
+            return `<td class="matrix-cell ${presentation.rated?'':'count-only'}" data-n="${cell.total}" data-rated="${presentation.rated}" style="background:${presentation.bg}" ${attrs} title="${escapeAttr(detail)}" aria-label="${escapeAttr(detail)}">
+                <span class="cell-rate">${escapeHtml(presentation.text)}</span><span class="cell-count">${escapeHtml(presentation.subtext)}</span></td>`;
         }
 
         function renderMatrixV2() {
             const data = buildExploreMatrixData();
 
-            if (data.valid.length === 0) {
-                return `<div class="empty-state">
-                    <div class="empty-icon">📊</div>
-                    <h3>No outcome data</h3>
-                    <p>Adjust filters to include measures with pass/fail results</p>
-                </div>`;
-            }
-
             const matrixDensityClass = data.rows.length <= 16 ? 'matrix-compact' : '';
             let html = `<div class="matrix-wrapper ${matrixDensityClass}">`;
+            html += renderExploreCoverage(data);
+            html += renderExploreFilters();
             html += renderExploreToolbar(data);
-            html += renderExploreSummary(data);
             html += '<div class="matrix-top-scroll" aria-hidden="true"><div class="matrix-top-scroll-inner"></div></div>';
             html += '<div class="matrix-scroll"><table class="matrix-table" role="grid">';
 
-            const rowHeader = matrixState.rowGrouping === 'region' ? 'Region'
-                : matrixState.rowGrouping === 'decade' ? 'Decade'
-                : matrixState.rowGrouping === 'year' ? 'Year'
-                : 'Jurisdiction';
-            const jSortCls = !matrixState.sortCol ? 'sorted-desc' : '';
+            const rowHeader = {region: 'Region', decade: 'Decade', year: 'Year'}[matrixState.rowGrouping];
+            const jSortCls = !matrixState.sortCol && matrixState.rowGrouping === 'region' && matrixState.rowSort !== 'alpha' ? 'sorted-desc' : '';
             html += '<thead><tr>';
             html += `<th class="${jSortCls}" role="button" tabindex="0" onclick="sortMatrixByRow()" onkeydown="if(event.key==='Enter')sortMatrixByRow()">${rowHeader}</th>`;
             data.columns.forEach(col => {
@@ -10676,11 +10635,13 @@
             data.rows.forEach(row => {
                 const rowTotal = data.rowTotals[row];
                 const rEsc = escapeJsString(row);
-                html += `<tr><td role="button" tabindex="0" onclick="exploreFilterToCounty('${rEsc}')" onkeydown="if(event.key==='Enter')exploreFilterToCounty('${rEsc}')">${escapeHtml(row)} <span class="cell-count">(${rowTotal.total})</span></td>`;
+                html += exploreRowDrillable(row)
+                    ? `<tr><td role="button" tabindex="0" onclick="exploreFilterToCounty('${rEsc}')" onkeydown="if(event.key==='Enter')exploreFilterToCounty('${rEsc}')">${escapeHtml(data.rowLabels[row])} <span class="cell-count">(${rowTotal.total})</span></td>`
+                    : `<tr><td title="Counties outside the region map; no catalog filter for this row yet">${escapeHtml(data.rowLabels[row])} <span class="cell-count">(${rowTotal.total})</span></td>`;
                 data.columns.forEach(col => {
-                    html += renderExploreCell(data.matrix[row][col], row, col);
+                    html += renderExploreCell(data.matrix[row][col], row, col, false, data.rowLabels[row]);
                 });
-                html += renderExploreCell(rowTotal, row, 'All', true);
+                html += renderExploreCell(rowTotal, row, 'All', true, data.rowLabels[row]);
                 html += '</tr>';
             });
 
@@ -10704,262 +10665,6 @@
 
         function renderMatrix() {
             return renderMatrixV2();
-            // Determine which field to use for columns based on toggle
-            const colFieldKey = matrixState.colField === 'measureType' ? 'display_category_type' : 'display_topic';
-            const colLabel = matrixState.colField === 'measureType' ? 'measure types' : 'topics';
-
-            const valid = filteredMeasures.filter(m =>
-                m[colFieldKey] && (m.passed === 1 || m.passed === 0)
-            );
-
-            if (valid.length === 0) {
-                return `<div class="empty-state">
-                    <div class="empty-icon">📊</div>
-                    <h3>No outcome data</h3>
-                    <p>Adjust filters to include measures with pass/fail results</p>
-                </div>`;
-            }
-
-            // Build sets
-            const topicSet = new Set();
-            const countySet = new Set();
-            valid.forEach(m => {
-                topicSet.add(m[colFieldKey]);
-                countySet.add(m.county || 'Unknown');
-            });
-
-            // Use canonical column ordering (stable across filter changes)
-            const canonicalOrder = matrixState.colField === 'measureType' ? CANONICAL_TYPE_ORDER : CANONICAL_TOPIC_ORDER;
-            const topics = canonicalOrder.filter(t => topicSet.has(t));
-            // Append any columns not in canonical order (future-proofing)
-            topicSet.forEach(t => { if (!topics.includes(t)) topics.push(t); });
-
-            // Build matrix — aggregate by row key (county or region)
-            const matrix = {};
-            const colTotals = {};
-            const rowTotals = {};
-            topics.forEach(t => colTotals[t] = {passed: 0, total: 0, trapped: 0});
-            const useRegions = matrixState.rowGrouping === 'region';
-            const isTrapMode = matrixState.metric === 'trap';
-
-            valid.forEach(m => {
-                let rowKey;
-                if (useRegions) {
-                    const cnty = (m.county || '').toUpperCase();
-                    rowKey = cnty === 'STATEWIDE' ? 'Statewide' : (countyToRegion[cnty] || 'Other');
-                } else {
-                    rowKey = m.county || 'Unknown';
-                }
-                const t = m[colFieldKey];
-                if (!matrix[rowKey]) matrix[rowKey] = {};
-                if (!matrix[rowKey][t]) matrix[rowKey][t] = {passed: 0, total: 0, trapped: 0};
-                matrix[rowKey][t].total++;
-                matrix[rowKey][t].passed += m.passed;
-                if (!rowTotals[rowKey]) rowTotals[rowKey] = {passed: 0, total: 0, trapped: 0};
-                rowTotals[rowKey].total++;
-                rowTotals[rowKey].passed += m.passed;
-                colTotals[t].total++;
-                colTotals[t].passed += m.passed;
-                // Threshold trap: majority yes (>50%) but failed
-                // Covers 50%, 55% (Prop 39 school bonds), and 66.67% (2/3 supermajority)
-                const pct = m.percent_yes;
-                if (m.passed === 0 && pct != null && pct >= 0 && pct <= 100 && pct > 50) {
-                    matrix[rowKey][t].trapped++;
-                    rowTotals[rowKey].trapped++;
-                    colTotals[t].trapped++;
-                }
-            });
-
-            // Collect and sort row keys
-            let counties = Object.keys(rowTotals);
-            if (matrixState.sortCol && colTotals[matrixState.sortCol]) {
-                counties.sort((a, b) => {
-                    const ac = (matrix[a] && matrix[a][matrixState.sortCol]) || {passed:0, total:0};
-                    const bc = (matrix[b] && matrix[b][matrixState.sortCol]) || {passed:0, total:0};
-                    const ar = ac.total > 0 ? ac.passed / ac.total : -1;
-                    const br = bc.total > 0 ? bc.passed / bc.total : -1;
-                    return matrixState.sortDir === 'desc' ? br - ar : ar - br;
-                });
-            } else if (matrixState.rowSort === 'alpha') {
-                counties.sort((a, b) => a.localeCompare(b));
-            } else if (matrixState.rowSort === 'rate') {
-                counties.sort((a, b) => {
-                    const ar = rowTotals[a]?.total > 0 ? rowTotals[a].passed / rowTotals[a].total : -1;
-                    const br = rowTotals[b]?.total > 0 ? rowTotals[b].passed / rowTotals[b].total : -1;
-                    return br - ar;
-                });
-            } else {
-                counties.sort((a, b) => (rowTotals[b]?.total || 0) - (rowTotals[a]?.total || 0));
-            }
-
-            // Build HTML
-            const matrixDensityClass = counties.length <= 16 ? 'matrix-compact' : '';
-            let html = `<div class="matrix-wrapper ${matrixDensityClass}">`;
-
-            // Toolbar with info, controls, and legend
-            const rowLabel = useRegions ? 'regions' : 'jurisdictions';
-            html += `<div class="matrix-toolbar">
-                <span>${valid.length.toLocaleString()} measures with outcomes · ${counties.length} ${rowLabel} × ${topics.length} ${colLabel}</span>
-                <div class="matrix-col-toggle">
-                    <button class="${matrixState.colField === 'topic' ? 'active' : ''}" onclick="setMatrixColField('topic')">Topic</button>
-                    <button class="${matrixState.colField === 'measureType' ? 'active' : ''}" onclick="setMatrixColField('measureType')">Measure Type</button>
-                </div>
-                <label>Rows:
-                    <select onchange="setMatrixRowGrouping(this.value)">
-                        <option value="jurisdiction" ${matrixState.rowGrouping==='jurisdiction'?'selected':''}>Jurisdictions</option>
-                        <option value="region" ${matrixState.rowGrouping==='region'?'selected':''}>Regions</option>
-                    </select>
-                </label>
-                <label>Sort:
-                    <select onchange="setMatrixRowSort(this.value)">
-                        <option value="count" ${matrixState.rowSort==='count'?'selected':''}>By count</option>
-                        <option value="alpha" ${matrixState.rowSort==='alpha'?'selected':''}>A–Z</option>
-                        <option value="rate" ${matrixState.rowSort==='rate'?'selected':''}>By pass rate</option>
-                    </select>
-                </label>
-                <label>Min n:
-                    <select onchange="setMatrixMinN(parseInt(this.value))">
-                        <option value="0" ${matrixState.minN===0?'selected':''}>All</option>
-                        <option value="3" ${matrixState.minN===3?'selected':''}>3+</option>
-                        <option value="5" ${matrixState.minN===5?'selected':''}>5+</option>
-                        <option value="10" ${matrixState.minN===10?'selected':''}>10+</option>
-                    </select>
-                </label>
-                <div class="matrix-col-toggle">
-                    <button class="${matrixState.metric === 'passRate' ? 'active' : ''}" onclick="setMatrixMetric('passRate')">Pass Rate</button>
-                    <button class="${matrixState.metric === 'trap' ? 'active' : ''}" onclick="setMatrixMetric('trap')" title="Measures that won majority support but failed due to supermajority threshold">Threshold Trap</button>
-                </div>
-                <div class="matrix-legend">
-                    <span class="matrix-legend-label">Low</span>
-                    <div class="matrix-legend-bar">
-                        <span style="background:#E54D4D"></span>
-                        <span style="background:#EA7A3F"></span>
-                        <span style="background:#F0A030"></span>
-                        <span style="background:#7CB86A"></span>
-                        <span style="background:#2D9D78"></span>
-                    </div>
-                    <span class="matrix-legend-label">High</span>
-                    <span style="opacity:0.5; margin-left:8px; color:#666;">●</span><span style="color:#888;font-size:0.7rem;margin-left:2px;">sparse</span>
-                </div>
-            </div>`;
-            html += '<div class="matrix-top-scroll" aria-hidden="true"><div class="matrix-top-scroll-inner"></div></div>';
-            html += '<div class="matrix-scroll"><table class="matrix-table" role="grid">';
-
-            // Header
-            html += '<thead><tr>';
-            const jSortCls = !matrixState.sortCol ? 'sorted-desc' : '';
-            const rowHeader = useRegions ? 'Region' : 'Jurisdiction';
-            html += `<th class="${jSortCls}" role="button" tabindex="0"
-                onclick="sortMatrixByRow()" onkeydown="if(event.key==='Enter')sortMatrixByRow()">${rowHeader}</th>`;
-            topics.forEach(t => {
-                const cls = matrixState.sortCol === t ? (matrixState.sortDir === 'asc' ? 'sorted-asc' : 'sorted-desc') : '';
-                const escaped = t.replace(/'/g, "\\'");
-                html += `<th class="${cls}" role="button" tabindex="0"
-                    onclick="sortMatrixByCol('${escaped}')"
-                    onkeydown="if(event.key==='Enter')sortMatrixByCol('${escaped}')"
-                    title="${escapeAttr(t)}">${escapeHtml(t)}</th>`;
-            });
-            html += '<th>All</th></tr></thead>';
-
-            // Body
-            html += '<tbody>';
-            counties.forEach(county => {
-                const rt = rowTotals[county] || {passed:0, total:0};
-                const rowRate = rt.total > 0 ? Math.round(100 * rt.passed / rt.total) : 0;
-                const cEsc = county.replace(/'/g, "\\'");
-                html += `<tr><td role="button" tabindex="0"
-                    onclick="exploreFilterToCounty('${cEsc}')"
-                    onkeydown="if(event.key==='Enter')exploreFilterToCounty('${cEsc}')"
-                    >${escapeHtml(county)} <span class="cell-count">(${rt.total})</span></td>`;
-                topics.forEach(t => {
-                    const cell = (matrix[county] && matrix[county][t]) || {passed:0, total:0, trapped:0};
-                    if (cell.total === 0 || cell.total < matrixState.minN) {
-                        html += '<td class="matrix-cell empty-cell">—</td>';
-                    } else if (isTrapMode) {
-                        // Threshold trap mode: show trapped count
-                        const trapRate = cell.total > 0 ? Math.round(100 * cell.trapped / cell.total) : 0;
-                        const bg = trapCellColor(cell.trapped, cell.total);
-                        const tEsc = t.replace(/'/g, "\\'");
-                        const label = `${escapeAttr(county)}, ${escapeAttr(t)}: ${cell.trapped} of ${cell.total} measures won majority but failed (${trapRate}%)`;
-                        html += `<td class="matrix-cell" style="background:${bg}"
-                            role="button" tabindex="0"
-                            onclick="matrixCellClick('${cEsc}','${tEsc}')"
-                            onkeydown="if(event.key==='Enter')matrixCellClick('${cEsc}','${tEsc}')"
-                            title="${label}" aria-label="${label}">
-                            ${cell.trapped > 0
-                                ? `<span class="cell-rate">${cell.trapped}</span><span class="cell-count">${trapRate}%</span>`
-                                : `<span class="cell-rate" style="opacity:0.3;">0</span>`
-                            }
-                        </td>`;
-                    } else {
-                        const rate = Math.round(100 * cell.passed / cell.total);
-                        const bg = matrixCellColor(cell.passed, cell.total);
-                        const low = cell.total < 3;
-                        const tEsc = t.replace(/'/g, "\\'");
-                        const label = `${escapeAttr(county)}, ${escapeAttr(t)}: ${rate}% passed (${cell.passed} of ${cell.total})${low ? ' — small sample' : ''}`;
-                        html += `<td class="matrix-cell ${low ? 'low-conf' : ''}" style="background:${bg}"
-                            role="button" tabindex="0"
-                            onclick="matrixCellClick('${cEsc}','${tEsc}')"
-                            onkeydown="if(event.key==='Enter')matrixCellClick('${cEsc}','${tEsc}')"
-                            title="${label}" aria-label="${label}">
-                            ${low
-                                ? `<span class="cell-rate">n=${cell.total}</span>`
-                                : `<span class="cell-rate">${rate}%</span><span class="cell-count">${cell.total}</span>`
-                            }
-                        </td>`;
-                    }
-                });
-                // Row total
-                if (isTrapMode) {
-                    const rowTrapRate = rt.total > 0 ? Math.round(100 * rt.trapped / rt.total) : 0;
-                    html += `<td class="matrix-cell" style="background:${trapCellColor(rt.trapped, rt.total)}">
-                        <span class="cell-rate">${rt.trapped}</span><span class="cell-count">${rowTrapRate}%</span></td>`;
-                } else {
-                    html += `<td class="matrix-cell" style="background:${matrixCellColor(rt.passed, rt.total)}">
-                        <span class="cell-rate">${rowRate}%</span><span class="cell-count">${rt.total}</span></td>`;
-                }
-                html += '</tr>';
-            });
-
-            // Totals row
-            const gt = {passed:0, total:0, trapped:0};
-            html += '<tr class="matrix-totals"><td>All</td>';
-            topics.forEach(t => {
-                const ct = colTotals[t];
-                gt.passed += ct.passed;
-                gt.total += ct.total;
-                gt.trapped += ct.trapped;
-                if (isTrapMode) {
-                    const trapRate = ct.total > 0 ? Math.round(100 * ct.trapped / ct.total) : 0;
-                    html += `<td><span class="cell-rate">${ct.trapped}</span><span class="cell-count">${trapRate}%</span></td>`;
-                } else {
-                    const rate = ct.total > 0 ? Math.round(100 * ct.passed / ct.total) : 0;
-                    html += `<td><span class="cell-rate">${rate}%</span><span class="cell-count">${ct.total}</span></td>`;
-                }
-            });
-            if (isTrapMode) {
-                const gtTrapRate = gt.total > 0 ? Math.round(100 * gt.trapped / gt.total) : 0;
-                html += `<td><span class="cell-rate">${gt.trapped}</span><span class="cell-count">${gtTrapRate}%</span></td>`;
-            } else {
-                html += `<td><span class="cell-rate">${gt.total > 0 ? Math.round(100*gt.passed/gt.total) : 0}%</span><span class="cell-count">${gt.total}</span></td>`;
-            }
-            html += '</tr></tbody>';
-
-            // Bottom column labels mirror the header for easier reading after vertical scrolling.
-            html += '<tfoot><tr>';
-            html += `<th role="button" tabindex="0"
-                onclick="sortMatrixByRow()" onkeydown="if(event.key==='Enter')sortMatrixByRow()">${rowHeader}</th>`;
-            topics.forEach(t => {
-                const cls = matrixState.sortCol === t ? (matrixState.sortDir === 'asc' ? 'sorted-asc' : 'sorted-desc') : '';
-                const escaped = t.replace(/'/g, "\\'");
-                html += `<th class="${cls}" role="button" tabindex="0"
-                    onclick="sortMatrixByCol('${escaped}')"
-                    onkeydown="if(event.key==='Enter')sortMatrixByCol('${escaped}')"
-                    title="${escapeAttr(t)}">${escapeHtml(t)}</th>`;
-            });
-            html += '<th>All</th></tr></tfoot></table></div></div>';
-
-            return html;
         }
 
         function syncMatrixScrollbars() {
@@ -11007,157 +10712,75 @@
         }
 
         function setMatrixRowSort(mode) {
-            matrixState.rowSort = mode;
-            matrixRowMode = mode; // keep legacy alias
-            matrixState.sortCol = null;
-            displayResults();
+            if (!['time','count','alpha','rate'].includes(mode)) return;
+            matrixState.rowSort = mode; matrixState.sortCol = null; displayResults();
         }
 
         function setMatrixColField(field) {
-            matrixState.colField = field;
-            matrixColField = field; // keep legacy alias
-            matrixState.sortCol = null;
-            displayResults();
+            if (!['measureType','topic'].includes(field)) return;
+            matrixState.colField = field; matrixState.sortCol = null;
+            if (!reconcileCatalogLevel()) displayResults();
         }
 
         function setMatrixRowGrouping(grouping) {
+            if (!['region','decade','year'].includes(grouping)) return;
             matrixState.rowGrouping = grouping;
-            matrixState.sortCol = null;
-            displayResults();
+            matrixState.rowSort = grouping === 'region' ? 'count' : 'time';
+            matrixState.sortCol = null; displayResults();
         }
 
         function setMatrixMinN(n) {
-            matrixState.minN = n;
-            displayResults();
+            if (![5,10,20].includes(n)) return;
+            matrixState.minN = n; displayResults();
         }
 
         function setMatrixMetric(metric) {
-            matrixState.metric = metric;
-            displayResults();
+            if (!['passRate','volume','avgYes'].includes(metric)) return;
+            matrixState.metric = metric; displayResults();
+        }
+
+        function setExploreLevel(level) {
+            if (!['local','statewide'].includes(level)) return;
+            matrixState.level = level; matrixState.sortCol = null;
+            if (!reconcileCatalogLevel()) displayResults();
         }
 
         function resetMatrixControls() {
-            matrixState.rowGrouping = 'jurisdiction';
-            matrixState.rowSort = 'count';
-            matrixState.colField = 'topic';
-            matrixState.sortCol = null;
-            matrixState.sortDir = 'desc';
-            matrixState.minN = 0;
-            matrixState.metric = 'passRate';
-            matrixRowMode = matrixState.rowSort;
-            matrixColField = matrixState.colField;
-            displayResults();
-        }
-
-        // Threshold trap color: purple scale
-        function trapCellColor(trapCount, total) {
-            if (total < 1 || trapCount === 0) return '#f0eee8';
-            const rate = trapCount / total;
-            // Light lavender (0%) → Deep purple (100% trapped)
-            const r = Math.round(240 - 120 * rate);
-            const g = Math.round(238 - 158 * rate);
-            const b = Math.round(232 + 23 * rate);
-            return `rgb(${r}, ${g}, ${b})`;
+            Object.assign(matrixState, {rowGrouping:'decade', rowSort:'time', colField:'measureType', sortCol:null, sortDir:'desc', minN:5, metric:'passRate', level:'local'});
+            clearAllFilters();
         }
 
         function matrixCellClick(rowKey, colValue) {
-            // Show cell detail modal instead of drilling down
-            const cellMeasures = filteredMeasures.filter(m =>
+            const cellMeasures = exploreLevelMeasures().filter(m =>
                 (m.passed === 1 || m.passed === 0) &&
                 getExploreColValue(m) === colValue &&
                 getExploreRowValue(m) === rowKey
             );
-
             if (cellMeasures.length === 0) return;
 
-            // Compute stats
             const passed = cellMeasures.filter(m => m.passed === 1).length;
             const total = cellMeasures.length;
-            const passRate = Math.round(100 * passed / total);
+            const reason = exploreCountOnlyReason();
             const validPct = cellMeasures.filter(m => m.percent_yes != null && m.percent_yes >= 0 && m.percent_yes <= 100);
             const avgYes = validPct.length > 0 ? (validPct.reduce((s, m) => s + m.percent_yes, 0) / validPct.length).toFixed(1) : null;
-            const trapped = validPct.filter(m => m.passed === 0 && m.percent_yes > 50).length;
-            const closeCalls = validPct.filter(m => Math.abs(m.percent_yes - getMeasureThreshold(m)) <= 5).length;
-            const reliability = total >= 10 ? 'solid' : total >= 3 ? 'limited' : 'anecdotal';
 
-            // Decade breakdown
-            const decades = {};
-            cellMeasures.forEach(m => {
-                const d = m.decade || (m.year ? Math.floor(m.year / 10) * 10 : null);
-                if (d) {
-                    if (!decades[d]) decades[d] = {passed: 0, total: 0};
-                    decades[d].total++;
-                    decades[d].passed += m.passed;
-                }
-            });
-            const decadeKeys = Object.keys(decades).sort();
-
-            // Notable measures: tightest race + biggest win
-            const withPct = cellMeasures.filter(m => m.percent_yes != null && m.percent_yes >= 0 && m.percent_yes <= 100);
-            const tightest = [...withPct].sort((a, b) => Math.abs(a.percent_yes - 50) - Math.abs(b.percent_yes - 50)).slice(0, 2);
-            const biggest = [...withPct].sort((a, b) => b.percent_yes - a.percent_yes).slice(0, 1);
-            const notable = [...new Map([...tightest, ...biggest].map(m => [m.id, m])).values()].slice(0, 3);
-
-            // Build modal content
             const modal = document.getElementById('matrixCellModal');
-            document.getElementById('matrixCellTitle').textContent = `${rowKey} — ${colValue}`;
+            document.getElementById('matrixCellTitle').textContent = `${exploreRowLabels[rowKey] || rowKey} — ${colValue}`;
 
-            let body = `
-                <div style="display:flex;gap:1.5rem;margin-bottom:1rem;align-items:center;">
-                    <div style="text-align:center;">
-                        <div style="font-size:2rem;font-weight:700;color:${matrixCellColor(passed, total)}">${passRate}%</div>
-                        <div style="font-size:0.75rem;color:#888;">pass rate (${passed}/${total})</div>
-                    </div>
-                    ${avgYes ? `<div style="text-align:center;">
-                        <div style="font-size:1.5rem;font-weight:600;color:#555;">${avgYes}%</div>
-                        <div style="font-size:0.75rem;color:#888;">avg YES vote</div>
-                    </div>` : ''}
-                </div>`;
-            body = `
-                <div class="matrix-modal-metrics">
-                    <div class="matrix-modal-metric"><strong>${passRate}%</strong><span>Pass rate (${passed}/${total})</span></div>
-                    <div class="matrix-modal-metric"><strong>${avgYes ? avgYes + '%' : 'n/a'}</strong><span>Avg yes vote</span></div>
-                    <div class="matrix-modal-metric"><strong>${closeCalls}</strong><span>Close calls</span></div>
-                    <div class="matrix-modal-metric"><strong>${trapped}</strong><span>Threshold traps</span></div>
-                </div>
-                <p style="font-size:0.82rem;color:#5F5647;margin:0 0 0.8rem;">Reliability: <strong>${reliability}</strong>. Close calls are measures within 5 points of their inferred legal threshold; threshold traps are majority-supported failures.</p>`;
+            const display = Explore.cell(passed, total, matrixState.minN, reason);
+            // No per-decade chart until E2c rebuilds it with numbers: bars could not tell
+            // 0% from "too few" from "none".
+            let body = `<div class="matrix-modal-metrics">
+                <div class="matrix-modal-metric"><strong>${display.text}</strong><span>${display.label}</span></div>
+                ${!reason && validPct.length >= Math.max(5,matrixState.minN) ? `<div class="matrix-modal-metric"><strong>${avgYes}%</strong><span>Average yes vote (${validPct.length} records)</span></div>` : ''}
+            </div>`;
 
-            // Decade chart
-            if (decadeKeys.length >= 2) {
-                const maxTotal = Math.max(...decadeKeys.map(d => decades[d].total));
-                body += `<div style="margin-bottom:1rem;"><div style="font-size:0.8rem;font-weight:600;margin-bottom:0.5rem;">Pass rate by decade</div>`;
-                body += `<div style="display:flex;align-items:flex-end;gap:4px;height:60px;">`;
-                decadeKeys.forEach(d => {
-                    const rate = decades[d].total > 0 ? decades[d].passed / decades[d].total : 0;
-                    const h = Math.max(4, Math.round(rate * 50));
-                    const bg = matrixCellColor(decades[d].passed, decades[d].total);
-                    body += `<div style="display:flex;flex-direction:column;align-items:center;flex:1;" title="${d}s: ${Math.round(rate*100)}% (${decades[d].passed}/${decades[d].total})">
-                        <div style="width:100%;max-width:32px;height:${h}px;background:${bg};border-radius:3px 3px 0 0;"></div>
-                        <div style="font-size:0.6rem;color:#888;margin-top:2px;">${d}s</div>
-                    </div>`;
-                });
-                body += `</div></div>`;
-            }
-
-            // Notable measures
-            if (notable.length > 0) {
-                body += `<div style="margin-bottom:1rem;"><div style="font-size:0.8rem;font-weight:600;margin-bottom:0.5rem;">Notable measures</div>`;
-                notable.forEach(m => {
-                    const pct = m.percent_yes != null && m.percent_yes <= 100 ? m.percent_yes.toFixed(1) + '% yes' : '';
-                    const status = m.passed === 1 ? '<span style="color:#2D9D78;">Passed</span>' : '<span style="color:#E54D4D;">Failed</span>';
-                    const title = escapeHtml(m.generated_title || m.summary_title || m.title || `Measure ${m.measure_letter || '?'}`);
-                    body += `<div style="padding:0.4rem 0;border-bottom:1px solid #eee;font-size:0.8rem;">
-                        <div><strong>${m.year}</strong> ${status} ${pct ? '· ' + pct : ''}</div>
-                        <div style="color:#555;margin-top:2px;">${title.substring(0, 120)}${title.length > 120 ? '...' : ''}</div>
-                    </div>`;
-                });
-                body += `</div>`;
-            }
-
-            // View all button
-            const rEsc = rowKey.replace(/'/g, "\\'");
-            const cEsc = colValue.replace(/'/g, "\\'");
-            body += `<button onclick="closeMatrixCellModal(); matrixDrillDown('${rEsc}','${cEsc}')" style="width:100%;padding:0.6rem;background:var(--primary);color:white;border:none;border-radius:6px;cursor:pointer;font-size:0.85rem;font-weight:600;">View all ${total} measures &rarr;</button>`;
+            const rEsc = escapeJsString(rowKey);
+            const cEsc = escapeJsString(colValue);
+            body += !exploreRowDrillable(rowKey)
+                ? `<p style="margin:0;font-size:0.85rem;color:#374955;">These records are in counties outside the region map, so there is no matching catalog filter yet.</p>`
+                : `<button onclick="closeMatrixCellModal(); matrixDrillDown('${rEsc}','${cEsc}')" style="width:100%;padding:0.6rem;background:var(--primary);color:white;border:none;border-radius:6px;cursor:pointer;font-size:0.85rem;font-weight:600;">View matching catalog records &rarr;</button>
+                <p style="margin:0.5rem 0 0;font-size:0.8rem;color:#374955;">The catalog list also includes matching records without a recorded outcome.</p>`;
 
             document.getElementById('matrixCellBody').innerHTML = body;
             modal.style.display = 'flex';
@@ -11169,40 +10792,13 @@
                 currentFilters.measureTypes = [colValue];
                 currentFilters.thresholds = [];
                 updateMeasureTypeChipUI();
-            } else if (matrixState.colField === 'threshold') {
-                currentFilters.measureTypes = [];
-                currentFilters.topics = [];
-                currentFilters.thresholds = [colValue];
+
             } else {
                 currentFilters.topics = [colValue];
                 currentFilters.thresholds = [];
                 updateTopicChipUI();
             }
-            if (matrixState.rowGrouping === 'decade') {
-                const decade = parseInt(rowKey);
-                if (Number.isFinite(decade)) {
-                    currentFilters.selectedDecades = [decade];
-                    currentFilters.selectedYears = [];
-                    renderYearNavigation();
-                }
-            } else if (matrixState.rowGrouping === 'year') {
-                const year = parseInt(rowKey);
-                if (Number.isFinite(year)) {
-                    currentFilters.selectedYears = [year];
-                    currentFilters.selectedDecades = [];
-                    renderYearNavigation();
-                }
-            } else if (matrixState.rowGrouping === 'region' && CA_REGIONS[rowKey]) {
-                currentFilters.regions = [rowKey];
-                currentFilters.level = null;
-                currentFilters.levelCounty = null;
-            } else if (rowKey !== 'Statewide') {
-                currentFilters.level = 'local';
-                currentFilters.levelCounty = rowKey;
-            } else {
-                currentFilters.level = 'statewide';
-                currentFilters.levelCounty = null;
-            }
+            applyExploreRowFilter(rowKey);
             setView('grid');
             updateLevelChipUI();
             updateFilterCountBadges();
@@ -11213,7 +10809,8 @@
             document.getElementById('matrixCellModal').style.display = 'none';
         }
 
-        function exploreFilterToCounty(rowKey) {
+        // Row and cell drill-downs: the row's period or region, plus the level Explore counted.
+        function applyExploreRowFilter(rowKey) {
             if (matrixState.rowGrouping === 'decade') {
                 const decade = parseInt(rowKey);
                 if (Number.isFinite(decade)) {
@@ -11230,15 +10827,20 @@
                 }
             } else if (matrixState.rowGrouping === 'region' && CA_REGIONS[rowKey]) {
                 currentFilters.regions = [rowKey];
-                currentFilters.level = null;
-                currentFilters.levelCounty = null;
-            } else if (rowKey !== 'Statewide') {
-                currentFilters.level = 'local';
-                currentFilters.levelCounty = rowKey;
-            } else {
-                currentFilters.level = 'statewide';
-                currentFilters.levelCounty = null;
             }
+            const level = exploreLevel();
+            if (currentFilters.level !== level) {
+                currentFilters.level = level;
+                // A county applies only to local measures: clear it (and its dropdown) only
+                // when the drill is statewide. A local drill keeps it.
+                if (level !== 'local') clearExploreLevelCounty();
+            }
+            updateLevelChipUI();
+        }
+
+        // Row-header drill-down (named before rows became periods and regions).
+        function exploreFilterToCounty(rowKey) {
+            applyExploreRowFilter(rowKey);
             setView('grid');
             updateLevelChipUI();
             updateFilterCountBadges();
@@ -14031,7 +13633,7 @@
         // Set view mode
         function setView(view) {
             if (view === 'insights' && !false) view = 'grid';
-            if (view === 'explore' && !false) view = 'grid';
+            if (view === 'explore' && !true) view = 'grid';
             currentView = view;
             // Set default items per page based on view
             if (view === 'grid') {
