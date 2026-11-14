@@ -1,6 +1,6 @@
 # Codex recheck request: Explore E1 fix pass 2
 
-**Type:** review only. **Branch:** `phase0-election-status`; the commit is in the handoff.
+**Type:** review only. **Branch:** `phase0-election-status`, fix-pass-2 commit `2eeeca57`.
 **Read:** your fix-pass review, [`explore_e1_fixpass_review_response.md`](explore_e1_fixpass_review_response.md),
 and the "Fix pass 2" section of
 [`docs/plans/explore_e1_handoff_20261113.md`](../plans/explore_e1_handoff_20261113.md).

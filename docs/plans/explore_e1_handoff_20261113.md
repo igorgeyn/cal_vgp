@@ -150,4 +150,4 @@ Codex's probe did.
   navigation pass;
 - the full suite is at 760 passed, baseline only.
 
-**Codex asked for an independent recheck of N1** before E1 closes.
+Commit `2eeeca57`. **Codex asked for an independent recheck of N1** before E1 closes.
