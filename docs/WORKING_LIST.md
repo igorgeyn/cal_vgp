@@ -42,7 +42,7 @@ data on the live site, then reader value, then expansion.
 | # | Item | Why here | Blocked by | Detail |
 |---|---|---|---|---|
 | 1 | **Release Explore E1** | Small and fully verified; brings back a feature | Codex review, Igor's go | [handoff](plans/explore_e1_handoff_20261113.md) |
-| 2 | **Save the results files by hand** (Igor): today, then Nov 20 and 27, Dec 4 and Dec 12, plus certified files at certification | Results pages are overwritten; the evidence is perishable. Nov 5 and 7 script captures are already filed | Igor (task) | [P2 design §1](plans/results_import_design_20261113.md), **amended by Codex's review (§9, R8)**: one timestamped folder per save (e.g. `20261113T1730-0800`), not per day; add San Mateo's "Results on PDF"; the hash command must exclude `SHA256SUMS.txt` |
+| 2 | **Save the results files by hand** (Igor; agreed November 13): today, then Nov 20 and 27, Dec 4 and Dec 12, plus certified files at certification | Results pages are overwritten; the evidence is perishable. Nov 5 and 7 script captures are already filed | Igor (task) | [P2 design §1](plans/results_import_design_20261113.md), **amended by Codex's review (§9, R8)**: one timestamped folder per save (e.g. `20261113T1730-0800`), not per day; add San Mateo's "Results on PDF"; the hash command must exclude `SHA256SUMS.txt` |
 | 3 | **Results import for the 63 (P2)**: ledger and SOS importer (a), county importers (b), site display (c), certification (d) | The main reader need until certification. Unofficial display only if (c) is ready by **Nov 26** | Codex review (`3b76947e`): **ready with changes** (R1-R8). Next: **Fable revises the design into chunk (a0), rules and evidence**; then (a1)/(b) in parallel, (c-core) with certification rehearsals, an optional unofficial release, (d) | [checklist P2](plans/local_measures_checklist_20261107.md), [results transition](plans/results_transition_20260907.md) |
 | 4 | **Flag the 28 wrong CEDA records and id 4870**: hide the summary and add an "under review" note on each page | Wrong data is live: another measure's question, votes and outcome. Decided November 12 | None (small follow-up release) | [CEDA design](plans/ceda_backfill_design_20261112.md), [revision review](codex/p1b_1b_revision_review_response.md) |
 | 5 | **Chart the rest of Explore** (Fable), then **E2c**: transpose the table, a phone list, the trend chart with numbers; then E2a and E2b | Explore's phone layout is still poor; E2c fixes most of it | E1 released; **E2c waits for P2(c)**, which also edits `generator.py` and has a deadline | [plan §5 E2](plans/explore_renovation_plan_20261112.md) |
@@ -58,7 +58,6 @@ data on the live site, then reader value, then expansion.
 | Approve the **Explore E1 release** after Codex's review | Yes, if the review is clean | Next #1 |
 | **Save the results files** weekly until December 3 | Yes: a browser download into a dated folder | Next #2, #3 |
 | **User-Agent** for the capture tool | Project name plus the GitHub URL, **no email** (the registrar default in `base.py` includes it) | Next #6, #8 |
-| **P2 design §7, eight questions**: ledger as a committed file; a reviewed "majority" rule for the 14 propositions; skip unofficial if not ready by Nov 26; multi-county portion labelled before certification; save other counties' certified results; wording; no precinct data; commit the SMC CSV fixture if under ~5 MB | Agree with Fable's recommendations, **except #8**: Codex rejects committing the SMC CSV (it holds an unmasked two-voter precinct split; privacy, not size, decides). Keep full files private. Also use "Unofficial" and "Certified" as words on cards. Wording is Igor's call | P2 (a0)-(d) |
 | **`CLAUDE.md` commit trailer**: it says "Claude Opus 4.7"; the current model is Opus 5.5 | A model-neutral wording, or Opus 5.5 | Nothing (hygiene) |
 | **Download the current CEDA release** from CSUS Esploro (2016-2021, ideally all years) | Yes | CEDA repair for those years; the id 9189 decision |
 | **San Francisco results route**: its results hosts return 403 to scripts | A manual browser download, or ask the department | SF results |
@@ -66,6 +65,23 @@ data on the live site, then reader value, then expansion.
 | **CEDA design §12**, five questions | Agree on all five. Restore Measure D in the repair, not the follow-up release (the revision review found Measure P's source doubtful) | CEDA repair |
 | **Explore audience and name** (D4/D5) | Journalists and researchers; keep "Explore" for now | Explore E4 only |
 | Commit `plans/measure_layout_design_proposal.md` and `design/` (both untracked) | Commit them; Direction A is approved | Nothing |
+
+**Answered by Igor, November 13, 2026: P2 design §7** (all as recommended, with #8 per Codex):
+1. The ledger is a committed file, not database tables.
+2. Add "majority" as a reviewed approval rule for the 14 propositions, after a source and rule
+   review; no guessed default.
+3. November 26 is the cut-off for the *optional unofficial release* only. The shared display
+   code and the certification rehearsals are built regardless.
+4. Before certification, show a multi-county measure's county portion, clearly scoped, with
+   "Combined result not available yet". Distinguish an unavailable combined result from
+   unavailable county counts.
+5. Igor saves the other counties' certified results and their certification statements, after
+   the membership and scope review.
+6. "Unofficial" and "Certified" appear as words on cards as well as in the detail. Final
+   placement is settled in the design.
+7. No public precinct results in this version. Private ingestion of detailed files is allowed.
+8. **No public San Mateo CSV fixture**, whatever its size: it holds an unmasked two-voter
+   precinct split. Use synthetic or redacted fixtures; full files stay private.
 
 ## Paused
 
