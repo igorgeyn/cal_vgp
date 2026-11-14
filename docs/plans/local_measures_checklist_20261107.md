@@ -279,7 +279,7 @@ for the whole interval.
 | Chunk | Scope | Status | Review | Evidence |
 |---|---|---|---|---|
 | E0 | Hide Explore (flag) | **Done** `f2cc8a1d`; published in PR #9 | (part of the P0 release) | |
-| E1 | Honest Explore | **Built** by Codex (`8029d2e9`); **fix pass** by the coordinator after both reviews (`a496421c`): levels separated, counts only under County/Status filters, difference metric and decade bars removed, real-year labels, coverage names the 63 current measures. All pages identical, Grid/List identical, all browser checks pass, 760 tests | Claude reviewer and Fable: both ready with changes (addressed). **Codex fix-pass review pending** ([prompt](../codex/explore_e1_fixpass_review_prompt.md)) | [handoff](explore_e1_handoff_20261113.md); `scraper/data/exports/explore_e1_20261113/` |
+| E1 | Honest Explore | **Built** by Codex (`8029d2e9`); **fix pass** by the coordinator after both reviews (`a496421c`): levels separated, counts only under County/Status filters, difference metric and decade bars removed, real-year labels, coverage names the 63 current measures. All pages identical, Grid/List identical, all browser checks pass, 760 tests | Claude reviewer and Fable: both ready with changes (addressed). Codex fix-pass review `3c426967` (N1 blocker) → fix pass 2 `2eeeca57` → Codex recheck `2a06d4ba`: **ready to release** | [handoff](explore_e1_handoff_20261113.md); `scraper/data/exports/explore_e1_20261113/` |
 | E2c | Layout (transpose), phones, trend: **first** | Not started | | |
 | E2a | URL state + keyboard | Not started | | |
 | E2b | Table semantics | Not started | | |

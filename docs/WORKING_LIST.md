@@ -31,7 +31,7 @@ per-area backlog are in [`WORKING_LIST_HISTORY.md`](WORKING_LIST_HISTORY.md).
 
 | # | Item | Status | Detail |
 |---|---|---|---|
-| 1 | **Explore E1, "Honest Explore"**: Explore comes back without overstating the data | Built, fixed after two reviews (`a496421c`). Codex's fix-pass review (`3c426967`) found a release blocker (a county drill-down dropped the county); fix pass 2 is built and verified; **Codex rechecks N1**. Then Igor's go-ahead to release. | [handoff](plans/explore_e1_handoff_20261113.md), [plan](plans/explore_renovation_plan_20261112.md) |
+| 1 | **Explore E1, "Honest Explore"**: Explore comes back without overstating the data | Built, fixed after two reviews (`a496421c`). Codex's fix-pass review (`3c426967`) found a release blocker (a county drill-down dropped the county); fix pass 2 (`2eeeca57`) rechecked by Codex (`2a06d4ba`): **ready to release** for current data. Release candidate being prepared; needs Igor's go-ahead. Minor follow-ups (sparse empty state with carried-over filters; Min n enabled under count-only) go to E2. | [handoff](plans/explore_e1_handoff_20261113.md), [plan](plans/explore_renovation_plan_20261112.md) |
 | 2 | **Home page review** (Fable, read-only): layout suggestions for the whole page | Running | [prompt](codex/fable_homepage_review_prompt.md); output `plans/homepage_review_20261113.md` |
 
 ## Next (ranked)
