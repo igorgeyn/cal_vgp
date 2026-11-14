@@ -5,7 +5,9 @@ item to "Done" when its response is committed.
 
 ## Pending
 
-1. **Explore renovation, next chunk (now E2c). Execute, not review. Hold: start only after E1 is released AND P2(c) has landed (both edit generator.py)**
+1. **P2 (a0) results contract re-review (gates the importers)**
+   `Read docs/codex/p2_a0_review_prompt.md on branch phase0-election-status and follow it. Review only; commit only the response file it names.`
+2. **Explore renovation, next chunk (now E2c). Execute, not review. Hold: start only after E1 is released AND P2(c) has landed (both edit generator.py)**
    `Read docs/plans/explore_renovation_plan_20261112.md on branch phase0-election-status and follow it. Do the next chunk whose blocking decisions in §2 are marked answered, and only that chunk. If none is unblocked, stop and say which decisions are pending. Never push, publish or write to R2.`
 
 ## Done

@@ -36,10 +36,12 @@ and the live site are unchanged.
 | P1b.3 | Verification layers; changed-outcome list for **Igor** | Not started | | |
 | P1b.4 | Release of the repaired history | Not started | | |
 | P2.design | Results-import design (Fable) | **Written** [design](results_import_design_20261113.md): append-only hash-chained ledger file; certified-only writes to `measures`; reviewed contest mapping; multi-county = CEDA model (ids 12418, 12421, 12442). Unproofread (Fable hit its limit) | Codex ([response](../codex/p2_results_design_review_response.md), `3b76947e`): **ready with changes**. R1 multi-county precedence vs `election_status.py`; R2 no public precinct CSV fixture; R3-R5 correction identity, source-order selection, tamper evidence, evidence-bound mapping; R6-R7 derived totals and executable rules; R8 per-capture folders. New order: a0, then a1/b, then c-core (with certification rehearsals), then an optional unofficial release, then d | Igor answered all 8 on November 13 (#8 per Codex: no public CSV fixture); recorded in `docs/WORKING_LIST.md` |
-| P2.a | Ledger, capture registration, mapping validator, SOS importer | Not started (Fable) | | needs design review, Q1 |
-| P2.b | SB xlsx and SMC CSV importers, 49 mappings, multi-county marks | Not started | | needs Igor's first saved files |
-| P2.c | Site projection: status contract, result display, all surfaces in one commit | Not started (Codex). **Runs before Explore E2c** (shared `generator.py`; Nov 26 cut-off). Must also gate Explore so no 2026 outcome enters it before certification (Codex E1 fix-pass review, R6) | | |
-| P2.d | Certification: certified captures, projection on a copy, combined results, link recheck, release | Not started; Dec 4-12 | | |
+| P2.a0 | Rules-and-evidence contract (design revised in place) | **Written** by Fable: one outcome function (multi-county answers only from the whole contest), content-addressed observation identity with supersession, reviewed selection file pinned to the ledger, per-capture folders with a manifest written last, (a1)/(b) interfaces and failure matrix | Codex [re-review](../codex/p2_a0_review_prompt.md) pending | 6 open questions (design §10) |
+| P2.a1 | Ledger and SOS: `contract.py`, capture registration, ledger, validators, SOS parser, 14 statewide entries | Not started (Fable) | | after (a0) is accepted |
+| P2.b | Counties: SB and SMC parsers, 49 entries with evidence, 3 groups, a synthetic CSV fixture | Not started (Claude agent, parallel with a1) | | needs Igor's first xlsx, CSV and summary PDF |
+| P2.c-core | Projection: outcome module, every consumer, field transport, result rendering, certification rehearsals | Not started (Codex + Fable). Before Explore E2c; gate 2026 outcomes out of Explore until certified | | |
+| P2.c-release | Optional unofficial release | Not started; cut-off Nov 26 | | Igor's go |
+| P2.d | Certification: captures, evidence, derived totals, projection on a copy, link recheck, release | Not started; from Dec 4 | | |
 | P3.x | Layout (Direction A, result state, tab design) | Codex reviewed `0b6e78f2`: ready with changes (F1–F7; 6-chunk order, first = date-aware local directory). See [response](../codex/layout_direction_a_review_response.md) | | |
 | P3b.x | Results and comparisons tab | Outline below | | |
 | P4-P6 | Harvest waves, certification sweep | Outline below | | |

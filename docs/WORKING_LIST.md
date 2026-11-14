@@ -42,8 +42,8 @@ data on the live site, then reader value, then expansion.
 | # | Item | Why here | Blocked by | Detail |
 |---|---|---|---|---|
 | 1 | **Release Explore E1** | Small and fully verified; brings back a feature | Codex review, Igor's go | [handoff](plans/explore_e1_handoff_20261113.md) |
-| 2 | **Save the results files by hand** (Igor; agreed November 13): today, then Nov 20 and 27, Dec 4 and Dec 12, plus certified files at certification | Results pages are overwritten; the evidence is perishable. Nov 5 and 7 script captures are already filed | Igor (task) | [P2 design §1](plans/results_import_design_20261113.md), **amended by Codex's review (§9, R8)**: one timestamped folder per save (e.g. `20261113T1730-0800`), not per day; add San Mateo's "Results on PDF"; the hash command must exclude `SHA256SUMS.txt` |
-| 3 | **Results import for the 63 (P2)**: ledger and SOS importer (a), county importers (b), site display (c), certification (d) | The main reader need until certification. Unofficial display only if (c) is ready by **Nov 26** | Codex review (`3b76947e`): **ready with changes** (R1-R8). Next: **Fable revises the design into chunk (a0), rules and evidence**; then (a1)/(b) in parallel, (c-core) with certification rehearsals, an optional unofficial release, (d) | [checklist P2](plans/local_measures_checklist_20261107.md), [results transition](plans/results_transition_20260907.md) |
+| 2 | **Save the results files by hand** (Igor; agreed November 13): today, then Nov 20 and 27, Dec 4 and Dec 12, plus certified files at certification | Results pages are overwritten; the evidence is perishable. Nov 5 and 7 script captures are already filed | Igor (task) | [P2 design §1.2](plans/results_import_design_20261113.md): eight files per save, one timestamped folder per save, the hash command that excludes `SHA256SUMS.txt`. One-time extras: the proposition authority packet (with the next save) and, at certification, the actual certification statements |
+| 3 | **Results import for the 63 (P2)**: ledger and SOS importer (a), county importers (b), site display (c), certification (d) | The main reader need until certification. Unofficial display only if (c) is ready by **Nov 26** | (a0) contract written by Fable (R1-R8 answered); **Codex re-review of (a0)**; first xlsx, CSV and summary PDF for (b). Then (a1) Fable and (b) a Claude agent in parallel, (c-core) Codex + Fable, an optional unofficial release, (d) from Dec 4 | [checklist P2](plans/local_measures_checklist_20261107.md), [results transition](plans/results_transition_20260907.md) |
 | 4 | **Flag the 28 wrong CEDA records and id 4870**: hide the summary and add an "under review" note on each page | Wrong data is live: another measure's question, votes and outcome. Decided November 12 | None (small follow-up release) | [CEDA design](plans/ceda_backfill_design_20261112.md), [revision review](codex/p1b_1b_revision_review_response.md) |
 | 5 | **Chart the rest of Explore** (Fable), then **E2c**: transpose the table, a phone list, the trend chart with numbers; then E2a and E2b | Explore's phone layout is still poor; E2c fixes most of it | E1 released; **E2c waits for P2(c)**, which also edits `generator.py` and has a deadline | [plan §5 E2](plans/explore_renovation_plan_20261112.md) |
 | 6 | **Census fixes and the capture tool (P1.1a, P1.2)** | Gate every county beyond SB/SMC | **The User-Agent decision** (Igor) | [census review](codex/p1_1_census_review_response.md), [checklist P1](plans/local_measures_checklist_20261107.md) |
@@ -65,6 +65,20 @@ data on the live site, then reader value, then expansion.
 | **CEDA design §12**, five questions | Agree on all five. Restore Measure D in the repair, not the follow-up release (the revision review found Measure P's source doubtful) | CEDA repair |
 | **Explore audience and name** (D4/D5) | Journalists and researchers; keep "Explore" for now | Explore E4 only |
 | Commit `plans/measure_layout_design_proposal.md` and `design/` (both untracked) | Commit them; Direction A is approved | Nothing |
+
+**Open from the P2 (a0) contract (design §10)**, each with Fable's recommendation:
+1. **The SOS file's time zone.** Its `ReportingTime` names none. Record it as Pacific once a
+   reviewer confirms that; until then, show the source's own wording.
+2. **The authority packet for the 14 propositions.** Igor saves the constitutional sections and
+   each proposition's enabling text with the next capture.
+3. **Who reviews identity and scope evidence for the 49 local entries.** The (b) builder
+   assembles it and a second agent checks it; doubtful scopes go to Igor.
+4. **Wording:** the label for certified counts with no result determined, and the final wording
+   and placement of every result line. Igor's call; (c-core) brings options.
+5. **San Bernardino's summary file as a public fixture.** Yes, after a check that it holds
+   contest totals only.
+6. **An official unofficial consolidated total for a multi-county measure**, if one turns up.
+   Show it as unofficial, scoped and sourced.
 
 **Answered by Igor, November 13, 2026: P2 design §7** (all as recommended, with #8 per Codex):
 1. The ledger is a committed file, not database tables.
