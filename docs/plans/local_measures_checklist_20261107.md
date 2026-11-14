@@ -35,7 +35,11 @@ and the live site are unchanged.
 | P1b.2 | Backfill on a database copy (combined results, names, questions, thresholds) | Not started. Igor's five decisions answered; Fable revised the tool (27 tests, `--gate`), report and design. **Paused by Igor until Explore is done.** Revision re-reviewed ([response](../codex/p1b_1b_revision_review_response.md)): report ready; tool and design ready with changes (N1 gate can't pass after step 8, so keep `passed` per county and add `combined_passed`; N2 waivers too broad; N4 schema rebuild must drop views; N5 search-index checks can't fail; N6 no "unverified" mark exists; N7 2014 rekey vs `measure_id`-keyed code and embeddings; N11 Measure P's source is doubtful). Igor's five new questions in the [design](ceda_backfill_design_20261112.md#12-new-questions-for-igor) still open | | |
 | P1b.3 | Verification layers; changed-outcome list for **Igor** | Not started | | |
 | P1b.4 | Release of the repaired history | Not started | | |
-| P2.x | Results for the 63 (importers, observations, multi-county rule) | Outline below | | |
+| P2.design | Results-import design (Fable) | **Written** [design](results_import_design_20261113.md): append-only hash-chained ledger file; certified-only writes to `measures`; reviewed contest mapping; multi-county = CEDA model (ids 12418, 12421, 12442). Unproofread (Fable hit its limit) | Codex [prompt](../codex/p2_results_design_review_prompt.md) pending | 8 questions for Igor (design §7) |
+| P2.a | Ledger, capture registration, mapping validator, SOS importer | Not started (Fable) | | needs design review, Q1 |
+| P2.b | SB xlsx and SMC CSV importers, 49 mappings, multi-county marks | Not started | | needs Igor's first saved files |
+| P2.c | Site projection: status contract, result display, all surfaces in one commit | Not started (Codex). **Runs before Explore E2c** (shared `generator.py`; Nov 26 cut-off). Must also gate Explore so no 2026 outcome enters it before certification (Codex E1 fix-pass review, R6) | | |
+| P2.d | Certification: certified captures, projection on a copy, combined results, link recheck, release | Not started; Dec 4-12 | | |
 | P3.x | Layout (Direction A, result state, tab design) | Codex reviewed `0b6e78f2`: ready with changes (F1–F7; 6-chunk order, first = date-aware local directory). See [response](../codex/layout_direction_a_review_response.md) | | |
 | P3b.x | Results and comparisons tab | Outline below | | |
 | P4-P6 | Harvest waves, certification sweep | Outline below | | |

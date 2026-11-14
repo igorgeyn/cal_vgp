@@ -1,6 +1,6 @@
 # CalBallot Working List
 
-**Updated November 13, 2026.** This is the single ranked index of all pending work. Each item
+**Updated November 13, 2026 (evening).** This is the single ranked index of all pending work. Each item
 links to the tracker or plan that holds its detail. **Update it at every chunk boundary:** move
 items between sections, re-rank, and change the date. The pre-November log and its full
 per-area backlog are in [`WORKING_LIST_HISTORY.md`](WORKING_LIST_HISTORY.md).
@@ -31,7 +31,7 @@ per-area backlog are in [`WORKING_LIST_HISTORY.md`](WORKING_LIST_HISTORY.md).
 
 | # | Item | Status | Detail |
 |---|---|---|---|
-| 1 | **Explore E1, "Honest Explore"**: Explore comes back without overstating the data | Built, fixed after two reviews (`a496421c`). **Codex is reviewing the fix pass.** Then Igor's go-ahead to release. | [handoff](plans/explore_e1_handoff_20261113.md), [plan](plans/explore_renovation_plan_20261112.md) |
+| 1 | **Explore E1, "Honest Explore"**: Explore comes back without overstating the data | Built, fixed after two reviews (`a496421c`). Codex's fix-pass review (`3c426967`) found a release blocker (a county drill-down dropped the county); **fix pass 2 is being verified**. Then Igor's go-ahead to release. | [handoff](plans/explore_e1_handoff_20261113.md), [plan](plans/explore_renovation_plan_20261112.md) |
 | 2 | **Home page review** (Fable, read-only): layout suggestions for the whole page | Running | [prompt](codex/fable_homepage_review_prompt.md); output `plans/homepage_review_20261113.md` |
 
 ## Next (ranked)
@@ -42,10 +42,10 @@ data on the live site, then reader value, then expansion.
 | # | Item | Why here | Blocked by | Detail |
 |---|---|---|---|---|
 | 1 | **Release Explore E1** | Small and fully verified; brings back a feature | Codex review, Igor's go | [handoff](plans/explore_e1_handoff_20261113.md) |
-| 2 | **Save the results files by hand, weekly, until certification** (Igor): the SOS JSON, San Bernardino's xlsx and San Mateo's CSV, hashed into a dated folder | Results pages are overwritten; the evidence is perishable | Igor (task) | [Fable assessment, point 4](plans/fable_assessment_20261112.md) (local only) |
-| 3 | **Results import for the 63 (P2)**: observation store; SOS, SB and SMC importers; unofficial display; multi-county rule | The main reader need until certification; deadline-driven | Hand-saved files (#2); a design pass | [checklist P2](plans/local_measures_checklist_20261107.md), [results transition](plans/results_transition_20260907.md) |
+| 2 | **Save the results files by hand** (Igor): today, then Nov 20 and 27, Dec 4 and Dec 12, plus certified files at certification | Results pages are overwritten; the evidence is perishable. Nov 5 and 7 script captures are already filed | Igor (task) | [P2 design §1, "What Igor saves"](plans/results_import_design_20261113.md) |
+| 3 | **Results import for the 63 (P2)**: ledger and SOS importer (a), county importers (b), site display (c), certification (d) | The main reader need until certification. Unofficial display only if (c) is ready by **Nov 26** | Design written; **Codex design review**; Igor's 8 answers; first saved county files for (b) | [checklist P2](plans/local_measures_checklist_20261107.md), [results transition](plans/results_transition_20260907.md) |
 | 4 | **Flag the 28 wrong CEDA records and id 4870**: hide the summary and add an "under review" note on each page | Wrong data is live: another measure's question, votes and outcome. Decided November 12 | None (small follow-up release) | [CEDA design](plans/ceda_backfill_design_20261112.md), [revision review](codex/p1b_1b_revision_review_response.md) |
-| 5 | **Chart the rest of Explore** (Fable), then **E2c**: transpose the table, a phone list, the trend chart with numbers; then E2a and E2b | Explore's phone layout is still poor; E2c fixes most of it | E1 released | [plan §5 E2](plans/explore_renovation_plan_20261112.md) |
+| 5 | **Chart the rest of Explore** (Fable), then **E2c**: transpose the table, a phone list, the trend chart with numbers; then E2a and E2b | Explore's phone layout is still poor; E2c fixes most of it | E1 released; **E2c waits for P2(c)**, which also edits `generator.py` and has a deadline | [plan §5 E2](plans/explore_renovation_plan_20261112.md) |
 | 6 | **Census fixes and the capture tool (P1.1a, P1.2)** | Gate every county beyond SB/SMC | **The User-Agent decision** (Igor) | [census review](codex/p1_1_census_review_response.md), [checklist P1](plans/local_measures_checklist_20261107.md) |
 | 7 | **Home page and layout**: act on Fable's review, then Direction A chunk 1 (the local directory) | The county directory must exist before many counties load | Fable's review (#2 in Now); Igor's calls | [Direction A review](codex/layout_direction_a_review_response.md) |
 | 8 | **Counties: prove capture and harvest on the 7 surveyed counties** (LA 68, Alameda 28, Orange, Sacramento, San Diego, Fresno, SF), then survey the other ~41 (P1.3, P4) | Coverage goal: all 53 (decision 1) | #6; a reviewed harvest design | [census](plans/county_census_20261111.md), [checklist P1/P4](plans/local_measures_checklist_20261107.md) |
@@ -58,6 +58,7 @@ data on the live site, then reader value, then expansion.
 | Approve the **Explore E1 release** after Codex's review | Yes, if the review is clean | Next #1 |
 | **Save the results files** weekly until December 3 | Yes: a browser download into a dated folder | Next #2, #3 |
 | **User-Agent** for the capture tool | Project name plus the GitHub URL, **no email** (the registrar default in `base.py` includes it) | Next #6, #8 |
+| **P2 design §7, eight questions**: ledger as a committed file; a reviewed "majority" rule for the 14 propositions; skip unofficial if not ready by Nov 26; multi-county portion labelled before certification; save other counties' certified results; wording; no precinct data; commit the SMC CSV fixture if under ~5 MB | Agree with all of Fable's recommendations; wording is Igor's call | P2 (a)-(d) |
 | **`CLAUDE.md` commit trailer**: it says "Claude Opus 4.7"; the current model is Opus 5.5 | A model-neutral wording, or Opus 5.5 | Nothing (hygiene) |
 | **Download the current CEDA release** from CSUS Esploro (2016-2021, ideally all years) | Yes | CEDA repair for those years; the id 9189 decision |
 | **San Francisco results route**: its results hosts return 403 to scripts | A manual browser download, or ask the department | SF results |
