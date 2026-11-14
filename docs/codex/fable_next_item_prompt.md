@@ -17,9 +17,9 @@ highest-ranked item that suits you, then stops for review.
 3. If its plan says the first step is a design, do the design, not the build.
 4. If nothing qualifies, stop and say why.
 
-**As of November 13, 2026, this resolves to Next #3, the results import for the 63 current
-measures (P2), design chunk.** #1 waits on Codex and Igor; #2 is Igor's task. If the list has
-changed since then, follow the list, not this line.
+**As of November 13, 2026 (evening), this resolves to Next #3, P2, chunk (a0): revise the
+design into its rules-and-evidence contract**, after Codex's review. #1 waits on Codex and
+Igor; #2 is Igor's task. If the list has changed since then, follow the list, not this line.
 
 ## General rules (every run)
 
@@ -41,81 +41,50 @@ changed since then, follow the list, not this line.
 
 ---
 
-## This run: P2 results import, design chunk
+## This run: P2 chunk (a0), rules and evidence (a design revision; no importer code)
 
-**Goal:** a design that lets results for the 63 current measures (14 statewide, 20 San
-Bernardino, 29 San Mateo) appear on the site **before counties certify on December 3**. First
-as unofficial, labeled and sourced, then certified. It must be built so the county expansion
-can reuse it.
+Your design (`docs/plans/results_import_design_20261113.md`) was reviewed by Codex in
+`docs/codex/p2_results_design_review_response.md`: **ready with changes**. Read the response
+in full. Then **revise the design in place**, so it becomes the (a0) contract that later
+chunks build against. Add a short "Revision, November 13" changelog at the top that maps each
+review finding to the section that answers it.
 
-### Read
+**Address each of these:**
+- **R1, multi-county outcome precedence.** It conflicts with `election_status.py:99` and
+  `build_measure_pages.py:117`, which check raw `passed` first. Specify one shared outcome
+  function for every surface: cards, modal, static pages, history statistics, Explore and
+  exports. Give its exact precedence, including a portion with no combined result.
+- **R2, privacy.** No public precinct CSV fixture. Use synthetic or redacted fixtures; full
+  files stay private.
+- **R3-R5, safe corrections:**
+  - selection by the source report's own order, not the capture time;
+  - an observation identity that a re-parse, a mapping correction or added certification
+    evidence can't collide with;
+  - tamper evidence beyond a predecessor hash;
+  - mapping and certification evidence tied to the exact report and contest.
+- **R6-R7.** Derived combined totals need more than "all counties certified". Write
+  executable rules for zero totals, unknown approval rules and percentage units.
+- **R8, captures.** One immutable timestamped folder per capture; a manifest binding; a hash
+  command that excludes its own output; San Mateo's same-report summary PDF.
+- **Codex's question 8 table.** Fold in Igor's answers where they're recorded in
+  `docs/WORKING_LIST.md`, "Waiting on Igor". Mark the rest as still open.
+- **The revised chunk order:** (a0); then (a1) SOS and (b) counties in parallel; then (c-core)
+  with certification rehearsals; then the optional unofficial release; then (d). P2(c)
+  precedes Explore E2c.
+- **Interfaces for (a1) and (b),** precise enough that two builders can work in parallel:
+  file layouts, schemas, the mapping format, and the validator's failure matrix.
 
-- `docs/plans/results_transition_20260907.md`: the earlier results design and its rehearsal
-  list.
-- The checklist's Phase 2 outline and P2.0. That covers precinct masking (10 voters or fewer),
-  the multi-county rule, unofficial display, and the observation store.
-- `scraper/src/website/election_status.py`: the current status contract (calendar statuses;
-  passed, failed and unknown; `official_results` links; the stored-votes rule).
-- `scraper/src/website/data/official_results_links.json`: the official results URLs and
-  check records.
-- `docs/codex/layout_direction_a_review_response.md`, answer 2: the six-state result contract
-  (results pending, unofficial, certified passed, certified failed, withdrawn, historical result
-  unknown). It also covers threshold wording, rounding, and the multi-county combined result
-  versus a county's portion.
-- `docs/plans/ceda_backfill_design_20261112.md` and
-  `docs/codex/p1b_1b_revision_review_response.md` (N1): the historical multi-county model,
-  with a group key and `combined_passed` kept separate from per-county `passed`. Current and
-  historical measures should use **one** model.
-- The registrar code (`scraper/src/scrapers/registrar/`: `sb.py`, `smc.py`, the loader,
-  `storage.py`) and `docs/setup/registrar_developer_guide.md`: how captures, immutable R2
-  snapshots and loads work today. Results pages are not captured: `smc.py` skips them and
-  `sb.py` never requests them.
-- `docs/LESSONS_LEARNED.md` and `docs/KNOWN_ISSUES.md` #1, on vote thresholds.
-- `CLAUDE.md` hard rules: always keep `id` in `BallotMeasure`'s `valid_fields`; flip consumer
-  surfaces atomically; use verification stacks.
+Also **update the save list** in §1 to match R8 and §9. Igor is saving files now under a
+per-capture timestamped folder, and he adds San Mateo's "Results on PDF".
 
-### Produce
+**Also write** `docs/codex/p2_a0_review_prompt.md`, a Codex re-review prompt. It should ask
+whether R1-R8 are closed, whether the (a1)/(b) interfaces are buildable, and whether any new
+risk has appeared. It should end with: write `docs/codex/p2_a0_review_response.md` and commit
+only that file.
 
-Write `docs/plans/results_import_design_20261113.md`, about 4–6 pages, covering:
-
-1. **Sources.** For each source (SOS statewide, San Bernardino, San Mateo): the official URL
-   (from `official_results_links.json`), the expected format, and what identifies a contest.
-   Say what you know from the code and docs and what's unverified; you can't fetch anything.
-   Then give **an exact list of files for Igor to save by hand** each week until certification:
-   URL, what to click, file naming, and a dated folder convention under a gitignored path, with
-   a SHA-256 manifest. This list also serves working-list item #2.
-2. **Data model.** An append-only observation store: measure `id`, source, as-of text and
-   time, unofficial or certified, yes/no/total counts and denominator, scope (the whole
-   contest, or one county's portion), the source file's hash or snapshot, and the importer
-   version. Explain how it relates to the existing `measures` columns. Never overwrite history,
-   and keep every public `id`.
-3. **Mapping.** A reviewed manifest from each source's contest to our measure `id`. It must
-   fail closed on unknown, duplicate or missing contests. Then the multi-county rule for current
-   measures: RTM/SMC and any others, using one model with the CEDA design.
-4. **Projection to the site.** How observations become the six result states, and which fields
-   reach `measures-data.json`, the cards, the modal and the static pages.
-   - Unofficial results never get a Passed/Failed label.
-   - Thresholds come only from reviewed sources; otherwise "Approval requirement not listed".
-   - Rounding never decides an outcome.
-   - Precinct-level data is masked at 10 voters or fewer, if precinct data is used at all.
-   - How the P0.1 status contract changes.
-5. **Verification.** Fixtures-first importer tests for each source; the rehearsal list from the
-   results transition doc; a preservation gate (which pages and fields may change); browser
-   checks; a certification sweep.
-6. **Chunks.** For example: (a) the store and SOS importer; (b) the SB and SMC importers; (c)
-   site projection and display; (d) the certification sweep. For each: size, dependencies,
-   acceptance checks, and who should build it (you, Codex or a Claude agent).
-7. **Risks and open questions** for Igor, each with a recommendation.
-
-Also write `docs/codex/p2_results_design_review_prompt.md`, a review prompt for Codex in the
-style of the other `*_review_prompt.md` files. It should end with: write
-`docs/codex/p2_results_design_review_response.md` and commit only that file.
-
-### Reply with
-
+**Reply with:**
 - a five-line summary;
-- the list of files Igor should save, short form;
-- the decisions you need from Igor;
+- the finding-to-section map;
 - the updates you'd make to `WORKING_LIST.md` and the checklist;
-- the paths of the files you created;
+- the decisions still needed from Igor;
 - the production DB hash before and after, if you queried it.
