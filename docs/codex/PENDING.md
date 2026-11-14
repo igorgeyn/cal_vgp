@@ -5,7 +5,9 @@ item to "Done" when its response is committed.
 
 ## Pending
 
-1. **Explore renovation, next chunk (E2a). Execute, not review. Start only after E1 is reviewed and released**
+1. **Explore E1 fix-pass review (before release)**
+   `Read docs/codex/explore_e1_fixpass_review_prompt.md on branch phase0-election-status and follow it. Review only; commit only the response file it names.`
+2. **Explore renovation, next chunk (now E2c). Execute, not review. Start only after E1 is released; Fable charts the remaining work first**
    `Read docs/plans/explore_renovation_plan_20261112.md on branch phase0-election-status and follow it. Do the next chunk whose blocking decisions in §2 are marked answered, and only that chunk. If none is unblocked, stop and say which decisions are pending. Never push, publish or write to R2.`
 
 ## Done
@@ -19,3 +21,4 @@ item to "Done" when its response is committed.
 - CEDA column check review (P1b.1), by a Claude reviewer agent (Codex at usage limit): `2afae842`
 - CEDA reconciliation review (P1b.1b), by a Claude reviewer agent (Codex at usage limit): see the commit adding `p1b_1b_reconciliation_review_response.md`
 - Explore E1 review, by a Claude reviewer agent (Codex at usage limit): `docs/codex/explore_e1_review_response.md`
+- Explore E1 review by Fable: `docs/codex/explore_e1_fable_review_response.md`

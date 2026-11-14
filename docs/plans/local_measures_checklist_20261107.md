@@ -275,10 +275,10 @@ for the whole interval.
 | Chunk | Scope | Status | Review | Evidence |
 |---|---|---|---|---|
 | E0 | Hide Explore (flag) | **Done** `f2cc8a1d`; published in PR #9 | (part of the P0 release) | |
-| E1 | Honest Explore | **Built** by Codex, verified and committed by the coordinator `8029d2e9`: all measure pages identical, Grid/List DOM identical, Explore check passes at 4 widths, 755 tests | Claude reviewer ([response](../codex/explore_e1_review_response.md)): **ready with changes**. Fix before release: R1 Topic mixes statewide and local; R2 county rates reachable via the catalog County filter; R3 drop or fix "Difference from column rate". Also R4-R7. Fable's independent review ([response](../codex/explore_e1_fable_review_response.md)): **ready with changes**, no wrong number found; drop the difference metric, remove the modal decade bars until E2c, fix the leftover "1990s" labels. Suggests transposing the table (types as rows, decades across) in E2c | [handoff](explore_e1_handoff_20261113.md); `scraper/data/exports/explore_e1_20261113/` |
+| E1 | Honest Explore | **Built** by Codex (`8029d2e9`); **fix pass** by the coordinator after both reviews (`a496421c`): levels separated, counts only under County/Status filters, difference metric and decade bars removed, real-year labels, coverage names the 63 current measures. All pages identical, Grid/List identical, all browser checks pass, 760 tests | Claude reviewer and Fable: both ready with changes (addressed). **Codex fix-pass review pending** ([prompt](../codex/explore_e1_fixpass_review_prompt.md)) | [handoff](explore_e1_handoff_20261113.md); `scraper/data/exports/explore_e1_20261113/` |
+| E2c | Layout (transpose), phones, trend: **first** | Not started | | |
 | E2a | URL state + keyboard | Not started | | |
 | E2b | Table semantics | Not started | | |
-| E2c | Phones + trend | Not started | | |
 | E3 | After P1b: multi-county, required vote, county rows, cohort list | Not started | | |
 | E4 | Concept design (D4/D5) | Not started | | |
 
