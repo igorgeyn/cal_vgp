@@ -11629,6 +11629,37 @@ class WebsiteGenerator:
             return exploreCountOnlyReason() ? Infinity : matrixState.minN;
         }}
 
+        // Under a count-only filter every metric shows counts; keep the reader's choice for later.
+        function exploreEffectiveMetric() {{
+            return exploreCountOnlyReason() ? 'volume' : matrixState.metric;
+        }}
+
+        // A drill must keep its row's condition. Rows outside the region map ("Other") have no
+        // catalog filter yet, so they offer no drill rather than a broader list.
+        function exploreRowDrillable(rowKey) {{
+            return matrixState.rowGrouping !== 'region' || rowKey === 'Statewide' || !!CA_REGIONS[rowKey];
+        }}
+
+        function clearExploreLevelCounty() {{
+            currentFilters.levelCounty = null;
+            const select = document.getElementById('levelCountySelect');
+            if (select) select.value = '';
+        }}
+
+        // An explicit Explore level or column change wins over a conflicting catalog level (for
+        // example one left by a drill). A county only goes when the level becomes statewide.
+        function reconcileCatalogLevel() {{
+            const level = exploreLevel();
+            if (!currentFilters.level || currentFilters.level === level) return false;
+            currentFilters.level = level;
+            if (level !== 'local') clearExploreLevelCounty();
+            updateLevelChipUI();
+            updateFilterCountBadges();
+            pagination.currentPage = 1;
+            applyFilters();
+            return true;
+        }}
+
         function exploreRowLabel(rowKey, measures) {{
             return matrixState.rowGrouping === 'decade' && measures.length ? Explore.decadeLabel(measures.map(m => m.year)) : rowKey;
         }}
@@ -11699,7 +11730,12 @@ class WebsiteGenerator:
             const finalizedGrandTotal = finalizeExploreCell(grandTotal, maxVolume);
 
             let rows = Object.keys(rowTotals);
-            if (matrixState.sortCol && colTotals[matrixState.sortCol]) {{
+            const byCount = exploreEffectiveMetric() === 'volume';
+            if (matrixState.sortCol && colTotals[matrixState.sortCol] && byCount) {{
+                // Counts are not rates: sort by totals at any size.
+                const col = matrixState.sortCol, sign = matrixState.sortDir === 'asc' ? 1 : -1;
+                rows.sort((a, b) => sign * (matrix[a][col].total - matrix[b][col].total) || a.localeCompare(b, undefined, {{numeric: true}}));
+            }} else if (matrixState.sortCol && colTotals[matrixState.sortCol]) {{
                 rows.sort((a, b) => {{
                     return Explore.compareCells(matrix[a][matrixState.sortCol], matrix[b][matrixState.sortCol], getExploreMetricSortValue, matrixState.sortDir, exploreEffectiveMinN()) || a.localeCompare(b, undefined, {{numeric: true}});
                 }});
@@ -11707,7 +11743,7 @@ class WebsiteGenerator:
                 rows.sort((a, b) => (parseInt(a) || Infinity) - (parseInt(b) || Infinity));
             }} else if (matrixState.rowSort === 'alpha') {{
                 rows.sort((a, b) => a.localeCompare(b, undefined, {{ numeric: true }}));
-            }} else if (matrixState.rowSort === 'rate') {{
+            }} else if (matrixState.rowSort === 'rate' && !exploreCountOnlyReason()) {{
                 rows.sort((a, b) => Explore.compareCells(rowTotals[a], rowTotals[b], c => c.passRate, 'desc', exploreEffectiveMinN()) || a.localeCompare(b));
             }} else {{
                 rows.sort((a, b) => (rowTotals[b]?.total || 0) - (rowTotals[a]?.total || 0));
@@ -11720,7 +11756,7 @@ class WebsiteGenerator:
         }}
 
         function getExploreMetricSortValue(cell) {{
-            switch (matrixState.metric) {{
+            switch (exploreEffectiveMetric()) {{
                 case 'volume': return cell.total;
                 case 'avgYes': return cell.yesCount >= Math.max(5, matrixState.minN) ? cell.avgYes : null;
                 default: return cell.passRate;
@@ -11728,7 +11764,7 @@ class WebsiteGenerator:
         }}
 
         function getExploreMetricLabel() {{
-            return {{passRate: 'Pass rate', volume: 'Number of measures', avgYes: 'Average yes vote'}}[matrixState.metric];
+            return {{passRate: 'Pass rate', volume: 'Number of measures', avgYes: 'Average yes vote'}}[exploreEffectiveMetric()];
         }}
 
         function renderExploreCoverage(data) {{
@@ -11752,10 +11788,11 @@ class WebsiteGenerator:
                 ? 'measure types are compared for local measures only'
                 : 'switch Level to see them';
             const reason = exploreCountOnlyReason();
+            const countyBlocksStatewide = level === 'statewide' && (currentFilters.county || currentFilters.levelCounty);
             return `<h2 class="explore-heading">${{heading}}</h2>
                 <p class="explore-coverage" data-total="${{c.total}}" data-counted="${{c.counted}}" data-missing-column="${{c.missingColumn}}" data-missing-outcome="${{c.missingOutcome}}" data-other-level="${{other}}" data-current-excluded="${{current}}">
                 ${{c.counted.toLocaleString()}} ${{levelName}} with a recorded outcome are counted. Not counted: ${{c.missingColumn.toLocaleString()}} with an outcome but without a ${{label}}; ${{c.missingOutcome.toLocaleString()}} without a recorded outcome (pending, unknown or withdrawn). ${{other ? `${{other.toLocaleString()}} ${{otherName}} are not shown (${{otherWhy}}). ` : ''}}${{current ? `${{current.toLocaleString()}} current-election measures awaiting results are outside the catalog view. ` : ''}}Counted years: ${{years}}.</p>
-                ${{reason ? `<p class="explore-caution" role="note">Counts only: ${{escapeHtml(reason)}}. No rates or shading are shown.</p>` : ''}}
+                ${{reason ? `<p class="explore-caution" role="note">Counts only: ${{escapeHtml(reason)}}. No rates or shading are shown.${{countyBlocksStatewide ? ' Statewide propositions have no county: remove the County filter to see them.' : ''}}</p>` : ''}}
                 <details class="explore-notes"><summary>About these figures</summary>
                 <p class="explore-note">Sources: CEDA local records and the statewide archive. ${{level === 'local' && matrixState.colField === 'topic' ? 'Local topics exist only for some years, so the counted years are listed above. ' : ''}}County breakdowns return after the history repair. Historical records may include repeated county portions; 2016-2021 source files remain unverified.</p>
                 <p class="explore-note">Below ${{matrixState.minN}} measures, counts only; no rate or shading. These are recorded outcomes, not forecasts.</p>
@@ -11768,7 +11805,8 @@ class WebsiteGenerator:
         }}
 
         function renderExploreToolbar(data) {{
-            const metric = matrixState.metric;
+            const metric = exploreEffectiveMetric();
+            const countOnly = !!exploreCountOnlyReason();
             const groupingOptions = [['decade','Decades'],['year','Years'],['region','Regions']];
             const metricOptions = [['passRate','Pass rate'],['volume','Number of measures'],['avgYes','Average yes vote']];
             const options = (items, chosen) => items.map(([value,label]) => `<option value="${{value}}" ${{chosen===value?'selected':''}}>${{label}}</option>`).join('');
@@ -11784,8 +11822,10 @@ class WebsiteGenerator:
                     <button class="${{matrixState.level==='statewide'?'active':''}}" aria-pressed="${{matrixState.level==='statewide'}}" onclick="setExploreLevel('statewide')">Statewide</button>
                 </div></div>` : ''}}
                 <label>Rows: <select aria-label="Rows" onchange="setMatrixRowGrouping(this.value)">${{options(groupingOptions,matrixState.rowGrouping)}}</select></label>
-                <label>Metric: <select aria-label="Metric" onchange="setMatrixMetric(this.value)">${{options(metricOptions,metric)}}</select></label>
-                ${{matrixState.rowGrouping==='region' ? `<label>Sort: <select aria-label="Sort" onchange="setMatrixRowSort(this.value)">${{options([['count','By count'],['alpha','A-Z'],['rate','By pass rate']],matrixState.rowSort)}}</select></label>` : ''}}
+                ${{countOnly
+                    ? '<label>Metric: <select aria-label="Metric" disabled><option>Counts only</option></select></label>'
+                    : `<label>Metric: <select aria-label="Metric" onchange="setMatrixMetric(this.value)">${{options(metricOptions,metric)}}</select></label>`}}
+                ${{matrixState.rowGrouping==='region' ? `<label>Sort: <select aria-label="Sort" onchange="setMatrixRowSort(this.value)">${{options(countOnly ? [['count','By count'],['alpha','A-Z']] : [['count','By count'],['alpha','A-Z'],['rate','By pass rate']],countOnly && matrixState.rowSort==='rate' ? 'count' : matrixState.rowSort)}}</select></label>` : ''}}
                 <label>Min n for rates: <select aria-label="Min n" onchange="setMatrixMinN(Number(this.value))">${{options([[5,'5'],[10,'10'],[20,'20']],matrixState.minN)}}</select></label>
                 <button class="matrix-reset-btn" onclick="resetMatrixControls()">Reset Explore</button>
                 ${{exploreCountOnlyReason() ? '' : `<div class="matrix-legend"><span>${{escapeHtml(getExploreMetricLabel())}}</span><div class="explore-legend-scale">${{steps.map(t=>`<span style="background:${{Explore.tint(t)}}">${{legendLabel(t)}}</span>`).join('')}}</div></div>`}}
@@ -11795,7 +11835,7 @@ class WebsiteGenerator:
         function getExploreCellPresentation(cell) {{
             const base = Explore.cell(cell?.passed || 0, cell?.total || 0, matrixState.minN, exploreCountOnlyReason());
             if (!base.rated) return base;
-            switch (matrixState.metric) {{
+            switch (exploreEffectiveMetric()) {{
                 case 'volume': return {{...base, text: String(cell.total), subtext: `${{cell.passed}} passed`, bg: Explore.tint(cell.total/cell.maxVolume)}};
                 case 'avgYes': return cell.yesCount >= Math.max(5, matrixState.minN)
                     ? {{...base, text: `${{cell.avgYes.toFixed(1)}}%`, subtext: `${{cell.yesCount}} with vote %`, bg: Explore.tint(cell.avgYes/100)}}
@@ -11838,7 +11878,9 @@ class WebsiteGenerator:
             data.rows.forEach(row => {{
                 const rowTotal = data.rowTotals[row];
                 const rEsc = escapeJsString(row);
-                html += `<tr><td role="button" tabindex="0" onclick="exploreFilterToCounty('${{rEsc}}')" onkeydown="if(event.key==='Enter')exploreFilterToCounty('${{rEsc}}')">${{escapeHtml(data.rowLabels[row])}} <span class="cell-count">(${{rowTotal.total}})</span></td>`;
+                html += exploreRowDrillable(row)
+                    ? `<tr><td role="button" tabindex="0" onclick="exploreFilterToCounty('${{rEsc}}')" onkeydown="if(event.key==='Enter')exploreFilterToCounty('${{rEsc}}')">${{escapeHtml(data.rowLabels[row])}} <span class="cell-count">(${{rowTotal.total}})</span></td>`
+                    : `<tr><td title="Counties outside the region map; no catalog filter for this row yet">${{escapeHtml(data.rowLabels[row])}} <span class="cell-count">(${{rowTotal.total}})</span></td>`;
                 data.columns.forEach(col => {{
                     html += renderExploreCell(data.matrix[row][col], row, col, false, data.rowLabels[row]);
                 }});
@@ -11919,7 +11961,8 @@ class WebsiteGenerator:
 
         function setMatrixColField(field) {{
             if (!['measureType','topic'].includes(field)) return;
-            matrixState.colField = field; matrixState.sortCol = null; displayResults();
+            matrixState.colField = field; matrixState.sortCol = null;
+            if (!reconcileCatalogLevel()) displayResults();
         }}
 
         function setMatrixRowGrouping(grouping) {{
@@ -11941,7 +11984,8 @@ class WebsiteGenerator:
 
         function setExploreLevel(level) {{
             if (!['local','statewide'].includes(level)) return;
-            matrixState.level = level; matrixState.sortCol = null; displayResults();
+            matrixState.level = level; matrixState.sortCol = null;
+            if (!reconcileCatalogLevel()) displayResults();
         }}
 
         function resetMatrixControls() {{
@@ -11976,7 +12020,9 @@ class WebsiteGenerator:
 
             const rEsc = escapeJsString(rowKey);
             const cEsc = escapeJsString(colValue);
-            body += `<button onclick="closeMatrixCellModal(); matrixDrillDown('${{rEsc}}','${{cEsc}}')" style="width:100%;padding:0.6rem;background:var(--primary);color:white;border:none;border-radius:6px;cursor:pointer;font-size:0.85rem;font-weight:600;">View matching catalog records &rarr;</button>
+            body += !exploreRowDrillable(rowKey)
+                ? `<p style="margin:0;font-size:0.85rem;color:#374955;">These records are in counties outside the region map, so there is no matching catalog filter yet.</p>`
+                : `<button onclick="closeMatrixCellModal(); matrixDrillDown('${{rEsc}}','${{cEsc}}')" style="width:100%;padding:0.6rem;background:var(--primary);color:white;border:none;border-radius:6px;cursor:pointer;font-size:0.85rem;font-weight:600;">View matching catalog records &rarr;</button>
                 <p style="margin:0.5rem 0 0;font-size:0.8rem;color:#374955;">The catalog list also includes matching records without a recorded outcome.</p>`;
 
             document.getElementById('matrixCellBody').innerHTML = body;
@@ -12025,9 +12071,14 @@ class WebsiteGenerator:
             }} else if (matrixState.rowGrouping === 'region' && CA_REGIONS[rowKey]) {{
                 currentFilters.regions = [rowKey];
             }}
-            // Rows outside CA_REGIONS ("Other") add no row filter rather than a bogus county.
-            currentFilters.level = exploreLevel();
-            if (!currentFilters.county) currentFilters.levelCounty = null;
+            const level = exploreLevel();
+            if (currentFilters.level !== level) {{
+                currentFilters.level = level;
+                // A county applies only to local measures: clear it (and its dropdown) only
+                // when the drill is statewide. A local drill keeps it.
+                if (level !== 'local') clearExploreLevelCounty();
+            }}
+            updateLevelChipUI();
         }}
 
         // Row-header drill-down (named before rows became periods and regions).

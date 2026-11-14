@@ -118,3 +118,36 @@ baseline:
 - transposing the table when it fits;
 - the phone list form;
 - rebuilding the decade chart with numbers.
+
+## Fix pass 2, November 13, 2026 (after Codex's fix-pass review)
+
+Codex ([response](../codex/explore_e1_fixpass_review_response.md), `3c426967`): **ready with
+changes**. The coordinator fixed:
+
+| Finding | Change |
+|---|---|
+| **N1 (release blocker): a county drill silently broadened the cohort.** A Yuba Bond cell (18 records) drilled into 714 Bonds from 53 counties. The fix pass had cleared `levelCounty` whenever the sidebar `county` was unset | `applyExploreRowFilter` now keeps the catalog county on a local drill. It clears the county, and resets its dropdown, only when the drill is statewide. |
+| **N2: count-only views still offered rate controls** | Under a count-only filter the Metric selector is disabled and reads "Counts only", and Region sort drops "By pass rate". The reader's metric is kept for later (`exploreEffectiveMetric`). Column sorts under counts order by totals, not row names. |
+| **N3: Explore's level switch conflicted with a level left by a drill** | An explicit Level or Column change in Explore reconciles the catalog level (`reconcileCatalogLevel`). A county is cleared, with its dropdown, only when the level becomes statewide. A County filter that empties the statewide level is explained in the caution. |
+| **R9 remainder: an "Other" region drill opened every region** | Rows outside the region map offer no drill. The row header isn't a button, and the cell detail explains why. |
+| **R6: no certification gate for 2026 outcomes** | Not changed here: no 2026 record has an outcome today. Moved to P2(c), which must keep 2026 outcomes out of Explore until certified. |
+
+**Tests.** `check_explore_browser.py` now covers:
+- a real `levelCounty` drill (Yuba): the catalog stays Yuba, the dropdown shows Yuba, and the
+  return is counts only;
+- the count-only controls, with fills checked, and count sorting;
+- a statewide drill, then Local, then Measure Type;
+- a synthetic "Other" row with no drill.
+
+The first run failed in the check itself, which tried to click a dropdown hidden in the
+collapsed filter panel. The step now sets the control and fires its own change handler, as
+Codex's probe did.
+
+**Evidence** (`scraper/data/exports/explore_e1_20261113/fixpass2/`):
+- all 12,372 pages are byte-identical; JSON changes only `last_seen_at` (129);
+- Grid/List DOM is identical; all 63 `index.html` hunks are Explore-scoped;
+- the Explore check passes at 4 widths; status (now and across midnight), county content and
+  navigation pass;
+- the full suite is at 760 passed, baseline only.
+
+**Codex asked for an independent recheck of N1** before E1 closes.

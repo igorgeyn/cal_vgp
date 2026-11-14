@@ -75,6 +75,15 @@ NO_RATES = r"""() => {
     }
     if (!document.querySelector('.explore-caution')) throw Error('Count-only caution missing');
     if (document.querySelector('.matrix-legend')) throw Error('Legend shown in a count-only view');
+    for (const cell of document.querySelectorAll('.matrix-wrapper .matrix-cell')) {
+        const bg = getComputedStyle(cell).backgroundColor.match(/[\d.]+/g).map(Number);
+        if (bg.length === 4 ? bg[3] !== 0 : true) throw Error('Count-only cell has a fill: ' + cell.outerHTML);
+    }
+    const metric = document.querySelector('.matrix-wrapper select[aria-label="Metric"]');
+    if (!metric || !metric.disabled || metric.textContent.trim() !== 'Counts only')
+        throw Error('Count-only view still offers rate metrics');
+    if (document.querySelector('.matrix-wrapper select[aria-label="Sort"] option[value="rate"]'))
+        throw Error('Count-only view still offers sort by pass rate');
     return true;
 }"""
 
@@ -195,6 +204,57 @@ def main():
                 assert '%' not in page.locator('#matrixCellBody').inner_text()
                 assert 'Close calls' not in page.locator('#matrixCellBody').inner_text()
                 page.evaluate('closeMatrixCellModal(); resetMatrixControls()')
+                coverage(baseline)
+
+                # Synthetic "Other" region row: no drill from the row header or the modal.
+                page.evaluate("""() => {
+                    filteredMeasures=[{id:1, year:2010, county:'UNMAPPED', passed:1, display_category_type:'Bond', percent_yes:60}];
+                    setMatrixRowGrouping('region');
+                }""")
+                other = page.locator('.matrix-table tbody tr:not(.matrix-totals) td:first-child').first
+                assert other.inner_text().startswith('Other') and other.get_attribute('role') is None
+                page.locator('.matrix-cell[data-n="1"]').first.click()
+                assert not page.locator('#matrixCellBody button').count()
+                assert 'outside the region map' in page.locator('#matrixCellBody').inner_text()
+                page.evaluate('closeMatrixCellModal(); resetMatrixControls()')
+                coverage(baseline)
+
+                # Codex N1: a county chosen through Level > County survives a cell drill.
+                page.evaluate("setView('grid')")
+                # The control sits in the (collapsed) filter panel: set it and fire its own
+                # change handler, as a reader's selection would.
+                page.evaluate("""() => { toggleLevelFilter('local');
+                    const select = document.getElementById('levelCountySelect');
+                    select.value = 'Yuba'; select.dispatchEvent(new Event('change')); }""")
+                assert page.evaluate("currentFilters.levelCounty==='Yuba' && currentFilters.level==='local'")
+                page.locator('#exploreView').click()
+                page.evaluate(NO_RATES)
+                page.locator('.matrix-table tbody tr:not(.matrix-totals) .matrix-cell[role="button"]').first.click()
+                page.locator('#matrixCellBody button').click()
+                assert page.evaluate("currentView==='grid' && String(currentFilters.levelCounty).toUpperCase()==='YUBA' && currentFilters.level==='local'")
+                assert page.evaluate("filteredMeasures.length>0 && filteredMeasures.every(m=>String(m.county).toUpperCase()==='YUBA')")
+                assert page.locator('#levelCountySelect').input_value().upper() == 'YUBA'
+                page.locator('#exploreView').click()
+                page.evaluate(NO_RATES)
+                # Codex N2: counts sort by totals under a count-only filter.
+                page.locator('.matrix-table thead th').nth(1).click()
+                totals = page.locator('.matrix-table tbody tr:not(.matrix-totals)').evaluate_all(
+                    'rows=>rows.map(r=>Number(r.querySelectorAll(".matrix-cell")[0].dataset.n))')
+                assert totals == sorted(totals, reverse=True), totals
+                page.get_by_role('button', name='Reset Explore', exact=True).click()
+                coverage(baseline)
+
+                # Codex N3: a statewide Topic drill, then Local, reconciles the catalog level.
+                page.evaluate("setMatrixColField('topic')")
+                page.locator('.explore-level').get_by_role('button', name='Statewide', exact=True).click()
+                page.locator('.matrix-table tbody tr:not(.matrix-totals) td:first-child').first.click()
+                assert page.evaluate("currentFilters.level==='statewide'")
+                page.locator('#exploreView').click()
+                page.locator('.explore-level').get_by_role('button', name='Local', exact=True).click()
+                assert page.evaluate("currentFilters.level==='local' && matrixState.level==='local'")
+                page.evaluate("currentFilters.selectedDecades=[]; applyFilters(); setMatrixColField('measureType')")
+                assert page.locator('.matrix-cell').count() > 0
+                page.get_by_role('button', name='Reset Explore', exact=True).click()
                 coverage(baseline)
                 assert not errors, errors
                 report['widths'].append({'width': width, 'coverage': baseline, 'decades': labels,
