@@ -10,18 +10,30 @@ from urllib.parse import urlparse
 from playwright.sync_api import sync_playwright
 
 
-def expected_coverage(records, *, county=None, year=None, field='display_category_type'):
-    # Independent reproduction of the catalog's default current-pending exclusion.
-    selected = [m for m in records
+def is_statewide(m):
+    return str(m.get('county') or '').upper() == 'STATEWIDE'
+
+
+def current_excluded(records):
+    return sum((m.get('year') or 0) >= 2026 and m.get('passed') not in (0, 1)
+               and m.get('ballot_status') != 'withdrawn' for m in records)
+
+
+def expected_coverage(records, *, county=None, year=None, field='display_category_type', level='local'):
+    # Independent reproduction of the catalog's default current-pending exclusion, then the
+    # level Explore counts (Measure Type is local-only; Topic shows one level at a time).
+    in_view = [m for m in records
                 if (county is None or str(m.get('county', '')).casefold() == county.casefold())
                 and (year is None or m.get('year') == year)
                 and (year is not None or not (
                     (m.get('year') or 0) >= 2026 and m.get('passed') not in (0, 1)
                     and m.get('ballot_status') != 'withdrawn'))]
+    selected = [m for m in in_view if is_statewide(m) == (level == 'statewide')]
     unknown = sum(m.get('passed') not in (0, 1) for m in selected)
     missing = sum(m.get('passed') in (0, 1) and not str(m.get(field) or '').strip() for m in selected)
     return {'total': len(selected), 'counted': len(selected)-unknown-missing,
-            'missingColumn': missing, 'missingOutcome': unknown}
+            'missingColumn': missing, 'missingOutcome': unknown, 'otherLevel': len(in_view) - len(selected),
+            'currentExcluded': current_excluded(records) if year is None else 0}
 
 
 CELL_CHECK = r"""() => {
@@ -53,6 +65,17 @@ CELL_CHECK = r"""() => {
     }
     if(document.documentElement.scrollWidth>innerWidth) throw Error('Document overflow');
     return {minimumContrast:Number.isFinite(minimum)?minimum:null,smallCells:small};
+}"""
+
+
+NO_RATES = r"""() => {
+    for (const cell of document.querySelectorAll('.matrix-wrapper .matrix-cell')) {
+        if (cell.dataset.rated !== 'false' || cell.textContent.includes('%'))
+            throw Error('Count-only view shows a rate: ' + cell.outerHTML);
+    }
+    if (!document.querySelector('.explore-caution')) throw Error('Count-only caution missing');
+    if (document.querySelector('.matrix-legend')) throw Error('Legend shown in a count-only view');
+    return true;
 }"""
 
 
@@ -92,6 +115,9 @@ def main():
                 page.wait_for_function('(n)=>typeof allMeasures!=="undefined" && allMeasures.length===n && filteredMeasures.length>0', arg=len(records))
                 page.locator('#exploreView').click()
                 assert page.evaluate("matrixState.colField==='measureType' && matrixState.rowGrouping==='decade' && matrixState.minN===5")
+                assert page.locator('.explore-coverage').get_attribute('data-current-excluded') == str(current_excluded(records))
+                assert 'current-election measures awaiting results' in page.locator('.explore-coverage').inner_text()
+                assert 'without a recorded outcome' in page.locator('.explore-coverage').inner_text()
                 labels = page.locator('.matrix-table tbody tr:not(.matrix-totals) td:first-child').all_text_contents()
                 starts = [int(label.strip()[:4]) for label in labels]
                 assert starts == sorted(starts)
@@ -99,12 +125,19 @@ def main():
                 baseline = coverage(expected_coverage(records))
                 checks = page.evaluate(CELL_CHECK)
                 assert not page.locator('.matrix-insight-strip, .matrix-insight-card').count()
-                assert not page.locator('.matrix-wrapper option[value="jurisdiction"], .matrix-wrapper option[value="close"], .matrix-wrapper option[value="trap"]').count()
+                assert not page.locator('.matrix-wrapper option[value="jurisdiction"], .matrix-wrapper option[value="close"], .matrix-wrapper option[value="trap"], .matrix-wrapper option[value="baseline"]').count()
+                assert not page.locator('.explore-level').count()  # Measure Type is local-only; no level toggle
+                first_cell = page.locator('.matrix-table tbody tr:not(.matrix-totals)').first.locator('.matrix-cell').first
+                assert '1998–99' in first_cell.get_attribute('aria-label'), first_cell.get_attribute('aria-label')
+                if width <= 768:
+                    swatch = page.locator('.explore-legend-scale span').first.bounding_box()
+                    assert swatch['width'] < 120, swatch
                 assert 'Threshold' not in page.locator('.matrix-toolbar').inner_text()
                 page.screenshot(path=str(args.output_dir / f'{width}-explore.png'))
 
                 page.evaluate("currentFilters.county='San Mateo'; applyFilters()")
                 coverage(expected_coverage(records, county='San Mateo'))
+                page.evaluate(NO_RATES)
                 assert page.locator('.explore-filters').get_by_role('button', name='Remove County: San Mateo').count() == 1
                 page.locator('[data-explore-clear]').click()
                 coverage(baseline)
@@ -112,23 +145,40 @@ def main():
                 coverage(expected_coverage(records, year=2024))
                 page.locator('[data-explore-filter]').click()
                 coverage(baseline)
+                page.evaluate("currentFilters.status=['passed']; applyFilters()")
+                page.evaluate(NO_RATES)
+                page.evaluate("currentFilters.status=[]; applyFilters()")
+                coverage(baseline)
                 page.evaluate("setMatrixColField('topic')")
+                assert page.locator('.explore-level').count() == 1
                 coverage(expected_coverage(records, field='display_topic'))
                 page.evaluate(CELL_CHECK)
+                page.locator('.explore-level').get_by_role('button', name='Statewide', exact=True).click()
+                coverage(expected_coverage(records, field='display_topic', level='statewide'))
+                page.evaluate(CELL_CHECK)
                 page.evaluate("setMatrixRowGrouping('region')")
-                for metric in ('passRate','volume','avgYes','baseline'):
+                regions = page.locator('.matrix-table tbody tr:not(.matrix-totals) td:first-child').all_text_contents()
+                assert all(r.startswith('Statewide') for r in regions), regions
+                page.locator('.explore-level').get_by_role('button', name='Local', exact=True).click()
+                regions = page.locator('.matrix-table tbody tr:not(.matrix-totals) td:first-child').all_text_contents()
+                assert not any(r.startswith('Statewide') for r in regions), regions
+                for metric in ('passRate','volume','avgYes'):
                     page.evaluate('(m)=>setMatrixMetric(m)', metric)
                     page.evaluate(CELL_CHECK)
                 page.evaluate('resetMatrixControls()')
+                page.locator('.matrix-table tbody tr:not(.matrix-totals) .matrix-cell[data-rated="true"]').first.click()
+                assert '1998–99' in page.locator('#matrixCellTitle').inner_text()
+                assert 'by decade' not in page.locator('#matrixCellBody').inner_text()
+                page.evaluate('closeMatrixCellModal()')
 
                 page.locator('.matrix-table tbody tr:not(.matrix-totals) td:first-child').first.click()
-                assert page.evaluate("currentView==='grid'")
+                assert page.evaluate("currentView==='grid' && currentFilters.level==='local'")
                 page.locator('#exploreView').click()
                 assert page.locator('[data-explore-filter]').count()
                 page.locator('[data-explore-clear]').click()
                 coverage(baseline)
                 page.evaluate("currentFilters.search='no-such-measure-xyz'; applyFilters()")
-                coverage(dict(total=0,counted=0,missingColumn=0,missingOutcome=0))
+                coverage(dict(total=0,counted=0,missingColumn=0,missingOutcome=0,otherLevel=0,currentExcluded=0))
                 page.get_by_role('button', name='Reset Explore', exact=True).click()
                 coverage(baseline)
 

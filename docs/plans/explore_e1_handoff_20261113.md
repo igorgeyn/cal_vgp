@@ -69,3 +69,52 @@ Gitignored: `scraper/data/exports/explore_e1_20261113/`. Scratch builds were mad
    renaming it is out of E1's scope.
 4. **Region rows mix statewide and local measures.** Fable's review flagged unlike things in
    one table. Statewide drops out under Measure Type (no type), but not under Topic.
+
+## Fix pass, November 13, 2026 (after both reviews)
+
+Two independent reviews both said **ready with changes**: the Claude reviewer
+([response](../codex/explore_e1_review_response.md)) and Fable
+([response](../codex/explore_e1_fable_review_response.md)). Igor approved the merged fix list.
+The coordinator made the fixes. **Codex reviews this pass.**
+
+| Fix | Source | Change |
+|---|---|---|
+| Statewide and local pooled | Claude R1, Fable Q4 | Measure Type counts **local measures only**. Topic shows one level at a time, with a **Local / Statewide** toggle defaulting to Local, so no row, column or total pools the two. Region rows lose Statewide under Local. Also covers R6: 2026 statewide instrument types can't become Measure Type columns. |
+| County rates via the catalog filter | Claude R2 | With a County filter: **counts only**, no rate, shading or legend, plus a visible caution. D3. |
+| Status filter turns rates into 100% or 0% | Claude R5 | A Passed/Failed Status filter also gives counts only, with a caution. |
+| "Difference from column rate" | Both | Removed: the metric, its legend, sort and presentation, and the baseline fields. |
+| Modal decade bars | Fable | Removed until E2c rebuilds them with numbers. |
+| Leftover "1990s" | Both | Cell `aria-label`/`title` and the modal title use the row's real-year label. The catalog's own "Decade: 1990s" chip is unchanged: it is a calendar-decade filter, which is correct there. |
+| Coverage line | Both | Now names the level, the other level not shown, and **the 63 current-election measures** outside the catalog view. "Without a recorded outcome (pending, unknown or withdrawn)". Counted years are listed as ranges ("2011, 2013, 2015, 2022–24"). Notes moved into a collapsed "About these figures". |
+| Phone legend | Claude R7 | The first swatch no longer stretches to a full line. The table still starts low on phones; that's E2c's job. |
+| Small fixes | Claude R9 | The average-yes sort uses `max(5, minN)`. Drill-downs carry Explore's level into the catalog, and the modal notes the list includes records without an outcome. "Other" region rows no longer set a bogus county. Row-header and cell drill-downs share `applyExploreRowFilter`. Dead code is gone (county fall-through, `rowLabel`/`colLabel`, the "Jurisdiction" header, an orphan comment). The row header no longer shows a misleading "↓" for time order. |
+| Threshold helpers | Claude R8 | Kept, but now commented as unreachable and not to be revived before E3. **Correction:** E1's handoff said the catalog filter uses them; nothing can set that filter any more. |
+
+**New tests.**
+- Node tests for `Explore.yearRanges` and the count-only reason.
+- `check_explore_browser.py` now also checks:
+  - level separation (Statewide rows only under Statewide, none under Local);
+  - counts only under County and Status filters;
+  - no `baseline` option;
+  - real-year `aria-label` and modal title, and no decade chart;
+  - the current-election count;
+  - the phone legend swatch width;
+  - that a drill-down sets the level.
+
+**Evidence** (`scraper/data/exports/explore_e1_20261113/fixpass/`), against the same published
+baseline:
+- All 12,372 measure pages are byte-identical. JSON changes only `last_seen_at` (129). Sitemap
+  and use-calballot are unchanged. Grid/List DOM is identical for 3 URLs. All 64 `index.html`
+  hunks are Explore-scoped.
+- **Explore check** at 1440/768/390/320 passes. Default coverage: 10,939 counted, 2 without a
+  type and 56 without a recorded outcome, out of 10,997 local measures. 1,312 statewide
+  propositions are not shown, and 63 current-election measures are outside the view
+  (10,997 + 1,312 = 12,309). The minimum contrast is 7.06:1.
+- **Other checks:** the status check (now and across midnight), county content and navigation
+  all pass.
+- **Tests:** full suite 760 passed, baseline only.
+
+**Deferred to E2c** (plan reordered: E2c first):
+- transposing the table when it fits;
+- the phone list form;
+- rebuilding the decade chart with numbers.

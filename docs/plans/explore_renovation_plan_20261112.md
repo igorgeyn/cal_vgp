@@ -251,7 +251,21 @@ coverage arithmetic.
 **Hand back:** the commits, `docs/plans/explore_e1_handoff_<date>.md`, the evidence folder
 path, and `docs/codex/explore_e1_review_prompt.md`.
 
-### E2: Polish (about 3-4 days, in three reviewable sub-chunks, each with its own gate)
+### E2: Polish (about 3-4 days, in three reviewable sub-chunks, each with its own gate). Order: E2c, then E2a, then E2b (Igor, 2026-11-13).
+
+- **E2c: Layout, phones and trend. Do this first** (both E1 reviews found phones worse after
+  E1: the table starts about 980-1,100 px down, with 2-3 columns visible).
+  - **Transpose when it fits** (Fable, E1 review): put the *shorter* dimension across. The
+    default becomes measure types as rows and decades across (about 615 px wide, no sideways
+    scroll on desktop; each row reads as a trend). Year rows stay rows; regions go across only
+    where they fit. Row-label drill-down then filters by type. Rethink column sorting, since
+    sorting types by rate is a ranking (section 8). Update `check_explore_browser.py`, which
+    assumes decades in the first column.
+  - Below 700 px, a list for one chosen column or row ("Bond · 71% · 3,016" with a bar, the
+    same n < 5 rule), with a selector to switch.
+  - Rebuild the per-decade chart in the cell detail (removed in the E1 fix pass) with numbers
+    and n on every bar, and "too few" and "none" shown distinctly.
+  - No horizontal scroll at 390 or 320 px, and every value reachable.
 
 - **E2a: URL state and keyboard.** Fable's Q7 and Q8.
   - **URL.** Serialize `view=explore&cols=…&rows=…&minn=…&metric=…` into the URL, using
@@ -270,11 +284,6 @@ path, and `docs/codex/explore_e1_review_prompt.md`.
     matrix is **one tab stop**.
   - Use the checks the project can run offline: a manual screen-reader pass described in the
     handoff, plus DOM assertions.
-- **E2c: Phones and trend.** Fable's M1 and M6.
-  - Below 700 px, replace the matrix with a list for one chosen column or row ("Bond · 71% ·
-    3,016" with a bar, applying the same n < 5 rule), with a selector to switch.
-  - In the cell detail, label the decade bars with numbers and n.
-  - No horizontal scroll at 390 or 320 px, and every value reachable.
 
 ### E3: After the CEDA repair (P1b.2-P1b.4) lands. Don't start before Igor releases P1b.
 
@@ -350,9 +359,9 @@ Add this section to the checklist when E0 or E1 starts, and keep it current:
 | Chunk | Scope | Status | Review | Evidence |
 | E0 | Hide Explore (flag) | | | |
 | E1 | Honest Explore | | | |
+| E2c | Layout (transpose), phones, trend (first) | | | |
 | E2a | URL state + keyboard | | | |
 | E2b | Table semantics | | | |
-| E2c | Phones + trend | | | |
 | E3 | After P1b: multi-county, required vote, county rows, cohort list | | | |
 | E4 | Concept design (D4/D5) | | | |
 ```

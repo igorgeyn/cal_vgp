@@ -58,3 +58,18 @@ def test_sort_never_promotes_small_extreme_cells(direction):
     expression = '''[{total:1,rate:100},{total:8,rate:60},{total:4,rate:0},{total:9,rate:70}]
         .sort((a,b)=>Explore.compareCells(a,b,c=>c.rate,"%s")).map(c=>c.total)''' % direction
     assert evaluate(expression) == ([8,9,1,4] if direction == 'asc' else [9,8,1,4])
+
+
+@pytest.mark.parametrize('years,label', [
+    ([2011, 2013, 2015, 2022, 2023, 2024], '2011, 2013, 2015, 2022–24'),
+    ([1998, 1999, 2000, 2001], '1998–2001'), ([2024, 2024], '2024'), ([], 'Years unavailable'),
+])
+def test_year_ranges_list_gaps_instead_of_implying_a_span(years, label):
+    assert evaluate(f'Explore.yearRanges({json.dumps(years)})') == label
+
+
+def test_a_count_only_reason_suppresses_rates_at_any_size():
+    cell = evaluate('Explore.cell(60, 92, 5, "county figures are counts only")')
+    assert cell['rated'] is False and cell['text'] == '60 of 92' and cell['bg'] == 'transparent'
+    assert cell['label'] == '60 of 92 passed; county figures are counts only'
+    assert evaluate('Explore.cell(60, 92, 5, null).rated') is True
